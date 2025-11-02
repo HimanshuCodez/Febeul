@@ -58,12 +58,12 @@ const FebeulMembershipWidget = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0, y: 100 }}
               transition={{ type: "spring", stiffness: 120 }}
-              className="fixed bottom-24 right-8 w-[360px] bg-white rounded-3xl shadow-2xl z-50 overflow-hidden"
+              className="fixed bottom-8 right-8 w-[360px] max-h-[70vh] bg-white rounded-3xl shadow-2xl z-50 overflow-y-auto"
             >
               {/* Header */}
               <div className="relative h-40 bg-gradient-to-br from-pink-400 to-pink-600">
                 <motion.img
-                  src="https://images.unsplash.com/photo-1618354691373-46e92e5a0a89?w=800&q=80"
+                  src="https://imgs.search.brave.com/IC4apfe98FuFXNX62MgSwbw8J4ppGTgv6V5pwdt2AlI/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/cHJlbWl1bS1waG90/by95b3VuZy13b21h/bi13aGl0ZS1saW5n/ZXJpZS1seWluZy1i/ZWRfMTA0ODk0NC0y/NjEyOTExNy5qcGc_/c2VtdD1haXNfaHli/cmlkJnc9NzQwJnE9/ODA"
                   alt="Febeul Model"
                   className="absolute inset-0 w-full h-full object-cover opacity-80"
                   initial={{ opacity: 0 }}
