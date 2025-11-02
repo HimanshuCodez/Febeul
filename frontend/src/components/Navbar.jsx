@@ -14,7 +14,7 @@ import {
   TwitchIcon,
 } from "lucide-react";
 import SearchBar from "./SearchBar";
-
+import {Link } from "react-router-dom";
 const SwipingMessages = () => {
   const messages = [
     "Free Shipping on Orders Over Rs 499",
@@ -131,11 +131,14 @@ export default function Header() {
           </div>
 
           <div className="flex-1 flex justify-end">
+            <Link to={"/support"}> 
             <div className="flex items-center gap-1 cursor-pointer hover:opacity-80">
               <HeadphonesIcon />
               <span>Help</span>
             </div>
+            </Link>
           </div>
+          
         </div>
       </div>
 
@@ -151,9 +154,9 @@ export default function Header() {
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-5">
-            <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
-            <User className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
-            <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+           <Link to={"/whislist"}>  <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
+          <Link to={"/profile"}>  <User className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
+          <Link to={"/cart"}>   <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
           </div>
         </div>
       </div>
@@ -177,7 +180,7 @@ export default function Header() {
             </div>
 
             {/* Desktop Menu */}
-            <div className="hidden pl-10 gap-10 md:flex md:items-center md:space-x-12">
+            <div className="hidden pl-2 gap-10 md:flex md:items-center md:space-x-12">
               {navigation.map((item, index) => (
                 <div key={index} className="relative group">
                   <a

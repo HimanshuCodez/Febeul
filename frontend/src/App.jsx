@@ -4,6 +4,11 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./Pages/Home";
 import "./index.css"
 import Profile from "./Pages/Profile";
+import Wishlist from "./Pages/Wishlist";
+import Cart from "./Pages/Cart";
+import Support from "./Pages/Support";
+import Chatbot from "./components/Chatbot";
+import FebeulMembership from "./components/Membership";
 
 
 const App = () => {
@@ -13,6 +18,9 @@ const App = () => {
         {/* Default route - Home */}
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile  />} />
+        <Route path="/whislist" element={<Wishlist  />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/support" element={<Support />} />
 
         {/* Other routes */}
         {/* <Route path="/about" element={<About />} />
@@ -21,6 +29,8 @@ const App = () => {
         {/* Catch-all (404) */}
         <Route path="*" element={<h2>404 Page Not Found</h2>} />
       </Routes>
+      <Chatbot/>
+      <FebeulMembership/>
     </Router>
   );
 };
