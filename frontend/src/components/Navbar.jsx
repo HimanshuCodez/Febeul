@@ -150,10 +150,12 @@ export default function Header() {
           </div>
 
           <div className="flex-shrink-0">
-            <img src="./removebgLogo.png" alt="AdiLove" className="h-10 w-auto" />
+            <img src="./removebgLogo.png" alt="AdiLove" className="h-12 w-auto" />
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-5">
+           <Link to={"/signup"}>  Signup</Link>
+           <Link to={"/login"}>  Login</Link>
            <Link to={"/whislist"}>  <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
           <Link to={"/profile"}>  <User className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
           <Link to={"/cart"}>   <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
