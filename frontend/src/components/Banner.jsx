@@ -2,13 +2,14 @@ import React from "react";
 import { Shirt, Star, Gem, Scissors, Shield, Grid, Network, Layers } from "lucide-react";
 
 const styles = [
-  { icon: <Shirt className="w-4 h-4" />, label: "Teddies & Bodysuits" },
-  { icon: <Star className="w-4 h-4" />, label: "Embroidery" },
+  { icon: <Shirt className="w-4 h-4" />, label: "TeddyS & Bodysuits" },
+  { icon: <Star className="w-4 h-4" />, label: "Satin Babydoll" },
   { icon: <Gem className="w-4 h-4" />, label: "Luxury Satin" },
-  { icon: <Scissors className="w-4 h-4" />, label: "Crotchless Lingerie" },
-  { icon: <Shield className="w-4 h-4" />, label: "Leather" },
-  { icon: <Grid className="w-4 h-4" />, label: "Sheer Mesh" },
-  { icon: <Network className="w-4 h-4" />, label: "Fishnets" },
+  { icon: <Scissors className="w-4 h-4" />, label: "Garter Lingerie" },
+  { icon: <Shield className="w-4 h-4" />, label: "Satin Pj" },
+  { icon: <Grid className="w-4 h-4" />, label: "Skirt Babydoll" },
+  { icon: <Network className="w-4 h-4" />, label: "Sheer Mesh" },
+  { icon: <Network className="w-4 h-4" />, label: "Satin Nighty" },
   { icon: <Layers className="w-4 h-4" />, label: "Garter Lingerie" },
 ];
 
