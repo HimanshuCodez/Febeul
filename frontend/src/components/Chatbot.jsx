@@ -44,7 +44,7 @@ const Chatbot = () => {
           onClick={() => setIsOpen(true)}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          className="bg-pink-500 hover:bg-pink-600 text-white p-4 rounded-full shadow-lg flex items-center justify-center"
+          className="bg-[#f9aeaf] hover:bg-pink-600 text-white p-4 rounded-full shadow-lg flex items-center justify-center"
         >
           <MessageCircle className="w-6 h-6" />
         </motion.button>
@@ -83,7 +83,7 @@ const Chatbot = () => {
                   <div
                     className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${
                       msg.sender === "user"
-                        ? "bg-pink-500 text-white rounded-br-none"
+                        ? "bg-[#f9aeaf] text-white rounded-br-none"
                         : "bg-pink-100 text-gray-800 rounded-bl-none"
                     }`}
                   >
@@ -105,7 +105,7 @@ const Chatbot = () => {
               />
               <button
                 onClick={handleSend}
-                className="ml-2 bg-pink-500 hover:bg-pink-600 text-white p-2 rounded-full"
+                className="ml-2 bg-[#f9aeaf] hover:bg-pink-600 text-white p-2 rounded-full"
               >
                 <Send className="w-4 h-4" />
               </button>

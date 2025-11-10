@@ -155,7 +155,7 @@ export default function Header() {
 
           <div className="flex-1 flex items-center justify-end gap-5">
            <Link to={"/signup"}>  Signup</Link>
-           <Link to={"/login"}>  Login</Link>
+           <Link to={"/auth"}>  Login</Link>
            <Link to={"/whislist"}>  <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
           <Link to={"/profile"}>  <User className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
           <Link to={"/cart"}>   <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>

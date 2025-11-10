@@ -15,7 +15,7 @@ const styles = [
 
 const StylesSection = () => {
   return (
-    <section className="bg-gradient-to-b from-black via-purple-950 to-black text-white py-16 px-4 text-center">
+    <section className="bg-gradient-to-b from-black via-pink-300 to-black text-white py-16 px-4 text-center">
       <h2 className="text-2xl md:text-3xl font-semibold tracking-wide mb-10">
         SUITABLE FOR DIFFERENT STYLES
       </h2>
