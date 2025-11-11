@@ -166,18 +166,18 @@ export default function Header() {
       },
     },
     {
-      title: "NEW ARRIVALS",
+      title: "NEW & NOW",
       megaMenu: {
         Type: ["Satin"],
       },
     },
     {
-      title: "SALE",
+      title: "GIFT",
       megaMenu: {
         Offers: ["FLAT 20% OFF", "BABYDOLL BUY 3 GET 1 FREE"],
       },
     },
-    {
+   {
       title: "BUY ON AMAZON",
       megaMenu: {
         Type: ["Satin"],
