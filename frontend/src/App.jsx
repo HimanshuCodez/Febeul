@@ -11,7 +11,7 @@ import Chatbot from "./components/Chatbot";
 import FebeulMembership from "./components/Membership";
 import Collection from "./Pages/Collection";
 
-import SignUp from "./Pages/Signup";
+
 import AuthPage from "./Pages/AuthPage";
 
 
@@ -23,7 +23,7 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile  />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/signup" element={<SignUp />} />
+     
         <Route path="/whislist" element={<Wishlist  />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/collection" element={<Collection />} />

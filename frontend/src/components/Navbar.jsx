@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search,
   Heart,
@@ -12,9 +12,13 @@ import {
   Menu,
   X,
   TwitchIcon,
+  XCircle,
+  AtSign,
 } from "lucide-react";
 import SearchBar from "./SearchBar";
-import {Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import useAuthStore from "../store/authStore";
+
 const SwipingMessages = () => {
   const messages = [
     "Free Shipping on Orders Over Rs 499",
@@ -46,8 +50,61 @@ const SwipingMessages = () => {
   );
 };
 
+const UserMenu = () => {
+  const { logout } = useAuthStore();
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center">
+        <User className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+      </button>
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20">
+          <div className="py-1">
+            <Link
+              to="/profile"
+              onClick={() => setIsOpen(false)}
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              My Profile
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated } = useAuthStore();
 
   const navigation = [
     {
@@ -121,7 +178,7 @@ export default function Header() {
                 <Instagram className="w-4 h-4 cursor-pointer hover:opacity-80" />
               </a>
               <a href="https://www.threads.com/@febeul.official" target="_blank">
-                <TwitchIcon className="w-4 h-4 cursor-pointer hover:opacity-80" />
+                <AtSign className="w-4 h-4 cursor-pointer hover:opacity-80" />
               </a>
             </div>
           </div>
@@ -154,11 +211,22 @@ export default function Header() {
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-5">
-           <Link to={"/signup"}>  Signup</Link>
-           <Link to={"/auth"}>  Login</Link>
-           <Link to={"/whislist"}>  <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
-          <Link to={"/profile"}>  <User className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
-          <Link to={"/cart"}>   <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" /></Link>
+            {isAuthenticated ? (
+              <>
+                <Link to={"/wishlist"}>
+                  <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+                </Link>
+                <UserMenu />
+                <Link to={"/cart"}>
+                  <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to={"/auth"}>Login</Link>
+                <Link to={"/auth"}>Signup</Link>
+              </>
+            )}
           </div>
         </div>
       </div>

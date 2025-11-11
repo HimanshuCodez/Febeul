@@ -1,17 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  User, Mail, Phone, MapPin, Heart, ShoppingBag, CreditCard, LogOut, Edit, Gift, Save, X
+  User, Mail, Phone, MapPin, Heart, ShoppingBag, LogOut, Edit, Gift, Save, X, Loader
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const initialUser = {
-  name: "Himanshu Gaur",
-  email: "himanshu@febeul.com",
-  phone: "+91 98765 43210",
-  gender: "Male",
-  dob: "1999-06-10", // Use YYYY-MM-DD for input compatibility
-  address: "Flat 32, Orchid Residency, Mumbai",
-};
+import useAuthStore from "../store/authStore";
+import { useNavigate } from "react-router-dom";
 
 const orders = [
   { id: "#ORD1023", item: "Lace Babydoll", date: "Oct 28, 2025", status: "Delivered", amount: "₹1,299.00" },
@@ -25,10 +18,19 @@ const addresses = [
 ];
 
 export default function Profile() {
-  const [user, setUser] = useState(initialUser);
+  const { user, logout, isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState(user);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+    } else if (user) {
+      setEditedUser(user);
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -36,9 +38,25 @@ export default function Profile() {
   };
 
   const handleSave = () => {
-    setUser(editedUser);
+    // Here you would call an update user API
+    // For now, we just update the local state as a placeholder
+    console.log("Updated user data:", editedUser);
+    useAuthStore.setState({ user: editedUser });
     setIsEditing(false);
   };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-pink-50/50">
+        <Loader className="animate-spin text-pink-500" size={48} />
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -59,7 +77,7 @@ export default function Profile() {
     <div className="min-h-screen bg-pink-50/50 font-sans py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="lg:grid lg:grid-cols-12 lg:gap-8">
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} />
           <main className="lg:col-span-9">
             <AnimatePresence mode="wait">
               <motion.div
@@ -79,7 +97,7 @@ export default function Profile() {
   );
 }
 
-const Sidebar = ({ activeTab, setActiveTab }) => {
+const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
   const navItems = [
     { id: "profile", icon: User, label: "My Profile" },
     { id: "orders", icon: ShoppingBag, label: "My Orders" },
@@ -92,13 +110,13 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center space-x-4 p-2 mb-4">
           <img
-            src="https://cdn-icons-png.flaticon.com/512/219/219970.png"
+            src={`https://api.dicebear.com/6.x/initials/svg?seed=${user.name}`}
             alt="User Avatar"
-            className="w-16 h-16 rounded-full border-2 border-pink-200"
+            className="w-16 h-16 rounded-full border-2 border-pink-200 bg-gray-200"
           />
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Himanshu Gaur</h2>
-            <p className="text-sm text-gray-500">himanshu@febeul.com</p>
+            <h2 className="text-lg font-semibold text-gray-800">{user.name}</h2>
+            <p className="text-sm text-gray-500 break-all">{user.email}</p>
           </div>
         </div>
         <nav className="space-y-1">
@@ -115,7 +133,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               <span>{item.label}</span>
             </button>
           ))}
-          <button className="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+          <button onClick={onLogout} className="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
             <LogOut className="w-5 h-5" />
             <span>Logout</span>
           </button>
@@ -148,22 +166,22 @@ const ProfileDetails = ({ user }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
     <InfoItem icon={User} label="Full Name" value={user.name} />
     <InfoItem icon={Mail} label="Email Address" value={user.email} />
-    <InfoItem icon={Phone} label="Phone Number" value={user.phone} />
-    <InfoItem icon={User} label="Gender" value={user.gender} />
-    <InfoItem icon={Gift} label="Date of Birth" value={new Date(user.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} />
-    <InfoItem icon={MapPin} label="Address" value={user.address} wide />
+    <InfoItem icon={Phone} label="Phone Number" value={user.phone || 'Not provided'} />
+    <InfoItem icon={User} label="Gender" value={user.gender || 'Not provided'} />
+    <InfoItem icon={Gift} label="Date of Birth" value={user.dob ? new Date(user.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not provided'} />
+    <InfoItem icon={MapPin} label="Address" value={user.address || 'Not provided'} wide />
   </div>
 );
 
 const ProfileForm = ({ user, onInputChange, onSave }) => (
   <div className="space-y-4">
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormInput name="name" label="Full Name" value={user.name} onChange={onInputChange} />
-      <FormInput name="email" label="Email Address" value={user.email} onChange={onInputChange} type="email" />
-      <FormInput name="phone" label="Phone Number" value={user.phone} onChange={onInputChange} />
-      <FormInput name="dob" label="Date of Birth" value={user.dob} onChange={onInputChange} type="date" />
+      <FormInput name="name" label="Full Name" value={user.name || ''} onChange={onInputChange} />
+      <FormInput name="email" label="Email Address" value={user.email || ''} onChange={onInputChange} type="email" />
+      <FormInput name="phone" label="Phone Number" value={user.phone || ''} onChange={onInputChange} />
+      <FormInput name="dob" label="Date of Birth" value={user.dob ? user.dob.split('T')[0] : ''} onChange={onInputChange} type="date" />
     </div>
-    <FormInput name="address" label="Address" value={user.address} onChange={onInputChange} />
+    <FormInput name="address" label="Address" value={user.address || ''} onChange={onInputChange} />
     <div className="flex justify-end pt-4">
       <button onClick={onSave} className="flex items-center space-x-2 bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors">
         <Save size={16} />

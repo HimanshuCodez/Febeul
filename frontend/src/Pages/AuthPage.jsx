@@ -1,13 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import GoogleIcon from "../components/GoogleIcon";
 import { Eye, EyeOff } from "lucide-react";
+import useAuthStore from "../store/authStore";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast, Toaster } from 'react-hot-toast';
+
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { login, register: signup, isAuthenticated, error, loading } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     register,
@@ -18,16 +25,34 @@ const AuthPage = () => {
 
   const password = watch("password");
 
-  const onSubmit = (data) => {
-    alert(isLogin ? "Logged in successfully 💕" : "Signed up successfully 💋");
-    console.log(data);
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (location.pathname === '/auth') {
+        toast.success(isLogin ? "Logged in successfully!" : "Signed up successfully!");
+        navigate("/profile", { replace: true });
+      }
+    }
+    if (error) {
+      toast.error(error);
+    }
+  }, [isAuthenticated, error, navigate, isLogin, location.pathname]);
+
+  const onSubmit = async (data) => {
+    if (isLogin) {
+      await login({ email: data.email, password: data.password });
+    } else {
+      await signup({ name: data.name, email: data.email, password: data.password });
+    }
   };
 
   const handleGoogleLogin = () => {
-    alert("Google Login Clicked!");
+    // This would trigger the OAuth flow
+    toast("Google Login is not implemented yet.", { icon: '🚧' });
   };
 
   return (
+    <>
+    <Toaster position="top-center" reverseOrder={false}/>
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-6">
       {/* Animated floating hearts background */}
       {[...Array(8)].map((_, i) => (
@@ -70,6 +95,23 @@ const AuthPage = () => {
         </motion.h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Name (only for signup) */}
+          {!isLogin && (
+            <div>
+              <input
+                type="text"
+                placeholder="Full Name"
+                {...register("name", { required: "Name is required" })}
+                className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
+              />
+              {errors.name && (
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Email */}
           <div>
             <input
@@ -201,9 +243,10 @@ const AuthPage = () => {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             type="submit"
-            className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition"
+            disabled={loading}
+            className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
           >
-            {isLogin ? "Login" : "Sign Up"}
+            {loading ? 'Processing...' : (isLogin ? "Login" : "Sign Up")}
           </motion.button>
 
           {/* Divider */}
@@ -234,6 +277,7 @@ const AuthPage = () => {
         </div>
       </motion.div>
     </div>
+    </>
   );
 };
 
