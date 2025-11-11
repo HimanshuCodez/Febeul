@@ -12,7 +12,7 @@ const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { login, register: signup, isAuthenticated, error, loading } = useAuthStore();
+  const { login, register: signup, isAuthenticated, error, loading, clearError } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -34,8 +34,15 @@ const AuthPage = () => {
     }
     if (error) {
       toast.error(error);
+      clearError();
     }
-  }, [isAuthenticated, error, navigate, isLogin, location.pathname]);
+  }, [isAuthenticated, error, navigate, isLogin, location.pathname, clearError]);
+
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, [clearError]);
 
   const onSubmit = async (data) => {
     if (isLogin) {

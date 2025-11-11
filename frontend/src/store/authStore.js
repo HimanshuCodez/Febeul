@@ -63,6 +63,8 @@ const useAuthStore = create((set, get) => ({
     localStorage.removeItem('token');
     set({ token: null, user: null, isAuthenticated: false });
   },
+
+  clearError: () => set({ error: null }),
 }));
 
 // Fetch profile on initial load if token exists

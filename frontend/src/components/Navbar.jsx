@@ -50,7 +50,7 @@ const SwipingMessages = () => {
   );
 };
 
-const UserMenu = () => {
+const UserMenu = ({ isAuthenticated }) => {
   const { logout } = useAuthStore();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -81,25 +81,47 @@ const UserMenu = () => {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20">
           <div className="py-1">
-            <Link
-              to="/profile"
-              onClick={() => setIsOpen(false)}
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              My Profile
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              Logout
-            </button>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/profile"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  My Profile
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/auth"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/auth"
+                  onClick={() => setIsOpen(false)}
+                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Signup
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
     </div>
   );
 };
+
 
 
 export default function Header() {
@@ -211,22 +233,15 @@ export default function Header() {
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-5">
-            {isAuthenticated ? (
-              <>
-                <Link to={"/wishlist"}>
-                  <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
-                </Link>
-                <UserMenu />
-                <Link to={"/cart"}>
-                  <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to={"/auth"}>Login</Link>
-                <Link to={"/auth"}>Signup</Link>
-              </>
+            {isAuthenticated && (
+              <Link to={"/wishlist"}>
+                <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+              </Link>
             )}
+            <UserMenu isAuthenticated={isAuthenticated} />
+            <Link to={"/cart"}>
+              <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+            </Link>
           </div>
         </div>
       </div>
