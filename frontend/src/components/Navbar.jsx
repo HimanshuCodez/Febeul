@@ -104,15 +104,9 @@ const UserMenu = ({ isAuthenticated }) => {
                   onClick={() => setIsOpen(false)}
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  Login
+                  JOIN NOW
                 </Link>
-                <Link
-                  to="/auth"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Signup
-                </Link>
+               
               </>
             )}
           </div>
@@ -132,58 +126,71 @@ export default function Header() {
     {
       title: "BABYDOLL",
       megaMenu: {
-        Type: ["Satin", "One-Piece"],
+        Type: ["Above knee B'doll", "Knee Length B'doll","One piece B'doll","Two Piece B'doll"],
+            Fabric: ["Satin", "Lace", "Net", "Silk Satin"],
       },
     },
     {
       title: "LINGERIE",
       megaMenu: {
         Type: [
-          "Hipsters",
-          "Bikini",
-          "Thongs",
-          "Boy shorts",
-          "Boyleg",
-          "Beginners Panties",
-          "Maternity Panties",
-          "Bridal Panties",
-          "Sexy Panties",
+          "Teddy Choker Lingz",
+          "Bra Panty Lingz",
+         
         ],
-        Waist: ["High waist", "Low waist", "Mid waist"],
-        Fabric: ["Cotton", "Lace", "Polyamide", "Modal"],
-        Offers: [
-          "4 Panties @599",
-          "3 Panties @599",
-          "3 Panties @999",
-          "Panties Combo Packs New",
+        // Waist: ["High waist", "Low waist", "Mid waist"],
+        // Fabric: ["Cotton", "Lace", "Polyamide", "Modal"],
+        // Offers: [
+        //   "4 Panties @599",
+        //   "3 Panties @599",
+        //   "3 Panties @999",
+        //   "Panties Combo Packs New",
+        // ],
+      },
+    },
+    {
+      title: "NIGHTY",
+      megaMenu: {
+        Type: [
+          "Slik Satin",
+          "Sheer Mesh",
+         
         ],
+        // Waist: ["High waist", "Low waist", "Mid waist"],
+        // Fabric: ["Cotton", "Lace", "Polyamide", "Modal"],
+        // Offers: [
+        //   "4 Panties @599",
+        //   "3 Panties @599",
+        //   "3 Panties @999",
+        //   "Panties Combo Packs New",
+        // ],
       },
     },
     {
       title: "PAJAMAS",
-      megaMenu: {
-        Type: ["Satin"],
-      },
+      // megaMenu: {
+      //   Type: ["Satin"],
+      // },
     },
     {
       title: "NEW & NOW",
-      megaMenu: {
-        Type: ["Satin"],
-      },
+      // megaMenu: {
+      //   Type: ["Satin"],
+      // },
     },
     {
-      title: "GIFT",
-      megaMenu: {
-        Offers: ["FLAT 20% OFF", "BABYDOLL BUY 3 GET 1 FREE"],
-      },
+      title: "GIFT WRAP 🎁",
+      // megaMenu: {
+      //   Offers: ["FLAT 20% OFF", "BABYDOLL BUY 3 GET 1 FREE"],
+      // },
     },
    {
-      title: "BUY ON AMAZON",
-      megaMenu: {
-        Type: ["Satin"],
-      },
+      title: "LUXE PRIVE SALE",
+      // megaMenu: {
+      //   Type: ["Satin"],
+      // },
     },
-    { title: "FEBEUL LUXE", megaMenu: {} },
+  
   ];
 
   return (
