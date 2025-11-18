@@ -75,9 +75,9 @@ const UserMenu = ({ isAuthenticated }) => {
 
   return (
     <div className="relative" ref={menuRef}>
-      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center">
+    <Link to={isAuthenticated ? "/profile" : "/auth"}>
         <User className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
-      </button>
+ </Link>
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20">
           <div className="py-1">

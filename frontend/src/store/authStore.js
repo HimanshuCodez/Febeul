@@ -59,6 +59,12 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  setToken: (token) => {
+    localStorage.setItem('token', token);
+    set({ token, isAuthenticated: true });
+    get().getProfile();
+  },
+
   logout: () => {
     localStorage.removeItem('token');
     set({ token: null, user: null, isAuthenticated: false });

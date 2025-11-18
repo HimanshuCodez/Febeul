@@ -40,7 +40,7 @@ const OfferBar = () => {
         <div>
           <p className="uppercase font-semibold">Easy Returns</p>
           <p className="text-xs sm:text-sm text-gray-100">
-            30 days hassle-free returns
+            3 days hassle-free returns
           </p>
         </div>
       </div>
