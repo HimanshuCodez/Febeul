@@ -23,7 +23,7 @@ const SwipingMessages = () => {
   const messages = [
     "Free Shipping on Orders Over Rs 499",
     "Register To Get 10% Off: CODE: FNEW10",
-    "30 Days Return-Policy",
+    "3 Days Return-Policy",
   ];
   const [currentIndex, setCurrentIndex] = useState(0);
 
