@@ -16,22 +16,15 @@ const AuthPage = () => {
   const { login, register: signup, isAuthenticated, error, loading, clearError, setToken } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const [authMode, setAuthMode] = useState('email'); // 'email' or 'mobile'
-  const [mobileLoginStep, setMobileLoginStep] = useState(1); // 1 for phone number, 2 for OTP
-  const [mobileNumber, setMobileNumber] = useState('');
+  const [step, setStep] = useState(1); // 1 for details, 2 for OTP
+  const [formData, setFormData] = useState({});
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
-  } = useForm();
-
-  const {
-    register: registerMobile,
-    handleSubmit: handleSubmitMobile,
-    formState: { errors: mobileErrors },
-    getValues,
+    getValues
   } = useForm();
 
   const password = watch("password");
@@ -40,7 +33,7 @@ const AuthPage = () => {
     if (isAuthenticated) {
       if (location.pathname === '/auth') {
         toast.success(isLogin ? "Logged in successfully!" : "Signed up successfully!");
-        navigate("/profile", { replace: true });
+        navigate("/", { replace: true });
       }
     }
     if (error) {
@@ -55,49 +48,94 @@ const AuthPage = () => {
     };
   }, [clearError]);
 
-  const onEmailSubmit = async (data) => {
+  const onSubmit = async (data) => {
+    setFormData(data); // Store form data
     if (isLogin) {
-      await login({ email: data.email, password: data.password });
+      // Handle Login
+      if (data.otp) {
+        // OTP Login
+        try {
+          const response = await axios.post('http://localhost:4000/api/otp/verify-otp', { mobile: data.identifier, otp: data.otp });
+          if (response.data.success) {
+            const { token } = response.data;
+            setToken(token);
+            toast.success("Logged in successfully!");
+            navigate("/", { replace: true });
+          } else {
+            toast.error(response.data.message);
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to verify OTP');
+        }
+      } else {
+        // Password Login
+        await login({ email: data.identifier, password: data.password });
+      }
     } else {
-      await signup({ name: data.name, email: data.email, password: data.password });
+      // Handle Signup
+      if (step === 1) {
+        // Send OTP
+        try {
+          const response = await axios.post('http://localhost:4000/api/otp/send-otp', { mobile: data.mobile });
+          if (response.data.success) {
+            toast.success(`OTP sent to ${data.mobile}`);
+            setStep(2);
+          } else {
+            toast.error(response.data.message);
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to send OTP');
+        }
+      } else {
+        // Verify OTP and Signup
+        try {
+          const response = await axios.post('http://localhost:4000/api/otp/verify-otp', { mobile: data.mobile, otp: data.otp });
+          if (response.data.success) {
+            await signup({ name: data.name, email: data.email, mobile: data.mobile, password: data.password });
+          } else {
+            toast.error(response.data.message);
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to verify OTP');
+        }
+      }
     }
   };
 
-  const onMobileSubmit = async (data) => {
-    if (mobileLoginStep === 1) {
-      try {
-        const response = await axios.post('http://localhost:4000/api/otp/send-otp', { mobile: data.mobile });
-        if (response.data.success) {
-          toast.success(`OTP sent to ${data.mobile}`);
-          setMobileNumber(data.mobile);
-          setMobileLoginStep(2);
-        } else {
-          toast.error(response.data.message);
-        }
-      } catch (error) {
-        toast.error(error.response?.data?.message || 'Failed to send OTP');
+  const handleSendOtpForLogin = async () => {
+    const identifier = getValues("identifier");
+    if (!identifier) {
+      toast.error("Please enter your mobile number to get an OTP.");
+      return;
+    }
+    // Simple check for mobile number. In a real app, you might want a more robust check.
+    if (!/^\d{10}$/.test(identifier)) {
+        toast.error("Please enter a valid 10-digit mobile number to receive an OTP.");
+        return;
+    }
+    try {
+      const response = await axios.post('http://localhost:4000/api/otp/send-otp', { mobile: identifier });
+      if (response.data.success) {
+        toast.success(`OTP sent to ${identifier}`);
+        setStep(2); // Move to OTP step for login as well
+      } else {
+        toast.error(response.data.message);
       }
-    } else {
-      try {
-        const response = await axios.post('http://localhost:4000/api/otp/verify-otp', { mobile: mobileNumber, otp: data.otp });
-        if (response.data.success) {
-          const { token } = response.data;
-          setToken(token);
-          toast.success("Logged in successfully!");
-          navigate("/profile", { replace: true });
-        } else {
-          toast.error(response.data.message);
-        }
-      } catch (error) {
-        toast.error(error.response?.data?.message || 'Failed to verify OTP');
-      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to send OTP');
     }
   };
+
 
   const handleGoogleLogin = () => {
     // This would trigger the OAuth flow
     toast("Google Login is not implemented yet.", { icon: '🚧' });
   };
+
+  const toggleForm = () => {
+    setIsLogin(!isLogin);
+    setStep(1); // Reset to step 1 when toggling
+  }
 
   return (
     <>
@@ -140,13 +178,13 @@ const AuthPage = () => {
           transition={{ duration: 0.5 }}
           className="text-3xl font-bold text-center mb-6 text-[#f47b7d]"
         >
-          {authMode === 'email' ? (isLogin ? "Welcome Back to Febeul 💖" : "Join Febeul Family") : "Login with Mobile"}
+          {isLogin ? "Welcome Back to Febeul 💖" : "Join Febeul Family"}
         </motion.h2>
 
-        {authMode === 'email' ? (
-          <form onSubmit={handleSubmit(onEmailSubmit)} className="space-y-4">
-            {/* Name (only for signup) */}
-            {!isLogin && (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {!isLogin && step === 1 && (
+            <>
+              {/* Name */}
               <div>
                 <input
                   type="text"
@@ -154,156 +192,29 @@ const AuthPage = () => {
                   {...register("name", { required: "Name is required" })}
                   className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
                 />
-                {errors.name && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.name.message}
-                  </p>
-                )}
+                {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>}
               </div>
-            )}
-
-            {/* Email */}
-            <div>
-              <input
-                type="email"
-                placeholder="Email"
-                {...register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^\S+@\S+$/i,
-                    message: "Enter a valid email",
-                  },
-                })}
-                className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500 mt-1">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Password must be at least 6 characters",
-                  },
-                })}
-                className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
-                {showPassword ? (
-                  <EyeOff
-                    className="h-5 w-5 text-gray-400 cursor-pointer"
-                    onClick={() => setShowPassword(false)}
-                  />
-                ) : (
-                  <Eye
-                    className="h-5 w-5 text-gray-400 cursor-pointer"
-                    onClick={() => setShowPassword(true)}
-                  />
-                )}
+              {/* Email (optional) */}
+              <div>
+                <input
+                  type="email"
+                  placeholder="Email (Optional)"
+                  {...register("email", {
+                    pattern: {
+                      value: /^\S+@\S+$/i,
+                      message: "Enter a valid email",
+                    },
+                  })}
+                  className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
+                />
+                {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
               </div>
-            </div>
-              {errors.password && (
-                <p className="text-sm text-red-500 mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-
-            {isLogin && (
-              <div className="text-right text-sm">
-                <a href="#" className="text-[#f47b7d] hover:underline">
-                  Forgot Password?
-                </a>
-              </div>
-            )}
-
-            {/* Confirm Password & OTP for Signup */}
-            {!isLogin && (
-              <>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm Password"
-                    {...register("confirmPassword", {
-                      required: "Please confirm your password",
-                      validate: (value) =>
-                        value === password || "Passwords do not match",
-                    })}
-                    className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
-                    {showConfirmPassword ? (
-                      <EyeOff
-                        className="h-5 w-5 text-gray-400 cursor-pointer"
-                        onClick={() => setShowConfirmPassword(false)}
-                      />
-                    ) : (
-                      <Eye
-                        className="h-5 w-5 text-gray-400 cursor-pointer"
-                        onClick={() => setShowConfirmPassword(true)}
-                      />
-                    )}
-                  </div>
-                </div>
-                  {errors.confirmPassword && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.confirmPassword.message}
-                    </p>
-                  )}
-
-                <div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="terms"
-                      {...register("terms", {
-                        required: "You must accept the terms and conditions",
-                      })}
-                      className="h-4 w-4 text-[#f9aeaf] focus:ring-[#f9aeaf] border-gray-300 rounded"
-                    />
-                    <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                      I agree to the{" "}
-                      <a href="#" className="text-[#f47b7d] hover:underline">
-                        Terms and Conditions
-                      </a>
-                    </label>
-                  </div>
-                  {errors.terms && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.terms.message}
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Submit */}
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
-            >
-              {loading ? 'Processing...' : (isLogin ? "Login" : "Sign Up")}
-            </motion.button>
-          </form>
-        ) : (
-          <form onSubmit={handleSubmitMobile(onMobileSubmit)} className="space-y-4">
-            {mobileLoginStep === 1 ? (
+              {/* Mobile Number */}
               <div>
                 <input
                   type="tel"
                   placeholder="Mobile Number"
-                  {...registerMobile("mobile", {
+                  {...register("mobile", {
                     required: "Mobile number is required",
                     pattern: {
                       value: /^\d{10}$/,
@@ -312,110 +223,158 @@ const AuthPage = () => {
                   })}
                   className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
                 />
-                {mobileErrors.mobile && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {mobileErrors.mobile.message}
-                  </p>
-                )}
+                {errors.mobile && <p className="text-sm text-red-500 mt-1">{errors.mobile.message}</p>}
               </div>
-            ) : (
-              <div>
+               {/* Password */}
+               <div className="relative">
                 <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  {...registerMobile("otp", {
-                    required: "OTP is required",
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  {...register("password", {
+                    required: "Password is required",
                     minLength: {
                       value: 6,
-                      message: "OTP must be 6 characters",
-                    },
-                    maxLength: {
-                      value: 6,
-                      message: "OTP must be 6 characters",
+                      message: "Password must be at least 6 characters",
                     },
                   })}
                   className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
                 />
-                {mobileErrors.otp && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {mobileErrors.otp.message}
-                  </p>
-                )}
-                <div className="text-right text-sm mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setMobileLoginStep(1)}
-                    className="text-[#f47b7d] hover:underline"
-                  >
-                    Back
-                  </button>
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(false)} />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(true)} />
+                  )}
                 </div>
               </div>
-            )}
+              {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>}
+               {/* Confirm Password */}
+               <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm Password"
+                  {...register("confirmPassword", {
+                    required: "Please confirm your password",
+                    validate: (value) => value === password || "Passwords do not match",
+                  })}
+                  className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => setShowConfirmPassword(false)} />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => setShowConfirmPassword(true)} />
+                  )}
+                </div>
+              </div>
+              {errors.confirmPassword && <p className="text-sm text-red-500 mt-1">{errors.confirmPassword.message}</p>}
+            </>
+          )}
 
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
-            >
-              {loading ? 'Processing...' : (mobileLoginStep === 1 ? "Send OTP" : "Verify OTP")}
-            </motion.button>
-          </form>
-        )}
+          {isLogin && step === 1 && (
+             <>
+                {/* Email or Phone */}
+                <div>
+                    <input
+                    type="text"
+                    placeholder="Email or Mobile Number"
+                    {...register("identifier", { required: "Email or mobile number is required" })}
+                    className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
+                    />
+                    {errors.identifier && <p className="text-sm text-red-500 mt-1">{errors.identifier.message}</p>}
+                </div>
 
-        {/* Divider */}
-        <div className="text-center text-sm text-gray-500 my-4">or</div>
+                {/* Password */}
+                <div className="relative">
+                    <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    {...register("password")} // Not required if using OTP
+                    className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
+                    {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(false)} />
+                    ) : (
+                        <Eye className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => setShowPassword(true)} />
+                    )}
+                    </div>
+                </div>
+                {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>}
+            </>
+          )}
 
-        {/* Social and Mobile Logins */}
-        <div className="space-y-4">
+          {(step === 2) && (
+             <div>
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  {...register("otp", {
+                    required: "OTP is required",
+                    minLength: { value: 6, message: "OTP must be 6 characters" },
+                    maxLength: { value: 6, message: "OTP must be 6 characters" },
+                  })}
+                  className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
+                />
+                {errors.otp && <p className="text-sm text-red-500 mt-1">{errors.otp.message}</p>}
+                <div className="text-right text-sm mt-2">
+                    <button type="button" onClick={() => setStep(1)} className="text-[#f47b7d] hover:underline">
+                        Back
+                    </button>
+                </div>
+              </div>
+          )}
+
+          {/* Submit Button */}
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={handleGoogleLogin}
-            type="button"
-            className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
           >
-            <GoogleIcon size={18} />
-            Continue with Google
+            {loading ? 'Processing...' : 
+              isLogin ? (step === 1 ? "Login" : "Verify & Login") : (step === 1 ? "Get OTP" : "Sign Up")}
           </motion.button>
+        </form>
 
-          {authMode === 'email' ? (
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setAuthMode('mobile')}
-              type="button"
-              className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
-            >
-              Login with Mobile
-            </motion.button>
-          ) : (
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setAuthMode('email')}
-              type="button"
-              className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
-            >
-              Login with Email
-            </motion.button>
-          )}
-        </div>
+        {/* Divider and alternative login options */}
+        {step === 1 && (
+            <>
+                <div className="text-center text-sm text-gray-500 my-4">or</div>
+                
+                {isLogin && (
+                     <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handleSendOtpForLogin}
+                        type="button"
+                        className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
+                        >
+                        Login with OTP
+                    </motion.button>
+                )}
 
-        {/* Toggle */}
-        {authMode === 'email' && (
-          <div className="text-center mt-6 text-sm">
-            {isLogin ? "Don’t have an account?" : "Already have an account?"}{" "}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-[#f47b7d] font-semibold underline"
-            >
-              {isLogin ? "Sign Up" : "Login"}
-            </button>
-          </div>
+                <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleGoogleLogin}
+                    type="button"
+                    className="w-full py-3 mt-4 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
+                >
+                    <GoogleIcon size={18} />
+                    Continue with Google
+                </motion.button>
+            </>
         )}
+
+        {/* Toggle between Login and Sign Up */}
+        <div className="text-center mt-6 text-sm">
+          {isLogin ? "Don’t have an account?" : "Already have an account?"}{" "}
+          <button onClick={toggleForm} className="text-[#f47b7d] font-semibold underline">
+            {isLogin ? "Sign Up" : "Login"}
+          </button>
+        </div>
       </motion.div>
     </div>
     </>

@@ -24,7 +24,7 @@ export default function Spotlight() {
           grid-cols-2 
           sm:grid-cols-3 
           lg:grid-cols-4  
-          gap-36
+          gap-20
           sm:gap-36
        
         "
@@ -36,7 +36,7 @@ export default function Spotlight() {
             transition={{ type: "spring", stiffness: 200 }}
             className="flex flex-col items-center"
           >
-            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-pink-200 shadow-md">
+            <div className="w-28 h-28 sm:w-44 sm:h-44 rounded-full overflow-hidden border-2 border-pink-200 shadow-md">
               <img
                 src={c.img}
                 alt={c.label}
