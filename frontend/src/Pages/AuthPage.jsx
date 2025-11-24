@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import GoogleIcon from "../components/GoogleIcon";
 import { Eye, EyeOff } from "lucide-react";
 import useAuthStore from "../store/authStore";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast, Toaster } from 'react-hot-toast';
 import axios from 'axios';
 
@@ -16,15 +16,15 @@ const AuthPage = () => {
   const { login, register: signup, isAuthenticated, error, loading, clearError, setToken } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const [step, setStep] = useState(1); // 1 for details, 2 for OTP
-  const [formData, setFormData] = useState({});
+  const [step, setStep] = useState(1); // 1 for details, 2 for OTP (used for login)
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
-    getValues
+    getValues,
+    reset
   } = useForm();
 
   const password = watch("password");
@@ -49,13 +49,12 @@ const AuthPage = () => {
   }, [clearError]);
 
   const onSubmit = async (data) => {
-    setFormData(data); // Store form data
     if (isLogin) {
       // Handle Login
       if (data.otp) {
         // OTP Login
         try {
-          const response = await axios.post('http://localhost:4000/api/otp/verify-otp', { mobile: data.identifier, otp: data.otp });
+          const response = await axios.post('https://febeul.onrender.com/api/otp/verify-otp', { mobile: getValues('identifier'), otp: data.otp });
           if (response.data.success) {
             const { token } = response.data;
             setToken(token);
@@ -73,32 +72,7 @@ const AuthPage = () => {
       }
     } else {
       // Handle Signup
-      if (step === 1) {
-        // Send OTP
-        try {
-          const response = await axios.post('http://localhost:4000/api/otp/send-otp', { mobile: data.mobile });
-          if (response.data.success) {
-            toast.success(`OTP sent to ${data.mobile}`);
-            setStep(2);
-          } else {
-            toast.error(response.data.message);
-          }
-        } catch (error) {
-          toast.error(error.response?.data?.message || 'Failed to send OTP');
-        }
-      } else {
-        // Verify OTP and Signup
-        try {
-          const response = await axios.post('http://localhost:4000/api/otp/verify-otp', { mobile: data.mobile, otp: data.otp });
-          if (response.data.success) {
-            await signup({ name: data.name, email: data.email, mobile: data.mobile, password: data.password });
-          } else {
-            toast.error(response.data.message);
-          }
-        } catch (error) {
-          toast.error(error.response?.data?.message || 'Failed to verify OTP');
-        }
-      }
+      await signup({ name: data.name, email: data.email, mobile: data.mobile, password: data.password });
     }
   };
 
@@ -114,10 +88,10 @@ const AuthPage = () => {
         return;
     }
     try {
-      const response = await axios.post('http://localhost:4000/api/otp/send-otp', { mobile: identifier });
+      const response = await axios.post('https://febeul.onrender.com/api/otp/send-otp', { mobile: identifier });
       if (response.data.success) {
         toast.success(`OTP sent to ${identifier}`);
-        setStep(2); // Move to OTP step for login as well
+        setStep(2); // Move to OTP step for login
       } else {
         toast.error(response.data.message);
       }
@@ -135,6 +109,7 @@ const AuthPage = () => {
   const toggleForm = () => {
     setIsLogin(!isLogin);
     setStep(1); // Reset to step 1 when toggling
+    reset(); // Clear form fields and errors
   }
 
   return (
@@ -182,7 +157,7 @@ const AuthPage = () => {
         </motion.h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {!isLogin && step === 1 && (
+          {!isLogin && (
             <>
               {/* Name */}
               <div>
@@ -194,12 +169,13 @@ const AuthPage = () => {
                 />
                 {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>}
               </div>
-              {/* Email (optional) */}
+              {/* Email */}
               <div>
                 <input
                   type="email"
-                  placeholder="Email (Optional)"
+                  placeholder="Email"
                   {...register("email", {
+                    required: "Email is required",
                     pattern: {
                       value: /^\S+@\S+$/i,
                       message: "Enter a valid email",
@@ -301,10 +277,15 @@ const AuthPage = () => {
                     </div>
                 </div>
                 {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>}
+                <div className="text-right text-sm mt-1">
+                  <Link to="/forgot-password"className="text-gray-500 hover:text-[#f47b7d] hover:underline">
+                      Forgot Password?
+                  </Link>
+                </div>
             </>
           )}
 
-          {(step === 2) && (
+          {isLogin && (step === 2) && (
              <div>
                 <input
                   type="text"
@@ -334,39 +315,40 @@ const AuthPage = () => {
             className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
           >
             {loading ? 'Processing...' : 
-              isLogin ? (step === 1 ? "Login" : "Verify & Login") : (step === 1 ? "Get OTP" : "Sign Up")}
+              isLogin ? (step === 1 ? "Login" : "Verify & Login") : "Sign Up"}
           </motion.button>
         </form>
 
         {/* Divider and alternative login options */}
-        {step === 1 && (
+        {isLogin && step === 1 && (
             <>
                 <div className="text-center text-sm text-gray-500 my-4">or</div>
                 
-                {isLogin && (
-                     <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={handleSendOtpForLogin}
-                        type="button"
-                        className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
-                        >
-                        Login with OTP
-                    </motion.button>
-                )}
-
                 <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
-                    onClick={handleGoogleLogin}
+                    onClick={handleSendOtpForLogin}
                     type="button"
-                    className="w-full py-3 mt-4 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
-                >
-                    <GoogleIcon size={18} />
-                    Continue with Google
+                    className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
+                    >
+                    Login with OTP
                 </motion.button>
             </>
         )}
+
+        <div className="my-4">
+             <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleGoogleLogin}
+                type="button"
+                className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
+            >
+                <GoogleIcon size={18} />
+                Continue with Google
+            </motion.button>
+        </div>
+
 
         {/* Toggle between Login and Sign Up */}
         <div className="text-center mt-6 text-sm">

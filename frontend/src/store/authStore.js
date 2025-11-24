@@ -12,7 +12,7 @@ const useAuthStore = create((set, get) => ({
     const token = get().token;
     if (!token) return;
     try {
-      const response = await axios.get('http://localhost:4000/api/user/profile', {
+      const response = await axios.get('https://febeul.onrender.com/api/user/profile', {
         headers: { token }
       });
       if (response.data.success) {
@@ -28,7 +28,7 @@ const useAuthStore = create((set, get) => ({
   login: async (data) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('http://localhost:4000/api/user/login', data);
+      const response = await axios.post('https://febeul.onrender.com/api/user/login', data);
       if (response.data.success) {
         const { token } = response.data;
         localStorage.setItem('token', token);
@@ -45,7 +45,7 @@ const useAuthStore = create((set, get) => ({
   register: async (data) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('http://localhost:4000/api/user/register', data);
+      const response = await axios.post('https://febeul.onrender.com/api/user/register', data);
       if (response.data.success) {
         const { token } = response.data;
         localStorage.setItem('token', token);
@@ -56,6 +56,45 @@ const useAuthStore = create((set, get) => ({
       }
     } catch (error) {
       set({ error: error.response?.data?.message || 'Registration failed', loading: false });
+    }
+  },
+
+  forgotPassword: async (email) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await axios.post('https://febeul.onrender.com/api/user/forgot-password', { email });
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to send reset email';
+      set({ error: message, loading: false });
+      throw new Error(message);
+    }
+  },
+
+  verifyPasswordResetOtp: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await axios.post('https://febeul.onrender.com/api/user/verify-password-otp', data);
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to verify OTP';
+      set({ error: message, loading: false });
+      throw new Error(message);
+    }
+  },
+
+  resetPassword: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await axios.post('https://febeul.onrender.com/api/user/reset-password', data);
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to reset password';
+      set({ error: message, loading: false });
+      throw new Error(message);
     }
   },
 

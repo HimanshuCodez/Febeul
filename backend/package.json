@@ -18,9 +18,11 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.3",
+    "msg91-v5": "^1.1.0",
     "multer": "^1.4.5-lts.1",
     "nodemon": "^3.1.10",
     "razorpay": "^2.9.4",
+    "resend": "^6.5.2",
     "stripe": "^16.8.0",
     "validator": "^13.12.0"
   }

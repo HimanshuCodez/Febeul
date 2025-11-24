@@ -1,40 +1,115 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
+import useAuthStore from "../store/authStore";
+import { toast, Toaster } from 'react-hot-toast';
+import { Link, useNavigate } from "react-router-dom";
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1);
+  const [email, setEmail] = useState("");
+  const { forgotPassword, verifyPasswordResetOtp, resetPassword, loading, error, clearError } = useAuthStore();
+  const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
+    getValues,
     setValue,
     watch,
   } = useForm();
 
   const password = watch("password");
 
-  const onSubmit = (data) => {
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, [clearError]);
+
+  const onSubmit = async (data) => {
+    clearError();
     if (step === 1) {
-      // simulate sending OTP
-      alert(`OTP sent to ${data.email}`);
-      setStep(2);
+      try {
+        const response = await forgotPassword(data.email);
+        if (response.success) {
+          toast.success(response.message || "OTP sent to your email.");
+          setEmail(data.email);
+          setStep(2);
+        } else {
+          toast.error(response.message || "Failed to send OTP.");
+        }
+      } catch (e) {
+        // error is handled by the store and useEffect
+      }
     } else if (step === 2) {
-      alert("OTP verified successfully!");
-      setStep(3);
+      const otp = [1, 2, 3, 4, 5, 6].map((num) => getValues(`otp_${num}`)).join('');
+      if (otp.length !== 6) {
+        toast.error("Please enter the complete 6-digit OTP.");
+        return;
+      }
+      try {
+        const response = await verifyPasswordResetOtp({ email, otp });
+        if (response.success) {
+          toast.success(response.message || "OTP verified successfully.");
+          setStep(3);
+        } else {
+          toast.error(response.message || "Invalid OTP.");
+        }
+      } catch (e) {
+        // error handled by store
+      }
     } else {
-      alert("Password reset successfully 💕");
+      try {
+        const otp = [1, 2, 3, 4, 5, 6].map((num) => getValues(`otp_${num}`)).join('');
+        const response = await resetPassword({ email, otp, newPassword: data.password });
+        if (response.success) {
+          toast.success(response.message || "Password reset successfully! Please login.");
+          navigate('/auth');
+        } else {
+          toast.error(response.message || "Failed to reset password.");
+        }
+      } catch (e) {
+        // error handled by store
+      }
     }
   };
 
+  const handleResendOtp = async () => {
+    if (!email) return;
+    clearError();
+    try {
+        const response = await forgotPassword(email);
+        if (response.success) {
+          toast.success(response.message || "OTP re-sent to your email.");
+        } else {
+          toast.error(response.message || "Failed to re-send OTP.");
+        }
+      } catch (e) {
+        // error is already handled by the store and useEffect
+      }
+  };
+  
   // Handle OTP input paste
   const handleOtpPaste = (e) => {
     const paste = e.clipboardData.getData("text").slice(0, 6);
     const otpArray = paste.split("");
     otpArray.forEach((num, idx) => setValue(`otp_${idx + 1}`, num));
+    const lastInput = e.target.parentElement.children[otpArray.length - 1];
+    if(lastInput) lastInput.focus();
   };
 
   return (
+    <>
+    <Toaster position="top-center" reverseOrder={false}/>
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-6">
       {/* Floating hearts background */}
       {[...Array(8)].map((_, i) => (
@@ -105,9 +180,10 @@ const ForgotPassword = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 type="submit"
-                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition"
+                disabled={loading}
+                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
               >
-                Send OTP
+                {loading ? 'Sending...' : 'Send OTP'}
               </motion.button>
             </motion.form>
           )}
@@ -121,14 +197,13 @@ const ForgotPassword = () => {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
               onSubmit={handleSubmit(onSubmit)}
-              onPaste={handleOtpPaste}
               className="space-y-4"
             >
               <p className="text-center text-gray-600 text-sm mb-2">
-                Enter the 6-digit OTP sent to your email
+                Enter the 6-digit OTP sent to <span className="font-semibold text-black">{email}</span>
               </p>
 
-              <div className="flex justify-between gap-2">
+              <div className="flex justify-between gap-2" onPaste={handleOtpPaste}>
                 {[1, 2, 3, 4, 5, 6].map((num) => (
                   <input
                     key={num}
@@ -142,8 +217,10 @@ const ForgotPassword = () => {
                       },
                     })}
                     onInput={(e) => {
-                      const next = e.target.nextElementSibling;
-                      if (e.target.value && next) next.focus();
+                      if (e.target.value) {
+                         const next = e.target.nextElementSibling;
+                         if (next) next.focus();
+                      }
                     }}
                     className="w-12 h-12 text-center rounded-xl border text-lg font-semibold focus:ring-2 focus:ring-[#f9aeaf] outline-none"
                   />
@@ -152,17 +229,25 @@ const ForgotPassword = () => {
 
               {errors.otp_1 && (
                 <p className="text-sm text-red-500 text-center mt-1">
-                  {errors.otp_1.message}
+                  Please enter a valid 6-digit OTP.
                 </p>
               )}
+              
+              <div className="text-center text-sm mt-4">
+                  Didn't receive code?{" "}
+                  <button type="button" onClick={handleResendOtp} disabled={loading} className="text-[#f47b7d] font-semibold underline disabled:text-gray-400">
+                      Resend
+                  </button>
+              </div>
 
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 type="submit"
-                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition"
+                disabled={loading}
+                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
               >
-                Verify OTP
+                {loading ? 'Verifying...' : 'Verify OTP'}
               </motion.button>
             </motion.form>
           )}
@@ -224,9 +309,10 @@ const ForgotPassword = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 type="submit"
-                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition"
+                disabled={loading}
+                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
               >
-                Reset Password
+                {loading ? 'Resetting...' : 'Reset Password'}
               </motion.button>
             </motion.form>
           )}
@@ -234,12 +320,13 @@ const ForgotPassword = () => {
 
         {/* Footer */}
         <div className="text-center mt-6 text-sm">
-          <Link to={"/login"} className="text-[#f47b7d] font-semibold underline">
+          <Link to={"/auth"} className="text-[#f47b7d] font-semibold underline">
             Back to Login
           </Link>
         </div>
       </motion.div>
     </div>
+    </>
   );
 };
 
