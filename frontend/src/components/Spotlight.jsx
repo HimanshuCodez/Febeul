@@ -3,8 +3,8 @@ import { motion } from "framer-motion";
 const categories = [
   { label: "BABYDOLL", img: "/first.jpg" },
   { label: "LINGERIE", img: "/second.jpg" },
-  { label: "PAJAMAS", img: "/three.jpg" },
-  { label: "NIGHTY", img: "/four.jpg" },
+  { label: "NIGHTY", img: "/three.jpg" },
+  { label: "PAJAMAS", img: "/four.jpg" },
 ];
 
 export default function Spotlight() {

@@ -8,16 +8,16 @@ import StylesSection from '../components/Banner'
 
 import Footer from '../components/Footer'
 import Spotlight from '../components/Spotlight'
+import BlackBanner from '../components/BlackBanner'
 
 
 const Home = () => {
   return  (
     <div><CloviaHeader/>
-    <Hero/>
-    {/* <div className='mt-10'><PinkBanner/></div> */}
-    <div className='mt-5'><OfferBar/></div>
-    {/* <div className='mt-5'><BlackBanner/></div> */}
+    <Hero />
+    <OfferBar/>
     <div className='mt-5'><Spotlight/></div>
+    <div className='mt-5'><BlackBanner/></div>
     <div className='mt-5'><StylesSection/></div>
     <div className='mt-5'><PromoBanner/></div>
     {/* <div className='mt-5'><PurpleBanner/></div> */}

@@ -6,7 +6,6 @@ import { Eye, EyeOff } from "lucide-react";
 import useAuthStore from "../store/authStore";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast, Toaster } from 'react-hot-toast';
-import axios from 'axios';
 
 
 const AuthPage = () => {
@@ -16,7 +15,6 @@ const AuthPage = () => {
   const { login, register: signup, isAuthenticated, error, loading, clearError, setToken } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const [step, setStep] = useState(1); // 1 for details, 2 for OTP (used for login)
 
   const {
     register,
@@ -108,7 +106,6 @@ const AuthPage = () => {
 
   const toggleForm = () => {
     setIsLogin(!isLogin);
-    setStep(1); // Reset to step 1 when toggling
     reset(); // Clear form fields and errors
   }
 
@@ -247,7 +244,7 @@ const AuthPage = () => {
             </>
           )}
 
-          {isLogin && step === 1 && (
+          {isLogin && (
              <>
                 {/* Email or Phone */}
                 <div>
@@ -265,7 +262,7 @@ const AuthPage = () => {
                     <input
                     type={showPassword ? "text" : "password"}
                     placeholder="Password"
-                    {...register("password")} // Not required if using OTP
+                    {...register("password", { required: "Password is required" })} // Now password is always required for login
                     className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
@@ -285,27 +282,6 @@ const AuthPage = () => {
             </>
           )}
 
-          {isLogin && (step === 2) && (
-             <div>
-                <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  {...register("otp", {
-                    required: "OTP is required",
-                    minLength: { value: 6, message: "OTP must be 6 characters" },
-                    maxLength: { value: 6, message: "OTP must be 6 characters" },
-                  })}
-                  className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
-                />
-                {errors.otp && <p className="text-sm text-red-500 mt-1">{errors.otp.message}</p>}
-                <div className="text-right text-sm mt-2">
-                    <button type="button" onClick={() => setStep(1)} className="text-[#f47b7d] hover:underline">
-                        Back
-                    </button>
-                </div>
-              </div>
-          )}
-
           {/* Submit Button */}
           <motion.button
             whileHover={{ scale: 1.03 }}
@@ -314,28 +290,11 @@ const AuthPage = () => {
             disabled={loading}
             className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
           >
-            {loading ? 'Processing...' : 
-              isLogin ? (step === 1 ? "Login" : "Verify & Login") : "Sign Up"}
+            {loading ? 'Processing...' : isLogin ? "Login" : "Sign Up"}
           </motion.button>
         </form>
 
         {/* Divider and alternative login options */}
-        {isLogin && step === 1 && (
-            <>
-                <div className="text-center text-sm text-gray-500 my-4">or</div>
-                
-                <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={handleSendOtpForLogin}
-                    type="button"
-                    className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
-                    >
-                    Login with OTP
-                </motion.button>
-            </>
-        )}
-
         <div className="my-4">
              <motion.button
                 whileHover={{ scale: 1.03 }}
