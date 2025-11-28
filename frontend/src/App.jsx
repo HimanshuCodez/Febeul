@@ -13,6 +13,7 @@ import Collection from "./Pages/Collection";
 
 
 import AuthPage from "./Pages/AuthPage";
+import ProductPage from "./Pages/ProductPage";
 
 
 const App = () => {
@@ -28,6 +29,7 @@ const App = () => {
         <Route path="/cart" element={<Cart />} />
         <Route path="/collection" element={<Collection />} />
         <Route path="/support" element={<Support />} />
+        <Route path="/product" element={<ProductPage />} />
 
         {/* Other routes */}
         {/* <Route path="/about" element={<About />} />
