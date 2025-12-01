@@ -92,9 +92,11 @@ const AuthPage = () => {
           toast.error(error.response?.data?.message || 'Failed to verify OTP');
         }
       }
-    } else {
-      // Handle Signup - Step 2
-      if (step === 2) {
+    } else { // This is Signup
+      if (step === 1) { // Handle initial signup submission to send OTP
+        // The form fields are already validated by handleSubmit before this point.
+        await sendSignupOtp(); // This sends OTP and sets step to 2
+      } else if (step === 2) {
         try {
           const verifyResponse = await axios.post('https://febeul.onrender.com/api/otp/verify-email-otp', {
             email: getValues('email'),
@@ -458,8 +460,7 @@ const AuthPage = () => {
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              type={!isLogin && step === 1 ? 'button' : 'submit'}
-              onClick={!isLogin && step === 1 ? handleSendSignupOtp : undefined}
+              type="submit"
               disabled={loading}
               className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
             >

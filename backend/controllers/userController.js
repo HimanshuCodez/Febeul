@@ -100,12 +100,21 @@ const forgotPassword = async (req, res) => {
         user.otp_expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
         await user.save();
 
-        await resend.emails.send({
-            from: 'onboarding@resend.dev',
+        // IMPORTANT: For reliable email delivery, you must replace 'onboarding@resend.dev'
+        // with an email address from a domain you have verified in your Resend account.
+        const { data, error } = await resend.emails.send({
+            from: 'noreply@yourverifieddomain.com', // Replace with your verified domain
             to: email,
             subject: 'Your Password Reset OTP',
             html: `<p>Your OTP for password reset is: <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
         });
+
+        if (error) {
+            console.error({ error });
+            return res.json({ success: false, message: "Failed to send OTP email." });
+        }
+
+        console.log({ data }); // Log the Resend response for debugging
 
         res.json({ success: true, message: "OTP sent to your email address." });
 

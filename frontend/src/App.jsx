@@ -15,6 +15,7 @@ import FebeulMembership from "./components/Membership";
 import AuthPage from "./Pages/AuthPage";
 import ProductPage from "./Pages/ProductPage";
 import AllProducts from "./Pages/AllProducts";
+import ForgotPassword from "./Pages/ForgetPass";
 
 
 const App = () => {
@@ -30,6 +31,7 @@ const App = () => {
         <Route path="/cart" element={<Cart />} />
         
         <Route path="/support" element={<Support />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/product/:productId" element={<ProductPage />} />
         <Route path="/products" element={<AllProducts />} />
 
