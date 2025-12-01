@@ -1,16 +1,52 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 import { Share2, Truck, RotateCcw, ShieldCheck } from 'lucide-react';
+import Loader from '../components/Loader';
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export default function ProductPage() {
-  const [selectedImage, setSelectedImage] = useState(0);
-  const images = ['/api/placeholder/400/500', '/api/placeholder/400/500', '/api/placeholder/400/500', '/api/placeholder/400/500'];
+    const { productId } = useParams();
+    const [product, setProduct] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [selectedImage, setSelectedImage] = useState(0);
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                const response = await axios.post(`${backendUrl}/api/product/single`, { productId });
+                if (response.data.success) {
+                    setProduct(response.data.product);
+                } else {
+                    console.error(response.data.message);
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProduct();
+    }, [productId]);
+
+    if (loading) {
+        return <Loader />;
+    }
+
+    if (!product) {
+        return <div className="text-center mt-10">Product not found</div>;
+    }
+
+    const images = product.image || [];
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-sm">
         {/* Breadcrumb */}
         <div className="p-4 text-sm text-gray-600">
-          Clothing & Accessories › Women › Sleep & Lounge Wear › Babydolls
+          {product.category} › {product.subCategory}
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 p-6">
@@ -51,16 +87,17 @@ export default function ProductPage() {
             {/* Product Title */}
             <div>
               <h1 className="text-2xl font-semibold text-gray-800 mb-2">
-                Women Babydoll Lace Kimono Robe Babydoll Lingerie Mesh Chemise Nightgown Cover Up Honeymoon Valentine Nightie
+                {product.name}
               </h1>
               <div className="flex items-center gap-2">
-                <span className="text-gray-500 line-through text-sm">₹999</span>
-                <span className="text-red-500 font-semibold">50% Off</span>
+                <span className="text-gray-500 line-through text-sm">₹{product.mrp}</span>
+                <span className="text-red-500 font-semibold">{Math.round(((product.mrp - product.price) / product.mrp) * 100)}% Off</span>
               </div>
             </div>
 
             {/* Price */}
             <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold">₹{product.price}</span>
               <span className="text-sm text-gray-600">Inclusive of all taxes</span>
             </div>
 
@@ -97,7 +134,7 @@ export default function ProductPage() {
               </div>
               <div className="text-center">
                 <RotateCcw className="mx-auto mb-2 text-gray-600" size={32} />
-                <div className="text-xs text-blue-500">7 days Replacement</div>
+                <div className="text-xs text-blue-500">3 days Replacement</div>
               </div>
               <div className="text-center">
                 <ShieldCheck className="mx-auto mb-2 text-gray-600" size={32} />
@@ -118,20 +155,7 @@ export default function ProductPage() {
             {/* About this item */}
             <div className="space-y-4">
               <h3 className="font-bold text-gray-800 text-lg">About this item</h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex gap-2">
-                  <span className="text-gray-400">•</span>
-                  <span><strong>Style:</strong> garter lingerie for women, womens teddy lingerie, lace chemise, lace mesh lingerie, lingerie for women, babydoll lingerie,chemise lingerie for women, lingerie for women, negligee lingerie, full slip dress</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-gray-400">•</span>
-                  <span><strong>Unique Design:</strong> The women lingerie featuring sheer lace cups, soft mesh skirt with garter belt. makes you look more lovely and charming at night, seductive to draw your lover's attention.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-gray-400">•</span>
-                  <span><strong>Occasion:</strong> Lace sleepwear, perfect for photoshoots or special nights, such as Valentine's Day, wedding night, honeymoon gift, bridal shower, lingerie party and every special moments， it will make you more elegant and charming.</span>
-                </li>
-              </ul>
+              <p>{product.description}</p>
             </div>
           </div>
         </div>
@@ -143,32 +167,52 @@ export default function ProductPage() {
             <h3 className="font-bold text-gray-800 text-lg mb-4">Product details</h3>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Material composition</span>
-                <span className="text-gray-800">80% Net, 20% Lace</span>
+                <span className="text-gray-600">MRP</span>
+                <span className="text-gray-800">₹{product.mrp}</span>
+              </div>
+               <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Category</span>
+                <span className="text-gray-800">{product.category}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Sub Category</span>
+                <span className="text-gray-800">{product.subCategory}</span>
+              </div>
+               <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Color</span>
+                <span className="text-gray-800">{product.color}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <span className="text-gray-600">Length</span>
-                <span className="text-gray-800">Above The Knee</span>
+                <span className="text-gray-800">{product.length}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Material type</span>
-                <span className="text-gray-800">Lace, Net</span>
+                <span className="text-gray-600">Breadth</span>
+                <span className="text-gray-800">{product.breadth}</span>
+              </div>
+               <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Fabric</span>
+                <span className="text-gray-800">{product.fabric}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Closure type</span>
-                <span className="text-gray-800">Pull On</span>
+                <span className="text-gray-600">Pattern</span>
+                <span className="text-gray-800">{product.pattern}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Sleeve type</span>
-                <span className="text-gray-800">Sleeveless</span>
+                <span className="text-gray-600">Sleeve Style</span>
+                <span className="text-gray-800">{product.sleeveStyle}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Number of items</span>
-                <span className="text-gray-800">1</span>
+                <span className="text-gray-600">Sleeve Length</span>
+                <span className="text-gray-800">{product.sleeveLength}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Neck</span>
+                <span className="text-gray-800">{product.neck}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <span className="text-gray-600">Country of Origin</span>
-                <span className="text-gray-800">India</span>
+                <span className="text-gray-800">{product.countryOfOrigin}</span>
               </div>
             </div>
           </div>
@@ -179,31 +223,15 @@ export default function ProductPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <span className="text-gray-600">Manufacturer</span>
-                <span className="text-gray-800">ALPHA ONE TOUCH</span>
+                <span className="text-gray-800">{product.manufacturer}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Packer</span>
-                <span className="text-gray-800">ALPHA ONE TOUCH</span>
+                <span className="text-gray-600">Style Code</span>
+                <span className="text-gray-800">{product.styleCode}</span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Item Weight</span>
-                <span className="text-gray-800">150 g</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Item Dimensions LxWxH</span>
-                <span className="text-gray-800">22 x 20 x 10 Centimeters</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Net Quantity</span>
-                <span className="text-gray-800">1.0 Count</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Included Components</span>
-                <span className="text-gray-800">Panty</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Generic Name</span>
-                <span className="text-gray-800">Nightwear</span>
+               <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">HSN</span>
+                <span className="text-gray-800">{product.hsn}</span>
               </div>
             </div>
           </div>

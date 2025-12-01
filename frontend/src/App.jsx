@@ -9,11 +9,12 @@ import Cart from "./Pages/Cart";
 import Support from "./Pages/Support";
 import Chatbot from "./components/Chatbot";
 import FebeulMembership from "./components/Membership";
-import Collection from "./Pages/Collection";
+
 
 
 import AuthPage from "./Pages/AuthPage";
 import ProductPage from "./Pages/ProductPage";
+import AllProducts from "./Pages/AllProducts";
 
 
 const App = () => {
@@ -21,15 +22,16 @@ const App = () => {
     <Router>
       <Routes>
         {/* Default route - Home */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<AuthPage />} />
         <Route path="/profile" element={<Profile  />} />
         <Route path="/auth" element={<AuthPage />} />
      
         <Route path="/whislist" element={<Wishlist  />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/collection" element={<Collection />} />
+        
         <Route path="/support" element={<Support />} />
-        <Route path="/product" element={<ProductPage />} />
+        <Route path="/product/:productId" element={<ProductPage />} />
+        <Route path="/products" element={<AllProducts />} />
 
         {/* Other routes */}
         {/* <Route path="/about" element={<About />} />
