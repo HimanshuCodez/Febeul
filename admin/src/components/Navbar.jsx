@@ -6,7 +6,7 @@ const Navbar = ({setToken}) => {
     <div className='flex items-center justify-between py-2 px-4 sm:px-6 lg:px-8'>
         <img 
             className='w-24 sm:w-32'
-            src={assets.logo} 
+            src="./removebgLogo.png" 
             alt="Logo" 
         />
         <div className='flex items-center gap-4'>
