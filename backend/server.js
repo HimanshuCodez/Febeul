@@ -9,6 +9,7 @@ import cartRouter from './routes/cartRoute.js'
 import orderRouter from './routes/orderRoute.js'
 import reviewRouter from './routes/reviewRoute.js'
 import otpRouter from './routes/otpRoute.js'
+import errorHandler from './middleware/errorHandler.js'
 
 // App Config
 const app = express()
@@ -31,5 +32,7 @@ app.use('/api/otp',otpRouter)
 app.get('/',(req,res)=>{
     res.send("API Working")
 })
+
+app.use(errorHandler)
 
 app.listen(port, ()=> console.log('Server started on PORT : '+ port))

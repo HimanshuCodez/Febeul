@@ -7,7 +7,7 @@ export default function ProductDealBanner() {
         {/* Product Image */}
         <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
           <img 
-            src="/api/placeholder/64/64" 
+            src="/bluevid.png" 
             alt="Lace Babydoll Lingerie" 
             className="w-full h-full object-cover" 
           />

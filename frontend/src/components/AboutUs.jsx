@@ -7,7 +7,7 @@ export default function AboutUs() {
       {/* Left — Circular Image */}
       <div className="w-60 h-60 sm:w-72 sm:h-72 rounded-full overflow-hidden border-4 border-transparent">
         <img
-          src="/about-img.jpg"  // replace with your image path
+          src="/Aboutus.png"  // replace with your image path
           alt="About Us"
           className="w-full h-full object-cover"
         />

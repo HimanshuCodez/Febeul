@@ -9,9 +9,6 @@ import Cart from "./Pages/Cart";
 import Support from "./Pages/Support";
 import Chatbot from "./components/Chatbot";
 import FebeulMembership from "./components/Membership";
-
-
-
 import AuthPage from "./Pages/AuthPage";
 import ProductPage from "./Pages/ProductPage";
 import AllProducts from "./Pages/AllProducts";
@@ -35,10 +32,18 @@ const App = () => {
         <Route path="/product/:productId" element={<ProductPage />} />
         <Route path="/products" element={<AllProducts />} />
 
-        {/* Other routes */}
-        {/* <Route path="/about" element={<About />} />
+     
+        {/* Footer items */}
+        {/* <Route path="/Faq" element={<About />} />
+        {/* <Route path="/LuxePolicy" element={<About />} />
+        {/* <Route path="/DataPrivacy" element={<About />} />
+        {/* <Route path="/GrievanceRedressals" element={<About />} />
+        {/* <Route path="/PaymentPolicy" element={<About />} />
+        {/* <Route path="/ReturnRefund" element={<About />} />
+        {/* <Route path="/TermsConditions" element={<About />} />
+        {/* <Route path="/ReviewRating" element={<About />} />
         <Route path="/contact" element={<Contact />} /> */}
-
+   {/* Other routes */}
         {/* Catch-all (404) */}
         <Route path="*" element={<h2>404 Page Not Found</h2>} />
       </Routes>
