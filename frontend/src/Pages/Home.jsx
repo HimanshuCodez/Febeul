@@ -29,7 +29,7 @@ const Home = () => {
 
     <div className='mt-5'><LingerieRobeSection/></div>
     <div className='mt-5'><StylesSection/></div>
-    <div className='mt-5'><Aboutt/></div>
+    <div><Aboutt/></div>
 
    
     <AboutUs/>

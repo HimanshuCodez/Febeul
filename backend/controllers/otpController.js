@@ -60,10 +60,8 @@ const sendEmailOTP = async (req, res) => {
         user.otp_expiry = otp_expiry;
         await user.save();
 
-        // IMPORTANT: For reliable email delivery, you must replace 'onboarding@resend.dev'
-        // with an email address from a domain you have verified in your Resend account.
         const { data, error } = await resend.emails.send({
-            from: 'noreply@yourverifieddomain.com', // Replace with your verified domain
+            from: 'noreply@febeul.com',
             to: email,
             subject: 'Your Febeul Login/Signup OTP',
             html: `<p>Your OTP is: <strong>${otp}</strong>. It is valid for 5 minutes.</p>`
