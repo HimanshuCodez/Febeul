@@ -70,7 +70,7 @@ const Footer = () => {
               Policies
             </h3>
             <ul className="space-y-2 text-sm mb-6">
-              <li><Link to="/reviews" className="hover:text-white">Review & Rating</Link></li>
+              <li><Link to="/ReviewRating" className="hover:text-white">Review & Rating</Link></li>
               <li><Link to="/terms" className="hover:text-white">Terms & Conditions</Link></li>
               <li><Link to="/privacy" className="hover:text-white">Data Privacy</Link></li>
               <li><Link to="/luxe" className="hover:text-white">Luxe membership policy</Link></li>

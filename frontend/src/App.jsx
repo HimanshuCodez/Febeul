@@ -13,6 +13,7 @@ import AuthPage from "./Pages/AuthPage";
 import ProductPage from "./Pages/ProductPage";
 import AllProducts from "./Pages/AllProducts";
 import ForgotPassword from "./Pages/ForgetPass";
+import ReviewRating from "./components/FooterItems/ReviewRating";
 
 
 const App = () => {
@@ -34,6 +35,7 @@ const App = () => {
 
      
         {/* Footer items */}
+          <Route path="/ReviewRating" element={<ReviewRating />} />
         {/* <Route path="/Faq" element={<About />} />
         {/* <Route path="/LuxePolicy" element={<About />} />
         {/* <Route path="/DataPrivacy" element={<About />} />
@@ -41,7 +43,7 @@ const App = () => {
         {/* <Route path="/PaymentPolicy" element={<About />} />
         {/* <Route path="/ReturnRefund" element={<About />} />
         {/* <Route path="/TermsConditions" element={<About />} />
-        {/* <Route path="/ReviewRating" element={<About />} />
+     
         <Route path="/contact" element={<Contact />} /> */}
    {/* Other routes */}
         {/* Catch-all (404) */}
