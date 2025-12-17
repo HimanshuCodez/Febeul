@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Aboutt() {
   return (
-    <section className="w-full bg-white  ">
+    <section className="w-full bg-white py-0 my-0">
       
   
 

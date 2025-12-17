@@ -103,7 +103,7 @@ const forgotPassword = async (req, res) => {
         // IMPORTANT: For reliable email delivery, you must replace 'onboarding@resend.dev'
         // with an email address from a domain you have verified in your Resend account.
         const { data, error } = await resend.emails.send({
-            from: 'noreply@yourverifieddomain.com', // Replace with your verified domain
+            from: 'noreply@febeul.com', // Replace with your verified domain
             to: email,
             subject: 'Your Password Reset OTP',
             html: `<p>Your OTP for password reset is: <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
