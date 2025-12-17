@@ -50,15 +50,22 @@ const sendEmailOTP = async (req, res) => {
         const otp_expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
         let user = await userModel.findOne({ email });
+        const isNewUser = !user; // Flag to identify if it's a new user for OTP
 
-        if (!user) {
+        if (isNewUser) {
             // If user doesn't exist, create a temporary one for OTP verification during signup
             user = new userModel({ email });
         }
 
         user.otp = otp;
         user.otp_expiry = otp_expiry;
-        await user.save();
+        
+        // Conditionally save: bypass validation for new temporary users
+        if (isNewUser) {
+            await user.save({ validateBeforeSave: false });
+        } else {
+            await user.save();
+        }
 
         const { data, error } = await resend.emails.send({
             from: 'noreply@febeul.com',

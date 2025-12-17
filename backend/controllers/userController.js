@@ -48,14 +48,10 @@ const registerUser = async (req, res) => {
     try {
         const { name, email, password, mobile } = req.body;
 
-        const existingEmail = await userModel.findOne({ email });
-        if (existingEmail) {
-            return res.json({ success: false, message: "User already exists with this email" })
-        }
+        let user = await userModel.findOne({ email });
 
-        const existingMobile = await userModel.findOne({ mobile });
-        if (existingMobile) {
-            return res.json({ success: false, message: "User already exists with this mobile number" })
+        if (user && user.password) { // User is fully registered
+            return res.json({ success: false, message: "User already exists with this email. Please log in." });
         }
 
         if (!validator.isEmail(email)) {
@@ -68,15 +64,23 @@ const registerUser = async (req, res) => {
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
 
-        const newUser = new userModel({
-            name,
-            email,
-            mobile,
-            password: hashedPassword
-        })
-
-        const user = await newUser.save()
-        const token = createToken(user._id)
+        if (user) { // It's a temporary user, let's update it
+            user.name = name;
+            user.password = hashedPassword;
+            user.mobile = mobile;
+            user.otp = undefined; // Clear OTP stuff
+            user.otp_expiry = undefined;
+        } else { // It's a new registration without a prior temporary record
+             user = new userModel({
+                name,
+                email,
+                mobile,
+                password: hashedPassword
+            });
+        }
+        
+        const savedUser = await user.save()
+        const token = createToken(savedUser._id)
         res.json({ success: true, token })
 
     } catch (error) {
