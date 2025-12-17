@@ -85,7 +85,7 @@ const sendEmailOTP = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: "Error sending email OTP" });
+        res.json({ success: false, message: `Caught an exception in sendEmailOTP: ${error.message}` });
     }
 };
 
