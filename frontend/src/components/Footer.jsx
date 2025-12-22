@@ -56,10 +56,10 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2 text-sm">
               <li><Link to="/order-tracking" className="hover:text-white">Order Tracking</Link></li>
-              <li><Link to="/refund" className="hover:text-white">Return & Refund</Link></li>
-              <li><Link to="/grievance" className="hover:text-white">Grievance Redressals</Link></li>
-              <li><Link to="/payment-policy" className="hover:text-white">Payment Policy</Link></li>
-              <li><Link to="/faqs" className="hover:text-white">FAQs</Link></li>
+              <li><Link to="/ReturnRefund" className="hover:text-white">Return & Refund</Link></li>
+              <li><Link to="/GrievanceRedressals" className="hover:text-white">Grievance Redressals</Link></li>
+              <li><Link to="/PaymentPolicy" className="hover:text-white">Payment Policy</Link></li>
+              <li><Link to="/Faq" className="hover:text-white">FAQs</Link></li>
               <li><Link to="/contact" className="hover:text-white">Contact Us</Link></li>
             </ul>
           </div>
@@ -71,17 +71,17 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2 text-sm mb-6">
               <li><Link to="/ReviewRating" className="hover:text-white">Review & Rating</Link></li>
-              <li><Link to="/terms" className="hover:text-white">Terms & Conditions</Link></li>
-              <li><Link to="/privacy" className="hover:text-white">Data Privacy</Link></li>
-              <li><Link to="/luxe" className="hover:text-white">Luxe membership policy</Link></li>
+              <li><Link to="/TermsConditions" className="hover:text-white">Terms & Conditions</Link></li>
+              <li><Link to="/DataPrivacy" className="hover:text-white">Data Privacy</Link></li>
+              <li><Link to="/LuxePolicy" className="hover:text-white">Luxe membership policy</Link></li>
             </ul>
 
             <h3 className="text-white font-semibold mb-4 uppercase text-sm mt-6">
               Account
             </h3>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/signup" className="hover:text-white">Create Account</Link></li>
-              <li><Link to="/login" className="hover:text-white">Sign In</Link></li>
+              <li><Link to="/auth" className="hover:text-white">Create Account</Link></li>
+              <li><Link to="/auth" className="hover:text-white">Sign In</Link></li>
             </ul>
           </div>
         </div>

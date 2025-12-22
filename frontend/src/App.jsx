@@ -14,6 +14,13 @@ import ProductPage from "./Pages/ProductPage";
 import AllProducts from "./Pages/AllProducts";
 import ForgotPassword from "./Pages/ForgetPass";
 import ReviewRating from "./components/FooterItems/ReviewRating";
+import Faq from "./components/FooterItems/Faq";
+import LuxePolicy from "./components/FooterItems/LuxePolicy";
+import DataPrivacy from "./components/FooterItems/DataPrivacy";
+import GrievanceRedressals from "./components/FooterItems/GrievanceRedressals";
+import PaymentPolicy from "./components/FooterItems/PaymentPolicy";
+import ReturnRefund from "./components/FooterItems/ReturnRefund";
+import TermsConditions from "./components/FooterItems/TermsConditions";
 
 
 const App = () => {
@@ -36,15 +43,15 @@ const App = () => {
      
         {/* Footer items */}
           <Route path="/ReviewRating" element={<ReviewRating />} />
-        {/* <Route path="/Faq" element={<About />} />
-        {/* <Route path="/LuxePolicy" element={<About />} />
-        {/* <Route path="/DataPrivacy" element={<About />} />
-        {/* <Route path="/GrievanceRedressals" element={<About />} />
-        {/* <Route path="/PaymentPolicy" element={<About />} />
-        {/* <Route path="/ReturnRefund" element={<About />} />
-        {/* <Route path="/TermsConditions" element={<About />} />
-     
-        <Route path="/contact" element={<Contact />} /> */}
+         <Route path="/Faq" element={<Faq />} />
+        <Route path="/LuxePolicy" element={<LuxePolicy/>} />
+         <Route path="/DataPrivacy" element={<DataPrivacy />} />
+         <Route path="/GrievanceRedressals" element={<GrievanceRedressals/>} />
+         <Route path="/PaymentPolicy" element={<PaymentPolicy/>} />
+         <Route path="/ReturnRefund" element={<ReturnRefund/>} />
+         <Route path="/TermsConditions" element={<TermsConditions/>} />
+{/*      
+        <Route path="/contact" element={<Contact />} />  */}
    {/* Other routes */}
         {/* Catch-all (404) */}
         <Route path="*" element={<h2>404 Page Not Found</h2>} />
