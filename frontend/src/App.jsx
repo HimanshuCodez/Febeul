@@ -39,6 +39,7 @@ const App = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/product/:productId" element={<ProductPage />} />
         <Route path="/products" element={<AllProducts />} />
+        <Route path="/products/:category" element={<AllProducts />} />
 
      
         {/* Footer items */}

@@ -214,6 +214,22 @@ export default function ProductPage() {
                 <span className="text-gray-600">Country of Origin</span>
                 <span className="text-gray-800">{product.countryOfOrigin}</span>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Material Composition</span>
+                <span className="text-gray-800">{product.materialComposition}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Care Instructions</span>
+                <span className="text-gray-800">{product.careInstructions}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Closure Type</span>
+                <span className="text-gray-800">{product.closureType}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Material Type</span>
+                <span className="text-gray-800">{product.materialType}</span>
+              </div>
             </div>
           </div>
 
@@ -232,6 +248,22 @@ export default function ProductPage() {
                <div className="grid grid-cols-2 gap-4">
                 <span className="text-gray-600">HSN</span>
                 <span className="text-gray-800">{product.hsn}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Item Weight</span>
+                <span className="text-gray-800">{product.itemWeight}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Item Dimensions LxWxH</span>
+                <span className="text-gray-800">{product.itemDimensionsLxWxH}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Net Quantity</span>
+                <span className="text-gray-800">{product.netQuantity}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <span className="text-gray-600">Generic Name</span>
+                <span className="text-gray-800">{product.genericName}</span>
               </div>
             </div>
           </div>

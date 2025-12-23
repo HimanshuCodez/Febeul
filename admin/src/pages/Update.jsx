@@ -12,7 +12,7 @@ const Update = ({ token }) => {
     const [description, setDescription] = useState("");
     const [price, setPrice] = useState("");
     const [mrp, setMrp] = useState("");
-    const [category, setCategory] = useState("Men");
+    const [category, setCategory] = useState("BABYDOLL");
     const [subCategory, setSubCategory] = useState("Topwear");
     const [bestseller, setBestseller] = useState(false);
     const [sizes, setSizes] = useState([]);
@@ -29,6 +29,14 @@ const Update = ({ token }) => {
     const [sleeveLength, setSleeveLength] = useState("");
     const [neck, setNeck] = useState("");
     const [hsn, setHsn] = useState("");
+    const [materialComposition, setMaterialComposition] = useState("");
+    const [careInstructions, setCareInstructions] = useState("");
+    const [closureType, setClosureType] = useState("");
+    const [materialType, setMaterialType] = useState("");
+    const [itemWeight, setItemWeight] = useState("");
+    const [itemDimensionsLxWxH, setItemDimensionsLxWxH] = useState("");
+    const [netQuantity, setNetQuantity] = useState("");
+    const [genericName, setGenericName] = useState("");
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -57,6 +65,14 @@ const Update = ({ token }) => {
                     setSleeveLength(product.sleeveLength || "");
                     setNeck(product.neck || "");
                     setHsn(product.hsn || "");
+                    setMaterialComposition(product.materialComposition || "");
+                    setCareInstructions(product.careInstructions || "");
+                    setClosureType(product.closureType || "");
+                    setMaterialType(product.materialType || "");
+                    setItemWeight(product.itemWeight || "");
+                    setItemDimensionsLxWxH(product.itemDimensionsLxWxH || "");
+                    setNetQuantity(product.netQuantity || "");
+                    setGenericName(product.genericName || "");
                 } else {
                     toast.error(response.data.message);
                 }
@@ -92,7 +108,15 @@ const Update = ({ token }) => {
                 sleeveStyle,
                 sleeveLength,
                 neck,
-                hsn
+                hsn,
+                materialComposition,
+                careInstructions,
+                closureType,
+                materialType,
+                itemWeight,
+                itemDimensionsLxWxH,
+                netQuantity,
+                genericName
             }, { headers: { token } });
 
             if (response.data.success) {
@@ -122,9 +146,12 @@ const Update = ({ token }) => {
                 <div>
                     <p className='mb-2'>Product category</p>
                     <select onChange={(e) => setCategory(e.target.value)} value={category} className='w-full px-3 py-2'>
-                        <option value="Men">Men</option>
-                        <option value="Women">Women</option>
-                        <option value="Kids">Kids</option>
+                        <option value="BABYDOLL">BABYDOLL</option>
+                        <option value="LINGERIE">LINGERIE</option>
+                        <option value="NIGHTY">NIGHTY</option>
+                        <option value="PAJAMAS">PAJAMAS</option>
+                        <option value="NEW & NOW">NEW & NOW</option>
+                        <option value="GIFT WRAP">GIFT WRAP</option>
                     </select>
                 </div>
                 <div>
@@ -197,6 +224,38 @@ const Update = ({ token }) => {
                 <div className='w-full'>
                     <p className='mb-2'>HSN</p>
                     <input onChange={(e) => setHsn(e.target.value)} value={hsn} className='w-full px-3 py-2' type="text" placeholder='6204' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Material Composition</p>
+                    <input onChange={(e) => setMaterialComposition(e.target.value)} value={materialComposition} className='w-full px-3 py-2' type="text" placeholder='92% Net, 8% Lace' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Care Instructions</p>
+                    <input onChange={(e) => setCareInstructions(e.target.value)} value={careInstructions} className='w-full px-3 py-2' type="text" placeholder='Machine Wash' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Closure Type</p>
+                    <input onChange={(e) => setClosureType(e.target.value)} value={closureType} className='w-full px-3 py-2' type="text" placeholder='Tie' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Material Type</p>
+                    <input onChange={(e) => setMaterialType(e.target.value)} value={materialType} className='w-full px-3 py-2' type="text" placeholder='Lace, Net' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Item Weight</p>
+                    <input onChange={(e) => setItemWeight(e.target.value)} value={itemWeight} className='w-full px-3 py-2' type="text" placeholder='150 g' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Item Dimensions LxWxH</p>
+                    <input onChange={(e) => setItemDimensionsLxWxH(e.target.value)} value={itemDimensionsLxWxH} className='w-full px-3 py-2' type="text" placeholder='22 x 20 x 2 Centimeters' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Net Quantity</p>
+                    <input onChange={(e) => setNetQuantity(e.target.value)} value={netQuantity} className='w-full px-3 py-2' type="text" placeholder='1.0 Count' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Generic Name</p>
+                    <input onChange={(e) => setGenericName(e.target.value)} value={genericName} className='w-full px-3 py-2' type="text" placeholder='Nightgown' />
                 </div>
             </div>
 

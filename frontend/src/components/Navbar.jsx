@@ -275,8 +275,8 @@ export default function Header() {
             <div className="hidden pl-2 gap-10 md:flex md:items-center md:space-x-12">
               {navigation.map((item, index) => (
                 <div key={index} className="relative group">
-                  <a
-                    href="#"
+                  <Link
+                    to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`}
                     className="py-4 text-sm font-medium text-white hover:bg-[#f9aeaf] rounded-md hover:text-black flex items-center transition-colors"
                   >
                     {item.title}
@@ -294,7 +294,7 @@ export default function Header() {
                         />
                       </svg>
                     )}
-                  </a>
+                  </Link>
 
                   {/* Mega Menu */}
                   {item.megaMenu && (
@@ -315,8 +315,8 @@ export default function Header() {
                               <ul className="space-y-1">
                                 {links.map((link, linkIndex) => (
                                   <li key={linkIndex}>
-                                    <a
-                                      href="#"
+                                    <Link
+                                      to={`/products/${link.toLowerCase().replace(/ /g, "-")}`}
                                       className="text-sm text-gray-700 hover:text-[#f9aeaf] hover:underline"
                                     >
                                       {link.includes("New") ? (
@@ -329,7 +329,7 @@ export default function Header() {
                                       ) : (
                                         link
                                       )}
-                                    </a>
+                                    </Link>
                                   </li>
                                 ))}
                               </ul>
@@ -369,12 +369,12 @@ export default function Header() {
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navigation.map((item, index) => (
                 <div key={index}>
-                  <a
-                    href="#"
+                  <Link
+                    to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`}
                     className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                   >
                     {item.title}
-                  </a>
+                  </Link>
                   {item.megaMenu && (
                     <div className="pl-4">
                       {Object.entries(item.megaMenu).map(
@@ -385,9 +385,9 @@ export default function Header() {
                             </h3>
                             <div className="pl-4">
                               {links.map((link, linkIndex) => (
-                                <a
+                              <Link
                                   key={linkIndex}
-                                  href="#"
+                                  to={`/products/${link.toLowerCase().replace(/ /g, "-")}`}
                                   className="block px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                                 >
                                   {link.includes("New") ? (
@@ -400,7 +400,7 @@ export default function Header() {
                                   ) : (
                                     link
                                   )}
-                                </a>
+                                </Link>
                               ))}
                             </div>
                           </div>
