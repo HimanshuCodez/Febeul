@@ -11,19 +11,26 @@ const productSchema = new mongoose.Schema({
     sizes: { type: Array, required: true },
     bestseller: { type: Boolean },
     date: { type: Number, required: true },
-    length: { type: String },
-    breadth: { type: String },
-    dressType: { type: String },
     styleCode: { type: String },
     countryOfOrigin: { type: String },
     manufacturer: { type: String },
+    packer: { type: String },
+    includedComponents: { type: String },
     color: { type: String },
     fabric: { type: String },
     pattern: { type: String },
     sleeveStyle: { type: String },
     sleeveLength: { type: String },
     neck: { type: String },
-    hsn: { type: String }
+    hsn: { type: String },
+    materialComposition: { type: String },
+    careInstructions: { type: String },
+    closureType: { type: String },
+    materialType: { type: String },
+    itemWeight: { type: String },
+    itemDimensionsLxWxH: { type: String },
+    netQuantity: { type: String },
+    genericName: { type: String }
 })
 
 const productModel  = mongoose.models.product || mongoose.model("product",productSchema);

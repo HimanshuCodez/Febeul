@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const Update = ({ token }) => {
     const { productId } = useParams();
@@ -16,12 +18,11 @@ const Update = ({ token }) => {
     const [subCategory, setSubCategory] = useState("Topwear");
     const [bestseller, setBestseller] = useState(false);
     const [sizes, setSizes] = useState([]);
-    const [length, setLength] = useState("");
-    const [breadth, setBreadth] = useState("");
-    const [dressType, setDressType] = useState("");
     const [styleCode, setStyleCode] = useState("");
     const [countryOfOrigin, setCountryOfOrigin] = useState("");
     const [manufacturer, setManufacturer] = useState("");
+    const [packer, setPacker] = useState("");
+    const [includedComponents, setIncludedComponents] = useState("");
     const [color, setColor] = useState("");
     const [fabric, setFabric] = useState("");
     const [pattern, setPattern] = useState("");
@@ -52,12 +53,11 @@ const Update = ({ token }) => {
                     setSubCategory(product.subCategory);
                     setBestseller(product.bestseller);
                     setSizes(product.sizes);
-                    setLength(product.length || "");
-                    setBreadth(product.breadth || "");
-                    setDressType(product.dressType || "");
                     setStyleCode(product.styleCode || "");
                     setCountryOfOrigin(product.countryOfOrigin || "");
                     setManufacturer(product.manufacturer || "");
+                    setPacker(product.packer || "");
+                    setIncludedComponents(product.includedComponents || "");
                     setColor(product.color || "");
                     setFabric(product.fabric || "");
                     setPattern(product.pattern || "");
@@ -96,12 +96,11 @@ const Update = ({ token }) => {
                 subCategory,
                 bestseller,
                 sizes: JSON.stringify(sizes),
-                length,
-                breadth,
-                dressType,
                 styleCode,
                 countryOfOrigin,
                 manufacturer,
+                packer,
+                includedComponents,
                 color,
                 fabric,
                 pattern,
@@ -139,7 +138,7 @@ const Update = ({ token }) => {
 
             <div className='w-full'>
                 <p className='mb-2'>Product description</p>
-                <textarea onChange={(e) => setDescription(e.target.value)} value={description} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='Write content here' required />
+                <ReactQuill theme="snow" value={description} onChange={setDescription} className='w-full max-w-[500px] min-h-40 mb-12' required/>
             </div>
 
             <div className='flex flex-col sm:flex-row gap-2 w-full sm:gap-8'>
@@ -174,18 +173,6 @@ const Update = ({ token }) => {
 
             <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl'>
                 <div className='w-full'>
-                    <p className='mb-2'>Length</p>
-                    <input onChange={(e) => setLength(e.target.value)} value={length} className='w-full px-3 py-2' type="text" placeholder='shirt- 32cm, bottom-39' />
-                </div>
-                <div className='w-full'>
-                    <p className='mb-2'>Breadth</p>
-                    <input onChange={(e) => setBreadth(e.target.value)} value={breadth} className='w-full px-3 py-2' type="text" placeholder='40( size L)' />
-                </div>
-                <div className='w-full'>
-                    <p className='mb-2'>Dress Type</p>
-                    <input onChange={(e) => setDressType(e.target.value)} value={dressType} className='w-full px-3 py-2' type="text" placeholder='co-ord set' />
-                </div>
-                <div className='w-full'>
                     <p className='mb-2'>Style Code</p>
                     <input onChange={(e) => setStyleCode(e.target.value)} value={styleCode} className='w-full px-3 py-2' type="text" placeholder='s-110' />
                 </div>
@@ -196,6 +183,14 @@ const Update = ({ token }) => {
                 <div className='w-full'>
                     <p className='mb-2'>Manufacturer</p>
                     <input onChange={(e) => setManufacturer(e.target.value)} value={manufacturer} className='w-full px-3 py-2' type="text" placeholder='King style knitwear' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Packer</p>
+                    <input onChange={(e) => setPacker(e.target.value)} value={packer} className='w-full px-3 py-2' type="text" placeholder='King style knitwear' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Included Components</p>
+                    <input onChange={(e) => setIncludedComponents(e.target.value)} value={includedComponents} className='w-full px-3 py-2' type="text" placeholder='1 shirt, 1 pant' />
                 </div>
                 <div className='w-full'>
                     <p className='mb-2'>Color</p>
@@ -276,6 +271,9 @@ const Update = ({ token }) => {
                     </div>
                     <div onClick={() => setSizes(prev => prev.includes("XXL") ? prev.filter(item => item !== "XXL") : [...prev, "XXL"])}>
                         <p className={`${sizes.includes("XXL") ? "bg-pink-100" : "bg-slate-200"} px-3 py-1 cursor-pointer`}>XXL</p>
+                    </div>
+                    <div onClick={()=>setSizes(prev => prev.includes("Free Size") ? prev.filter( item => item !== "Free Size") : [...prev,"Free Size"])}>
+                        <p className={`${sizes.includes("Free Size") ? "bg-pink-100" : "bg-slate-200" } px-3 py-1 cursor-pointer`}>Free Size</p>
                     </div>
                 </div>
             </div>

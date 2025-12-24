@@ -5,14 +5,16 @@ import productModel from "../models/productModel.js"
 const addProduct = async (req, res) => {
     try {
 
-        const { name, description, price, mrp, category, subCategory, sizes, bestseller, length, breadth, dressType, styleCode, countryOfOrigin, manufacturer, color, fabric, pattern, sleeveStyle, sleeveLength, neck, hsn } = req.body
+        const { name, description, price, mrp, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, color, fabric, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName } = req.body
 
         const image1 = req.files.image1 && req.files.image1[0]
         const image2 = req.files.image2 && req.files.image2[0]
         const image3 = req.files.image3 && req.files.image3[0]
         const image4 = req.files.image4 && req.files.image4[0]
+        const image5 = req.files.image5 && req.files.image5[0]
+        const image6 = req.files.image6 && req.files.image6[0]
 
-        const images = [image1, image2, image3, image4].filter((item) => item !== undefined)
+        const images = [image1, image2, image3, image4, image5, image6].filter((item) => item !== undefined)
 
         let imagesUrl = await Promise.all(
             images.map(async (item) => {
@@ -32,19 +34,26 @@ const addProduct = async (req, res) => {
             sizes: JSON.parse(sizes),
             image: imagesUrl,
             date: Date.now(),
-            length,
-            breadth,
-            dressType,
             styleCode,
             countryOfOrigin,
             manufacturer,
+            packer,
+            includedComponents,
             color,
             fabric,
             pattern,
             sleeveStyle,
             sleeveLength,
             neck,
-            hsn
+            hsn,
+            materialComposition,
+            careInstructions,
+            closureType,
+            materialType,
+            itemWeight,
+            itemDimensionsLxWxH,
+            netQuantity,
+            genericName
         }
 
         console.log(productData);
@@ -103,7 +112,7 @@ const singleProduct = async (req, res) => {
 // function for updating product
 const updateProduct = async (req, res) => {
     try {
-        const { productId, name, description, price, mrp, category, subCategory, sizes, bestseller, length, breadth, dressType, styleCode, countryOfOrigin, manufacturer, color, fabric, pattern, sleeveStyle, sleeveLength, neck, hsn } = req.body;
+        const { productId, name, description, price, mrp, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, color, fabric, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName } = req.body;
 
         const product = await productModel.findById(productId);
 
@@ -119,12 +128,11 @@ const updateProduct = async (req, res) => {
         product.subCategory = subCategory;
         product.sizes = JSON.parse(sizes);
         product.bestseller = bestseller;
-        product.length = length;
-        product.breadth = breadth;
-        product.dressType = dressType;
         product.styleCode = styleCode;
         product.countryOfOrigin = countryOfOrigin;
         product.manufacturer = manufacturer;
+        product.packer = packer;
+        product.includedComponents = includedComponents;
         product.color = color;
         product.fabric = fabric;
         product.pattern = pattern;
@@ -132,6 +140,14 @@ const updateProduct = async (req, res) => {
         product.sleeveLength = sleeveLength;
         product.neck = neck;
         product.hsn = hsn;
+        product.materialComposition = materialComposition;
+        product.careInstructions = careInstructions;
+        product.closureType = closureType;
+        product.materialType = materialType;
+        product.itemWeight = itemWeight;
+        product.itemDimensionsLxWxH = itemDimensionsLxWxH;
+        product.netQuantity = netQuantity;
+        product.genericName = genericName;
 
         await product.save();
 

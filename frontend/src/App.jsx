@@ -21,6 +21,7 @@ import GrievanceRedressals from "./components/FooterItems/GrievanceRedressals";
 import PaymentPolicy from "./components/FooterItems/PaymentPolicy";
 import ReturnRefund from "./components/FooterItems/ReturnRefund";
 import TermsConditions from "./components/FooterItems/TermsConditions";
+import GiftWrapSelector from "./Pages/GiftWrap";
 
 
 const App = () => {
@@ -40,6 +41,7 @@ const App = () => {
         <Route path="/product/:productId" element={<ProductPage />} />
         <Route path="/products" element={<AllProducts />} />
         <Route path="/products/:category" element={<AllProducts />} />
+        <Route path="/GiftWrap" element={<GiftWrapSelector />} />
 
      
         {/* Footer items */}

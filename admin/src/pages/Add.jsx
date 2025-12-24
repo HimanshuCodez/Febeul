@@ -3,6 +3,8 @@ import {assets} from '../assets/assets'
 import axios from 'axios'
 import { backendUrl } from '../App'
 import { toast } from 'react-toastify'
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const Add = ({token}) => {
 
@@ -10,6 +12,8 @@ const Add = ({token}) => {
   const [image2,setImage2] = useState(false)
   const [image3,setImage3] = useState(false)
   const [image4,setImage4] = useState(false)
+  const [image5,setImage5] = useState(false)
+  const [image6,setImage6] = useState(false)
 
    const [name, setName] = useState("");
    const [description, setDescription] = useState("");
@@ -20,12 +24,11 @@ const Add = ({token}) => {
    const [bestseller, setBestseller] = useState(false);
    const [sizes, setSizes] = useState([]);
 
-   const [length, setLength] = useState("");
-   const [breadth, setBreadth] = useState("");
-   const [dressType, setDressType] = useState("");
    const [styleCode, setStyleCode] = useState("");
    const [countryOfOrigin, setCountryOfOrigin] = useState("");
    const [manufacturer, setManufacturer] = useState("");
+   const [packer, setPacker] = useState("");
+   const [includedComponents, setIncludedComponents] = useState("");
    const [color, setColor] = useState("");
    const [fabric, setFabric] = useState("");
    const [pattern, setPattern] = useState("");
@@ -58,12 +61,11 @@ const Add = ({token}) => {
       formData.append("bestseller",bestseller)
       formData.append("sizes",JSON.stringify(sizes))
 
-      formData.append("length",length)
-      formData.append("breadth",breadth)
-      formData.append("dressType",dressType)
       formData.append("styleCode",styleCode)
       formData.append("countryOfOrigin",countryOfOrigin)
       formData.append("manufacturer",manufacturer)
+      formData.append("packer",packer)
+      formData.append("includedComponents",includedComponents)
       formData.append("color",color)
       formData.append("fabric",fabric)
       formData.append("pattern",pattern)
@@ -84,6 +86,8 @@ const Add = ({token}) => {
       image2 && formData.append("image2",image2)
       image3 && formData.append("image3",image3)
       image4 && formData.append("image4",image4)
+      image5 && formData.append("image5",image5)
+      image6 && formData.append("image6",image6)
 
       const response = await axios.post(backendUrl + "/api/product/add",formData,{headers:{token}})
 
@@ -95,14 +99,15 @@ const Add = ({token}) => {
         setImage2(false)
         setImage3(false)
         setImage4(false)
+        setImage5(false)
+        setImage6(false)
         setPrice('')
         setMrp('')
-        setLength('')
-        setBreadth('')
-        setDressType('')
         setStyleCode('')
         setCountryOfOrigin('')
         setManufacturer('')
+        setPacker('')
+        setIncludedComponents('')
         setColor('')
         setFabric('')
         setPattern('')
@@ -150,6 +155,14 @@ const Add = ({token}) => {
               <img className='w-20' src={!image4 ? assets.upload_area : URL.createObjectURL(image4)} alt="" />
               <input onChange={(e)=>setImage4(e.target.files[0])} type="file" id="image4" hidden/>
             </label>
+            <label htmlFor="image5">
+              <img className='w-20' src={!image5 ? assets.upload_area : URL.createObjectURL(image5)} alt="" />
+              <input onChange={(e)=>setImage5(e.target.files[0])} type="file" id="image5" hidden/>
+            </label>
+            <label htmlFor="image6">
+              <img className='w-20' src={!image6 ? assets.upload_area : URL.createObjectURL(image6)} alt="" />
+              <input onChange={(e)=>setImage6(e.target.files[0])} type="file" id="image6" hidden/>
+            </label>
           </div>
         </div>
 
@@ -160,7 +173,7 @@ const Add = ({token}) => {
 
         <div className='w-full'>
           <p className='mb-2'>Product description</p>
-          <textarea onChange={(e)=>setDescription(e.target.value)} value={description} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='Write content here' required/>
+          <ReactQuill theme="snow" value={description} onChange={setDescription} className='w-full max-w-[500px] min-h-40 mb-12' required/>
         </div>
 
         <div className='flex flex-col sm:flex-row gap-2 w-full sm:gap-8'>
@@ -200,18 +213,6 @@ const Add = ({token}) => {
 
         <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl'>
           <div className='w-full'>
-            <p className='mb-2'>Length</p>
-            <input onChange={(e)=>setLength(e.target.value)} value={length} className='w-full px-3 py-2' type="text" placeholder='shirt- 32cm, bottom-39' />
-          </div>
-          <div className='w-full'>
-            <p className='mb-2'>Breadth</p>
-            <input onChange={(e)=>setBreadth(e.target.value)} value={breadth} className='w-full px-3 py-2' type="text" placeholder='40( size L)' />
-          </div>
-          <div className='w-full'>
-            <p className='mb-2'>Dress Type</p>
-            <input onChange={(e)=>setDressType(e.target.value)} value={dressType} className='w-full px-3 py-2' type="text" placeholder='co-ord set' />
-          </div>
-          <div className='w-full'>
             <p className='mb-2'>Style Code</p>
             <input onChange={(e)=>setStyleCode(e.target.value)} value={styleCode} className='w-full px-3 py-2' type="text" placeholder='s-110' />
           </div>
@@ -222,6 +223,14 @@ const Add = ({token}) => {
           <div className='w-full'>
             <p className='mb-2'>Manufacturer</p>
             <input onChange={(e)=>setManufacturer(e.target.value)} value={manufacturer} className='w-full px-3 py-2' type="text" placeholder='King style knitwear' />
+          </div>
+          <div className='w-full'>
+            <p className='mb-2'>Packer</p>
+            <input onChange={(e)=>setPacker(e.target.value)} value={packer} className='w-full px-3 py-2' type="text" placeholder='King style knitwear' />
+          </div>
+          <div className='w-full'>
+            <p className='mb-2'>Included Components</p>
+            <input onChange={(e)=>setIncludedComponents(e.target.value)} value={includedComponents} className='w-full px-3 py-2' type="text" placeholder='1 shirt, 1 pant' />
           </div>
           <div className='w-full'>
             <p className='mb-2'>Color</p>
@@ -306,6 +315,9 @@ const Add = ({token}) => {
 
             <div onClick={()=>setSizes(prev => prev.includes("XXL") ? prev.filter( item => item !== "XXL") : [...prev,"XXL"])}>
               <p className={`${sizes.includes("XXL") ? "bg-pink-100" : "bg-slate-200" } px-3 py-1 cursor-pointer`}>XXL</p>
+            </div>
+            <div onClick={()=>setSizes(prev => prev.includes("Free Size") ? prev.filter( item => item !== "Free Size") : [...prev,"Free Size"])}>
+              <p className={`${sizes.includes("Free Size") ? "bg-pink-100" : "bg-slate-200" } px-3 py-1 cursor-pointer`}>Free Size</p>
             </div>
           </div>
         </div>
