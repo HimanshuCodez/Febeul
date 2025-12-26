@@ -36,7 +36,7 @@ const AppContent = () => {
       {showHeaderFooter && <Header />}
       <Routes>
         {/* Default route - Home */}
-        <Route path="/" element={<AuthPage />} />
+        <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile  />} />
         <Route path="/auth" element={<AuthPage />} />
      

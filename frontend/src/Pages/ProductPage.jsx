@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Truck, RotateCcw, ShieldCheck, Star } from 'lucide-react';
+import { Share2, Truck, RotateCcw, ShieldCheck, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import Loader from '../components/Loader';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -12,6 +12,7 @@ const ProductDetailPage = () => {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState(0);
+    const [expandedSection, setExpandedSection] = useState('about');
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -19,6 +20,7 @@ const ProductDetailPage = () => {
                 const { data } = await axios.post(`${backendUrl}/api/product/single`, { productId });
                 if (data.success) {
                     setProduct(data.product);
+                    console.log("Product description:", data.product.description);
                 } else {
                     console.error(data.message);
                 }
@@ -30,6 +32,10 @@ const ProductDetailPage = () => {
         };
         fetchProduct();
     }, [productId]);
+
+    const toggleSection = (section) => {
+        setExpandedSection(expandedSection === section ? null : section);
+    };
 
     if (loading) return <Loader />;
     if (!product) return <div className="flex items-center justify-center h-screen text-xl text-gray-700">Product not found.</div>;
@@ -51,7 +57,7 @@ const ProductDetailPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        <div className="min-h-screen bg-white">
             <motion.div 
                 className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8"
                 variants={mainVariants}
@@ -71,7 +77,7 @@ const ProductDetailPage = () => {
                                 <motion.div
                                     key={idx}
                                     onClick={() => setSelectedImage(idx)}
-                                    className={`w-20 h-24 rounded-lg border-2 overflow-hidden cursor-pointer ${selectedImage === idx ? 'border-pink-500' : 'border-transparent'}`}
+                                    className={`w-16 h-20 rounded-lg border-2 overflow-hidden cursor-pointer ${selectedImage === idx ? 'border-pink-500' : 'border-gray-200'}`}
                                     whileHover={{ scale: 1.05 }}
                                     transition={{ duration: 0.2 }}
                                 >
@@ -79,8 +85,8 @@ const ProductDetailPage = () => {
                                 </motion.div>
                             ))}
                         </div>
-                        <div className="relative flex-1 bg-gray-100 rounded-xl overflow-hidden aspect-square max-h-[550px]">
-                            <AnimatePresence>
+                        <div className="relative flex-1 bg-gray-50 rounded-lg overflow-hidden aspect-square max-h-[550px]">
+                            <AnimatePresence mode="wait">
                                 <motion.img
                                     key={selectedImage}
                                     src={images[selectedImage]}
@@ -89,71 +95,185 @@ const ProductDetailPage = () => {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.3 }}
-                                    className="absolute w-full h-full object-cover"
+                                    className="absolute w-full h-full object-contain p-4"
                                 />
                             </AnimatePresence>
                         </div>
                     </motion.div>
 
                     {/* Product Details */}
-                    <motion.div variants={itemVariants} className="flex flex-col space-y-5">
-                        <div className="flex justify-between items-start">
-                            <h1 className="text-3xl lg:text-4xl font-bold text-gray-800">{product.name}</h1>
+                    <motion.div variants={itemVariants} className="flex flex-col">
+                        <div className="flex justify-between items-start mb-3">
+                            <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900 leading-tight pr-4">{product.name}</h1>
                             <motion.button whileTap={{ scale: 0.9 }} className="p-2 rounded-full hover:bg-gray-100">
-                                <Share2 size={22} className="text-gray-600" />
+                                <Share2 size={20} className="text-gray-600" />
                             </motion.button>
                         </div>
                         
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 mb-4">
                             <div className="flex items-center">
-                                {[...Array(5)].map((_, i) => <Star key={i} size={20} className="text-yellow-400 fill-current" />)}
+                                {[...Array(5)].map((_, i) => <Star key={i} size={16} className="text-yellow-400 fill-current" />)}
                             </div>
-                            <span className="text-gray-600">(125 Reviews)</span>
+                            <span className="text-sm text-gray-600">(125 Reviews)</span>
                         </div>
 
-                        <div className="flex items-baseline gap-3">
-                            <span className="text-3xl font-extrabold text-gray-900">₹{product.price}</span>
+                        <div className="flex items-baseline gap-3 mb-4">
+                            <span className="text-3xl font-bold text-pink-500">₹{product.price}</span>
                             <span className="text-lg text-gray-500 line-through">₹{product.mrp}</span>
-                            <span className="text-lg font-semibold text-pink-500">{discount}% Off</span>
+                            <span className="text-base font-medium text-pink-500">{discount}% off</span>
                         </div>
                         
-                        <p className="text-gray-600 leading-relaxed">{product.description}</p>
-                        
-                        <div className="flex gap-4 pt-4">
-                            <motion.button whileTap={{ scale: 0.95 }} className="flex-1 bg-pink-500 hover:bg-pink-600 text-white py-3.5 rounded-full font-bold text-lg transition-colors">
-                                Buy Now
-                            </motion.button>
-                            <motion.button whileTap={{ scale: 0.95 }} className="flex-1 bg-white border-2 border-pink-500 text-pink-500 py-3.5 rounded-full font-bold text-lg hover:bg-pink-50 transition-colors">
-                                Add to Cart
-                            </motion.button>
-                        </div>
-                        
-                        <div className="flex justify-around py-6 border-y border-gray-200 mt-6">
-                            <div className="text-center flex flex-col items-center gap-2">
-                                <Truck className="text-gray-700" size={28} />
-                                <span className="text-xs font-medium text-gray-600">Free Delivery</span>
-                            </div>
-                            <div className="text-center flex flex-col items-center gap-2">
-                                <RotateCcw className="text-gray-700" size={28} />
-                                <span className="text-xs font-medium text-gray-600">3-Day Replacement</span>
-                            </div>
-                            <div className="text-center flex flex-col items-center gap-2">
-                                <ShieldCheck className="text-gray-700" size={28} />
-                                <span className="text-xs font-medium text-gray-600">1-Year Warranty</span>
+                        {/* Coupons & Promotions */}
+                        <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-4">
+                            <h3 className="font-semibold text-gray-900 mb-2 text-sm">Coupons & Promotions</h3>
+                            <div className="space-y-2 text-xs text-gray-700">
+                                <p>💰 Save 10% on your first purchase - code: FIRST10</p>
+                                <p>🎁 Buy 2 Get 1 Free on select items</p>
                             </div>
                         </div>
 
-                        {/* Details Accordion can be added here in the future */}
-                        <div>
-                             <h3 className="font-bold text-gray-800 text-lg mb-4">Product details</h3>
-                             <div className="space-y-3">
-                                <DetailRow label="Category" value={product.category} />
-                                <DetailRow label="Color" value={product.color} />
-                                <DetailRow label="Fabric" value={product.fabric} />
-                                <DetailRow label="Country of Origin" value={product.countryOfOrigin} />
-                             </div>
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 mb-6">
+                            <motion.button 
+                                whileTap={{ scale: 0.95 }} 
+                                className="flex-1 bg-pink-500 hover:bg-pink-600 text-white py-3 rounded-full font-semibold text-base transition-colors shadow-sm"
+                            >
+                                BUY NOW
+                            </motion.button>
+                            <motion.button 
+                                whileTap={{ scale: 0.95 }} 
+                                className="flex-1 bg-white border-2 border-pink-500 text-pink-500 py-3 rounded-full font-semibold text-base hover:bg-pink-50 transition-colors"
+                            >
+                                ADD TO CART
+                            </motion.button>
+                        </div>
+                        
+                        {/* Features */}
+                        <div className="grid grid-cols-4 gap-4 py-6 border-y border-gray-200 mb-6">
+                            <div className="text-center flex flex-col items-center gap-1">
+                                <Truck className="text-gray-700" size={24} />
+                                <span className="text-xs text-gray-600">Free Delivery</span>
+                            </div>
+                            <div className="text-center flex flex-col items-center gap-1">
+                                <RotateCcw className="text-gray-700" size={24} />
+                                <span className="text-xs text-gray-600">3-Day Return</span>
+                            </div>
+                            <div className="text-center flex flex-col items-center gap-1">
+                                <ShieldCheck className="text-gray-700" size={24} />
+                                <span className="text-xs text-gray-600">1-Year Warranty</span>
+                            </div>
+                            <div className="text-center flex flex-col items-center gap-1">
+                                <Star className="text-gray-700" size={24} />
+                                <span className="text-xs text-gray-600">Top Rated</span>
+                            </div>
                         </div>
 
+                        {/* Expandable Sections */}
+                        <div className="space-y-3">
+                            {/* About this item */}
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                <button
+                                    onClick={() => toggleSection('about')}
+                                    className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+                                >
+                                    <span className="font-semibold text-gray-900">About this item</span>
+                                    {expandedSection === 'about' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                </button>
+                                <AnimatePresence>
+                                    {expandedSection === 'about' && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="p-4 pt-0 text-sm text-gray-700 space-y-2">
+                                                <div className="product-description" dangerouslySetInnerHTML={{ __html: product.description }}></div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Product Details */}
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                <button
+                                    onClick={() => toggleSection('details')}
+                                    className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+                                >
+                                    <span className="font-semibold text-gray-900">Product details</span>
+                                    {expandedSection === 'details' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                </button>
+                                <AnimatePresence>
+                                    {expandedSection === 'details' && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="p-4 pt-0">
+                                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                                    <DetailRow label="Category" value={product.category} />
+                                                    <DetailRow label="Color" value={product.color} />
+                                                    <DetailRow label="Fabric" value={product.fabric} />
+                                                    <DetailRow label="Country of Origin" value={product.countryOfOrigin} />
+                                                    <DetailRow label="Material type" value={product.materialType || "Lace"} />
+                                                    <DetailRow label="Occasion type" value={product.occasionType || "Party"} />
+                                                    <DetailRow label="Closure type" value={product.closureType || "Sleeveless"} />
+                                                    <DetailRow label="Sleeve type" value={product.sleeveType || "Sleeveless"} />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Additional Information */}
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                <button
+                                    onClick={() => toggleSection('additional')}
+                                    className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+                                >
+                                    <span className="font-semibold text-gray-900">Additional information</span>
+                                    {expandedSection === 'additional' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                </button>
+                                <AnimatePresence>
+                                    {expandedSection === 'additional' && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="p-4 pt-0">
+                                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                                    <DetailRow label="Manufacturer" value={product.manufacturer || "ASHNA LTD"} />
+                                                    <DetailRow label="Item Weight" value={product.weight || "100 g"} />
+                                                    <DetailRow label="Net Quantity" value={product.netQuantity || "1.0 count"} />
+                                                    <DetailRow label="Generic Name" value={product.genericName || "Nightwear"} />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+
+                        {/* Similar Products Section */}
+                        <div className="mt-8">
+                            <h3 className="font-semibold text-gray-900 mb-4">Similar Products</h3>
+                            <div className="flex gap-3 overflow-x-auto pb-2">
+                                {[1, 2, 3, 4].map((item) => (
+                                    <div key={item} className="min-w-[100px] flex-shrink-0">
+                                        <div className="w-24 h-32 bg-gray-100 rounded-lg mb-2"></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </motion.div>
                 </div>
             </motion.div>
@@ -162,10 +282,10 @@ const ProductDetailPage = () => {
 };
 
 const DetailRow = ({ label, value }) => (
-    <div className="grid grid-cols-2 gap-4 text-sm">
-        <span className="text-gray-600">{label}</span>
-        <span className="text-gray-800 font-medium">{value}</span>
-    </div>
+    <>
+        <div className="text-gray-600">{label}</div>
+        <div className="text-gray-900 font-medium">{value}</div>
+    </>
 );
 
 export default ProductDetailPage;

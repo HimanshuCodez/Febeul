@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.product-description ul {
+  list-style-type: disc;
+  margin-left: 1.25em; /* Adjust as needed for spacing */
+}
+
+.product-description ol {
+  list-style-type: decimal;
+  margin-left: 1.25em; /* Adjust as needed for spacing */
+}
+
+.product-description li {
+  margin-bottom: 0.5em; /* Space between list items */
+}
