@@ -24,6 +24,7 @@ import TermsConditions from "./components/FooterItems/TermsConditions";
 import GiftWrapSelector from "./Pages/GiftWrap";
 import Footer from "./components/Footer";
 import Header from "./components/Navbar";
+import LuxePage from "./Pages/Luxe";
 
 const AppContent = () => {
   const location = useLocation();
@@ -47,6 +48,7 @@ const AppContent = () => {
         <Route path="/products" element={<AllProducts />} />
         <Route path="/products/:category" element={<AllProducts />} />
         <Route path="/GiftWrap" element={<GiftWrapSelector />} />
+        <Route path="/luxe" element={<LuxePage />} />
 
      
         {/* Footer items */}

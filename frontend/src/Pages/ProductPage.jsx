@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Share2, Truck, RotateCcw, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Share2, Truck, RotateCcw, ShieldCheck, Star } from 'lucide-react';
 import Loader from '../components/Loader';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-export default function ProductPage() {
+const ProductDetailPage = () => {
     const { productId } = useParams();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -15,260 +16,156 @@ export default function ProductPage() {
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const response = await axios.post(`${backendUrl}/api/product/single`, { productId });
-                if (response.data.success) {
-                    setProduct(response.data.product);
+                const { data } = await axios.post(`${backendUrl}/api/product/single`, { productId });
+                if (data.success) {
+                    setProduct(data.product);
                 } else {
-                    console.error(response.data.message);
+                    console.error(data.message);
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Failed to fetch product:", error);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchProduct();
     }, [productId]);
 
-    if (loading) {
-        return <Loader />;
-    }
-
-    if (!product) {
-        return <div className="text-center mt-10">Product not found</div>;
-    }
+    if (loading) return <Loader />;
+    if (!product) return <div className="flex items-center justify-center h-screen text-xl text-gray-700">Product not found.</div>;
 
     const images = product.image || [];
+    const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-sm">
-        {/* Breadcrumb */}
-        <div className="p-4 text-sm text-gray-600">
-          {product.category} › {product.subCategory}
-        </div>
+    const mainVariants = {
+        hidden: { opacity: 0 },
+        visible: { 
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
 
-        <div className="grid md:grid-cols-2 gap-8 p-6">
-          {/* Left Side - Images */}
-          <div className="flex gap-4">
-            {/* Thumbnail Column */}
-            <div className="flex flex-col gap-2">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedImage(idx)}
-                  className={`w-16 h-20 border-2 rounded overflow-hidden ${
-                    selectedImage === idx ? 'border-blue-500' : 'border-gray-200'
-                  }`}
-                >
-                  <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
+    };
 
-            {/* Main Image */}
-            <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden">
-              <img 
-                src={images[selectedImage]} 
-                alt="Product main view" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
+    return (
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+            <motion.div 
+                className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8"
+                variants={mainVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                {/* Breadcrumb */}
+                <motion.div variants={itemVariants} className="text-sm text-gray-500 mb-4">
+                    Home / {product.category} / <span className="font-medium text-gray-800">{product.name}</span>
+                </motion.div>
 
-          {/* Right Side - Product Details */}
-          <div className="space-y-6">
-            {/* Share Button */}
-            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-800 ml-auto">
-              <Share2 size={20} />
-            </button>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    {/* Image Gallery */}
+                    <motion.div variants={itemVariants} className="flex flex-col-reverse sm:flex-row gap-4">
+                        <div className="flex sm:flex-col gap-3 justify-center">
+                            {images.map((img, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    onClick={() => setSelectedImage(idx)}
+                                    className={`w-20 h-24 rounded-lg border-2 overflow-hidden cursor-pointer ${selectedImage === idx ? 'border-pink-500' : 'border-transparent'}`}
+                                    whileHover={{ scale: 1.05 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                                </motion.div>
+                            ))}
+                        </div>
+                        <div className="relative flex-1 bg-gray-100 rounded-xl overflow-hidden aspect-square max-h-[550px]">
+                            <AnimatePresence>
+                                <motion.img
+                                    key={selectedImage}
+                                    src={images[selectedImage]}
+                                    alt="Product main view"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="absolute w-full h-full object-cover"
+                                />
+                            </AnimatePresence>
+                        </div>
+                    </motion.div>
 
-            {/* Product Title */}
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-800 mb-2">
-                {product.name}
-              </h1>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500 line-through text-sm">₹{product.mrp}</span>
-                <span className="text-red-500 font-semibold">{Math.round(((product.mrp - product.price) / product.mrp) * 100)}% Off</span>
-              </div>
-            </div>
+                    {/* Product Details */}
+                    <motion.div variants={itemVariants} className="flex flex-col space-y-5">
+                        <div className="flex justify-between items-start">
+                            <h1 className="text-3xl lg:text-4xl font-bold text-gray-800">{product.name}</h1>
+                            <motion.button whileTap={{ scale: 0.9 }} className="p-2 rounded-full hover:bg-gray-100">
+                                <Share2 size={22} className="text-gray-600" />
+                            </motion.button>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => <Star key={i} size={20} className="text-yellow-400 fill-current" />)}
+                            </div>
+                            <span className="text-gray-600">(125 Reviews)</span>
+                        </div>
 
-            {/* Price */}
-            <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold">₹{product.price}</span>
-              <span className="text-sm text-gray-600">Inclusive of all taxes</span>
-            </div>
+                        <div className="flex items-baseline gap-3">
+                            <span className="text-3xl font-extrabold text-gray-900">₹{product.price}</span>
+                            <span className="text-lg text-gray-500 line-through">₹{product.mrp}</span>
+                            <span className="text-lg font-semibold text-pink-500">{discount}% Off</span>
+                        </div>
+                        
+                        <p className="text-gray-600 leading-relaxed">{product.description}</p>
+                        
+                        <div className="flex gap-4 pt-4">
+                            <motion.button whileTap={{ scale: 0.95 }} className="flex-1 bg-pink-500 hover:bg-pink-600 text-white py-3.5 rounded-full font-bold text-lg transition-colors">
+                                Buy Now
+                            </motion.button>
+                            <motion.button whileTap={{ scale: 0.95 }} className="flex-1 bg-white border-2 border-pink-500 text-pink-500 py-3.5 rounded-full font-bold text-lg hover:bg-pink-50 transition-colors">
+                                Add to Cart
+                            </motion.button>
+                        </div>
+                        
+                        <div className="flex justify-around py-6 border-y border-gray-200 mt-6">
+                            <div className="text-center flex flex-col items-center gap-2">
+                                <Truck className="text-gray-700" size={28} />
+                                <span className="text-xs font-medium text-gray-600">Free Delivery</span>
+                            </div>
+                            <div className="text-center flex flex-col items-center gap-2">
+                                <RotateCcw className="text-gray-700" size={28} />
+                                <span className="text-xs font-medium text-gray-600">3-Day Replacement</span>
+                            </div>
+                            <div className="text-center flex flex-col items-center gap-2">
+                                <ShieldCheck className="text-gray-700" size={28} />
+                                <span className="text-xs font-medium text-gray-600">1-Year Warranty</span>
+                            </div>
+                        </div>
 
-            {/* Coupons & Promotions */}
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-800 mb-3">Coupons & Promotions</h3>
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div className="border border-gray-200 rounded p-2">
-                  <div className="font-semibold text-gray-800">Cashback</div>
-                  <div className="text-xs text-gray-600">Upto ₹74.00</div>
-                  <div className="text-xs text-gray-500">Pay Master,Amazon Pay Master</div>
-                  <div className="text-blue-500 text-xs mt-1">1 offer</div>
+                        {/* Details Accordion can be added here in the future */}
+                        <div>
+                             <h3 className="font-bold text-gray-800 text-lg mb-4">Product details</h3>
+                             <div className="space-y-3">
+                                <DetailRow label="Category" value={product.category} />
+                                <DetailRow label="Color" value={product.color} />
+                                <DetailRow label="Fabric" value={product.fabric} />
+                                <DetailRow label="Country of Origin" value={product.countryOfOrigin} />
+                             </div>
+                        </div>
+
+                    </motion.div>
                 </div>
-                <div className="border border-gray-200 rounded p-2">
-                  <div className="font-semibold text-gray-800">Bank Offer</div>
-                  <div className="text-xs text-gray-600">Upto ₹1,000.00</div>
-                  <div className="text-xs text-gray-500">off on select Credit Cards</div>
-                  <div className="text-blue-500 text-xs mt-1">15 offers</div>
-                </div>
-                <div className="border border-gray-200 rounded p-2">
-                  <div className="font-semibold text-gray-800">Partner Offers</div>
-                  <div className="text-xs text-gray-600">Get GST Invoice</div>
-                  <div className="text-xs text-gray-500">and save up to 28% on business...</div>
-                  <div className="text-blue-500 text-xs mt-1">1 offer</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Service Icons */}
-            <div className="flex justify-around py-4 border-y border-gray-200">
-              <div className="text-center">
-                <Truck className="mx-auto mb-2 text-gray-600" size={32} />
-                <div className="text-xs text-blue-500">Free delivery</div>
-              </div>
-              <div className="text-center">
-                <RotateCcw className="mx-auto mb-2 text-gray-600" size={32} />
-                <div className="text-xs text-blue-500">3 days Replacement</div>
-              </div>
-              <div className="text-center">
-                <ShieldCheck className="mx-auto mb-2 text-gray-600" size={32} />
-                <div className="text-xs text-blue-500">Warranty Policy</div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <button className="flex-1 bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-full font-semibold transition-colors">
-                BUY NOW
-              </button>
-              <button className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-full font-semibold transition-colors">
-                ADD TO CART
-              </button>
-            </div>
-
-            {/* About this item */}
-            <div className="space-y-4">
-              <h3 className="font-bold text-gray-800 text-lg">About this item</h3>
-              <p>{product.description}</p>
-            </div>
-          </div>
+            </motion.div>
         </div>
+    );
+};
 
-        {/* Product Details & Additional Information */}
-        <div className="grid md:grid-cols-2 gap-8 p-6 border-t border-gray-200">
-          {/* Product Details */}
-          <div>
-            <h3 className="font-bold text-gray-800 text-lg mb-4">Product details</h3>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">MRP</span>
-                <span className="text-gray-800">₹{product.mrp}</span>
-              </div>
-               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Category</span>
-                <span className="text-gray-800">{product.category}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Sub Category</span>
-                <span className="text-gray-800">{product.subCategory}</span>
-              </div>
-               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Color</span>
-                <span className="text-gray-800">{product.color}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Length</span>
-                <span className="text-gray-800">{product.length}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Breadth</span>
-                <span className="text-gray-800">{product.breadth}</span>
-              </div>
-               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Fabric</span>
-                <span className="text-gray-800">{product.fabric}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Pattern</span>
-                <span className="text-gray-800">{product.pattern}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Sleeve Style</span>
-                <span className="text-gray-800">{product.sleeveStyle}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Sleeve Length</span>
-                <span className="text-gray-800">{product.sleeveLength}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Neck</span>
-                <span className="text-gray-800">{product.neck}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Country of Origin</span>
-                <span className="text-gray-800">{product.countryOfOrigin}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Material Composition</span>
-                <span className="text-gray-800">{product.materialComposition}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Care Instructions</span>
-                <span className="text-gray-800">{product.careInstructions}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Closure Type</span>
-                <span className="text-gray-800">{product.closureType}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Material Type</span>
-                <span className="text-gray-800">{product.materialType}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Information */}
-          <div>
-            <h3 className="font-bold text-gray-800 text-lg mb-4">Additional Information</h3>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Manufacturer</span>
-                <span className="text-gray-800">{product.manufacturer}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Style Code</span>
-                <span className="text-gray-800">{product.styleCode}</span>
-              </div>
-               <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">HSN</span>
-                <span className="text-gray-800">{product.hsn}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Item Weight</span>
-                <span className="text-gray-800">{product.itemWeight}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Item Dimensions LxWxH</span>
-                <span className="text-gray-800">{product.itemDimensionsLxWxH}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Net Quantity</span>
-                <span className="text-gray-800">{product.netQuantity}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="text-gray-600">Generic Name</span>
-                <span className="text-gray-800">{product.genericName}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+const DetailRow = ({ label, value }) => (
+    <div className="grid grid-cols-2 gap-4 text-sm">
+        <span className="text-gray-600">{label}</span>
+        <span className="text-gray-800 font-medium">{value}</span>
     </div>
-  );
-}
+);
+
+export default ProductDetailPage;
