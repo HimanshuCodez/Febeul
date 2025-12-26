@@ -1,6 +1,6 @@
 // App.jsx
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./Pages/Home";
 import "./index.css"
 import Profile from "./Pages/Profile";
@@ -22,11 +22,16 @@ import PaymentPolicy from "./components/FooterItems/PaymentPolicy";
 import ReturnRefund from "./components/FooterItems/ReturnRefund";
 import TermsConditions from "./components/FooterItems/TermsConditions";
 import GiftWrapSelector from "./Pages/GiftWrap";
+import Footer from "./components/Footer";
+import Header from "./components/Navbar";
 
+const AppContent = () => {
+  const location = useLocation();
+  const showHeaderFooter = !['/auth', '/forgot-password'].includes(location.pathname);
 
-const App = () => {
   return (
-    <Router>
+    <div>
+      {showHeaderFooter && <Header />}
       <Routes>
         {/* Default route - Home */}
         <Route path="/" element={<Home />} />
@@ -61,6 +66,16 @@ const App = () => {
       </Routes>
       <Chatbot/>
       <FebeulMembership/>
+      {showHeaderFooter && <Footer/>}
+    </div>
+  );
+}
+
+
+const App = () => {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 };

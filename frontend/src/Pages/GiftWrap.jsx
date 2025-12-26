@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GiGift } from 'react-icons/gi'; // A nice gift box icon from react-icons (Game Icons)
+import { FaGift } from 'react-icons/fa'; // A nice gift box icon from react-icons (Game Icons)
 
 export default function GiftWrapSelector() {
   const [selectedWrap, setSelectedWrap] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export default function GiftWrapSelector() {
                 >
                   {/* Gift Box Image Placeholder with Icon */}
                   <div className="bg-gradient-to-br from-indigo-600 to-purple-700 aspect-square flex items-center justify-center">
-                    <GiGift className="w-64 h-64 text-white opacity-80" />
+                    <FaGift className="w-64 h-64 text-white opacity-80" />
                   </div>
 
                   {/* Details Overlay */}
@@ -94,7 +94,7 @@ export default function GiftWrapSelector() {
                 >
                   {/* Smaller Gift Box Placeholder */}
                   <div className="bg-gradient-to-br from-purple-500 to-pink-600 aspect-square flex items-center justify-center">
-                    <GiGift className="w-32 h-32 text-white opacity-70" />
+                    <FaGift className="w-32 h-32 text-white opacity-70" />
                   </div>
 
                   <div className="bg-white p-4 text-center">
