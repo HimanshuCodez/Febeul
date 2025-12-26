@@ -123,7 +123,7 @@ const ProductDetailPage = () => {
 
                             {/* Product Features Icons */}
                             <div className="flex gap-8 py-4">
-                                <FeatureIcon icon={<Truck size={20} />} label="Free Delivery" />
+                                <FeatureIcon icon={<Truck size={20} />} label="Fast Delivery" />
                                 <FeatureIcon icon={<RotateCcw size={20} />} label="Easy Returns" />
                                 <FeatureIcon icon={<ShieldCheck size={20} />} label="Secure Transaction" />
                             </div>
