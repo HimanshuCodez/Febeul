@@ -179,25 +179,17 @@ const Add = ({token}) => {
         <div className='flex flex-col sm:flex-row gap-2 w-full sm:gap-8'>
 
             <div>
-              <p className='mb-2'>Product category</p>
+              <p className='mb-2'>Product Sub Category</p>
               <select onChange={(e) => setCategory(e.target.value)} value={category} className='w-full px-3 py-2'>
                   <option value="BABYDOLL">BABYDOLL</option>
                   <option value="LINGERIE">LINGERIE</option>
                   <option value="NIGHTY">NIGHTY</option>
                   <option value="PAJAMAS">PAJAMAS</option>
                   <option value="NEW & NOW">NEW & NOW</option>
-                  <option value="GIFT WRAP">GIFT WRAP</option>
+                  
               </select>
             </div>
 
-            <div>
-              <p className='mb-2'>Sub category</p>
-              <select onChange={(e) => setSubCategory(e.target.value)} className='w-full px-3 py-2'>
-                  <option value="Topwear">Topwear</option>
-                  <option value="Bottomwear">Bottomwear</option>
-                  <option value="Winterwear">Winterwear</option>
-              </select>
-            </div>
 
             <div>
               <p className='mb-2'>MRP</p>

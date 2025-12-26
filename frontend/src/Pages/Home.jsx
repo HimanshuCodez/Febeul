@@ -1,12 +1,11 @@
 import React from 'react'
-import CloviaHeader from '../components/Navbar'
 import Hero from '../components/HeroSection'
 
 import PromoBanner from '../components/PromoBanner'
 import OfferBar from '../components/ReturnBanner'
 import StylesSection from '../components/Banner'
 
-import Footer from '../components/Footer'
+
 import Spotlight from '../components/Spotlight'
 import BlackBanner from '../components/BlackBanner'
 import ProductDealBanner from '../components/ProductDealer'
@@ -17,8 +16,14 @@ import Aboutt from '../components/Aboutt'
 
 
 const Home = () => {
+
+
   return  (
-    <div><CloviaHeader/>
+
+
+    <div>
+
+
     <Hero />
     <OfferBar/>
     <div className='mt-5'><Spotlight/></div>
@@ -34,7 +39,7 @@ const Home = () => {
    
     <AboutUs/>
     {/* <div className='mt-5'><PurpleBanner/></div> */}
-    <Footer/>
+    
     
     </div>
   )
