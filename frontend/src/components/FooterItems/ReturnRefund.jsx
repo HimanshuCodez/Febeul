@@ -207,12 +207,7 @@ const ReturnRefund = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             RETURN, EXCHANGE & REFUND POLICY
             </h1>
-            <p className="text-center text-gray-600 mb-8">
-            Last Updated: [10 DEC 2025]
-            </p>
-            <p className="text-gray-700 leading-relaxed text-center">
-            Febeul follows a strict 2-Days Return & Exchange Policy. All return or exchange requests must be raised within 2 days from the date of delivery. Any request submitted after 2 days will not be accepted under any circumstances.
-            </p>
+
         </motion.div>
 
         <motion.div

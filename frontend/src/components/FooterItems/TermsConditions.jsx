@@ -364,12 +364,7 @@ const TermsConditions = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             TERMS & CONDITIONS – FEBEUL
             </h1>
-            <p className="text-center text-gray-600 mb-8">
-            Last Updated: 10 DEC 2025
-            </p>
-            <p className="text-gray-700 leading-relaxed text-center">
-            Welcome to Febeul (“Company”, “We”, “Us”, “Our”). These Terms & Conditions (“Terms”) govern your access to and use of our website www.febeul.com (“Website”), and all products or services offered through it. By accessing or using our Website, you agree to be bound by these Terms. If you do not agree, please discontinue use immediately.
-            </p>
+
         </motion.div>
 
         <motion.div

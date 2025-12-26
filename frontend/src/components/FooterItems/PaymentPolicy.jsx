@@ -188,12 +188,7 @@ const PaymentPolicy = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             PAYMENT POLICY
             </h1>
-            <p className="text-center text-gray-600 mb-8">
-            Last Updated: [10 DEC 2025]
-            </p>
-            <p className="text-gray-700 leading-relaxed text-center">
-            This Payment Policy (“Policy”) governs all payments made for purchases on the Febeul Website (“Website”). By placing an order and completing a transaction, the customer (“User”) agrees to comply with all terms and conditions mentioned herein.
-            </p>
+
         </motion.div>
 
         <motion.div

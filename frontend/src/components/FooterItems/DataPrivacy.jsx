@@ -308,12 +308,7 @@ const DataPrivacy = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             PRIVACY & COOKIES POLICY
             </h1>
-            <p className="text-center text-gray-600 mb-8">
-            Last Updated: 11 DEC 2025
-            </p>
-            <p className="text-gray-700 leading-relaxed text-center">
-            This Privacy & Cookies Policy (“Policy”) explains how Febeul (“Company”, “We”, “Us”, “Our”) collects, uses, processes, stores, and protects personal data of users (“You”, “Your”, “User”) who access or use the Febeul Website (“Website”).
-            </p>
+
         </motion.div>
 
         <motion.div

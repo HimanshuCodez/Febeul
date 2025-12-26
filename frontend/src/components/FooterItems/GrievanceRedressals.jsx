@@ -248,12 +248,7 @@ const GrievanceRedressals = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             GRIEVANCE REDRESSAL
             </h1>
-            <p className="text-center text-gray-600 mb-8">
-            Last Updated: [10 DEC 2025]
-            </p>
-            <p className="text-gray-700 leading-relaxed text-center">
-            In compliance with the Consumer Protection (E-Commerce) Rules, 2020, the Information Technology Act, 2000, and the Information Technology (Intermediary Guidelines & Digital Media Ethics Code) Rules, 2021, Febeul appoints the following Grievance Officer:
-            </p>
+
         </motion.div>
 
         <motion.div

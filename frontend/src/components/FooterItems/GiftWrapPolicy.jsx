@@ -161,12 +161,7 @@ const GiftWrapPolicy = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             GIFT WRAP POLICY
             </h1>
-            <p className="text-center text-gray-600 mb-8">
-            Last Updated: [22 DEC 2025]
-            </p>
-            <p className="text-center text-gray-700 leading-relaxed">
-            Febeul offers gift wrap services as an optional add-on to enhance your shopping experience. This Gift Wrap Policy outlines the terms, conditions, charges, and limitations applicable to gift wrap purchases made on the Febeul website. By selecting the gift wrap option, the customer agrees to this Policy.
-            </p>
+
         </motion.div>
 
         <motion.div

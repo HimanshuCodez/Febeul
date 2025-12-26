@@ -310,12 +310,7 @@ const ReviewRating = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             Febeul Review & Rating Policy
             </h1>
-            <p className="text-center text-gray-600 mb-8">
-            This policy governs how customers submit reviews for Febeul products.
-            </p>
-            <p className="text-gray-700 leading-relaxed text-center">
-            By posting a Review on any online marketplace, including but not limited to Amazon and Flipkart, the customer (“User”, “Reviewer”) agrees to be bound by the terms outlined below.
-            </p>
+
         </motion.div>
 
         <motion.div

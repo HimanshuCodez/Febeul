@@ -235,12 +235,7 @@ const LuxePolicy = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             LUXE MEMBERSHIP POLICY
             </h1>
-            <p className="text-center text-gray-600 mb-8">
-            Last Updated: 11 DEC 2025
-            </p>
-            <p className="text-gray-700 leading-relaxed text-center">
-            The Febeul Luxe Membership (“Luxe Membership” or “Membership”) is a premium subscription program offered by Febeul (“Company”, “We”, “Us”, “Our”). This Policy outlines the terms, conditions, benefits, payment rules, renewal rules, cancellation, refund eligibility, and other operational aspects governing the Luxe Membership.
-            </p>
+
         </motion.div>
 
         <motion.div

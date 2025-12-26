@@ -183,9 +183,7 @@ const Faq = () => {
             <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 text-[#f47b7d]">
             GENERAL WEBSITE FAQs
             </h1>
-            <p className="text-center text-gray-700 leading-relaxed">
-            Below are common questions and answers about Febeul.
-            </p>
+
         </motion.div>
 
         <motion.div
