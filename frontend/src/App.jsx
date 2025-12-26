@@ -13,6 +13,7 @@ import AuthPage from "./Pages/AuthPage";
 import ProductPage from "./Pages/ProductPage";
 import AllProducts from "./Pages/AllProducts";
 import ForgotPassword from "./Pages/ForgetPass";
+import NewAndNow from "./Pages/NewAndNow";
 import ReviewRating from "./components/FooterItems/ReviewRating";
 import Faq from "./components/FooterItems/Faq";
 import LuxePolicy from "./components/FooterItems/LuxePolicy";
@@ -49,6 +50,7 @@ const AppContent = () => {
         <Route path="/products/:category" element={<AllProducts />} />
         <Route path="/GiftWrap" element={<GiftWrapSelector />} />
         <Route path="/luxe" element={<LuxePage />} />
+        <Route path="/new-and-now" element={<NewAndNow />} />
 
      
         {/* Footer items */}

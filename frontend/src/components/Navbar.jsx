@@ -281,6 +281,8 @@ export default function Header() {
                         ? "/GiftWrap"
                         : item.title === "LUXE PRIVE SALE"
                         ? "/luxe"
+                        : item.title === "NEW & NOW"
+                        ? "/new-and-now"
                         : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
                     }
                     className="py-4 text-sm font-medium text-white hover:bg-[#f9aeaf] rounded-md hover:text-black flex items-center transition-colors"
@@ -381,6 +383,8 @@ export default function Header() {
                         ? "/GiftWrap"
                         : item.title === "LUXE PRIVE SALE"
                         ? "/luxe"
+                        : item.title === "NEW & NOW"
+                        ? "/new-and-now"
                         : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
                     }
                     className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
