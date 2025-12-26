@@ -159,10 +159,13 @@ const ProductDetailPage = () => {
                             <div className="border-t border-gray-200 pt-6 mt-6">
                                 <h2 className="text-base font-bold text-gray-900 mb-3">Product details</h2>
                                 <div className="space-y-2 text-sm">
-                                    <DetailRow label="Care instructions" value="Machine Wash" />
-                                    <DetailRow label="Fit Type" value="Slim Fit" bold />
-                                    <DetailRow label="Colour name" value={product.color} />
-                                    <DetailRow label="Closure type" value="Lace" />
+                                    <DetailRow label="Style Code" value={product.styleCode} />
+                                    <DetailRow label="Category" value={product.category} />
+                                    <DetailRow label="Sub Category" value={product.subCategory} />
+                                    <DetailRow label="Colour" value={product.color} />
+                                    <DetailRow label="Material Type" value={product.materialType} />
+                                    <DetailRow label="Care Instructions" value={product.careInstructions} />
+                                    <DetailRow label="Closure Type" value={product.closureType} />
                                     <DetailRow label="Country of Origin" value={product.countryOfOrigin} />
                                 </div>
                             </div>
@@ -179,13 +182,22 @@ const ProductDetailPage = () => {
                             <div className="border-t border-gray-200 pt-6">
                                 <h2 className="text-base font-bold text-gray-900 mb-3">Additional information</h2>
                                 <div className="space-y-2 text-sm">
-                                    <DetailRow label="Manufacturer" value={product.manufacturer || "ASHNA LTD, TOUCH FELT TEXTILES (HK) LIMTED"} />
+                                    <DetailRow label="Manufacturer" value={product.manufacturer} />
+                                    <DetailRow label="Packer" value={product.packer} />
+                                    <DetailRow label="Included Components" value={product.includedComponents} />
                                     <DetailRow label="Fabric" value={product.fabric} />
-                                    <DetailRow label="Item Weight" value="100 g" />
-                                    <DetailRow label="Net Quantity" value="1.0 count" />
+                                    <DetailRow label="Pattern" value={product.pattern} />
+                                    <DetailRow label="Sleeve Style" value={product.sleeveStyle} />
+                                    <DetailRow label="Sleeve Length" value={product.sleeveLength} />
+                                    <DetailRow label="Neck" value={product.neck} />
+                                    <DetailRow label="HSN" value={product.hsn} />
+                                    <DetailRow label="Material Composition" value={product.materialComposition} />
+                                    <DetailRow label="Item Weight" value={product.itemWeight} />
+                                    <DetailRow label="Item Dimensions LxWxH" value={product.itemDimensionsLxWxH} />
+                                    <DetailRow label="Net Quantity" value={product.netQuantity} />
                                     <DetailRow label="ASIN" value="B01MYCGHG1" />
                                     <DetailRow label="Item model number" value="LR-46325" />
-                                    <DetailRow label="Generic Name" value="Nightwear" />
+                                    <DetailRow label="Generic Name" value={product.genericName} />
                                 </div>
                             </div>
                         </div>
