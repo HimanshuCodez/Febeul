@@ -253,7 +253,7 @@ const dataPrivacyPolicyData = [
     title: "13. CONTACT INFORMATION",
     content: [
       { type: 'paragraph', text: 'For data protection requests' },
-      { type: 'paragraph', text: '📩 support @febeul.com' },
+      { type: 'paragraph', text: '📩 support@febeul.com' },
     ],
   },
 ];
