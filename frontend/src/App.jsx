@@ -26,6 +26,7 @@ import GiftWrapSelector from "./Pages/GiftWrap";
 import Footer from "./components/Footer";
 import Header from "./components/Navbar";
 import LuxePage from "./Pages/Luxe";
+import PrimeMember from "./Pages/PrimeMember";
 
 const AppContent = () => {
   const location = useLocation();
@@ -51,6 +52,7 @@ const AppContent = () => {
         <Route path="/GiftWrap" element={<GiftWrapSelector />} />
         <Route path="/luxe" element={<LuxePage />} />
         <Route path="/new-and-now" element={<NewAndNow />} />
+        <Route path="/PrimeMember" element={<PrimeMember/>} />
 
      
         {/* Footer items */}

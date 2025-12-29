@@ -23,21 +23,21 @@ const Home = () => {
 
     <div>
 
-
+{/* 
     <Hero />
-    <OfferBar/>
-    <div className='mt-5'><Spotlight/></div>
+    <OfferBar/> */}
+    {/* <div className='mt-5'><Spotlight/></div>
     <div className='mt-5'><BlackBanner/></div>
     
     <div className='mt-5'><ProductDealBanner/></div>
     <div className='mt-5'><DiscountBanner/></div>
 
     <div className='mt-5'><LingerieRobeSection/></div>
-    <div className='mt-5'><StylesSection/></div>
+    <div className='mt-5'><StylesSection/></div> */}
     <div><Aboutt/></div>
 
    
-    <AboutUs/>
+    {/* <AboutUs/> */}
     {/* <div className='mt-5'><PurpleBanner/></div> */}
     
     

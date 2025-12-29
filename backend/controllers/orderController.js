@@ -2,6 +2,7 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
+import crypto from 'crypto'
 
 // global variables
 const currency = 'inr'
@@ -168,15 +169,26 @@ const placeOrderRazorpay = async (req,res) => {
 const verifyRazorpay = async (req,res) => {
     try {
         
-        const { userId, razorpay_order_id  } = req.body
+        const { userId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
 
-        const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id)
-        if (orderInfo.status === 'paid') {
-            await orderModel.findByIdAndUpdate(orderInfo.receipt,{payment:true});
-            await userModel.findByIdAndUpdate(userId,{cartData:{}})
-            res.json({ success: true, message: "Payment Successful" })
+        const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(body.toString())
+            .digest('hex');
+
+        if (expectedSignature === razorpay_signature) {
+            const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
+            if (orderInfo.status === 'paid') {
+                await orderModel.findByIdAndUpdate(orderInfo.receipt, { payment: true, paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature } });
+                await userModel.findByIdAndUpdate(userId, { cartData: {} });
+                res.json({ success: true, message: "Payment Successful" });
+            } else {
+                res.json({ success: false, message: 'Payment Not Completed on Razorpay' });
+            }
         } else {
-             res.json({ success: false, message: 'Payment Failed' });
+            res.json({ success: false, message: 'Payment Verification Failed' });
         }
 
     } catch (error) {
@@ -231,4 +243,8 @@ const updateStatus = async (req,res) => {
     }
 }
 
-export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus}
+const getRazorpayKey = (req,res) => {
+    res.json({success:true,key:process.env.RAZORPAY_KEY_ID})
+}
+
+export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getRazorpayKey}

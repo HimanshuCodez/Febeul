@@ -1,6 +1,119 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import useAuthStore from "../store/authStore";
+import axios from "axios";
 
 export default function FebeulLuxe() {
+  const { user, token, isAuthenticated } = useAuthStore();
+  const [razorpayKey, setRazorpayKey] = useState("");
+
+  useEffect(() => {
+    const fetchRazorpayKey = async () => {
+      try {
+        const response = await axios.get("https://febeul.onrender.com/api/order/get-key");
+        if (response.data.success) {
+          setRazorpayKey(response.data.key);
+        }
+      } catch (error) {
+        console.error("Failed to fetch razorpay key", error);
+      }
+    };
+    fetchRazorpayKey();
+  }, []);
+
+  const handlePayment = async () => {
+    if (!isAuthenticated) {
+      alert("Please login to purchase the membership.");
+      return;
+    }
+
+    const amount = 129;
+    const items = [
+      {
+        name: "Febeul Luxe Membership",
+        price: amount,
+        quantity: 1,
+        description: "1 Month Febeul Luxe Membership",
+      },
+    ];
+    // Using a dummy address as it is required by the backend order schema
+    const address = {
+      street: "123 Luxe Lane",
+      city: "Febeul",
+      state: "Online",
+      zip: "00000",
+      country: "India",
+    };
+
+    try {
+      const orderResponse = await axios.post(
+        "https://febeul.onrender.com/api/order/razorpay",
+        {
+          userId: user._id,
+          items,
+          amount,
+          address,
+        },
+        { headers: { token } }
+      );
+
+      if (!orderResponse.data.success) {
+        throw new Error("Order creation failed");
+      }
+
+      const { order } = orderResponse.data;
+
+      const options = {
+        key: razorpayKey,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Febeul",
+        description: "Febeul Luxe Membership",
+        order_id: order.id,
+        handler: async function (response) {
+          try {
+            const verifyResponse = await axios.post(
+              "https://febeul.onrender.com/api/order/verifyRazorpay",
+              {
+                userId: user._id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              },
+              { headers: { token } }
+            );
+
+            if (verifyResponse.data.success) {
+              alert("Payment successful! Welcome to Febeul Luxe.");
+              // Optionally redirect or update UI
+            } else {
+              alert("Payment verification failed. Please contact support.");
+            }
+          } catch (error) {
+            console.error("Payment verification error:", error);
+            alert("Payment verification failed. Please contact support.");
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+          contact: user.mobile,
+        },
+        notes: {
+          address: "Febeul Luxe Digital Membership",
+        },
+        theme: {
+          color: "#E11D48",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error("Payment failed", error);
+      alert("Payment failed. Please try again.");
+    }
+  };
+
   return (
     <section className="w-full bg-[#f8b7b7] py-12 px-6">
       
@@ -60,8 +173,12 @@ export default function FebeulLuxe() {
           <span className="text-sm text-gray-500">per month</span>
         </div>
 
-        <button className="bg-yellow-400 hover:bg-yellow-500 transition text-black font-semibold px-6 py-3 rounded-full">
-          Join Febeul Luxe
+        <button
+          onClick={handlePayment}
+          disabled={!isAuthenticated}
+          className="bg-yellow-400 hover:bg-yellow-500 transition text-black font-semibold px-6 py-3 rounded-full disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {isAuthenticated ? "Join Febeul Luxe" : "Login to Join"}
         </button>
 
         <p className="text-xs text-gray-500 mt-2">

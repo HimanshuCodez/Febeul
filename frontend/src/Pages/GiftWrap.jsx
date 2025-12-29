@@ -1,139 +1,300 @@
-'use client';
-
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaGift, FaCrown, FaCheck, FaPlus, FaMinus, FaShoppingCart, FaStar } from 'react-icons/fa';
 
-export default function GiftWrapSelector() {
+const giftWraps = [
+  {
+    id: 1,
+    name: "Classic Elegance",
+    image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 2,
+    name: "Rose Gold Shimmer",
+    image: "https://images.unsplash.com/photo-1512909006721-3d6018887383?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 3,
+    name: "Floral Dreams",
+    image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 4,
+    name: "Minimalist Chic",
+    image: "https://images.unsplash.com/photo-1544558103-ec2c3c5b0e9e?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 5,
+    name: "Luxury Satin",
+    image: "https://images.unsplash.com/photo-1464998857633-50e59fbf2fe6?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 6,
+    name: "Festive Sparkle",
+    image: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=400&h=400&fit=crop",
+    price: 30
+  }
+];
+
+const products = [
+  {
+    id: 1,
+    name: "Velvet Rose Parfum",
+    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=300&h=300&fit=crop",
+    price: 425
+  },
+  {
+    id: 2,
+    name: "Lumière Face Cream",
+    image: "https://images.unsplash.com/photo-1556229010-aa3e89c4f6b9?w=300&h=300&fit=crop",
+    price: 340
+  },
+  {
+    id: 3,
+    name: "Golden Essence Oil",
+    image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=300&h=300&fit=crop",
+    price: 510
+  }
+];
+
+export default function GiftWrapPage() {
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedWrap, setSelectedWrap] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [showPromo, setShowPromo] = useState(true);
 
-  const wraps = [
-    {
-      id: 'luxury',
-      name: 'Luxury Holiday Box',
-      price: '$5.00',
-      description: 'A beautiful rigid box with a magnetic closure and a satin ribbon. Includes a personalized card.',
-      image: 'https://placehold.co/600x600/fecdd3/b91c1c?text=Luxury+Box'
-    },
-    {
-      id: 'standard',
-      name: 'Standard Festive Wrap',
-      price: '$2.50',
-      description: 'Classic festive-themed paper wrap with a matching gift tag.',
-      image: 'https://placehold.co/600x600/f9a8d4/831843?text=Festive+Wrap'
-    },
-  ];
-
-  const similarWraps = [
-    {
-      id: 'elegant',
-      name: 'Elegant Gold',
-      image: 'https://placehold.co/400x400/fde047/a16207?text=Gold'
-    },
-    {
-      id: 'playful',
-      name: 'Playful Polka',
-      image: 'https://placehold.co/400x400/d8b4fe/581c87?text=Polka'
-    },
-    {
-      id: 'minimalist',
-      name: 'Minimalist Kraft',
-      image: 'https://placehold.co/400x400/d2b48c/5d4037?text=Kraft'
-    },
-  ];
+  const totalPrice = selectedProduct && selectedWrap 
+    ? selectedProduct.price + selectedWrap.price * quantity 
+    : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 via-red-50 to-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        
-        <motion.div 
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 tracking-tight">
-            Make it a Gift
-          </h1>
-          <p className="mt-3 max-w-2xl mx-auto text-lg text-gray-600">
-            Select the perfect wrapping for your special someone.
-          </p>
-        </motion.div>
-
-        {/* Main Options */}
-        <section className="mb-20">
-          <div className="grid md:grid-cols-2 gap-10">
-            {wraps.map((wrap) => (
-              <motion.div
-                key={wrap.id}
-                layout
-                className={`cursor-pointer rounded-2xl overflow-hidden shadow-lg transition-all duration-300 ${
-                  selectedWrap === wrap.id ? 'ring-4 ring-pink-400 shadow-2xl' : 'ring-1 ring-gray-200'
-                }`}
-                onClick={() => setSelectedWrap(wrap.id)}
-                whileHover={{ y: -5 }}
-              >
-                <img src={wrap.image} alt={wrap.name} className="w-full h-80 object-cover" />
-                
-                <div className="p-6 bg-white">
-                  <div className="flex justify-between items-start mb-3">
-                    <h2 className="text-2xl font-semibold text-gray-800">{wrap.name}</h2>
-                    <span className="text-2xl font-bold text-gray-900">{wrap.price}</span>
-                  </div>
-                  <p className="text-gray-600 mb-6 min-h-[40px]">{wrap.description}</p>
-                  
-                  <motion.button 
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full bg-pink-500 text-white py-3 rounded-lg font-semibold text-lg hover:bg-pink-600 transition-colors"
-                  >
-                    Add to Bag
-                  </motion.button>
-
-                  {wrap.id === 'luxury' && (
-                    <Link to="/luxe">
-                      <motion.button 
-                        whileTap={{ scale: 0.95 }}
-                        className="mt-3 w-full border-2 border-pink-500 text-pink-500 py-3 rounded-lg font-semibold hover:bg-pink-50 transition-colors"
-                      >
-                        Learn about LUXE Benefits
-                      </motion.button>
-                    </Link>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* Similar Gift Wraps */}
-        <section>
-          <motion.h3 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-2xl font-semibold text-center text-gray-800 mb-10"
+    <div className="min-h-screen bg-gray-50">
+      {/* Promo Banner */}
+      <AnimatePresence>
+        {showPromo && (
+          <motion.div
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            exit={{ y: -100 }}
+            className="text-white py-4 px-6 relative"
+            style={{ background: 'linear-gradient(135deg, #f47b7d 0%, #ff9a9c 100%)' }}
           >
-            More Wrapping Options
-          </motion.h3>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-            {similarWraps.map((wrap) => (
-              <motion.div
-                key={wrap.id}
-                layout
-                className={`cursor-pointer rounded-xl overflow-hidden shadow-md transition-all duration-300 ${
-                  selectedWrap === wrap.id ? 'ring-4 ring-pink-400' : 'ring-1 ring-gray-200'
-                }`}
-                onClick={() => setSelectedWrap(wrap.id)}
-                whileHover={{ y: -5, scale: 1.05 }}
+            <div className="max-w-6xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FaCrown className="text-2xl" />
+                <div>
+                  <p className="font-semibold text-sm">Join Febeul Luxe Today!</p>
+                  <p className="text-xs opacity-90">Get 15 FREE Gift Wraps with Premium Membership</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowPromo(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center"
               >
-                <img src={wrap.image} alt={wrap.name} className="w-full h-48 object-cover" />
-                <div className="p-4 bg-white text-center">
-                  <p className="font-semibold text-gray-700">{wrap.name}</p>
+                ×
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Header */}
+      <section className="bg-white py-12 px-6 text-center border-b">
+        <FaGift className="text-5xl mx-auto mb-4" style={{ color: '#f47b7d' }} />
+        <h1 className="text-4xl font-light mb-3 text-gray-800">
+          Gift Wrap Selection
+        </h1>
+        <p className="text-gray-600">Make your gift extra special with our premium wrapping options</p>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Product & Wrap Selection */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Select Product */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-2xl font-light mb-6 text-gray-800 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>1</span>
+                Select Your Product
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {products.map((product) => (
+                  <motion.div
+                    key={product.id}
+                    whileHover={{ y: -5 }}
+                    onClick={() => setSelectedProduct(product)}
+                    className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedProduct?.id === product.id 
+                        ? 'shadow-lg' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    style={selectedProduct?.id === product.id ? { borderColor: '#f47b7d' } : {}}
+                  >
+                    <div className="relative">
+                      <img src={product.image} alt={product.name} className="w-full aspect-square object-cover" />
+                      {selectedProduct?.id === product.id && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: '#f47b7d' }}>
+                          <FaCheck className="text-xs" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <p className="text-sm font-light text-gray-800">{product.name}</p>
+                      <p className="text-lg font-light" style={{ color: '#f47b7d' }}>₹{product.price}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Select Gift Wrap */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-2xl font-light mb-6 text-gray-800 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>2</span>
+                Choose Gift Wrap Style
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {giftWraps.map((wrap) => (
+                  <motion.div
+                    key={wrap.id}
+                    whileHover={{ scale: 1.03 }}
+                    onClick={() => setSelectedWrap(wrap)}
+                    className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedWrap?.id === wrap.id 
+                        ? 'shadow-lg' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    style={selectedWrap?.id === wrap.id ? { borderColor: '#f47b7d' } : {}}
+                  >
+                    <div className="relative">
+                      <img src={wrap.image} alt={wrap.name} className="w-full aspect-square object-cover" />
+                      {selectedWrap?.id === wrap.id && (
+                        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: '#f47b7d' }}>
+                            <FaCheck />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3 text-center">
+                      <p className="text-xs font-light text-gray-700 mb-1">{wrap.name}</p>
+                      <p className="text-sm font-semibold" style={{ color: '#f47b7d' }}>₹{wrap.price}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quantity Selector */}
+            {selectedWrap && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-lg shadow-sm p-6"
+              >
+                <h2 className="text-2xl font-light mb-6 text-gray-800 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>3</span>
+                  Gift Wrap Quantity
+                </h2>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-10 h-10 rounded-full border-2 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                    style={{ borderColor: '#f47b7d', color: '#f47b7d' }}
+                  >
+                    <FaMinus className="text-sm" />
+                  </button>
+                  <span className="text-2xl font-light text-gray-800 w-12 text-center">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-10 h-10 rounded-full border-2 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                    style={{ borderColor: '#f47b7d', color: '#f47b7d' }}
+                  >
+                    <FaPlus className="text-sm" />
+                  </button>
+                  <span className="text-sm text-gray-600 ml-4">
+                    ₹{selectedWrap.price} × {quantity} = ₹{selectedWrap.price * quantity}
+                  </span>
                 </div>
               </motion.div>
-            ))}
+            )}
           </div>
-        </section>
+
+          {/* Right Column - Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+              <h3 className="text-xl font-light mb-4 text-gray-800">Order Summary</h3>
+              
+              {!selectedProduct && !selectedWrap && (
+                <p className="text-gray-500 text-sm text-center py-8">
+                  Select a product and gift wrap to continue
+                </p>
+              )}
+
+              {selectedProduct && (
+                <div className="mb-4 pb-4 border-b">
+                  <p className="text-xs text-gray-500 mb-1">Product</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-gray-800">{selectedProduct.name}</p>
+                    <p className="text-sm font-semibold">₹{selectedProduct.price}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedWrap && (
+                <div className="mb-4 pb-4 border-b">
+                  <p className="text-xs text-gray-500 mb-1">Gift Wrap</p>
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-sm text-gray-800">{selectedWrap.name}</p>
+                    <p className="text-sm">₹{selectedWrap.price}</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-500">Quantity: {quantity}</p>
+                    <p className="text-sm font-semibold">₹{selectedWrap.price * quantity}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedProduct && selectedWrap && (
+                <>
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center">
+                      <p className="text-lg font-light text-gray-800">Total</p>
+                      <p className="text-2xl font-semibold" style={{ color: '#f47b7d' }}>₹{totalPrice}</p>
+                    </div>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-3 rounded-full text-white font-light flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
+                    style={{ backgroundColor: '#f47b7d' }}
+                  >
+                    <FaShoppingCart />
+                    Add to Cart
+                  </motion.button>
+                </>
+              )}
+
+              {/* Luxe Promotion */}
+              <div className="mt-6 p-4 rounded-lg" style={{ background: 'linear-gradient(135deg, #fff5f5 0%, #ffffff 100%)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaCrown style={{ color: '#f47b7d' }} />
+                  <p className="text-sm font-semibold text-gray-800">Febeul Luxe Members</p>
+                </div>
+                <p className="text-xs text-gray-600 mb-3">Get 15 FREE gift wraps + exclusive benefits</p>
+                <button className="text-xs font-semibold hover:underline" style={{ color: '#f47b7d' }}>
+                  Join Now →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
