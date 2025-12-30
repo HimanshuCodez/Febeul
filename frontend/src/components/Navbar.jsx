@@ -236,7 +236,9 @@ export default function Header() {
           </div>
 
           <div className="flex-shrink-0">
-            <img src="./removebgLogo.png" alt="AdiLove" className="h-12 w-auto" />
+            <Link to="/">
+              <img src="./removebgLogo.png" alt="AdiLove" className="h-12 w-auto" />
+            </Link>
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-5">

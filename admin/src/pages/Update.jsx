@@ -5,11 +5,13 @@ import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { assets } from '../assets/assets';
 
 const Update = ({ token }) => {
     const { productId } = useParams();
     const navigate = useNavigate();
 
+    const [variations, setVariations] = useState([]);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [price, setPrice] = useState("");
@@ -23,7 +25,6 @@ const Update = ({ token }) => {
     const [manufacturer, setManufacturer] = useState("");
     const [packer, setPacker] = useState("");
     const [includedComponents, setIncludedComponents] = useState("");
-    const [color, setColor] = useState("");
     const [fabric, setFabric] = useState("");
     const [pattern, setPattern] = useState("");
     const [sleeveStyle, setSleeveStyle] = useState("");
@@ -58,7 +59,6 @@ const Update = ({ token }) => {
                     setManufacturer(product.manufacturer || "");
                     setPacker(product.packer || "");
                     setIncludedComponents(product.includedComponents || "");
-                    setColor(product.color || "");
                     setFabric(product.fabric || "");
                     setPattern(product.pattern || "");
                     setSleeveStyle(product.sleeveStyle || "");
@@ -73,6 +73,7 @@ const Update = ({ token }) => {
                     setItemDimensionsLxWxH(product.itemDimensionsLxWxH || "");
                     setNetQuantity(product.netQuantity || "");
                     setGenericName(product.genericName || "");
+                    setVariations(product.variations || []);
                 } else {
                     toast.error(response.data.message);
                 }
@@ -82,41 +83,83 @@ const Update = ({ token }) => {
         };
         fetchProduct();
     }, [productId]);
+    
+    const handleVariationChange = (index, event) => {
+        const newVariations = [...variations];
+        newVariations[index][event.target.name] = event.target.value;
+        setVariations(newVariations);
+    }
+    
+    const handleImageChange = (index, event) => {
+        const newVariations = [...variations];
+        newVariations[index].images.push(...Array.from(event.target.files));
+        setVariations(newVariations);
+    }
+    
+    const addVariation = () => {
+        setVariations([...variations, { color: '', images: [] }]);
+    }
+    
+    const removeVariation = (index) => {
+        const newVariations = [...variations];
+        newVariations.splice(index, 1);
+        setVariations(newVariations);
+    }
+    
+    const removeImage = (v_index, i_index) => {
+        const newVariations = [...variations];
+        newVariations[v_index].images.splice(i_index, 1);
+        setVariations(newVariations);
+    }
 
     const onSubmitHandler = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post(backendUrl + '/api/product/update', {
-                productId,
-                name,
-                description,
-                price,
-                mrp,
-                category,
-                subCategory,
-                bestseller,
-                sizes: JSON.stringify(sizes),
-                styleCode,
-                countryOfOrigin,
-                manufacturer,
-                packer,
-                includedComponents,
-                color,
-                fabric,
-                pattern,
-                sleeveStyle,
-                sleeveLength,
-                neck,
-                hsn,
-                materialComposition,
-                careInstructions,
-                closureType,
-                materialType,
-                itemWeight,
-                itemDimensionsLxWxH,
-                netQuantity,
-                genericName
-            }, { headers: { token } });
+            const formData = new FormData();
+            formData.append("productId", productId);
+            formData.append("name", name);
+            formData.append("description", description);
+            formData.append("price", price);
+            formData.append("mrp", mrp);
+            formData.append("category", category);
+            formData.append("subCategory", subCategory);
+            formData.append("bestseller", bestseller);
+            formData.append("sizes", JSON.stringify(sizes));
+            formData.append("styleCode", styleCode);
+            formData.append("countryOfOrigin", countryOfOrigin);
+            formData.append("manufacturer", manufacturer);
+            formData.append("packer", packer);
+            formData.append("includedComponents", includedComponents);
+            formData.append("fabric", fabric);
+            formData.append("pattern", pattern);
+            formData.append("sleeveStyle", sleeveStyle);
+            formData.append("sleeveLength", sleeveLength);
+            formData.append("neck", neck);
+            formData.append("hsn", hsn);
+            formData.append("materialComposition", materialComposition);
+            formData.append("careInstructions", careInstructions);
+            formData.append("closureType", closureType);
+            formData.append("materialType", materialType);
+            formData.append("itemWeight", itemWeight);
+            formData.append("itemDimensionsLxWxH", itemDimensionsLxWxH);
+            formData.append("netQuantity", netQuantity);
+            formData.append("genericName", genericName);
+
+            const variationsData = variations.map(v => ({
+                color: v.color,
+                images: v.images.filter(img => typeof img === 'string') // only existing images
+            }));
+            formData.append("variations", JSON.stringify(variationsData));
+
+            variations.forEach((variation, v_idx) => {
+                variation.images.forEach((image) => {
+                    if (image instanceof File) {
+                        formData.append(`variations[${v_idx}][images]`, image);
+                    }
+                });
+            });
+
+            const response = await axios.post(backendUrl + '/api/product/update', formData, { headers: { token } });
 
             if (response.data.success) {
                 toast.success(response.data.message);
@@ -131,6 +174,34 @@ const Update = ({ token }) => {
 
     return (
         <form onSubmit={onSubmitHandler} className='flex flex-col w-full items-start gap-3'>
+            
+            {variations.map((variation, index) => (
+                <div key={index} className='flex flex-col gap-2 border p-4 rounded-md w-full'>
+                    <p className='font-semibold'>Variation {index + 1}</p>
+                    <div className='w-full'>
+                        <p className='mb-2'>Color</p>
+                        <input name='color' onChange={(e)=>handleVariationChange(index,e)} value={variation.color} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='e.g. Red' required/>
+                    </div>
+                    <div>
+                        <p className='mb-2'>Images</p>
+                        <div className='flex gap-2 flex-wrap'>
+                            {variation.images.map((image, i_index)=>(
+                                <div key={i_index} className='relative'>
+                                    <img className='w-20' src={typeof image === 'string' ? image : URL.createObjectURL(image)} alt="" />
+                                    <p onClick={()=>removeImage(index,i_index)} className='absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center'>x</p>
+                                </div>
+                            ))}
+                            <label>
+                                <img className='w-20 cursor-pointer' src={assets.upload_area} alt="" />
+                                <input onChange={(e)=>handleImageChange(index,e)} type="file" multiple hidden/>
+                            </label>
+                        </div>
+                    </div>
+                    <button type='button' onClick={()=>removeVariation(index)} className='bg-red-500 text-white px-3 py-1 rounded-md w-fit'>Remove Variation</button>
+                </div>
+            ))}
+            <button type='button' onClick={addVariation} className='bg-blue-500 text-white px-3 py-1 rounded-md'>Add Variation</button>
+            
             <div className='w-full'>
                 <p className='mb-2'>Product name</p>
                 <input onChange={(e) => setName(e.target.value)} value={name} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='Type here' required />
@@ -150,7 +221,6 @@ const Update = ({ token }) => {
                         <option value="NIGHTY">NIGHTY</option>
                         <option value="PAJAMAS">PAJAMAS</option>
                         <option value="NEW & NOW">NEW & NOW</option>
-                        <option value="GIFT WRAP">GIFT WRAP</option>
                     </select>
                 </div>
                 <div>
@@ -191,10 +261,6 @@ const Update = ({ token }) => {
                 <div className='w-full'>
                     <p className='mb-2'>Included Components</p>
                     <input onChange={(e) => setIncludedComponents(e.target.value)} value={includedComponents} className='w-full px-3 py-2' type="text" placeholder='1 shirt, 1 pant' />
-                </div>
-                <div className='w-full'>
-                    <p className='mb-2'>Color</p>
-                    <input onChange={(e) => setColor(e.target.value)} value={color} className='w-full px-3 py-2' type="text" placeholder='bottle green' />
                 </div>
                 <div className='w-full'>
                     <p className='mb-2'>Fabric</p>

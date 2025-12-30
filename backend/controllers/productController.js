@@ -4,24 +4,23 @@ import productModel from "../models/productModel.js"
 // function for add product
 const addProduct = async (req, res) => {
     try {
+        const { name, description, price, mrp, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
+        const variations = JSON.parse(variationsJSON);
+        const files = req.files;
 
-        const { name, description, price, mrp, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, color, fabric, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName } = req.body
-
-        const image1 = req.files.image1 && req.files.image1[0]
-        const image2 = req.files.image2 && req.files.image2[0]
-        const image3 = req.files.image3 && req.files.image3[0]
-        const image4 = req.files.image4 && req.files.image4[0]
-        const image5 = req.files.image5 && req.files.image5[0]
-        const image6 = req.files.image6 && req.files.image6[0]
-
-        const images = [image1, image2, image3, image4, image5, image6].filter((item) => item !== undefined)
-
-        let imagesUrl = await Promise.all(
-            images.map(async (item) => {
-                let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
-                return result.secure_url
-            })
-        )
+        let processedVariations = await Promise.all(variations.map(async (variation, v_idx) => {
+            const imageFiles = files.filter(file => file.fieldname === `variations[${v_idx}][images]`);
+            let imagesUrl = await Promise.all(
+                imageFiles.map(async (item) => {
+                    let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
+                    return result.secure_url;
+                })
+            );
+            return {
+                color: variation.color,
+                images: imagesUrl
+            };
+        }));
 
         const productData = {
             name,
@@ -32,14 +31,13 @@ const addProduct = async (req, res) => {
             subCategory,
             bestseller: bestseller === "true" ? true : false,
             sizes: JSON.parse(sizes),
-            image: imagesUrl,
+            variations: processedVariations,
             date: Date.now(),
             styleCode,
             countryOfOrigin,
             manufacturer,
             packer,
             includedComponents,
-            color,
             fabric,
             pattern,
             sleeveStyle,
@@ -54,18 +52,16 @@ const addProduct = async (req, res) => {
             itemDimensionsLxWxH,
             netQuantity,
             genericName
-        }
-
-        console.log(productData);
+        };
 
         const product = new productModel(productData);
-        await product.save()
+        await product.save();
 
-        res.json({ success: true, message: "Product Added" })
+        res.json({ success: true, message: "Product Added" });
 
     } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
+        console.log(error);
+        res.json({ success: false, message: error.message });
     }
 }
 
@@ -112,14 +108,45 @@ const singleProduct = async (req, res) => {
 // function for updating product
 const updateProduct = async (req, res) => {
     try {
-        const { productId, name, description, price, mrp, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, color, fabric, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName } = req.body;
-
+        const { productId, name, description, price, mrp, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
+        
         const product = await productModel.findById(productId);
-
         if (!product) {
             return res.json({ success: false, message: "Product not found" });
         }
 
+        const variations = JSON.parse(variationsJSON);
+        const files = req.files;
+
+        // Handle image deletions from cloudinary
+        const incomingImageUrls = new Set(variations.flatMap(v => v.images).filter(img => typeof img === 'string'));
+        const existingImageUrls = product.variations.flatMap(v => v.images);
+        
+        for (const imageUrl of existingImageUrls) {
+            if (!incomingImageUrls.has(imageUrl)) {
+                const publicId = imageUrl.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            }
+        }
+
+        let processedVariations = await Promise.all(variations.map(async (variation, v_idx) => {
+            const newImageFiles = files.filter(file => file.fieldname === `variations[${v_idx}][images]`);
+            
+            let newImagesUrl = await Promise.all(
+                newImageFiles.map(async (item) => {
+                    let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
+                    return result.secure_url;
+                })
+            );
+
+            const existingImages = variation.images ? variation.images.filter(img => typeof img === 'string') : [];
+
+            return {
+                color: variation.color,
+                images: [...existingImages, ...newImagesUrl]
+            };
+        }));
+        
         product.name = name;
         product.description = description;
         product.price = price;
@@ -133,7 +160,6 @@ const updateProduct = async (req, res) => {
         product.manufacturer = manufacturer;
         product.packer = packer;
         product.includedComponents = includedComponents;
-        product.color = color;
         product.fabric = fabric;
         product.pattern = pattern;
         product.sleeveStyle = sleeveStyle;
@@ -148,6 +174,7 @@ const updateProduct = async (req, res) => {
         product.itemDimensionsLxWxH = itemDimensionsLxWxH;
         product.netQuantity = netQuantity;
         product.genericName = genericName;
+        product.variations = processedVariations;
 
         await product.save();
 

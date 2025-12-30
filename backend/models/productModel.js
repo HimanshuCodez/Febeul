@@ -5,7 +5,10 @@ const productSchema = new mongoose.Schema({
     description: { type: String, required: true },
     price: { type: Number, required: true },
     mrp: { type: Number },
-    image: { type: Array, required: true },
+    variations: [{
+        color: { type: String },
+        images: { type: [String] }
+    }],
     category: { type: String, required: true },
     subCategory: { type: String, required: true },
     sizes: { type: Array, required: true },
@@ -16,7 +19,6 @@ const productSchema = new mongoose.Schema({
     manufacturer: { type: String },
     packer: { type: String },
     includedComponents: { type: String },
-    color: { type: String },
     fabric: { type: String },
     pattern: { type: String },
     sleeveStyle: { type: String },
