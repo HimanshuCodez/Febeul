@@ -24,7 +24,7 @@ const luxePolicyData = [
       { type: 'paragraph', text: 'Members receive exclusive discount coupons with every eligible purchase.' },
       { type: 'subheading', text: '1.5 Dedicated Customer Support' },
       { type: 'paragraph', text: 'Members receive priority access to our support team for faster resolution.' },
-      { type: 'subheading', text: '1.6 Free Delivery on All Orders' },
+      { type: 'subheading', text: '1.6 Free Priority Delivery on All Orders' },
       { type: 'paragraph', text: 'No delivery fees will be charged for orders placed by Luxe Members (terms apply).' },
       { type: 'paragraph', text: 'Note: Febeul may modify, upgrade, or discontinue specific features at any time with or without prior notice.' },
     ],
@@ -58,7 +58,7 @@ const luxePolicyData = [
     content: [
       { type: 'subheading', text: '3.1 Payment Deducted but Membership Not Activated' },
       { type: 'paragraph', text: 'If your payment is deducted but membership is not activated:' },
-      { type: 'paragraph', text: 'You must contact us at support @febeul.com with:' },
+      { type: 'paragraph', text: 'You must contact us at support@febeul.com with:' },
       { type: 'list', items: [
         'Payment screenshot',
         'Transaction ID / UTR number',
@@ -180,7 +180,7 @@ const luxePolicyData = [
     title: "11. CONTACT INFORMATION",
     content: [
       { type: 'paragraph', text: 'For membership-related queries:' },
-      { type: 'paragraph', text: '📩 Email: support @febeul.com' },
+      { type: 'paragraph', text: '📩 Email: support@febeul.com' },
     ],
   },
 ];

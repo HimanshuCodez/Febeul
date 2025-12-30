@@ -12,7 +12,7 @@ const useAuthStore = create((set, get) => ({
     const token = get().token;
     if (!token) return;
     try {
-      const response = await axios.get('https://febeul.onrender.com/api/user/profile', {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {
         headers: { token }
       });
       if (response.data.success) {
@@ -28,7 +28,7 @@ const useAuthStore = create((set, get) => ({
   login: async (data) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('https://febeul.onrender.com/api/user/login', data);
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/login`, data);
       if (response.data.success) {
         const { token } = response.data;
         localStorage.setItem('token', token);
@@ -45,7 +45,7 @@ const useAuthStore = create((set, get) => ({
   register: async (data) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('https://febeul.onrender.com/api/user/register', data);
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/register`, data);
       if (response.data.success) {
         const { token } = response.data;
         localStorage.setItem('token', token);
@@ -62,7 +62,7 @@ const useAuthStore = create((set, get) => ({
   forgotPassword: async (email) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('https://febeul.onrender.com/api/user/forgot-password', { email });
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/forgot-password`, { email });
       set({ loading: false });
       return response.data;
     } catch (error) {
@@ -75,7 +75,7 @@ const useAuthStore = create((set, get) => ({
   verifyPasswordResetOtp: async (data) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('https://febeul.onrender.com/api/user/verify-password-otp', data);
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/verify-password-otp`, data);
       set({ loading: false });
       return response.data;
     } catch (error) {
@@ -88,7 +88,7 @@ const useAuthStore = create((set, get) => ({
   resetPassword: async (data) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('https://febeul.onrender.com/api/user/reset-password', data);
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/reset-password`, data);
       set({ loading: false });
       return response.data;
     } catch (error) {

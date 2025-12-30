@@ -104,7 +104,7 @@ const returnRefundData = [
       { type: 'subheading', text: '8.6.2 Incorrect Bank Details' },
       { type: 'list', items: [
         'Febeul is not liable for delays caused due to incorrect bank details.',
-        'Customers must email updated details to support @febeul.com.',
+        'Customers must email updated details to support@febeul.com.',
         'Refund will be reprocessed within 7 working days after corrected details are received.',
       ]},
       { type: 'subheading', text: 'C. Payment Platform Fee (PPF) for COD Orders' },

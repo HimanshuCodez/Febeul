@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function FebeulLuxe() {
   const { user, token, isAuthenticated } = useAuthStore();
   const [razorpayKey, setRazorpayKey] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRazorpayKey = async () => {
       try {
-        const response = await axios.get("https://febeul.onrender.com/api/order/get-key");
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/order/get-key`);
         if (response.data.success) {
           setRazorpayKey(response.data.key);
         }
@@ -46,7 +48,7 @@ export default function FebeulLuxe() {
 
     try {
       const orderResponse = await axios.post(
-        "https://febeul.onrender.com/api/order/razorpay",
+        `${import.meta.env.VITE_BACKEND_URL}/api/order/razorpay`,
         {
           userId: user._id,
           items,
@@ -72,7 +74,7 @@ export default function FebeulLuxe() {
         handler: async function (response) {
           try {
             const verifyResponse = await axios.post(
-              "https://febeul.onrender.com/api/order/verifyRazorpay",
+              `${import.meta.env.VITE_BACKEND_URL}/api/order/verifyRazorpay`,
               {
                 userId: user._id,
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -84,7 +86,7 @@ export default function FebeulLuxe() {
 
             if (verifyResponse.data.success) {
               alert("Payment successful! Welcome to Febeul Luxe.");
-              // Optionally redirect or update UI
+              navigate('/PrimeMember');
             } else {
               alert("Payment verification failed. Please contact support.");
             }
@@ -160,7 +162,7 @@ export default function FebeulLuxe() {
         {/* Item 6 */}
         <div>
           {/* ICON HERE */}
-          <p className="mt-4 font-bold text-black">FREE DELIVERY</p>
+          <p className="mt-4 font-bold text-black">FAST DELIVERY</p>
         </div>
 
       </div>

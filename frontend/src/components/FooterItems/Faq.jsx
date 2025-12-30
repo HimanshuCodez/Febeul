@@ -74,7 +74,7 @@ const faqData = [
   {
     title: "10. How do I request a return or exchange?",
     content: [
-      { type: 'paragraph', text: 'Email us at support @febeul.com with:' },
+      { type: 'paragraph', text: 'Email us at support@febeul.com with:' },
       { type: 'list', items: [
         'Order ID',
         'Photos and video proof of the issue',
@@ -97,7 +97,7 @@ const faqData = [
   {
     title: "12. What if my payment is deducted but the order fails?",
     content: [
-      { type: 'paragraph', text: 'Don’t worry— Send your payment screenshot + transaction ID to support @febeul.com. After verification, your refund will be issued within 7 working days.' },
+      { type: 'paragraph', text: 'Don’t worry— Send your payment screenshot + transaction ID to support@febeul.com. After verification, your refund will be issued within 7 working days.' },
     ],
   },
   {
@@ -122,7 +122,7 @@ const faqData = [
     title: "16. How do I contact customer support?",
     content: [
       { type: 'paragraph', text: 'You can reach us at:' },
-      { type: 'paragraph', text: '📩 support @febeul.com' },
+      { type: 'paragraph', text: '📩 support@febeul.com' },
     ],
   },
   {

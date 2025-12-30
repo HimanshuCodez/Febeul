@@ -11,7 +11,7 @@ const grievanceRedressalData = [
       { type: 'list', items: [
         'Name: Shree Yadav',
         'Designation: Grievance Officer, Febeul',
-        'Email: grievance @febeul.com',
+        'Email: grievance@febeul.com',
         'Address: New Swaroop Nagar, Delhi 110042-India',
       ]},
       { type: 'paragraph', text: 'The Grievance Officer is responsible for receiving, acknowledging, reviewing, and resolving customer grievances raised through the official channel.' },
@@ -102,7 +102,7 @@ const grievanceRedressalData = [
     title: "3. HOW TO FILE A GRIEVANCE",
     content: [
       { type: 'paragraph', text: 'Customers may submit formal grievances only via the official email:' },
-      { type: 'paragraph', text: '📩 grievance @febeul.com' },
+      { type: 'paragraph', text: '📩 grievance@febeul.com' },
       { type: 'paragraph', text: 'A valid grievance must include:' },
       { type: 'list', items: [
         'Full Name',

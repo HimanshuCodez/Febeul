@@ -147,7 +147,7 @@ const dataPrivacyPolicyData = [
       { type: 'subheading', text: '✔ Grievance Redressal' },
       { type: 'paragraph', text: 'Raise a complaint regarding data misuse or privacy concerns.' },
       { type: 'paragraph', text: 'All rights requests must be submitted to:' },
-      { type: 'paragraph', text: '📩 Support @febeul.com' },
+      { type: 'paragraph', text: '📩 support@febeul.com' },
     ],
   },
   {
@@ -230,7 +230,7 @@ const dataPrivacyPolicyData = [
       { type: 'paragraph', text: 'For all privacy-related complaints:' },
       { type: 'list', items: [
         'Grievance Officer: Shree Yadav',
-        '📩 grievance @febeul.com',
+        '📩 grievance@febeul.com',
         '🕒 Response: within 48 hours',
         '🕒 Resolution: 7–15 working days',
       ]},

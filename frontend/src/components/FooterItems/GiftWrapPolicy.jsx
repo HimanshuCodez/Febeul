@@ -106,7 +106,7 @@ const giftWrapPolicyData = [
     title: "10. Contact Information",
     content: [
       { type: 'paragraph', text: 'For gift wrap related queries, please contact:' },
-      { type: 'paragraph', text: '📩 support @febeul.com' },
+      { type: 'paragraph', text: '📩 support@febeul.com' },
     ],
   },
 ];

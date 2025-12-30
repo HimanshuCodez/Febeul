@@ -5,7 +5,7 @@ import { Mail, Phone, MessageSquare, ChevronDown, HelpCircle } from "lucide-reac
 const faqs = [
   {
     question: "What is your return policy?",
-    answer: "We offer a 3-day return policy for all unworn items with tags attached. Please visit our returns page for more details.",
+    answer: "We offer a 2-day return/exchange policy for all unworn items with tags attached. Please visit our returns page for more details.",
   },
   {
     question: "How can I track my order?",

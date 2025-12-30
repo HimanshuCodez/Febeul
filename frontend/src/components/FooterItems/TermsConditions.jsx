@@ -61,7 +61,7 @@ const termsAndConditionsData = [
         'Febeul does not store or access your full card details at any point.',
         'You may make payments without hesitation, as our payment infrastructure follows strict data-security rules (RBI & PCI-DSS compliant).',
       ]},
-      { type: 'paragraph', text: 'If you experience any payment-related issues, you may contact us at support @febeul.com for assistance.' },
+      { type: 'paragraph', text: 'If you experience any payment-related issues, you may contact us at support@febeul.com for assistance.' },
     ],
   },
   {
@@ -163,7 +163,7 @@ const termsAndConditionsData = [
       { type: 'subheading', text: '8.6.2 Incorrect Bank Details' },
       { type: 'list', items: [
         'If the customer provides incorrect or invalid banking information, Febeul shall not be liable for failed or delayed refunds.',
-        'In the event of a refund failure due to incorrect details, the customer must contact support @febeul.com and furnish correct banking details.',
+        'In the event of a refund failure due to incorrect details, the customer must contact support@febeul.com and furnish correct banking details.',
         'Once updated information is provided, the refund will be re-processed within 7 working days.',
       ]},
       { type: 'subheading', text: 'C. Payment Platform Fee (PPF) for COD Orders' },

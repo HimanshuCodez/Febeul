@@ -51,7 +51,7 @@ const paymentPolicyData = [
     title: "4. PAYMENT FAILURE & AMOUNT DEDUCTED",
     content: [
       { type: 'paragraph', text: 'If the User’s payment is deducted from their bank/wallet but the Website displays a “Payment Failed” or “Transaction Unsuccessful” message:' },
-      { type: 'paragraph', text: 'The User must email proof of payment to support @febeul.com. Accepted proofs include:' },
+      { type: 'paragraph', text: 'The User must email proof of payment to support. Accepted proofs include:' },
       { type: 'list', items: [
         'Screenshot of bank statement',
         'UPI/PAY ID',
@@ -92,7 +92,7 @@ const paymentPolicyData = [
         'IFSC Code',
       ]},
       { type: 'paragraph', text: 'Febeul is not responsible for delays caused by incorrect or invalid bank information.' },
-      { type: 'paragraph', text: 'If the refund fails due to incorrect details, the User must provide corrected details to support @febeul.com.' },
+      { type: 'paragraph', text: 'If the refund fails due to incorrect details, the User must provide corrected details to support@febeul.com.' },
       { type: 'paragraph', text: 'Once corrected details are received, the refund will be reprocessed within 7 working days.' },
     ],
   },
@@ -132,7 +132,7 @@ const paymentPolicyData = [
     title: "11. CONTACT INFORMATION",
     content: [
       { type: 'paragraph', text: 'For queries related to payments, failures, or refunds:' },
-      { type: 'paragraph', text: '📩 Email: support @febeul.com' },
+      { type: 'paragraph', text: '📩 Email: support@febeul.com' },
       { type: 'paragraph', text: '🕒 Support Hours: 10:00 AM – 6.30 PM (Mon–Sat)' },
     ],
   },
