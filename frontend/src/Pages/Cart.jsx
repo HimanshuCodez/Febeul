@@ -26,7 +26,7 @@ const Cart = () => {
         { headers: { token } }
       );
       if (response.data.success) {
-        setCartItems(response.data.cartItems);
+        setCartItems(response.data.cartItems || []);
       }
     } catch (error) {
       toast.error("Failed to fetch cart items.");
@@ -81,8 +81,8 @@ const Cart = () => {
     }
   };
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+  const subtotal = (cartItems || []).reduce(
+    (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
     0
   );
   const shipping = subtotal > 2000 ? 0 : 50;

@@ -254,7 +254,120 @@ export default function CheckoutPage() {
                 transition={{ duration: 0.4 }}
                 className="bg-white rounded-lg shadow-md p-6"
               >
-                {/* Payment method content here, unchanged */}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                    <FaCreditCard className="mr-2 text-[#e8767a]" />
+                    Payment Method
+                  </h2>
+                  {step > 2 && (
+                    <button 
+                      onClick={() => setStep(2)}
+                      className="text-[#e8767a] hover:text-[#d5666a] flex items-center text-sm"
+                    >
+                      <FaEdit className="mr-1" /> Change
+                    </button>
+                  )}
+                </div>
+
+                {step === 2 ? (
+                  <div className="space-y-3">
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => setSelectedPayment('card')}
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedPayment === 'card' 
+                          ? 'border-[#e8767a] bg-[#fff5f5]' 
+                          : 'border-gray-200 hover:border-[#f9aeaf]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
+                          <div>
+                            <p className="font-bold text-gray-800">Credit / Debit Card</p>
+                            <p className="text-sm text-gray-600">Pay with your card via payment gateway</p>
+                          </div>
+                        </div>
+                        {selectedPayment === 'card' && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="w-6 h-6 bg-[#e8767a] rounded-full flex items-center justify-center"
+                          >
+                            <FaCheck className="text-white text-xs" />
+                          </motion.div>
+                        )}
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => setSelectedPayment('cod')}
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedPayment === 'cod' 
+                          ? 'border-[#e8767a] bg-[#fff5f5]' 
+                          : 'border-gray-200 hover:border-[#f9aeaf]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FaMoneyBillWave className="text-2xl text-[#e8767a] mr-3" />
+                          <div>
+                            <p className="font-bold text-gray-800">Cash on Delivery</p>
+                            <p className="text-sm text-gray-600">Pay with cash when you receive</p>
+                          </div>
+                        </div>
+                        {selectedPayment === 'cod' && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="w-6 h-6 bg-[#e8767a] rounded-full flex items-center justify-center"
+                          >
+                            <FaCheck className="text-white text-xs" />
+                          </motion.div>
+                        )}
+                      </div>
+                    </motion.div>
+
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => selectedPayment && setStep(3)}
+                      disabled={!selectedPayment}
+                      className={`w-full font-bold py-3 px-6 rounded-lg transition-colors mt-4 ${
+                        selectedPayment 
+                          ? 'bg-[#e8767a] hover:bg-[#d5666a] text-white' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      Continue
+                    </motion.button>
+                  </div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="border-2 border-[#e8767a] bg-[#fff5f5] rounded-lg p-4 flex items-center"
+                  >
+                    {selectedPayment === 'card' ? (
+                      <>
+                        <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
+                        <div>
+                          <p className="font-bold text-gray-800">Credit / Debit Card</p>
+                          <p className="text-sm text-gray-600">Payment Gateway</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <FaMoneyBillWave className="text-2xl text-[#e8767a] mr-3" />
+                        <div>
+                          <p className="font-bold text-gray-800">Cash on Delivery</p>
+                          <p className="text-sm text-gray-600">Pay on delivery</p>
+                        </div>
+                      </>
+                    )}
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </div>
