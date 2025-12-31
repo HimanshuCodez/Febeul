@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Trash2, ShoppingBag, CreditCard } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const initialItems = [
   {
@@ -25,8 +26,7 @@ const initialItems = [
     id: 3,
     name: "Everyday Comfort Bra",
     price: 999,
-    image:
-      "https://avidlove.com/cdn/shop/files/SYV008324_B-1.jpg?v=1756450957&width=5000",
+    
     quantity: 1,
     size: "S",
     color: "Beige",
@@ -161,19 +161,17 @@ const Cart = () => {
                   <span>Shipping</span>
                   <span>{shipping === 0 ? "Free" : `₹${shipping.toFixed(2)}`}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Tax (18%)</span>
-                  <span>₹{tax.toFixed(2)}</span>
-                </div>
+              
                 <div className="border-t pt-4 mt-4 flex justify-between font-bold text-gray-800 text-lg">
                   <span>Total</span>
                   <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
-              <button className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-semibold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center space-x-2">
+            <Link to="/Checkout"><button className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-semibold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center space-x-2">
                 <CreditCard size={20} />
+                
                 <span>Proceed to Checkout</span>
-              </button>
+              </button></Link>
             </motion.div>
           </div>
         )}
