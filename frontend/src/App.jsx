@@ -28,6 +28,7 @@ import Header from "./components/Navbar";
 import LuxePage from "./Pages/Luxe";
 import PrimeMember from "./Pages/PrimeMember";
 import CheckoutPage from "./Pages/Checkout";
+import OrderSuccess from "./Pages/OrderSuccess";
 
 const AppContent = () => {
   const location = useLocation();
@@ -55,6 +56,7 @@ const AppContent = () => {
         <Route path="/new-and-now" element={<NewAndNow />} />
         <Route path="/PrimeMember" element={<PrimeMember/>} />
         <Route path="/Checkout" element={<CheckoutPage/>} />
+        <Route path="/Success" element={<OrderSuccess/>} />
 
      
         {/* Footer items */}

@@ -12,7 +12,7 @@ import {
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -407,10 +407,7 @@ export default function CheckoutPage() {
                   <span>Shipping</span>
                   <span>₹{shipping.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Tax</span>
-                  <span>₹{tax.toFixed(2)}</span>
-                </div>
+                
                 <div className="border-t pt-2 flex justify-between text-lg font-bold text-gray-800">
                   <span>Total</span>
                   <span className="text-[#e8767a]">₹{total.toFixed(2)}</span>
@@ -418,7 +415,7 @@ export default function CheckoutPage() {
               </div>
 
               {step === 3 && (
-                <motion.button
+               <Link to={"/Success"}> <motion.button
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ scale: 1.05 }}
@@ -426,7 +423,7 @@ export default function CheckoutPage() {
                   className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-6"
                 >
                   Place Order
-                </motion.button>
+                </motion.button></Link>
               )}
             </motion.div>
           </div>
