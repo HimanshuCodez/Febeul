@@ -1,231 +1,359 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import axios from 'axios';
-import { motion } from 'framer-motion';
-import { Share2, Truck, RotateCcw, ShieldCheck, Star } from 'lucide-react';
-import Loader from '../components/Loader';
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
+import { motion } from "framer-motion";
+import {
+  Share2,
+  Truck,
+  RotateCcw,
+  ShieldCheck,
+  Star,
+  MapPin,
+  Lock,
+} from "lucide-react";
+import Loader from "../components/Loader";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const ProductDetailPage = () => {
-    const { productId } = useParams();
-    const [product, setProduct] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [selectedImage, setSelectedImage] = useState(0);
+  const { productId } = useParams();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedVariationIndex, setSelectedVariationIndex] = useState(0);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [isProdDetailsExpanded, setIsProdDetailsExpanded] = useState(false);
+  const [isAddInfoExpanded, setIsAddInfoExpanded] = useState(false);
 
-    useEffect(() => {
-        const fetchProduct = async () => {
-            try {
-                const { data } = await axios.post(`${backendUrl}/api/product/single`, { productId });
-                if (data.success) {
-                    setProduct(data.product);
-                    console.log("Product description:", data.product.description);
-                } else {
-                    console.error(data.message);
-                }
-            } catch (error) {
-                console.error("Failed to fetch product:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProduct();
-    }, [productId]);
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const { data } = await axios.post(`${backendUrl}/api/product/single`, {
+          productId,
+        });
+        if (data.success) {
+          setProduct(data.product);
+          if (data.product.sizes && data.product.sizes.length > 0) {
+            setSelectedSize(data.product.sizes[0]);
+          }
+        } else {
+          console.error(data.message);
+        }
+      } catch (error) {
+        console.error("Failed to fetch product:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [productId]);
 
-    if (loading) return <Loader />;
-    if (!product) return <div className="flex items-center justify-center h-screen text-xl text-gray-700">Product not found.</div>;
-
-    const images = product.image || [];
-    const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
-
+  if (loading) return <Loader />;
+  if (!product)
     return (
-        <div className="min-h-screen bg-white">
-            <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-                {/* Breadcrumb */}
-                <div className="text-sm text-gray-500 mb-6">
-                    Home / {product.category} / <span className="font-medium text-gray-800">{product.name}</span>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Image Gallery - Left Side */}
-                    <div className="lg:col-span-5">
-                        <div className="flex flex-col-reverse sm:flex-row gap-3">
-                            {/* Thumbnails */}
-                            <div className="flex sm:flex-col gap-2">
-                                {images.map((img, idx) => (
-                                    <div
-                                        key={idx}
-                                        onClick={() => setSelectedImage(idx)}
-                                        className={`w-12 h-16 rounded border cursor-pointer overflow-hidden ${
-                                            selectedImage === idx ? 'border-orange-500 border-2' : 'border-gray-300'
-                                        }`}
-                                    >
-                                        <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
-                                    </div>
-                                ))}
-                            </div>
-                            
-                            {/* Main Image */}
-                            <div className="flex-1 bg-white border border-gray-200 rounded overflow-hidden">
-                                <img
-                                    src={images[selectedImage]}
-                                    alt="Product main view"
-                                    className="w-full h-full object-contain p-4"
-                                    style={{ maxHeight: '500px' }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Product Details - Right Side */}
-                    <div className="lg:col-span-7">
-                        <div className="space-y-4">
-                            {/* Title */}
-                            <div className="flex justify-between items-start">
-                                <h1 className="text-xl font-normal text-gray-900 leading-relaxed pr-4">
-                                    {product.name}
-                                </h1>
-                                <button className="text-gray-600 hover:text-gray-800">
-                                    <Share2 size={18} />
-                                </button>
-                            </div>
-                            
-                            {/* Rating */}
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} size={14} className="text-orange-400 fill-current" />
-                                    ))}
-                                </div>
-                                <span className="text-sm text-blue-600 hover:text-orange-600 cursor-pointer">125 ratings</span>
-                            </div>
-
-                            {/* Price */}
-                            <div className="border-t border-b border-gray-200 py-3">
-                                <div className="flex items-baseline gap-3">
-                                    <span className="text-sm text-gray-700">-{discount}%</span>
-                                    <span className="text-3xl font-normal text-gray-900">₹{product.price}</span>
-                                </div>
-                                <div className="text-sm text-gray-600 mt-1">
-                                    M.R.P.: <span className="line-through">₹{product.mrp}</span>
-                                </div>
-                                <div className="text-xs text-gray-600 mt-1">Inclusive of all taxes</div>
-                            </div>
-
-                            {/* Offers Section */}
-                            <div className="bg-gray-50 border border-gray-200 rounded p-4">
-                                <div className="grid grid-cols-3 gap-4">
-                                    <OfferCard title="Cash Back" desc="Upon ₹1,000 purchase, discount available on HDFC Bank Cards" />
-                                    <OfferCard title="Bank Offer" desc="Upon ₹2,000 purchase, discount available on AXIS Bank Cards" />
-                                    <OfferCard title="Partner Offers" desc="Get GST invoice and save up to 28% on business purchases" />
-                                </div>
-                            </div>
-
-                            {/* Product Features Icons */}
-                            <div className="flex gap-8 py-4">
-                                <FeatureIcon icon={<Truck size={20} />} label="Fast  Delivery" />
-                                <FeatureIcon icon={<RotateCcw size={20} />} label="Easy Returns" />
-                                <FeatureIcon icon={<ShieldCheck size={20} />} label="Secure Transaction" />
-                            </div>
-
-                            {/* Color/Size Options */}
-                            <div>
-                                <div className="text-sm font-semibold text-gray-900 mb-2">Colour: {product.color}</div>
-                                <div className="flex gap-2">
-                                    {images.slice(0, 3).map((img, idx) => (
-                                        <div 
-                                            key={idx}
-                                            className={`w-16 h-20 border-2 rounded cursor-pointer overflow-hidden ${
-                                                idx === 0 ? 'border-orange-500' : 'border-gray-300'
-                                            }`}
-                                        >
-                                            <img src={img} alt={`Color option ${idx + 1}`} className="w-full h-full object-cover" />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="space-y-3 pt-4">
-                                <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-2 rounded-full font-normal text-sm transition-colors">
-                                    Add to Cart
-                                </button>
-                                <button className="w-full bg-orange-400 hover:bg-orange-500 text-gray-900 py-2 rounded-full font-normal text-sm transition-colors">
-                                    Buy Now
-                                </button>
-                            </div>
-
-                            {/* Product Details Table */}
-                            <div className="border-t border-gray-200 pt-6 mt-6">
-                                <h2 className="text-base font-bold text-gray-900 mb-3">Product details</h2>
-                                <div className="space-y-2 text-sm">
-                                    <DetailRow label="Style Code" value={product.styleCode} />
-                                    <DetailRow label="Category" value={product.category} />
-                                    <DetailRow label="Sub Category" value={product.subCategory} />
-                                    <DetailRow label="Colour" value={product.color} />
-                                    <DetailRow label="Material Type" value={product.materialType} />
-                                    <DetailRow label="Care Instructions" value={product.careInstructions} />
-                                    <DetailRow label="Closure Type" value={product.closureType} />
-                                    <DetailRow label="Country of Origin" value={product.countryOfOrigin} />
-                                </div>
-                            </div>
-
-                            {/* About this item */}
-                            <div className="border-t border-gray-200 pt-6">
-                                <h2 className="text-base font-bold text-gray-900 mb-3">About this item</h2>
-                                <div className="text-sm text-gray-700 leading-relaxed space-y-2">
-                                    <div className="product-description" dangerouslySetInnerHTML={{ __html: product.description }}></div>
-                                </div>
-                            </div>
-
-                            {/* Additional Information */}
-                            <div className="border-t border-gray-200 pt-6">
-                                <h2 className="text-base font-bold text-gray-900 mb-3">Additional information</h2>
-                                <div className="space-y-2 text-sm">
-                                    <DetailRow label="Manufacturer" value={product.manufacturer} />
-                                    <DetailRow label="Packer" value={product.packer} />
-                                    <DetailRow label="Included Components" value={product.includedComponents} />
-                                    <DetailRow label="Fabric" value={product.fabric} />
-                                    <DetailRow label="Pattern" value={product.pattern} />
-                                    <DetailRow label="Sleeve Style" value={product.sleeveStyle} />
-                                    <DetailRow label="Sleeve Length" value={product.sleeveLength} />
-                                    <DetailRow label="Neck" value={product.neck} />
-                                    <DetailRow label="HSN" value={product.hsn} />
-                                    <DetailRow label="Material Composition" value={product.materialComposition} />
-                                    <DetailRow label="Item Weight" value={product.itemWeight} />
-                                    <DetailRow label="Item Dimensions LxWxH" value={product.itemDimensionsLxWxH} />
-                                    <DetailRow label="Net Quantity" value={product.netQuantity} />
-                                    <DetailRow label="ASIN" value="B01MYCGHG1" />
-                                    <DetailRow label="Item model number" value="LR-46325" />
-                                    <DetailRow label="Generic Name" value={product.genericName} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className="flex items-center justify-center h-screen text-xl text-gray-700">
+        Product not found.
+      </div>
     );
+
+  const variations = product.variations || [];
+  const selectedVariation = variations[selectedVariationIndex] || {};
+  const images = selectedVariation.images || [];
+  const discount =
+    product.mrp > 0
+      ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+      : 0;
+
+  const aboutItems = product.description
+    .match(/<p>(.*?)<\/p>/g)
+    ?.map((p) => p.replace(/<\/?p>/g, "")) || [product.description];
+
+  const productDetailRows = [
+    { label: "Style Code", value: product.styleCode },
+    { label: "Material Type", value: product.materialType },
+    { label: "Care Instructions", value: product.careInstructions },
+    { label: "Country of Origin", value: product.countryOfOrigin },
+    { label: "Fabric", value: product.fabric },
+    { label: "Pattern", value: product.pattern },
+    { label: "Sleeve Style", value: product.sleeveStyle },
+    { label: "Sleeve Length", value: product.sleeveLength },
+    { label: "Neck", value: product.neck },
+    { label: "HSN", value: product.hsn },
+    { label: "Material Composition", value: product.materialComposition },
+    { label: "Closure Type", value: product.closureType },
+    { label: "Net Quantity", value: product.netQuantity },
+  ].filter(row => row.value);
+
+  const additionalInfoRows = [
+      { label: "Manufacturer", value: product.manufacturer },
+      { label: "Packer", value: product.packer },
+      { label: "Included Components", value: product.includedComponents },
+      { label: "Item Weight", value: product.itemWeight },
+      { label: "Item Dimensions LxWxH", value: product.itemDimensionsLxWxH },
+      { label: "Generic Name", value: product.genericName },
+  ].filter(row => row.value);
+
+  const prodDetailsToShow = isProdDetailsExpanded ? productDetailRows : productDetailRows.slice(0, 4);
+  const addInfoToShow = isAddInfoExpanded ? additionalInfoRows : additionalInfoRows.slice(0, 4);
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-screen-2xl mx-auto p-4">
+        <div className="text-sm text-gray-600 mb-4">
+          Home / {product.category} /{" "}
+          <span className="font-semibold text-gray-800">{product.name}</span>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-8">
+            {/* --- Image Gallery (Left) --- */}
+            <div className="lg:col-span-5">
+              <div className="flex flex-col-reverse sm:flex-row gap-4">
+                <div className="flex sm:flex-col gap-2 justify-center">
+                  {images.map((img, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedImage(idx)}
+                      className={`w-16 h-16 rounded-md border-2 cursor-pointer overflow-hidden transition-all ${
+                        selectedImage === idx
+                          ? "border-orange-500"
+                          : "border-gray-300 hover:border-orange-400"
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
+                  <motion.img
+                    key={images[selectedImage]}
+                    src={images[selectedImage]}
+                    alt="Product main view"
+                    className="w-full h-full object-contain"
+                    style={{ maxHeight: "450px" }}
+                    initial={{ opacity: 0.8 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* --- Product Info (Center) --- */}
+            <div className="lg:col-span-4 mt-6 lg:mt-0">
+              <h1 className="text-2xl font-semibold text-gray-800 leading-tight">
+                {product.name}
+              </h1>
+              <a
+                href="#"
+                className="text-sm text-blue-600 hover:text-orange-600 hover:underline"
+              >
+                Visit the AdiLove Store
+              </a>
+
+              <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center">
+                  <span className="mr-1 font-medium">4.5</span>
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={16}
+                      className="text-yellow-500 fill-current"
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-blue-600 font-semibold hover:text-orange-600 cursor-pointer">
+                  125 ratings
+                </span>
+              </div>
+
+              <hr className="my-4" />
+
+              <div>
+                <div className="text-base font-semibold text-gray-800 mb-3">
+                  Colour:{" "}
+                  <span className="font-bold">{selectedVariation.color}</span>
+                </div>
+                <div className="flex gap-3 flex-wrap">
+                  {variations.map((variation, index) => (
+                    <div
+                      key={index}
+                      onClick={() => setSelectedVariationIndex(index)}
+                      className={`p-1 border-2 rounded-md cursor-pointer transition-all ${
+                        index === selectedVariationIndex
+                          ? "border-orange-500"
+                          : "border-transparent"
+                      }`}
+                    >
+                      <img
+                        src={variation.images[0]}
+                        alt={`Color ${variation.color}`}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-base font-semibold text-gray-800 mb-3">
+                  Size: <span className="font-bold">{selectedSize}</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`px-4 py-1 border rounded-md transition-colors ${
+                        selectedSize === size
+                          ? "border-orange-500 bg-orange-50 text-orange-700 font-semibold"
+                          : "border-gray-300 bg-white hover:bg-gray-50"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <hr className="my-4" />
+
+              <div>
+                <h2 className="text-base font-bold text-gray-800 mb-2">
+                  About this item
+                </h2>
+                <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
+                  {aboutItems.slice(0, 5).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* --- Buy Box (Right) --- */}
+            <div className="lg:col-span-3 mt-6 lg:mt-0">
+              <div className="border border-gray-300 rounded-lg p-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-gray-900">
+                    ₹{product.price}
+                  </span>
+                  {product.mrp > product.price && (
+                    <span className="text-base text-gray-500 line-through">
+                      ₹{product.mrp}
+                    </span>
+                  )}
+                </div>
+                {discount > 0 && (
+                  <div className="text-base font-semibold text-green-600">
+                    {discount}% off
+                  </div>
+                )}
+
+                <div className="text-sm text-gray-600 mt-4">
+                  <p>
+                    <span className="font-semibold">FREE delivery</span>{" "}
+                    Thursday, 2 January.
+                  </p>
+                  <p className="flex items-center gap-1 mt-2">
+                    <MapPin size={14} />
+                    <a href="#" className="text-blue-600 hover:text-orange-600">
+                      Deliver to John - New York 10001
+                    </a>
+                  </p>
+                </div>
+
+                <div className="my-4">
+                  <p className="text-lg font-semibold text-green-700">
+                    In stock
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button className="w-full bg-yellow-400 hover:bg-yellow-500 py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
+                    Add to Cart
+                  </button>
+                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
+                    Buy Now
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 mt-3 text-sm text-gray-600">
+                  <Lock size={14} />
+                  <span>Secure transaction</span>
+                </div>
+
+                <hr className="my-3" />
+
+                <div className="text-xs text-gray-600">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Ships from</span>{" "}
+                    <span>AdiLove</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Sold by</span>{" "}
+                    <span>AdiLove Retail</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- Lower Sections --- */}
+        <div className="bg-white p-6 rounded-lg shadow-sm mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"> {/* New Grid Container */}
+                {/* Product Details Section (will be first column) */}
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">Product Details</h2>
+                    <div className="space-y-3 text-sm max-w-2xl">
+                        {prodDetailsToShow.map((detail, index) => (
+                            <DetailRow key={index} label={detail.label} value={detail.value} isLast={!isProdDetailsExpanded && index === prodDetailsToShow.length - 1} />
+                        ))}
+                    </div>
+                    {productDetailRows.length > 4 && (
+                        <button
+                            onClick={() => setIsProdDetailsExpanded(!isProdDetailsExpanded)}
+                            className="text-blue-600 hover:text-orange-600 font-semibold mt-4 text-sm"
+                        >
+                            {isProdDetailsExpanded ? 'Show less' : 'Show more'}
+                        </button>
+                    )}
+                </div>
+
+                {/* Additional Information Section (will be second column) */}
+                {additionalInfoRows.length > 0 && (
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Additional Information</h2>
+                        <div className="space-y-3 text-sm max-w-2xl">
+                            {addInfoToShow.map((detail, index) => (
+                                <DetailRow key={index} label={detail.label} value={detail.value} isLast={!isAddInfoExpanded && index === addInfoToShow.length - 1} />
+                            ))}
+                        </div>
+                        {additionalInfoRows.length > 4 && (
+                            <button
+                                onClick={() => setIsAddInfoExpanded(!isAddInfoExpanded)}
+                                className="text-blue-600 hover:text-orange-600 font-semibold mt-4 text-sm"
+                            >
+                                {isAddInfoExpanded ? 'Show less' : 'Show more'}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div> {/* End of New Grid Container */}
+        </div>
+      </div>
+    </div>
+  );
 };
 
-const OfferCard = ({ title, desc }) => (
-    <div className="text-center">
-        <div className="text-xs font-semibold text-gray-900 mb-1">{title}</div>
-        <div className="text-xs text-gray-600">{desc}</div>
-    </div>
-);
-
-const FeatureIcon = ({ icon, label }) => (
-    <div className="flex flex-col items-center gap-1">
-        <div className="text-gray-600">{icon}</div>
-        <span className="text-xs text-gray-700">{label}</span>
-    </div>
-);
-
-const DetailRow = ({ label, value, bold }) => (
-    <div className="grid grid-cols-3 gap-4">
-        <span className="text-gray-700 col-span-1">{label}</span>
-        <span className={`text-gray-900 col-span-2 ${bold ? 'font-semibold' : ''}`}>{value}</span>
+const DetailRow = ({ label, value, isLast = false }) => (
+    <div className={`grid grid-cols-3 gap-4 items-center py-3 ${!isLast ? 'border-b border-gray-200' : ''}`}>
+      <span className="text-gray-600 font-semibold col-span-1">{label}</span>
+      <span className="text-gray-800 col-span-2">{value}</span>
     </div>
 );
 
