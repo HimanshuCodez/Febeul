@@ -1,53 +1,84 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Trash2, ShoppingBag, CreditCard } from "lucide-react";
 import { Link } from "react-router-dom";
+import useAuthStore from "../store/authStore";
+import axios from "axios";
+import { toast } from "react-hot-toast";
 
-const initialItems = [
-  {
-    id: 1,
-    name: "Lace Bralette Set",
-    price: 1299,
-
-    quantity: 1,
-    size: "M",
-    color: "Black",
-  },
-  {
-    id: 2,
-    name: "Silk Nightwear",
-    price: 1899,
-
-    quantity: 2,
-    size: "L",
-    color: "Red",
-  },
-  {
-    id: 3,
-    name: "Everyday Comfort Bra",
-    price: 999,
-    
-    quantity: 1,
-    size: "S",
-    color: "Beige",
-  },
-];
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState(initialItems);
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user, token, isAuthenticated } = useAuthStore();
 
-  const handleQuantityChange = (id, delta) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-          : item
-      )
-    );
+  const fetchCart = async () => {
+    if (!isAuthenticated || !user) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        `${backendUrl}/api/cart/get`,
+        { userId: user._id },
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        setCartItems(response.data.cartItems);
+      }
+    } catch (error) {
+      toast.error("Failed to fetch cart items.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRemove = (id) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
+  useEffect(() => {
+    fetchCart();
+  }, [isAuthenticated, user]);
+
+  const handleQuantityChange = async (itemId, size, delta) => {
+    const item = cartItems.find(item => item._id === itemId && item.size === size);
+    const newQuantity = (item.quantity || 0) + delta;
+
+    if (newQuantity < 1) {
+        handleRemove(itemId, size);
+        return;
+    }
+
+    try {
+        const response = await axios.post(`${backendUrl}/api/cart/update`, 
+            { userId: user._id, itemId, size, quantity: newQuantity },
+            { headers: { token } }
+        );
+        if (response.data.success) {
+            fetchCart(); // Refetch cart to ensure data is in sync
+        } else {
+            toast.error("Failed to update cart.");
+        }
+    } catch (error) {
+        toast.error("Failed to update cart.");
+    }
+  };
+
+  const handleRemove = async (itemId, size) => {
+    try {
+        const response = await axios.post(`${backendUrl}/api/cart/remove`, 
+            { userId: user._id, itemId, size },
+            { headers: { token } }
+        );
+        if (response.data.success) {
+            toast.success("Item removed from cart.");
+            fetchCart();
+        } else {
+            toast.error("Failed to remove item.");
+        }
+    } catch (error) {
+        toast.error("Failed to remove item.");
+    }
   };
 
   const subtotal = cartItems.reduce(
@@ -57,6 +88,10 @@ const Cart = () => {
   const shipping = subtotal > 2000 ? 0 : 50;
   const tax = subtotal * 0.18;
   const total = subtotal + shipping + tax;
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>
+  }
 
   return (
     <div className="min-h-screen bg-pink-50/50 font-sans">
@@ -70,7 +105,7 @@ const Cart = () => {
           Shopping Cart
         </motion.h1>
 
-        {cartItems.length === 0 ? (
+        {!isAuthenticated || cartItems.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -83,23 +118,23 @@ const Cart = () => {
             <p className="text-gray-500 mt-2">
               Looks like you haven't added anything to your cart yet.
             </p>
-            <button className="mt-6 bg-pink-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-pink-600 transition-colors">
+            <Link to="/" className="mt-6 bg-pink-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-pink-600 transition-colors">
               Continue Shopping
-            </button>
+            </Link>
           </motion.div>
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               {cartItems.map((item, index) => (
                 <motion.div
-                  key={item.id}
+                  key={`${item._id}-${item.size}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="bg-white rounded-lg shadow-md p-4 flex items-start space-x-4"
                 >
                   <img
-                    src={item.image}
+                    src={item.variations?.[0]?.images?.[0]}
                     alt={item.name}
                     className="w-24 h-24 md:w-32 md:h-32 rounded-md object-cover object-top"
                   />
@@ -108,7 +143,7 @@ const Cart = () => {
                       {item.name}
                     </h2>
                     <p className="text-sm text-gray-500">
-                      {item.size} / {item.color}
+                      {item.size} / {item.variations?.[0]?.color}
                     </p>
                     <p className="text-lg font-bold text-pink-500 mt-1">
                       ₹{item.price.toFixed(2)}
@@ -116,7 +151,7 @@ const Cart = () => {
                     <div className="flex items-center mt-4">
                       <div className="flex items-center border rounded-md">
                         <button
-                          onClick={() => handleQuantityChange(item.id, -1)}
+                          onClick={() => handleQuantityChange(item._id, item.size, -1)}
                           className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md"
                         >
                           -
@@ -125,7 +160,7 @@ const Cart = () => {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => handleQuantityChange(item.id, 1)}
+                          onClick={() => handleQuantityChange(item._id, item.size, 1)}
                           className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-md"
                         >
                           +
@@ -134,7 +169,7 @@ const Cart = () => {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleRemove(item.id)}
+                    onClick={() => handleRemove(item._id, item.size)}
                     className="text-gray-400 hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={20} />
@@ -167,7 +202,7 @@ const Cart = () => {
                   <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
-            <Link to="/Checkout"><button className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-semibold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center space-x-2">
+            <Link to="/checkout"><button className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-semibold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center space-x-2">
                 <CreditCard size={20} />
                 
                 <span>Proceed to Checkout</span>

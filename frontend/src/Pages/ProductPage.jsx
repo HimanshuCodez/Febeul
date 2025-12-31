@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
 import {
@@ -12,11 +12,16 @@ import {
   Lock,
 } from "lucide-react";
 import Loader from "../components/Loader";
+import useAuthStore from "../store/authStore";
+import { toast } from "react-hot-toast";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
+  const navigate = useNavigate();
+  const { user, token, isAuthenticated } = useAuthStore();
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -47,6 +52,37 @@ const ProductDetailPage = () => {
     };
     fetchProduct();
   }, [productId]);
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to add items to your cart.");
+      navigate("/auth");
+      return;
+    }
+    if (!selectedSize) {
+      toast.error("Please select a size.");
+      return;
+    }
+    try {
+      const response = await axios.post(`${backendUrl}/api/cart/add`, 
+        { userId: user._id, itemId: product._id, size: selectedSize },
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        toast.success("Added to cart!");
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error("Failed to add to cart.");
+    }
+  };
+
+  const handleBuyNow = async () => {
+    await handleAddToCart();
+    navigate("/cart");
+  };
+
 
   if (loading) return <Loader />;
   if (!product)
@@ -148,12 +184,12 @@ const ProductDetailPage = () => {
               <h1 className="text-2xl font-semibold text-gray-800 leading-tight">
                 {product.name}
               </h1>
-              {/* <a
+              <a
                 href="#"
                 className="text-sm text-blue-600 hover:text-orange-600 hover:underline"
               >
                 Visit the AdiLove Store
-              </a> */}
+              </a>
 
               <div className="flex items-center gap-3 mt-2">
                 <div className="flex items-center">
@@ -272,10 +308,10 @@ const ProductDetailPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <button className="w-full bg-white text-[#f9aeaf] border border-[#f9aeaf] hover:bg-[#f9aeaf] hover:text-black py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
+                  <button onClick={handleAddToCart} className="w-full bg-white text-[#f9aeaf] border border-[#f9aeaf] hover:bg-[#f9aeaf] hover:text-black py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
                     Add to Cart
                   </button>
-                  <button className="w-full bg-[#f9aeaf] text-black hover:bg-[#f79294] py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
+                  <button onClick={handleBuyNow} className="w-full bg-[#f9aeaf] text-black hover:bg-[#f79294] py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
                     Buy Now
                   </button>
                 </div>
@@ -285,7 +321,6 @@ const ProductDetailPage = () => {
                   <span>Secure transaction</span>
                 </div>
 
-               
               </div>
             </div>
           </div>

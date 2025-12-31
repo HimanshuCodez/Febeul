@@ -7,7 +7,15 @@ const userSchema = new mongoose.Schema({
     mobile: { type: String, unique: true, sparse: true },
     otp: { type: String },
     otp_expiry: { type: Date },
-    cartData: { type: Object, default: {} }
+    cartData: { type: Object, default: {} },
+    addresses: [{
+        name: { type: String, required: true },
+        address: { type: String, required: true },
+        city: { type: String, required: true },
+        zip: { type: String, required: true },
+        country: { type: String, required: true },
+        phone: { type: String, required: true },
+    }]
 }, { minimize: false })
 
 const userModel = mongoose.models.user || mongoose.model('user',userSchema);

@@ -218,5 +218,21 @@ const getProfile = async (req,res) => {
     }
 }
 
+// Add address for user
+const addAddress = async (req, res) => {
+    try {
+        const user = await userModel.findById(req.body.userId);
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+        user.addresses.push(req.body.address);
+        await user.save();
+        res.json({ success: true, message: "Address added" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error adding address" });
+    }
+}
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword }
+
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress }
