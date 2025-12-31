@@ -64,10 +64,6 @@ const ProductDetailPage = () => {
       ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
       : 0;
 
-  const aboutItems = product.description
-    .match(/<p>(.*?)<\/p>/g)
-    ?.map((p) => p.replace(/<\/?p>/g, "")) || [product.description];
-
   const productDetailRows = [
     { label: "Style Code", value: product.styleCode },
     { label: "Material Type", value: product.materialType },
@@ -82,19 +78,23 @@ const ProductDetailPage = () => {
     { label: "Material Composition", value: product.materialComposition },
     { label: "Closure Type", value: product.closureType },
     { label: "Net Quantity", value: product.netQuantity },
-  ].filter(row => row.value);
+  ].filter((row) => row.value);
 
   const additionalInfoRows = [
-      { label: "Manufacturer", value: product.manufacturer },
-      { label: "Packer", value: product.packer },
-      { label: "Included Components", value: product.includedComponents },
-      { label: "Item Weight", value: product.itemWeight },
-      { label: "Item Dimensions LxWxH", value: product.itemDimensionsLxWxH },
-      { label: "Generic Name", value: product.genericName },
-  ].filter(row => row.value);
+    { label: "Manufacturer", value: product.manufacturer },
+    { label: "Packer", value: product.packer },
+    { label: "Included Components", value: product.includedComponents },
+    { label: "Item Weight", value: product.itemWeight },
+    { label: "Item Dimensions LxWxH", value: product.itemDimensionsLxWxH },
+    { label: "Generic Name", value: product.genericName },
+  ].filter((row) => row.value);
 
-  const prodDetailsToShow = isProdDetailsExpanded ? productDetailRows : productDetailRows.slice(0, 4);
-  const addInfoToShow = isAddInfoExpanded ? additionalInfoRows : additionalInfoRows.slice(0, 4);
+  const prodDetailsToShow = isProdDetailsExpanded
+    ? productDetailRows
+    : productDetailRows.slice(0, 4);
+  const addInfoToShow = isAddInfoExpanded
+    ? additionalInfoRows
+    : additionalInfoRows.slice(0, 4);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -148,12 +148,12 @@ const ProductDetailPage = () => {
               <h1 className="text-2xl font-semibold text-gray-800 leading-tight">
                 {product.name}
               </h1>
-              <a
+              {/* <a
                 href="#"
                 className="text-sm text-blue-600 hover:text-orange-600 hover:underline"
               >
                 Visit the AdiLove Store
-              </a>
+              </a> */}
 
               <div className="flex items-center gap-3 mt-2">
                 <div className="flex items-center">
@@ -226,11 +226,10 @@ const ProductDetailPage = () => {
                 <h2 className="text-base font-bold text-gray-800 mb-2">
                   About this item
                 </h2>
-                <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
-                  {aboutItems.slice(0, 5).map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
+                <div
+                  className="product-description text-sm text-gray-700"
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
               </div>
             </div>
 
@@ -273,10 +272,10 @@ const ProductDetailPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <button className="w-full bg-yellow-400 hover:bg-yellow-500 py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
+                  <button className="w-full bg-white text-[#f9aeaf] border border-[#f9aeaf] hover:bg-[#f9aeaf] hover:text-black py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
                     Add to Cart
                   </button>
-                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
+                  <button className="w-full bg-[#f9aeaf] text-black hover:bg-[#f79294] py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
                     Buy Now
                   </button>
                 </div>
@@ -286,18 +285,7 @@ const ProductDetailPage = () => {
                   <span>Secure transaction</span>
                 </div>
 
-                <hr className="my-3" />
-
-                <div className="text-xs text-gray-600">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Ships from</span>{" "}
-                    <span>AdiLove</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Sold by</span>{" "}
-                    <span>AdiLove Retail</span>
-                  </div>
-                </div>
+               
               </div>
             </div>
           </div>
@@ -305,45 +293,68 @@ const ProductDetailPage = () => {
 
         {/* --- Lower Sections --- */}
         <div className="bg-white p-6 rounded-lg shadow-sm mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"> {/* New Grid Container */}
-                {/* Product Details Section (will be first column) */}
-                <div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Product Details</h2>
-                    <div className="space-y-3 text-sm max-w-2xl">
-                        {prodDetailsToShow.map((detail, index) => (
-                            <DetailRow key={index} label={detail.label} value={detail.value} isLast={!isProdDetailsExpanded && index === prodDetailsToShow.length - 1} />
-                        ))}
-                    </div>
-                    {productDetailRows.length > 4 && (
-                        <button
-                            onClick={() => setIsProdDetailsExpanded(!isProdDetailsExpanded)}
-                            className="text-blue-600 hover:text-orange-600 font-semibold mt-4 text-sm"
-                        >
-                            {isProdDetailsExpanded ? 'Show less' : 'Show more'}
-                        </button>
-                    )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {" "}
+            {/* New Grid Container */}
+            {/* Product Details Section (will be first column) */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">
+                Product Details
+              </h2>
+              <div className="space-y-3 text-sm max-w-2xl">
+                {prodDetailsToShow.map((detail, index) => (
+                  <DetailRow
+                    key={index}
+                    label={detail.label}
+                    value={detail.value}
+                    isLast={
+                      !isProdDetailsExpanded &&
+                      index === prodDetailsToShow.length - 1
+                    }
+                  />
+                ))}
+              </div>
+              {productDetailRows.length > 4 && (
+                <button
+                  onClick={() =>
+                    setIsProdDetailsExpanded(!isProdDetailsExpanded)
+                  }
+                  className="text-blue-600 hover:text-orange-600 font-semibold mt-4 text-sm"
+                >
+                  {isProdDetailsExpanded ? "Show less" : "Show more"}
+                </button>
+              )}
+            </div>
+            {/* Additional Information Section (will be second column) */}
+            {additionalInfoRows.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Additional Information
+                </h2>
+                <div className="space-y-3 text-sm max-w-2xl">
+                  {addInfoToShow.map((detail, index) => (
+                    <DetailRow
+                      key={index}
+                      label={detail.label}
+                      value={detail.value}
+                      isLast={
+                        !isAddInfoExpanded && index === addInfoToShow.length - 1
+                      }
+                    />
+                  ))}
                 </div>
-
-                {/* Additional Information Section (will be second column) */}
-                {additionalInfoRows.length > 0 && (
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">Additional Information</h2>
-                        <div className="space-y-3 text-sm max-w-2xl">
-                            {addInfoToShow.map((detail, index) => (
-                                <DetailRow key={index} label={detail.label} value={detail.value} isLast={!isAddInfoExpanded && index === addInfoToShow.length - 1} />
-                            ))}
-                        </div>
-                        {additionalInfoRows.length > 4 && (
-                            <button
-                                onClick={() => setIsAddInfoExpanded(!isAddInfoExpanded)}
-                                className="text-blue-600 hover:text-orange-600 font-semibold mt-4 text-sm"
-                            >
-                                {isAddInfoExpanded ? 'Show less' : 'Show more'}
-                            </button>
-                        )}
-                    </div>
+                {additionalInfoRows.length > 4 && (
+                  <button
+                    onClick={() => setIsAddInfoExpanded(!isAddInfoExpanded)}
+                    className="text-blue-600 hover:text-orange-600 font-semibold mt-4 text-sm"
+                  >
+                    {isAddInfoExpanded ? "Show less" : "Show more"}
+                  </button>
                 )}
-            </div> {/* End of New Grid Container */}
+              </div>
+            )}
+          </div>{" "}
+          {/* End of New Grid Container */}
         </div>
       </div>
     </div>
@@ -351,10 +362,14 @@ const ProductDetailPage = () => {
 };
 
 const DetailRow = ({ label, value, isLast = false }) => (
-    <div className={`grid grid-cols-3 gap-4 items-center py-3 ${!isLast ? 'border-b border-gray-200' : ''}`}>
-      <span className="text-gray-600 font-semibold col-span-1">{label}</span>
-      <span className="text-gray-800 col-span-2">{value}</span>
-    </div>
+  <div
+    className={`grid grid-cols-3 gap-4 items-center py-3 ${
+      !isLast ? "border-b border-gray-200" : ""
+    }`}
+  >
+    <span className="text-gray-600 font-semibold col-span-1">{label}</span>
+    <span className="text-gray-800 col-span-2">{value}</span>
+  </div>
 );
 
 export default ProductDetailPage;
