@@ -7,8 +7,7 @@ const initialItems = [
     id: 1,
     name: "Lace Bralette Set",
     price: 1299,
-    image:
-      "https://avidlove.com/cdn/shop/files/81UAeytBWlL._AC_SL1500.jpg?v=1760173707&width=5000",
+
     quantity: 1,
     size: "M",
     color: "Black",
@@ -17,8 +16,7 @@ const initialItems = [
     id: 2,
     name: "Silk Nightwear",
     price: 1899,
-    image:
-      "https://avidlove.com/cdn/shop/files/SYV008284_RR-1.jpg?v=1755829947&width=5000",
+
     quantity: 2,
     size: "L",
     color: "Red",
