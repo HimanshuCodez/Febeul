@@ -12,7 +12,7 @@ import {
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -27,6 +27,7 @@ export default function CheckoutPage() {
   const [selectedPayment, setSelectedPayment] = useState('');
   const [step, setStep] = useState(1);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [razorpayKey, setRazorpayKey] = useState("");
 
   // Address Form State
   const [addressName, setAddressName] = useState('');
@@ -36,6 +37,22 @@ export default function CheckoutPage() {
   const [addressCountry, setAddressCountry] = useState('');
   const [addressPhone, setAddressPhone] = useState('');
 
+  // Fetch Razorpay Key
+  useEffect(() => {
+    const fetchRazorpayKey = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/api/order/get-key`);
+        if (response.data.success) {
+          setRazorpayKey(response.data.key);
+        }
+      } catch (error) {
+        console.error("Failed to fetch razorpay key", error);
+      }
+    };
+    fetchRazorpayKey();
+  }, []);
+
+  // Fetch Cart Items & Check Auth
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/auth');
@@ -62,13 +79,12 @@ export default function CheckoutPage() {
     fetchCart();
   }, [isAuthenticated, user, navigate, token]);
 
+  // Handle Address Form Visibility
   useEffect(() => {
-    if (user?.addresses?.length === 0) {
+    if (user && user.addresses && user.addresses.length === 0 && !showAddressForm) {
       setShowAddressForm(true);
-    } else {
-      setShowAddressForm(false);
     }
-  }, [user]);
+  }, [user, showAddressForm]);
 
   const handleAddAddress = async (e) => {
     e.preventDefault();
@@ -87,7 +103,7 @@ export default function CheckoutPage() {
         );
         if(response.data.success) {
             toast.success("Address added!");
-            await getProfile(); // Refresh user profile to get new addresses
+            await getProfile();
             setShowAddressForm(false);
         } else {
             toast.error(response.data.message);
@@ -104,21 +120,100 @@ export default function CheckoutPage() {
   
   const addresses = user?.addresses || [];
 
-  if (loading) return <Loader />;
+  const handlePlaceOrder = async () => {
+    if (selectedPayment === 'cod') {
+      await placeCodOrder();
+    } else if (selectedPayment === 'card') {
+      await handleRazorpayPayment();
+    }
+  }
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.4, staggerChildren: 0.1 }
+  const placeCodOrder = async () => {
+    const orderData = {
+        userId: user._id,
+        items: cartItems,
+        amount: total,
+        address: addresses[selectedAddress]
+    }
+    try {
+        const response = await axios.post(`${backendUrl}/api/order/place`, orderData, { headers: { token } });
+        if (response.data.success) {
+            toast.success("Order placed successfully!");
+            navigate("/Success", { state: { order: response.data.order, items: cartItems, address: addresses[selectedAddress] } });
+        } else {
+            toast.error("Failed to place order.");
+        }
+    } catch (error) {
+        toast.error("Failed to place order.");
+    }
+  }
+
+  const handleRazorpayPayment = async () => {
+    try {
+      const orderPayload = {
+        userId: user._id,
+        items: cartItems,
+        amount: total,
+        address: addresses[selectedAddress],
+      };
+      
+      const orderResponse = await axios.post(`${backendUrl}/api/order/razorpay`, orderPayload, { headers: { token } });
+
+      if (!orderResponse.data.success) {
+        throw new Error("Order creation failed");
+      }
+
+      const { order } = orderResponse.data;
+
+      const options = {
+        key: razorpayKey,
+        amount: order.amount,
+        currency: order.currency,
+        name: "AdiLove",
+        description: "Order Payment",
+        order_id: order.id,
+        handler: async function (response) {
+          try {
+            const verifyResponse = await axios.post(
+              `${backendUrl}/api/order/verifyRazorpay`,
+              {
+                userId: user._id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              },
+              { headers: { token } }
+            );
+
+            if (verifyResponse.data.success) {
+              toast.success("Payment successful!");
+              const localOrder = { _id: order.receipt, ...orderPayload };
+              navigate('/Success', { state: { order: localOrder, items: cartItems, address: addresses[selectedAddress] } });
+            } else {
+              toast.error("Payment verification failed.");
+            }
+          } catch (error) {
+            toast.error("Payment verification failed.");
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+          contact: user.mobile,
+        },
+        theme: {
+          color: "#f9aeaf",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      toast.error("Payment failed. Please try again.");
     }
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 }
-  };
+  if (loading) return <Loader />;
 
   return (
     <div className="min-h-screen bg-[#f9aeaf] py-8 px-4">
@@ -156,7 +251,10 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <motion.div 
-              variants={containerVariants}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+              }}
               initial="hidden"
               animate="visible"
               className="bg-white rounded-lg shadow-md p-6"
@@ -193,7 +291,7 @@ export default function CheckoutPage() {
                   {addresses.map((addr, idx) => (
                     <motion.div
                       key={addr._id}
-                      variants={itemVariants}
+                      variants={{hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 }}}
                       whileHover={{ scale: 1.02 }}
                       onClick={() => setSelectedAddress(idx)}
                       className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
@@ -415,7 +513,8 @@ export default function CheckoutPage() {
               </div>
 
               {step === 3 && (
-               <Link to={"/Success"}> <motion.button
+                <motion.button
+                  onClick={handlePlaceOrder}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ scale: 1.05 }}
@@ -423,7 +522,7 @@ export default function CheckoutPage() {
                   className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-6"
                 >
                   Place Order
-                </motion.button></Link>
+                </motion.button>
               )}
             </motion.div>
           </div>
