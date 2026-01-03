@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { SlidersHorizontal, X, ChevronDown, Grid3x3, LayoutGrid } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
@@ -11,7 +11,9 @@ const AllProducts = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { category } = useParams();
+  const { category, filterKey, filterValue } = useParams();
+  const location = useLocation();
+  const searchQuery = new URLSearchParams(location.search).get("search");
   
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -33,18 +35,41 @@ const AllProducts = () => {
         const response = await axios.get(`${backendUrl}/api/product/list`);
         if (response.data.success) {
           let fetchedProducts = response.data.products;
+          
           if (category) {
             fetchedProducts = fetchedProducts.filter(
               (product) =>
-                product.category.toLowerCase().replace(/ /g, "-") === category.toLowerCase() ||
-                product.subCategory?.toLowerCase().replace(/ /g, "-") === category.toLowerCase()
+                product.category.toLowerCase().replace(/ /g, "-") === category.toLowerCase()
             );
           }
+          
+          if (filterKey && filterValue) {
+            fetchedProducts = fetchedProducts.filter((product) => {
+              const key = filterKey.toLowerCase();
+              const value = filterValue.toLowerCase();
+              if (product[key]) {
+                return product[key].toLowerCase().replace(/ /g, "-") === value;
+              }
+              return false;
+            });
+          }
+
+          if (searchQuery) {
+            const sq = searchQuery.toLowerCase();
+            fetchedProducts = fetchedProducts.filter(p =>
+              p.name.toLowerCase().includes(sq) ||
+              p.description.toLowerCase().includes(sq) ||
+              p.category.toLowerCase().includes(sq) ||
+              (p.type && p.type.toLowerCase().includes(sq)) ||
+              (p.fabric && p.fabric.toLowerCase().includes(sq))
+            );
+          }
+
           setProducts(fetchedProducts);
           setFilteredProducts(fetchedProducts);
           
           // Extract unique values for filters
-          const colors = [...new Set(fetchedProducts.map(p => p.color).filter(Boolean))];
+          const colors = [...new Set(fetchedProducts.flatMap(p => p.variations.map(v => v.color)).filter(Boolean))];
           const sizes = [...new Set(fetchedProducts.flatMap(p => p.sizes || []))];
           const categories = [...new Set(fetchedProducts.map(p => p.category).filter(Boolean))];
           
@@ -53,8 +78,10 @@ const AllProducts = () => {
           setAvailableCategories(categories);
           
           // Set price range based on products
-          const prices = fetchedProducts.map(p => p.price);
-          setPriceRange([0, Math.max(...prices)]);
+          if (fetchedProducts.length > 0) {
+            const prices = fetchedProducts.map(p => p.price);
+            setPriceRange([0, Math.max(...prices)]);
+          }
         }
       } catch (error) {
         console.error(error);
@@ -64,7 +91,7 @@ const AllProducts = () => {
     };
 
     fetchProducts();
-  }, [category]);
+  }, [category, filterKey, filterValue, searchQuery]);
 
   // Apply filters
   useEffect(() => {
@@ -129,7 +156,11 @@ const AllProducts = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {category ? category.replace(/-/g, ' ').toUpperCase() : 'All Products'}
+            {searchQuery 
+              ? `Search results for "${searchQuery}"` 
+              : filterValue 
+                ? filterValue.replace(/-/g, ' ').toUpperCase() 
+                : (category ? category.replace(/-/g, ' ').toUpperCase() : 'All Products')}
           </h1>
           <p className="text-gray-600">{filteredProducts.length} products found</p>
         </div>

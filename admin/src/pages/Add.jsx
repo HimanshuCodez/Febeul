@@ -8,6 +8,7 @@ import 'react-quill/dist/quill.snow.css';
 
 const Add = ({token}) => {
 
+   const [type, setType] = useState("");
    const [variations, setVariations] = useState([{ color: '', images: [] }]);
    const [name, setName] = useState("");
    const [description, setDescription] = useState("");
@@ -88,6 +89,7 @@ const Add = ({token}) => {
       formData.append("packer",packer)
       formData.append("includedComponents",includedComponents)
       formData.append("fabric",fabric)
+      formData.append("type",type)
       formData.append("pattern",pattern)
       formData.append("sleeveStyle",sleeveStyle)
       formData.append("sleeveLength",sleeveLength)
@@ -126,6 +128,7 @@ const Add = ({token}) => {
         setPacker('')
         setIncludedComponents('')
         setFabric('')
+        setType('')
         setPattern('')
         setSleeveStyle('')
         setSleeveLength('')
@@ -235,6 +238,10 @@ const Add = ({token}) => {
           <div className='w-full'>
             <p className='mb-2'>Fabric</p>
             <input onChange={(e)=>setFabric(e.target.value)} value={fabric} className='w-full px-3 py-2' type="text" placeholder='cotton linen' />
+          </div>
+          <div className='w-full'>
+            <p className='mb-2'>Type</p>
+            <input onChange={(e)=>setType(e.target.value)} value={type} className='w-full px-3 py-2' type="text" placeholder='e.g. Above knee Bdoll' />
           </div>
           <div className='w-full'>
             <p className='mb-2'>Pattern</p>

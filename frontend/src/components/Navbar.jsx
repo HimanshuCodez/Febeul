@@ -237,7 +237,7 @@ export default function Header() {
 
           <div className="flex-shrink-0">
             <Link to="/">
-              <img src="./removebgLogo.png" alt="AdiLove" className="h-12 w-auto" />
+              <img src="/removebgLogo.png" alt="AdiLove" className="h-12 w-auto" />
             </Link>
           </div>
 
@@ -278,7 +278,7 @@ export default function Header() {
               {navigation.map((item, index) => (
                 <div key={index} className="relative group">
                   <Link
-                    to={
+                    to={item.megaMenu ? "#" : (
                       item.title === "GIFT WRAP 🎁"
                         ? "/GiftWrap"
                         : item.title === "LUXE PRIVE SALE"
@@ -286,7 +286,8 @@ export default function Header() {
                         : item.title === "NEW & NOW"
                         ? "/new-and-now"
                         : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
-                    }
+                    )}
+                    onClick={(e) => item.megaMenu && e.preventDefault()}
                     className="py-4 text-sm font-medium text-white hover:bg-[#f9aeaf] rounded-md hover:text-black flex items-center transition-colors"
                   >
                     {item.title}
@@ -326,7 +327,7 @@ export default function Header() {
                                 {links.map((link, linkIndex) => (
                                   <li key={linkIndex}>
                                     <Link
-                                      to={`/products/${link.toLowerCase().replace(/ /g, "-")}`}
+                                      to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/ /g, "-")}`}
                                       className="text-sm text-gray-700 hover:text-[#f9aeaf] hover:underline"
                                     >
                                       {link.includes("New") ? (
@@ -380,7 +381,7 @@ export default function Header() {
               {navigation.map((item, index) => (
                 <div key={index}>
                   <Link
-                    to={
+                    to={item.megaMenu ? "#" : (
                       item.title === "GIFT WRAP 🎁"
                         ? "/GiftWrap"
                         : item.title === "LUXE PRIVE SALE"
@@ -388,7 +389,8 @@ export default function Header() {
                         : item.title === "NEW & NOW"
                         ? "/new-and-now"
                         : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
-                    }
+                    )}
+                    onClick={(e) => item.megaMenu && e.preventDefault()}
                     className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                   >
                     {item.title}
@@ -405,7 +407,7 @@ export default function Header() {
                               {links.map((link, linkIndex) => (
                               <Link
                                   key={linkIndex}
-                                  to={`/products/${link.toLowerCase().replace(/ /g, "-")}`}
+                                  to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/ /g, "-")}`}
                                   className="block px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                                 >
                                   {link.includes("New") ? (

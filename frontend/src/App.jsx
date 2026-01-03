@@ -50,6 +50,7 @@ const AppContent = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/product/:productId" element={<ProductPage />} />
         <Route path="/products" element={<AllProducts />} />
+        <Route path="/products/:category/:filterKey/:filterValue" element={<AllProducts />} />
         <Route path="/products/:category" element={<AllProducts />} />
         <Route path="/GiftWrap" element={<GiftWrapSelector />} />
         <Route path="/luxe" element={<LuxePage />} />

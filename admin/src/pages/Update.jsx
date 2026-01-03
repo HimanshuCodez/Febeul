@@ -26,6 +26,7 @@ const Update = ({ token }) => {
     const [packer, setPacker] = useState("");
     const [includedComponents, setIncludedComponents] = useState("");
     const [fabric, setFabric] = useState("");
+    const [type, setType] = useState("");
     const [pattern, setPattern] = useState("");
     const [sleeveStyle, setSleeveStyle] = useState("");
     const [sleeveLength, setSleeveLength] = useState("");
@@ -60,6 +61,7 @@ const Update = ({ token }) => {
                     setPacker(product.packer || "");
                     setIncludedComponents(product.includedComponents || "");
                     setFabric(product.fabric || "");
+                    setType(product.type || "");
                     setPattern(product.pattern || "");
                     setSleeveStyle(product.sleeveStyle || "");
                     setSleeveLength(product.sleeveLength || "");
@@ -131,6 +133,7 @@ const Update = ({ token }) => {
             formData.append("packer", packer);
             formData.append("includedComponents", includedComponents);
             formData.append("fabric", fabric);
+            formData.append("type", type);
             formData.append("pattern", pattern);
             formData.append("sleeveStyle", sleeveStyle);
             formData.append("sleeveLength", sleeveLength);
@@ -265,6 +268,10 @@ const Update = ({ token }) => {
                 <div className='w-full'>
                     <p className='mb-2'>Fabric</p>
                     <input onChange={(e) => setFabric(e.target.value)} value={fabric} className='w-full px-3 py-2' type="text" placeholder='cotton linen' />
+                </div>
+                <div className='w-full'>
+                    <p className='mb-2'>Type</p>
+                    <input onChange={(e) => setType(e.target.value)} value={type} className='w-full px-3 py-2' type="text" placeholder='e.g. Above knee Bdoll' />
                 </div>
                 <div className='w-full'>
                     <p className='mb-2'>Pattern</p>

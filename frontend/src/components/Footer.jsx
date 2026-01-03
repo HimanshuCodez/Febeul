@@ -12,7 +12,7 @@ const Footer = () => {
           {/* Brand + Contact Info */}
           <div className="space-y-4">
             <img
-              src="./removebgLogo.png"   /* <-- replace with: /logo.png or actual path */
+              src="/removebgLogo.png"   /* <-- replace with: /logo.png or actual path */
               alt="Febeul Logo"
               className="w-44"
             />
