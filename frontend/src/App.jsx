@@ -1,8 +1,13 @@
 // App.jsx
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import Home from "./Pages/Home";
-import "./index.css"
+import "./index.css";
 import Profile from "./Pages/Profile";
 import Wishlist from "./Pages/Wishlist";
 import Cart from "./Pages/Cart";
@@ -32,7 +37,9 @@ import OrderSuccess from "./Pages/OrderSuccess";
 
 const AppContent = () => {
   const location = useLocation();
-  const showHeaderFooter = !['/auth', '/forgot-password'].includes(location.pathname);
+  const showHeaderFooter = !["/auth", "/forgot-password"].includes(
+    location.pathname
+  );
 
   return (
     <div>
@@ -40,48 +47,49 @@ const AppContent = () => {
       <Routes>
         {/* Default route - Home */}
         <Route path="/" element={<Home />} />
-        <Route path="/profile" element={<Profile  />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/auth" element={<AuthPage />} />
-     
-        <Route path="/whislist" element={<Wishlist  />} />
+
+        <Route path="/whislist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
-        
+
         <Route path="/support" element={<Support />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/product/:productId" element={<ProductPage />} />
         <Route path="/products" element={<AllProducts />} />
-        <Route path="/products/:category/:filterKey/:filterValue" element={<AllProducts />} />
+        <Route
+          path="/products/:category/:filterKey/:filterValue"
+          element={<AllProducts />}
+        />
         <Route path="/products/:category" element={<AllProducts />} />
         <Route path="/GiftWrap" element={<GiftWrapSelector />} />
         <Route path="/luxe" element={<LuxePage />} />
         <Route path="/new-and-now" element={<NewAndNow />} />
-        <Route path="/PrimeMember" element={<PrimeMember/>} />
-        <Route path="/Checkout" element={<CheckoutPage/>} />
-        <Route path="/Success" element={<OrderSuccess/>} />
+        <Route path="/PrimeMember" element={<PrimeMember />} />
+        <Route path="/Checkout" element={<CheckoutPage />} />
+        <Route path="/Success" element={<OrderSuccess />} />
 
-     
         {/* Footer items */}
-          <Route path="/ReviewRating" element={<ReviewRating />} />
-         <Route path="/Faq" element={<Faq />} />
-        <Route path="/LuxePolicy" element={<LuxePolicy/>} />
-         <Route path="/DataPrivacy" element={<DataPrivacy />} />
-         <Route path="/GrievanceRedressals" element={<GrievanceRedressals/>} />
-         <Route path="/PaymentPolicy" element={<PaymentPolicy/>} />
-         <Route path="/ReturnRefund" element={<ReturnRefund/>} />
-         <Route path="/TermsConditions" element={<TermsConditions/>} />
-{/*      
+        <Route path="/ReviewRating" element={<ReviewRating />} />
+        <Route path="/Faq" element={<Faq />} />
+        <Route path="/LuxePolicy" element={<LuxePolicy />} />
+        <Route path="/DataPrivacy" element={<DataPrivacy />} />
+        <Route path="/GrievanceRedressals" element={<GrievanceRedressals />} />
+        <Route path="/PaymentPolicy" element={<PaymentPolicy />} />
+        <Route path="/ReturnRefund" element={<ReturnRefund />} />
+        <Route path="/TermsConditions" element={<TermsConditions />} />
+        {/*      
         <Route path="/contact" element={<Contact />} />  */}
-   {/* Other routes */}
+        {/* Other routes */}
         {/* Catch-all (404) */}
         <Route path="*" element={<h2>404 Page Not Found</h2>} />
       </Routes>
-      <Chatbot/>
-      <FebeulMembership/>
-      {showHeaderFooter && <Footer/>}
+      <Chatbot />
+      <FebeulMembership />
+      {showHeaderFooter && <Footer />}
     </div>
   );
-}
-
+};
 
 const App = () => {
   return (
