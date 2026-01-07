@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
 
 const userRouter = express.Router();
@@ -9,6 +9,7 @@ userRouter.post('/login', loginUser)
 userRouter.post('/admin', adminLogin)
 userRouter.get('/profile', authUser, getProfile)
 userRouter.post('/add-address', authUser, addAddress)
+userRouter.get('/allusers', authUser, getAllUsers)
 
 // Password Reset Routes
 userRouter.post('/forgot-password', forgotPassword);

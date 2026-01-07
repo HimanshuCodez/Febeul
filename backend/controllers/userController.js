@@ -234,5 +234,16 @@ const addAddress = async (req, res) => {
     }
 }
 
+// Get all users
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await userModel.find({});
+        res.json({ success: true, users });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error fetching users" });
+    }
+}
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress }
+
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers }
