@@ -74,7 +74,7 @@ const placeOrderStripe = async (req,res) => {
                 product_data: {
                     name:item.name
                 },
-                unit_amount: item.price * 100
+                unit_amount: Math.round(item.price * 100)
             },
             quantity: item.quantity
         }))
@@ -85,7 +85,7 @@ const placeOrderStripe = async (req,res) => {
                 product_data: {
                     name:'Delivery Charges'
                 },
-                unit_amount: deliveryCharge * 100
+                unit_amount: Math.round(deliveryCharge * 100)
             },
             quantity: 1
         })
@@ -147,7 +147,7 @@ const placeOrderRazorpay = async (req,res) => {
         await newOrder.save()
 
         const options = {
-            amount: amount * 100,
+            amount: Math.round(amount * 100),
             currency: currency.toUpperCase(),
             receipt : newOrder._id.toString()
         }
