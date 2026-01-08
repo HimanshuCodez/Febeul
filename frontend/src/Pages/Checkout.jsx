@@ -184,7 +184,7 @@ export default function CheckoutPage() {
         key: razorpayKey,
         amount: order.amount,
         currency: order.currency,
-        name: "AdiLove",
+        name: "FEBEUL",
         description: "Order Payment",
         order_id: order.id,
         handler: async function (response) {
