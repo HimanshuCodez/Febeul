@@ -129,9 +129,16 @@ export default function CheckoutPage() {
   }
 
   const placeCodOrder = async () => {
+    const orderItems = cartItems.map((item) => ({
+      productId: item._id,
+      quantity: item.quantity,
+      size: item.size,
+      name: item.name,
+      image: item.variations?.[0]?.images?.[0],
+    }));
     const orderData = {
         userId: user._id,
-        items: cartItems,
+        items: orderItems,
         amount: total,
         address: addresses[selectedAddress]
     }
@@ -141,18 +148,25 @@ export default function CheckoutPage() {
             toast.success("Order placed successfully!");
             navigate("/Success", { state: { order: response.data.order, items: cartItems, address: addresses[selectedAddress] } });
         } else {
-            toast.error("Failed to place order.");
+            toast.error(response.data.message || "Failed to place order.");
         }
     } catch (error) {
-        toast.error("Failed to place order.");
+        toast.error(error.response?.data?.message || "Failed to place order.");
     }
   }
 
   const handleRazorpayPayment = async () => {
     try {
+      const orderItems = cartItems.map((item) => ({
+        productId: item._id,
+        quantity: item.quantity,
+        size: item.size,
+        name: item.name,
+        image: item.variations?.[0]?.images?.[0],
+      }));
       const orderPayload = {
         userId: user._id,
-        items: cartItems,
+        items: orderItems,
         amount: total,
         address: addresses[selectedAddress],
       };
@@ -160,7 +174,8 @@ export default function CheckoutPage() {
       const orderResponse = await axios.post(`${backendUrl}/api/order/razorpay`, orderPayload, { headers: { token } });
 
       if (!orderResponse.data.success) {
-        throw new Error("Order creation failed");
+        toast.error(orderResponse.data.message || "Order creation failed");
+        return;
       }
 
       const { order } = orderResponse.data;
@@ -209,7 +224,7 @@ export default function CheckoutPage() {
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
-      toast.error("Payment failed. Please try again.");
+      toast.error(error.response?.data?.message || "Payment failed. Please try again.");
     }
   };
 
