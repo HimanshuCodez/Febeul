@@ -131,37 +131,42 @@ export default function FebeulLuxe() {
 
         {/* Item 1 */}
         <div>
-         <img src="/bus.png" className="mx-auto h-32" />
+         <img src="/2.png" className="mx-auto h-48" />
           <p className="mt-4 font-bold text-black">FAST PRIORITY DELIVERY</p>
         </div>
 
         {/* Item 2 */}
         <div>
           {/* ICON HERE */}
+          <img src="/1.png" className="mx-auto h-48" />
           <p className="mt-4 font-bold text-black">15 GIFT WRAPS</p>
         </div>
 
         {/* Item 3 */}
         <div>
           {/* ICON HERE */}
-          <p className="mt-4 font-bold text-black">LUXE PRIVÉ SALES</p>
+          <img src="/3.png" className="mx-auto h-48" />
+          <p className="mt-4 font-bold text-black">LUXE PRIVE SALES</p>
         </div>
 
         {/* Item 4 */}
         <div>
           {/* ICON HERE */}
+          <img src="/4.png" className="mx-auto h-48" />
           <p className="mt-4 font-bold text-black">COUPONS EVERY PURCHASE</p>
         </div>
 
         {/* Item 5 */}
         <div>
           {/* ICON HERE */}
+          <img src="/5.png" className="mx-auto h-48" />
           <p className="mt-4 font-bold text-black">DEDICATED SUPPORT</p>
         </div>
 
         {/* Item 6 */}
         <div>
           {/* ICON HERE */}
+          <img src="/6.png" className="mx-auto h-48" />
           <p className="mt-4 font-bold text-black">FAST DELIVERY</p>
         </div>
 

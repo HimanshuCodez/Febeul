@@ -14,6 +14,7 @@ import {
 import Loader from "../components/Loader";
 import useAuthStore from "../store/authStore";
 import { toast } from "react-hot-toast";
+import SimilarItems from "../components/SimilarItems";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -184,12 +185,7 @@ const ProductDetailPage = () => {
               <h1 className="text-2xl font-semibold text-gray-800 leading-tight">
                 {product.name}
               </h1>
-              <a
-                href="#"
-                className="text-sm text-blue-600 hover:text-orange-600 hover:underline"
-              >
-                Visit the AdiLove Store
-              </a>
+          
 
               <div className="flex items-center gap-3 mt-2">
                 <div className="flex items-center">
@@ -392,6 +388,7 @@ const ProductDetailPage = () => {
           {/* End of New Grid Container */}
         </div>
       </div>
+      <SimilarItems productId={productId} token={token} />
     </div>
   );
 };

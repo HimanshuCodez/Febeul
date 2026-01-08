@@ -185,4 +185,27 @@ const updateProduct = async (req, res) => {
     }
 };
 
-export { listProducts, addProduct, removeProduct, singleProduct, updateProduct }
+// function for getting similar products
+const getSimilarProducts = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const product = await productModel.findById(productId);
+
+        if (!product) {
+            return res.json({ success: false, message: "Product not found" });
+        }
+
+        const similarProducts = await productModel.find({
+            category: product.category,
+            _id: { $ne: productId } // Exclude the current product
+        }).limit(5); // Limit to 5 similar products
+
+        res.json({ success: true, products: similarProducts });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+export { listProducts, addProduct, removeProduct, singleProduct, updateProduct, getSimilarProducts }
