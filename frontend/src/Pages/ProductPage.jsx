@@ -10,6 +10,7 @@ import {
   Star,
   MapPin,
   Lock,
+  Heart
 } from "lucide-react";
 import Loader from "../components/Loader";
 import useAuthStore from "../store/authStore";
@@ -30,6 +31,7 @@ const ProductDetailPage = () => {
   const [selectedSize, setSelectedSize] = useState(null);
   const [isProdDetailsExpanded, setIsProdDetailsExpanded] = useState(false);
   const [isAddInfoExpanded, setIsAddInfoExpanded] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -53,6 +55,48 @@ const ProductDetailPage = () => {
     };
     fetchProduct();
   }, [productId]);
+
+  useEffect(() => {
+    const checkWishlist = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const response = await axios.get(`${backendUrl}/api/user/wishlist`, {
+            headers: { token },
+            params: { userId: user._id }
+          });
+          if (response.data.success) {
+            const isProductInWishlist = response.data.wishlist.some(item => item._id === productId);
+            setIsWishlisted(isProductInWishlist);
+          }
+        } catch (error) {
+          console.error("Error checking wishlist", error);
+        }
+      }
+    };
+    checkWishlist();
+  }, [isAuthenticated, user, productId, token]);
+
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to manage your wishlist.");
+      navigate("/auth");
+      return;
+    }
+
+    const endpoint = isWishlisted ? 'remove' : 'add';
+    try {
+      const response = await axios.post(`${backendUrl}/api/user/wishlist/${endpoint}`,
+        { userId: user._id, productId: product._id },
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        setIsWishlisted(!isWishlisted);
+        toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
+      }
+    } catch (error) {
+      toast.error("Failed to update wishlist.");
+    }
+  };
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -304,6 +348,10 @@ const ProductDetailPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
+                  <button onClick={handleWishlistToggle} className={`w-full bg-white flex items-center justify-center gap-2 text-gray-700 border border-gray-300 hover:bg-gray-100 py-2 rounded-full font-semibold text-sm transition-colors shadow-sm ${isWishlisted ? 'text-pink-500' : ''}`}>
+                    <Heart className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-pink-500' : ''}`} />
+                    {isWishlisted ? 'Wishlisted' : 'Add to Wishlist'}
+                  </button>
                   <button onClick={handleAddToCart} className="w-full bg-white text-[#f9aeaf] border border-[#f9aeaf] hover:bg-[#f9aeaf] hover:text-black py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
                     Add to Cart
                   </button>

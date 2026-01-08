@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
 
 const userRouter = express.Router();
@@ -15,5 +15,10 @@ userRouter.get('/allusers', authUser, getAllUsers)
 userRouter.post('/forgot-password', forgotPassword);
 userRouter.post('/verify-password-otp', verifyPasswordOtp);
 userRouter.post('/reset-password', resetPassword);
+
+// Wishlist Routes
+userRouter.get('/wishlist', authUser, getWishlist);
+userRouter.post('/wishlist/add', authUser, addToWishlist);
+userRouter.post('/wishlist/remove', authUser, removeFromWishlist);
 
 export default userRouter;

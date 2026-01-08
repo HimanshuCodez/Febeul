@@ -1,12 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import useAuthStore from '../store/authStore';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeVariationIndex, setActiveVariationIndex] = useState(0);
+
+  const { user, token, isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkWishlist = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const response = await axios.get(`${backendUrl}/api/user/wishlist`, {
+            headers: { token },
+            params: { userId: user._id }
+          });
+          if (response.data.success) {
+            const isProductInWishlist = response.data.wishlist.some(item => item._id === product._id);
+            setIsWishlisted(isProductInWishlist);
+          }
+        } catch (error) {
+          console.error("Error checking wishlist", error);
+        }
+      }
+    };
+    checkWishlist();
+  }, [isAuthenticated, user, product._id, token]);
+  
+
+  const handleWishlistToggle = async (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error("Please log in to manage your wishlist.");
+      navigate("/auth");
+      return;
+    }
+
+    const endpoint = isWishlisted ? 'remove' : 'add';
+    try {
+      const response = await axios.post(`${backendUrl}/api/user/wishlist/${endpoint}`, 
+        { userId: user._id, productId: product._id },
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        setIsWishlisted(!isWishlisted);
+        toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
+      }
+    } catch (error) {
+      toast.error("Failed to update wishlist.");
+    }
+  };
 
   const discount = product.mrp
     ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
@@ -50,10 +102,7 @@ const ProductCard = ({ product }) => {
             }`}
           >
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                setIsWishlisted(!isWishlisted);
-              }}
+              onClick={handleWishlistToggle}
               title="Add to Wishlist"
               className="bg-white p-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-pink-50"
             >

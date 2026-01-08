@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
     otp: { type: String },
     otp_expiry: { type: Date },
     cartData: { type: Object, default: {} },
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }],
     addresses: [{
         name: { type: String, required: true },
         address: { type: String, required: true },

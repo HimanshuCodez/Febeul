@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function FebeulLuxe() {
   const { user, token, isAuthenticated } = useAuthStore();
@@ -119,15 +119,15 @@ export default function FebeulLuxe() {
   return (
     <section className="w-full bg-[#f8b7b7] py-12 px-6">
       
-      {/* Logo / Title */}
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-script text-white">
-          Febeul <span className="text-black font-serif">LUXE</span>
-        </h1>
+      <div className="text-center mb-10 flex items-center justify-center gap-2">
+        <Link to="/">
+          <img src="/removebgLogo.png" alt="Febeul Logo" className="h-12 w-auto" />
+        </Link>
+        <h1 className="text-4xl font-serif text-black">LUXE</h1>
       </div>
 
       {/* Features Grid */}
-      <div className="max-w-4xl mx-auto grid grid-cols-2 gap-y-14 gap-x-20 text-center">
+      <div className="max-w-4xl mx-auto grid grid-cols-2 gap-y-7 gap-x-10 text-center">
 
         {/* Item 1 */}
         <div>

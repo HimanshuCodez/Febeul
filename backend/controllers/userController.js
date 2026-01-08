@@ -245,5 +245,55 @@ const getAllUsers = async (req, res) => {
     }
 }
 
+// Get user's wishlist
+const getWishlist = async (req, res) => {
+    try {
+        const user = await userModel.findById(req.body.userId).populate('wishlist');
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+        res.json({ success: true, wishlist: user.wishlist });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error fetching wishlist" });
+    }
+};
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers }
+// Add to wishlist
+const addToWishlist = async (req, res) => {
+    try {
+        const { userId, productId } = req.body;
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+        if (!user.wishlist.includes(productId)) {
+            user.wishlist.push(productId);
+            await user.save();
+        }
+        res.json({ success: true, message: "Added to wishlist" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error adding to wishlist" });
+    }
+};
+
+// Remove from wishlist
+const removeFromWishlist = async (req, res) => {
+    try {
+        const { userId, productId } = req.body;
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+        user.wishlist = user.wishlist.filter((id) => id.toString() !== productId);
+        await user.save();
+        res.json({ success: true, message: "Removed from wishlist" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error removing from wishlist" });
+    }
+};
+
+
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist }
