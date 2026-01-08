@@ -382,8 +382,8 @@ export default function CheckoutPage() {
                         <div className="flex items-center">
                           <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
                           <div>
-                            <p className="font-bold text-gray-800">Credit / Debit Card</p>
-                            <p className="text-sm text-gray-600">Pay with your card via payment gateway</p>
+                            <p className="font-bold text-gray-800">Upi / Net Banking</p>
+                            <p className="text-sm text-gray-600">Pay with your via payment gateway</p>
                           </div>
                         </div>
                         {selectedPayment === 'card' && (
