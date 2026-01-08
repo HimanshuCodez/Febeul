@@ -116,7 +116,7 @@ export default function CheckoutPage() {
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = 5.99;
   const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
+  const total = parseFloat((subtotal + shipping + tax).toFixed(2));
   
   const addresses = user?.addresses || [];
 
