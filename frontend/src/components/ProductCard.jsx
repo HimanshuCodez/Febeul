@@ -13,7 +13,7 @@ const ProductCard = ({ product }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeVariationIndex, setActiveVariationIndex] = useState(0);
 
-  const { user, token, isAuthenticated } = useAuthStore();
+  const { user, token, isAuthenticated, fetchWishlistCount } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,6 +54,7 @@ const ProductCard = ({ product }) => {
       if (response.data.success) {
         setIsWishlisted(!isWishlisted);
         toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
+        fetchWishlistCount(); // Update wishlist count in store
       }
     } catch (error) {
       toast.error("Failed to update wishlist.");

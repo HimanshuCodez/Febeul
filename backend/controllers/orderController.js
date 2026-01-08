@@ -204,6 +204,9 @@ const allOrders = async (req,res) => {
     try {
         
         const orders = await orderModel.find({})
+            .populate('userId', 'name email') // Populate user name and email
+            .populate('items.productId', 'name variations'); // Populate product name and variations
+
         res.json({success:true,orders})
 
     } catch (error) {

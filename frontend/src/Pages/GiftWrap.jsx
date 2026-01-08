@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaGift, FaCrown, FaCheck, FaPlus, FaMinus, FaShoppingCart, FaStar } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
+import useAuthStore from '../store/authStore';
 
 const giftWraps = [
   {
@@ -41,36 +43,23 @@ const giftWraps = [
   }
 ];
 
-const products = [
-  {
-    id: 1,
-    name: "Velvet Rose Parfum",
-    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=300&h=300&fit=crop",
-    price: 425
-  },
-  {
-    id: 2,
-    name: "Lumière Face Cream",
-    image: "https://images.unsplash.com/photo-1556229010-aa3e89c4f6b9?w=300&h=300&fit=crop",
-    price: 340
-  },
-  {
-    id: 3,
-    name: "Golden Essence Oil",
-    image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=300&h=300&fit=crop",
-    price: 510
-  }
-];
+
 
 export default function GiftWrapPage() {
-  const [selectedProduct, setSelectedProduct] = useState(null);
+
   const [selectedWrap, setSelectedWrap] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [showPromo, setShowPromo] = useState(true);
+  const { fetchCartCount } = useAuthStore();
 
-  const totalPrice = selectedProduct && selectedWrap 
-    ? selectedProduct.price + selectedWrap.price * quantity 
+  const totalPrice = selectedWrap 
+    ? selectedWrap.price * quantity 
     : 0;
+  
+  const handleAddToCart = () => {
+    toast.success(`${quantity} x ${selectedWrap.name} added to cart!`);
+    fetchCartCount(); // Update cart count in store
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -116,46 +105,12 @@ export default function GiftWrapPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Product & Wrap Selection */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Select Product */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-2xl font-light mb-6 text-gray-800 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>1</span>
-                Select Your Product
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {products.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    whileHover={{ y: -5 }}
-                    onClick={() => setSelectedProduct(product)}
-                    className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedProduct?.id === product.id 
-                        ? 'shadow-lg' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    style={selectedProduct?.id === product.id ? { borderColor: '#f47b7d' } : {}}
-                  >
-                    <div className="relative">
-                      <img src={product.image} alt={product.name} className="w-full aspect-square object-cover" />
-                      {selectedProduct?.id === product.id && (
-                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: '#f47b7d' }}>
-                          <FaCheck className="text-xs" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <p className="text-sm font-light text-gray-800">{product.name}</p>
-                      <p className="text-lg font-light" style={{ color: '#f47b7d' }}>₹{product.price}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+
 
             {/* Select Gift Wrap */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-2xl font-light mb-6 text-gray-800 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>2</span>
+                <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>1</span>
                 Choose Gift Wrap Style
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -198,7 +153,7 @@ export default function GiftWrapPage() {
                 className="bg-white rounded-lg shadow-sm p-6"
               >
                 <h2 className="text-2xl font-light mb-6 text-gray-800 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>3</span>
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>2</span>
                   Gift Wrap Quantity
                 </h2>
                 <div className="flex items-center gap-4">
@@ -230,21 +185,13 @@ export default function GiftWrapPage() {
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
               <h3 className="text-xl font-light mb-4 text-gray-800">Order Summary</h3>
               
-              {!selectedProduct && !selectedWrap && (
+              {!selectedWrap && (
                 <p className="text-gray-500 text-sm text-center py-8">
-                  Select a product and gift wrap to continue
+                  Select a gift wrap to continue
                 </p>
               )}
 
-              {selectedProduct && (
-                <div className="mb-4 pb-4 border-b">
-                  <p className="text-xs text-gray-500 mb-1">Product</p>
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-800">{selectedProduct.name}</p>
-                    <p className="text-sm font-semibold">₹{selectedProduct.price}</p>
-                  </div>
-                </div>
-              )}
+
 
               {selectedWrap && (
                 <div className="mb-4 pb-4 border-b">
@@ -260,7 +207,7 @@ export default function GiftWrapPage() {
                 </div>
               )}
 
-              {selectedProduct && selectedWrap && (
+              {selectedWrap && (
                 <>
                   <div className="mb-6">
                     <div className="flex justify-between items-center">
@@ -270,6 +217,7 @@ export default function GiftWrapPage() {
                   </div>
 
                   <motion.button
+                    onClick={handleAddToCart}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="w-full py-3 rounded-full text-white font-light flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"

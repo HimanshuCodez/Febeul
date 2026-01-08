@@ -11,7 +11,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Cart = () => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user, token, isAuthenticated } = useAuthStore();
+  const { user, token, isAuthenticated, fetchCartCount } = useAuthStore();
 
   const fetchCart = async () => {
     if (!isAuthenticated || !user) {
@@ -56,6 +56,7 @@ const Cart = () => {
         );
         if (response.data.success) {
             fetchCart(); // Refetch cart to ensure data is in sync
+            fetchCartCount(); // Update cart count in store
         } else {
             toast.error("Failed to update cart.");
         }
@@ -73,6 +74,7 @@ const Cart = () => {
         if (response.data.success) {
             toast.success("Item removed from cart.");
             fetchCart();
+            fetchCartCount(); // Update cart count in store
         } else {
             toast.error("Failed to remove item.");
         }

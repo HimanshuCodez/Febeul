@@ -13,7 +13,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Wishlist = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user, token } = useAuthStore();
+  const { user, token, fetchWishlistCount } = useAuthStore();
 
   const fetchWishlist = async () => {
     if (!user) return;
@@ -44,6 +44,7 @@ const Wishlist = () => {
       );
       setWishlistItems((items) => items.filter((item) => item._id !== productId));
       toast.success("Removed from wishlist");
+      fetchWishlistCount(); // Update wishlist count in store
     } catch (error) {
       toast.error("Failed to remove from wishlist");
     }

@@ -22,7 +22,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const ProductDetailPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
-  const { user, token, isAuthenticated } = useAuthStore();
+  const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount } = useAuthStore();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -92,6 +92,7 @@ const ProductDetailPage = () => {
       if (response.data.success) {
         setIsWishlisted(!isWishlisted);
         toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
+        fetchWishlistCount(); // Update wishlist count in store
       }
     } catch (error) {
       toast.error("Failed to update wishlist.");
@@ -115,6 +116,7 @@ const ProductDetailPage = () => {
       );
       if (response.data.success) {
         toast.success("Added to cart!");
+        fetchCartCount(); // Update cart count in store
       } else {
         toast.error(response.data.message);
       }

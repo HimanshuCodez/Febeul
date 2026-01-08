@@ -7,6 +7,47 @@ const useAuthStore = create((set, get) => ({
   loading: false,
   error: null,
   isAuthenticated: !!localStorage.getItem('token'),
+  wishlistCount: 0,
+  cartCount: 0,
+
+  fetchWishlistCount: async () => {
+    const { user, token, isAuthenticated } = get();
+    if (!isAuthenticated || !user) {
+      set({ wishlistCount: 0 });
+      return;
+    }
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/wishlist`, {
+        headers: { token },
+        params: { userId: user._id }
+      });
+      if (response.data.success) {
+        set({ wishlistCount: response.data.wishlist.length });
+      }
+    } catch (error) {
+      console.error("Failed to fetch wishlist count", error);
+      set({ wishlistCount: 0 });
+    }
+  },
+
+  fetchCartCount: async () => {
+    const { user, token, isAuthenticated } = get();
+    if (!isAuthenticated || !user) {
+      set({ cartCount: 0 });
+      return;
+    }
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/cart/get`, { userId: user._id }, {
+        headers: { token }
+      });
+      if (response.data.success) {
+        set({ cartCount: response.data.cartItems.length });
+      }
+    } catch (error) {
+      console.error("Failed to fetch cart count", error);
+      set({ cartCount: 0 });
+    }
+  },
 
   getProfile: async () => {
     const token = get().token;
@@ -17,10 +58,11 @@ const useAuthStore = create((set, get) => ({
       });
       if (response.data.success) {
         set({ user: response.data.user });
+        get().fetchWishlistCount();
+        get().fetchCartCount();
       }
     } catch (error) {
       console.error("Failed to fetch profile", error);
-      // Clears token if profile fetch fails (e.g. invalid token)
       get().logout();
     }
   },
@@ -33,7 +75,7 @@ const useAuthStore = create((set, get) => ({
         const { token } = response.data;
         localStorage.setItem('token', token);
         set({ token, loading: false, isAuthenticated: true });
-        await get().getProfile(); // Fetch profile after login
+        await get().getProfile();
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -50,7 +92,7 @@ const useAuthStore = create((set, get) => ({
         const { token } = response.data;
         localStorage.setItem('token', token);
         set({ token, loading: false, isAuthenticated: true });
-        await get().getProfile(); // Fetch profile after registration
+        await get().getProfile();
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -104,9 +146,11 @@ const useAuthStore = create((set, get) => ({
     get().getProfile();
   },
 
+  setWishlistCount: (count) => set({ wishlistCount: count }),
+
   logout: () => {
     localStorage.removeItem('token');
-    set({ token: null, user: null, isAuthenticated: false });
+    set({ token: null, user: null, isAuthenticated: false, wishlistCount: 0, cartCount: 0 });
   },
 
   clearError: () => set({ error: null }),

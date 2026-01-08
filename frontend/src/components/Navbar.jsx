@@ -120,7 +120,7 @@ const UserMenu = ({ isAuthenticated }) => {
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, wishlistCount, cartCount } = useAuthStore();
 
   const navigation = [
     {
@@ -243,13 +243,23 @@ export default function Header() {
 
           <div className="flex-1 flex items-center justify-end gap-5">
             {isAuthenticated && (
-              <Link to={"/wishlist"}>
+              <Link to={"/wishlist"} className="relative">
                 <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-pink-500 text-white rounded-full text-xs w-4 h-4 flex items-center justify-center">
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
             )}
             <UserMenu isAuthenticated={isAuthenticated} />
-            <Link to={"/cart"}>
+            <Link to={"/cart"} className="relative">
               <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-pink-500 text-white rounded-full text-xs w-4 h-4 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
             </Link>
           </div>
         </div>
