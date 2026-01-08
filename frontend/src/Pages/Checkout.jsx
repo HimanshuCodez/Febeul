@@ -451,7 +451,7 @@ export default function CheckoutPage() {
                       <>
                         <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
                         <div>
-                          <p className="font-bold text-gray-800">Credit / Debit Card</p>
+                          <p className="font-bold text-gray-800">Upi / Net Banking</p>
                           <p className="text-sm text-gray-600">Payment Gateway</p>
                         </div>
                       </>
