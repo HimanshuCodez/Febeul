@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MessageSquare, ChevronDown, HelpCircle } from "lucide-react";
+import toast from "react-hot-toast";
 
 const faqs = [
   {
@@ -31,7 +32,7 @@ const Support = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     // In a real app, you would handle form submission here (e.g., API call)
-    alert("💖 Thank you for your message! Our team will get back to you soon.");
+    toast("💖 Thank you for your message! Our team will get back to you soon.");
     setFormData({ name: "", email: "", message: "" });
   };
 
@@ -95,7 +96,7 @@ const Support = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
                 <ContactInfoCard icon={Mail} title="Email Us" detail="support@febeul.com" />
-                <ContactInfoCard icon={Phone} title="Call Us" detail="+91 98765 43210" />
+                <ContactInfoCard icon={Phone} title="Call Us" detail="+91 9990310241" />
             </div>
           </motion.div>
         </div>

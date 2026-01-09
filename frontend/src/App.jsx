@@ -11,6 +11,7 @@ import "./index.css";
 import Profile from "./Pages/Profile";
 import Wishlist from "./Pages/Wishlist";
 import Cart from "./Pages/Cart";
+import Address from "./Pages/Address"; // Added import
 import Support from "./Pages/Support";
 import Chatbot from "./components/Chatbot";
 import FebeulMembership from "./components/Membership";
@@ -49,6 +50,7 @@ const AppContent = () => {
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/address" element={<Address />} /> {/* Added route for Address */}
 
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
