@@ -40,7 +40,8 @@ const useAuthStore = create((set, get) => ({
         headers: { token }
       });
       if (response.data.success) {
-        set({ cartCount: response.data.cartItems.length });
+        const totalQuantity = response.data.cartItems.reduce((sum, item) => sum + item.quantity, 0);
+        set({ cartCount: totalQuantity });
       }
     } catch (error) {
       console.error("Failed to fetch cart count", error);

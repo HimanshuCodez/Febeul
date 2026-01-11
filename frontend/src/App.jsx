@@ -35,6 +35,7 @@ import LuxePage from "./Pages/Luxe";
 import PrimeMember from "./Pages/PrimeMember";
 import CheckoutPage from "./Pages/Checkout";
 import OrderSuccess from "./Pages/OrderSuccess";
+import { Toaster } from "react-hot-toast";
 
 const AppContent = () => {
   const location = useLocation();
@@ -44,6 +45,7 @@ const AppContent = () => {
 
   return (
     <div>
+      <Toaster />
       {showHeaderFooter && <Header />}
       <Routes>
         {/* Default route - Home */}
