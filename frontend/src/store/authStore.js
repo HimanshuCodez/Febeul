@@ -52,7 +52,7 @@ const useAuthStore = create((set, get) => ({
     const token = get().token;
     if (!token) return;
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {}, {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {
         headers: { token }
       });
       if (response.data.success) {
