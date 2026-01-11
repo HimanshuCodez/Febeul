@@ -29,7 +29,7 @@ export default function Profile() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${backendUrl}/api/order/userorders`, { headers: { token } });
+      const response = await axios.post(`${backendUrl}/api/order/userorders`, {}, { headers: { token } });
       if (response.data.success) {
         setOrders(response.data.data.sort((a, b) => new Date(b.date) - new Date(a.date)));
       }
@@ -260,16 +260,22 @@ const ProfileInfo = ({ user, editedUser, isEditing, setIsEditing, handleInputCha
   </div>
 );
 
-const ProfileDetails = ({ user }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <InfoItem icon={User} label="Full Name" value={user.name} />
-    <InfoItem icon={Mail} label="Email Address" value={user.email} />
-    <InfoItem icon={Phone} label="Phone Number" value={user.phone || 'Not provided'} />
-    <InfoItem icon={User} label="Gender" value={user.gender || 'Not provided'} />
-    <InfoItem icon={Gift} label="Date of Birth" value={user.dob ? new Date(user.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not provided'} />
-    <InfoItem icon={MapPin} label="Address" value={user.address || 'Not provided'} wide />
-  </div>
-);
+const ProfileDetails = ({ user }) => {
+  const primaryAddress = user.addresses?.[0];
+  const formattedAddress = primaryAddress
+    ? `${primaryAddress.address}, ${primaryAddress.city}, ${primaryAddress.country} - ${primaryAddress.zip}`
+    : 'Not provided';
+  const phoneNumber = primaryAddress?.phone || 'Not provided';
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <InfoItem icon={User} label="Full Name" value={user.name} />
+      <InfoItem icon={Mail} label="Email Address" value={user.email} />
+      <InfoItem icon={Phone} label="Phone Number" value={phoneNumber} />
+      <InfoItem icon={MapPin} label="Address" value={formattedAddress} wide />
+    </div>
+  );
+};
 
 const ProfileForm = ({ user, onInputChange, onSave }) => (
   <div className="space-y-4">
