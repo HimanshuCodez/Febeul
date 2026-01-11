@@ -209,7 +209,7 @@ const adminLogin = async (req, res) => {
 // get user profile
 const getProfile = async (req,res) => {
     try {
-        const user = await userModel.findById(req.body.userId).select("-password -otp -otp_expiry");
+        const user = await userModel.findById(req.userId).select("-password -otp -otp_expiry");
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
