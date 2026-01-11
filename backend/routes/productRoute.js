@@ -11,6 +11,6 @@ productRouter.post('/remove',adminAuth,removeProduct);
 productRouter.post('/single',singleProduct);
 productRouter.post('/update', adminAuth, upload.any(), updateProduct);
 productRouter.get('/list',listProducts)
-productRouter.get('/similar/:productId', authUser, getSimilarProducts);
+productRouter.get('/similar/:productId', getSimilarProducts);
 
 export default productRouter

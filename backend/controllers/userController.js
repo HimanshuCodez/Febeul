@@ -30,8 +30,9 @@ const loginUser = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (isMatch) {
-            const token = createToken(user._id)
-            res.json({ success: true, token })
+            const token = createToken(user._id);
+            const userResponse = await userModel.findById(user._id).select("-password");
+            res.json({ success: true, token, user: userResponse });
         }
         else {
             res.json({ success: false, message: 'Invalid credentials' })
@@ -79,9 +80,10 @@ const registerUser = async (req, res) => {
             });
         }
         
-        const savedUser = await user.save()
-        const token = createToken(savedUser._id)
-        res.json({ success: true, token })
+        const savedUser = await user.save();
+        const token = createToken(savedUser._id);
+        const userResponse = await userModel.findById(savedUser._id).select("-password");
+        res.json({ success: true, token, user: userResponse });
 
     } catch (error) {
         console.log(error);

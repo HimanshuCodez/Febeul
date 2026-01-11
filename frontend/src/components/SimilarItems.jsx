@@ -12,9 +12,7 @@ const SimilarItems = ({ productId, token }) => {
   useEffect(() => {
     const fetchSimilarProducts = async () => {
       try {
-        const response = await axios.get(`${backendUrl}/api/product/similar/${productId}`, {
-          headers: { token } // Assuming similar products also require authentication
-        });
+        const response = await axios.get(`${backendUrl}/api/product/similar/${productId}`);
         if (response.data.success) {
           setSimilarProducts(response.data.products);
         } else {

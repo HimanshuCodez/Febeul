@@ -10,9 +10,11 @@ const AllUsers = ({ token }) => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get(`${backendUrl}/api/user/allusers`, {
-          headers: { token },
-        });
+      const response = await axios.post(`${backendUrl}/api/user/allusers`, {}, {
+        headers: {
+          token
+        }
+      });
         if (response.data.success) {
           setUsers(response.data.users);
         } else {

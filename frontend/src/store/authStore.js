@@ -17,9 +17,8 @@ const useAuthStore = create((set, get) => ({
       return;
     }
     try {
-      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/wishlist`, {
-        headers: { token },
-        params: { userId: user._id }
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/wishlist`, { userId: user._id }, {
+        headers: { token }
       });
       if (response.data.success) {
         set({ wishlistCount: response.data.wishlist.length });
@@ -53,13 +52,16 @@ const useAuthStore = create((set, get) => ({
     const token = get().token;
     if (!token) return;
     try {
-      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/profile`, {}, {
         headers: { token }
       });
       if (response.data.success) {
         set({ user: response.data.user });
         get().fetchWishlistCount();
         get().fetchCartCount();
+      } else {
+        // If the profile fetch is not successful (e.g. invalid token), log the user out.
+        get().logout();
       }
     } catch (error) {
       console.error("Failed to fetch profile", error);
@@ -72,10 +74,10 @@ const useAuthStore = create((set, get) => ({
     try {
       const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/login`, data);
       if (response.data.success) {
-        const { token } = response.data;
+        const { token, user } = response.data;
         localStorage.setItem('token', token);
-        set({ token, loading: false, isAuthenticated: true });
-        await get().getProfile();
+        set({ token, user, loading: false, isAuthenticated: true });
+        // The getProfile call is no longer needed here as user data is returned on login
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -89,10 +91,9 @@ const useAuthStore = create((set, get) => ({
     try {
       const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/register`, data);
       if (response.data.success) {
-        const { token } = response.data;
+        const { token, user } = response.data;
         localStorage.setItem('token', token);
-        set({ token, loading: false, isAuthenticated: true });
-        await get().getProfile();
+        set({ token, user, loading: false, isAuthenticated: true });
       } else {
         set({ error: response.data.message, loading: false });
       }

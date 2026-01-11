@@ -7,9 +7,9 @@ const userRouter = express.Router();
 userRouter.post('/register', registerUser)
 userRouter.post('/login', loginUser)
 userRouter.post('/admin', adminLogin)
-userRouter.get('/profile', authUser, getProfile)
+userRouter.post('/profile', authUser, getProfile)
 userRouter.post('/add-address', authUser, addAddress)
-userRouter.get('/allusers', authUser, getAllUsers)
+userRouter.post('/allusers', authUser, getAllUsers)
 
 // Password Reset Routes
 userRouter.post('/forgot-password', forgotPassword);
@@ -17,7 +17,7 @@ userRouter.post('/verify-password-otp', verifyPasswordOtp);
 userRouter.post('/reset-password', resetPassword);
 
 // Wishlist Routes
-userRouter.get('/wishlist', authUser, getWishlist);
+userRouter.post('/wishlist', authUser, getWishlist);
 userRouter.post('/wishlist/add', authUser, addToWishlist);
 userRouter.post('/wishlist/remove', authUser, removeFromWishlist);
 

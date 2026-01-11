@@ -60,9 +60,10 @@ const ProductDetailPage = () => {
     const checkWishlist = async () => {
       if (isAuthenticated && user) {
         try {
-          const response = await axios.get(`${backendUrl}/api/user/wishlist`, {
+          const response = await axios.post(`${backendUrl}/api/user/wishlist`, 
+          { userId: user._id },
+          {
             headers: { token },
-            params: { userId: user._id }
           });
           if (response.data.success) {
             const isProductInWishlist = response.data.wishlist.some(item => item._id === productId);
@@ -337,9 +338,16 @@ const ProductDetailPage = () => {
                   </p>
                   <p className="flex items-center gap-1 mt-2">
                     <MapPin size={14} />
-                    <a href="#" className="text-blue-600 hover:text-orange-600">
-                      Deliver to John - New York 10001
-                    </a>
+                    {isAuthenticated && user && user.addresses && user.addresses.length > 0 ? (
+                      <a href="#" className="text-blue-600 hover:text-orange-600">
+                        Deliver to {user.addresses[0].name} - {user.addresses[0].city}{" "}
+                        {user.addresses[0].zip}
+                      </a>
+                    ) : (
+                      <a href="/auth" className="text-blue-600 hover:text-orange-600">
+                        Select delivery location
+                      </a>
+                    )}
                   </p>
                 </div>
 
