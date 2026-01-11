@@ -66,18 +66,22 @@ const AuthPage = () => {
   const onSubmit = async (data) => {
     if (isLogin) {
       if (step === 1) { // Password login
-        await login({ email: data.identifier, password: data.password });
+        const identifier = data.identifier;
+        const isEmail = /^\S+@\S+$/.test(identifier);
+        const processedIdentifier = isEmail ? identifier.toLowerCase() : identifier;
+        await login({ email: processedIdentifier, password: data.password });
       } else { // step === 2, OTP login
         try {
           const identifier = getValues('identifier');
           const otp = data.loginOtp;
           const isEmail = /^\S+@\S+$/.test(identifier);
+          const processedIdentifier = isEmail ? identifier.toLowerCase() : identifier;
 
           let response;
           if (isEmail) {
-            response = await axios.post('https://febeul.onrender.com/api/otp/verify-email-login-otp', { email: identifier, otp: otp });
+            response = await axios.post('https://febeul.onrender.com/api/otp/verify-email-login-otp', { email: processedIdentifier, otp: otp });
           } else { // mobile
-            response = await axios.post('https://febeul.onrender.com/api/otp/verify-otp', { mobile: identifier, otp: otp });
+            response = await axios.post('https://febeul.onrender.com/api/otp/verify-otp', { mobile: processedIdentifier, otp: otp });
           }
 
           if (response.data.success) {
@@ -98,8 +102,9 @@ const AuthPage = () => {
         await sendSignupOtp(); // This sends OTP and sets step to 2
       } else if (step === 2) {
         try {
+          const email = getValues('email').toLowerCase();
           const verifyResponse = await axios.post('https://febeul.onrender.com/api/otp/verify-email-otp', {
-            email: getValues('email'),
+            email: email,
             otp: data.signupOtp
           });
 
@@ -107,7 +112,7 @@ const AuthPage = () => {
             toast.success('Email verified successfully!');
             await signup({
               name: getValues('name'),
-              email: getValues('email'),
+              email: email,
               mobile: getValues('mobile'),
               password: getValues('password')
             });
@@ -122,14 +127,16 @@ const AuthPage = () => {
   };
 
   const sendLoginOtp = async () => {
-    const identifier = getValues("identifier");
-    const isEmail = /^\S+@\S+$/.test(identifier);
-    const isMobile = /^\d{10}$/.test(identifier);
+    const identifierRaw = getValues("identifier");
+    const isEmail = /^\S+@\S+$/.test(identifierRaw);
+    const isMobile = /^\d{10}$/.test(identifierRaw);
 
     if (!isEmail && !isMobile) {
       toast.error("Please enter a valid email or 10-digit mobile number.");
       return;
     }
+
+    const identifier = isEmail ? identifierRaw.toLowerCase() : identifierRaw;
 
     try {
       const url = isEmail ? 'https://febeul.onrender.com/api/otp/send-email-otp' : 'https://febeul.onrender.com/api/otp/send-otp';
@@ -160,7 +167,7 @@ const AuthPage = () => {
   }
 
   const sendSignupOtp = async () => {
-    const email = getValues("email");
+    const email = getValues("email").toLowerCase();
     try {
       const response = await axios.post('https://febeul.onrender.com/api/otp/send-email-otp', { email });
       if (response.data.success) {
