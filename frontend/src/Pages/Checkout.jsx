@@ -7,13 +7,15 @@ import {
   FaShoppingBag,
   FaCheck,
   FaChevronRight,
-  FaEdit
+  FaEdit,
+  FaTimes
 } from 'react-icons/fa';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
+import GiftWrapModal from '../components/GiftWrapModal';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -28,6 +30,8 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [razorpayKey, setRazorpayKey] = useState("");
+  const [selectedGiftWrap, setSelectedGiftWrap] = useState(null);
+  const [isGiftWrapModalOpen, setIsGiftWrapModalOpen] = useState(false);
 
   // Address Form State
   const [addressName, setAddressName] = useState('');
@@ -115,10 +119,16 @@ export default function CheckoutPage() {
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = 5.99;
-  const tax = subtotal * 0.08;
-  const total = parseFloat((subtotal + shipping + tax).toFixed(2));
+  const tax = 0; // No tax
+  const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
+  const total = parseFloat((subtotal + shipping + tax + giftWrapPrice).toFixed(2));
   
   const addresses = user?.addresses || [];
+
+  const handleSelectGiftWrap = (wrap) => {
+    setSelectedGiftWrap(wrap);
+    toast.success(`${wrap.name} gift wrap added!`);
+  }
 
   const handlePlaceOrder = async () => {
     if (selectedPayment === 'cod') {
@@ -140,7 +150,8 @@ export default function CheckoutPage() {
         userId: user._id,
         items: orderItems,
         amount: total,
-        address: addresses[selectedAddress]
+        address: addresses[selectedAddress],
+        giftWrap: selectedGiftWrap,
     }
     try {
         const response = await axios.post(`${backendUrl}/api/order/place`, orderData, { headers: { token } });
@@ -169,6 +180,7 @@ export default function CheckoutPage() {
         items: orderItems,
         amount: total,
         address: addresses[selectedAddress],
+        giftWrap: selectedGiftWrap,
       };
       
       const orderResponse = await axios.post(`${backendUrl}/api/order/razorpay`, orderPayload, { headers: { token } });
@@ -232,6 +244,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#f9aeaf] py-8 px-4">
+      <GiftWrapModal 
+        isOpen={isGiftWrapModalOpen}
+        onClose={() => setIsGiftWrapModalOpen(false)}
+        onSelect={handleSelectGiftWrap}
+      />
       <div className="max-w-6xl mx-auto">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
@@ -520,12 +537,39 @@ export default function CheckoutPage() {
                   <span>Shipping</span>
                   <span>₹{shipping.toFixed(2)}</span>
                 </div>
+                {selectedGiftWrap && (
+                  <div className="flex justify-between items-center text-gray-600">
+                    <div>
+                      <span>Gift Wrap:</span>
+                      <p className="text-xs">{selectedGiftWrap.name}</p>
+                      {selectedGiftWrap.message && (
+                        <p className="text-xs italic text-gray-500">"{selectedGiftWrap.message}"</p>
+                      )}
+                    </div>
+                    <div className='flex items-center gap-2'>
+                    <span>₹{selectedGiftWrap.price.toFixed(2)}</span>
+                    <button onClick={() => setSelectedGiftWrap(null)} className="text-red-500 hover:text-red-700 text-xs">
+                        <FaTimes/>
+                    </button>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="border-t pt-2 flex justify-between text-lg font-bold text-gray-800">
                   <span>Total</span>
                   <span className="text-[#e8767a]">₹{total.toFixed(2)}</span>
                 </div>
               </div>
+
+              {!selectedGiftWrap && (
+                 <motion.button
+                 onClick={() => setIsGiftWrapModalOpen(true)}
+                 whileHover={{ scale: 1.05 }}
+                 className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors mt-4 text-sm"
+               >
+                 Add Gift Wrap?
+               </motion.button>
+              )}
 
               {step === 3 && (
                 <motion.button

@@ -88,7 +88,7 @@ const Cart = () => {
     0
   );
   const shipping = subtotal > 2000 ? 0 : 50;
-  const tax = subtotal * 0.18;
+  const tax = 0;
   const total = subtotal + shipping + tax;
 
   if (loading) {

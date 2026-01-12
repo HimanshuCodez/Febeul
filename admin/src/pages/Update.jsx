@@ -267,11 +267,26 @@ const Update = ({ token }) => {
                 </div>
                 <div className='w-full'>
                     <p className='mb-2'>Fabric</p>
-                    <input onChange={(e) => setFabric(e.target.value)} value={fabric} className='w-full px-3 py-2' type="text" placeholder='cotton linen' />
+                    <select onChange={(e) => setFabric(e.target.value)} value={fabric} className='w-full px-3 py-2'>
+                        <option value="">Select Fabric</option>
+                        <option value="Satin">Satin</option>
+                        <option value="Lace">Lace</option>
+                        <option value="Net">Net</option>
+                        <option value="Silk Satin">Silk Satin</option>
+                    </select>
                 </div>
                 <div className='w-full'>
                     <p className='mb-2'>Type</p>
-                    <input onChange={(e) => setType(e.target.value)} value={type} className='w-full px-3 py-2' type="text" placeholder='e.g. Above knee Bdoll' />
+                    <select onChange={(e) => setType(e.target.value)} value={type} className='w-full px-3 py-2'>
+                        <option value="">Select Type</option>
+                        <option value="Above knee B'doll">Above knee B'doll</option>
+                        <option value="Knee Length B'doll">Knee Length B'doll</option>
+                        <option value="One piece B'doll">One piece B'doll</option>
+                        <option value="Two Piece B'doll">Two Piece B'doll</option>
+                        <option value="Teddy Choker Lingz">Teddy Choker Lingz</option>
+                        <option value="Bra Panty Lingz Slik Satin">Bra Panty Lingz Slik Satin</option>
+                        <option value="Sheer Mesh">Sheer Mesh</option>
+                    </select>
                 </div>
                 <div className='w-full'>
                     <p className='mb-2'>Pattern</p>

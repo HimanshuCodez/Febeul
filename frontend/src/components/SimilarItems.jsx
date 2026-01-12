@@ -39,7 +39,12 @@ const SimilarItems = ({ productId, token }) => {
   }
 
   if (similarProducts.length === 0) {
-    return null; // Or a message like "No similar products found"
+    return (
+        <div className="max-w-screen-2xl mx-auto p-4 mt-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Similar Items</h2>
+          <p className="text-center py-8 text-gray-500">No similar products found.</p>
+        </div>
+      );
   }
 
   return (

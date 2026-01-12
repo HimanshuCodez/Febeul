@@ -1,0 +1,131 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { FaCheck, FaTimes } from 'react-icons/fa';
+
+const giftWraps = [
+  {
+    id: 1,
+    name: "Classic Elegance",
+    image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 2,
+    name: "Rose Gold Shimmer",
+    image: "https://images.unsplash.com/photo-1512909006721-3d6018887383?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 3,
+    name: "Floral Dreams",
+    image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 4,
+    name: "Minimalist Chic",
+    image: "https://images.unsplash.com/photo-1544558103-ec2c3c5b0e9e?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 5,
+    name: "Luxury Satin",
+    image: "https://images.unsplash.com/photo-1464998857633-50e59fbf2fe6?w=400&h=400&fit=crop",
+    price: 30
+  },
+  {
+    id: 6,
+    name: "Festive Sparkle",
+    image: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=400&h=400&fit=crop",
+    price: 30
+  }
+];
+
+const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
+  const [selectedWrap, setSelectedWrap] = useState(null);
+  const [giftMessage, setGiftMessage] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSelect = () => {
+    if (selectedWrap) {
+      onSelect({ ...selectedWrap, message: giftMessage });
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-800">Choose Gift Wrap</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+            <FaTimes size={24} />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto p-2">
+          {giftWraps.map((wrap) => (
+            <div
+              key={wrap.id}
+              onClick={() => setSelectedWrap(wrap)}
+              className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                selectedWrap?.id === wrap.id ? 'border-pink-500' : 'border-gray-200 hover:border-pink-300'
+              }`}
+            >
+                <div className="relative">
+                  <img src={wrap.image} alt={wrap.name} className="w-full h-40 object-cover" />
+                  {selectedWrap?.id === wrap.id && (
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white">
+                        <FaCheck />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 text-center">
+                  <p className="font-semibold text-gray-700">{wrap.name}</p>
+                  <p className="text-pink-500 font-bold">₹{wrap.price}</p>
+                </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4">
+          <label htmlFor="gift-message" className="block text-sm font-medium text-gray-700 mb-1">
+            Gift Message (Optional)
+          </label>
+          <textarea
+            id="gift-message"
+            rows="3"
+            className="w-full p-2 border rounded-md focus:ring-pink-500 focus:border-pink-500"
+            placeholder="Enter your personalized gift message here..."
+            value={giftMessage}
+            onChange={(e) => setGiftMessage(e.target.value)}
+            maxLength={200}
+          ></textarea>
+          <p className="text-right text-xs text-gray-500">{giftMessage.length}/200</p>
+        </div>
+        <div className="mt-6 flex justify-end gap-4">
+            <button
+                onClick={onClose}
+                className="px-6 py-2 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300"
+            >
+                No, thanks
+            </button>
+            <button
+                onClick={handleSelect}
+                disabled={!selectedWrap}
+                className="px-6 py-2 rounded-lg text-white bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300"
+            >
+                Select Wrap
+            </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+export default GiftWrapModal;
