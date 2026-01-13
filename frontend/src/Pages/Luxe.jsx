@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function FebeulLuxe() {
-  const { user, token, isAuthenticated } = useAuthStore();
+  const { user, token, isAuthenticated, getProfile } = useAuthStore();
   const [razorpayKey, setRazorpayKey] = useState("");
   const navigate = useNavigate();
 
@@ -86,6 +86,7 @@ export default function FebeulLuxe() {
 
             if (verifyResponse.data.success) {
               alert("Payment successful! Welcome to Febeul Luxe.");
+              await getProfile(); // Refresh user profile to get new membership status
               navigate('/PrimeMember');
             } else {
               alert("Payment verification failed. Please contact support.");
@@ -132,7 +133,7 @@ export default function FebeulLuxe() {
         {/* Item 1 */}
         <div>
          <img src="/2.png" className="mx-auto h-48" />
-          <p className="mt-4 font-bold text-black">FAST PRIORITY DELIVERY</p>
+          <p className=" font-bold text-black">FAST PRIORITY DELIVERY</p>
         </div>
 
         {/* Item 2 */}
@@ -167,7 +168,7 @@ export default function FebeulLuxe() {
         <div>
           {/* ICON HERE */}
           <img src="/6.png" className="mx-auto h-48" />
-          <p className="mt-4 font-bold text-black">FAST DELIVERY</p>
+          <p className=" font-bold text-black">FREE DELIVERY</p>
         </div>
 
       </div>

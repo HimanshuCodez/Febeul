@@ -181,8 +181,23 @@ const verifyRazorpay = async (req,res) => {
         if (expectedSignature === razorpay_signature) {
             const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
             if (orderInfo.status === 'paid') {
-                await orderModel.findByIdAndUpdate(orderInfo.receipt, { payment: true, paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature } });
-                await userModel.findByIdAndUpdate(userId, { cartData: {} });
+                const order = await orderModel.findByIdAndUpdate(orderInfo.receipt, { payment: true, paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature } });
+                
+                // Check if this is a luxe membership purchase
+                const isLuxeOrder = order.items.some(item => item.name === "Febeul Luxe Membership");
+
+                if (isLuxeOrder) {
+                    const expiryDate = new Date();
+                    expiryDate.setMonth(expiryDate.getMonth() + 1);
+                    await userModel.findByIdAndUpdate(userId, {
+                        isLuxeMember: true,
+                        luxeMembershipExpires: expiryDate,
+                        cartData: {} 
+                    });
+                } else {
+                    await userModel.findByIdAndUpdate(userId, { cartData: {} });
+                }
+
                 res.json({ success: true, message: "Payment Successful" });
             } else {
                 res.json({ success: false, message: 'Payment Not Completed on Razorpay' });

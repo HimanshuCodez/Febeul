@@ -1,7 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useForm } from "react-hook-form";
-import GoogleIcon from "../components/GoogleIcon";
+import { GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff } from "lucide-react";
 import useAuthStore from "../store/authStore";
 import { useNavigate, useLocation, Link } from "react-router-dom";
@@ -15,7 +12,7 @@ const AuthPage = () => {
   const [step, setStep] = useState(1);
   const [timer, setTimer] = useState(60);
   const [isTimerActive, setIsTimerActive] = useState(false);
-  const { login, register: signup, isAuthenticated, error, loading, clearError, setToken } = useAuthStore();
+  const { login, register: signup, isAuthenticated, error, loading, clearError, setToken, googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,8 +30,11 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      // Toast logic is tricky with multiple login types. Let's simplify.
+      // A success toast will now be shown inside the login/signup/googleLogin functions if needed.
+      // This effect will just handle the redirect.
       if (location.pathname === '/auth') {
-        toast.success(isLogin ? "Logged in successfully!" : "Signed up successfully!");
+        toast.success("Logged in successfully!");
         navigate("/", { replace: true });
       }
     }
@@ -42,7 +42,7 @@ const AuthPage = () => {
       toast.error(error);
       clearError();
     }
-  }, [isAuthenticated, error, navigate, isLogin, location.pathname, clearError]);
+  }, [isAuthenticated, error, navigate, location.pathname, clearError]);
 
   useEffect(() => {
     return () => {
@@ -97,9 +97,8 @@ const AuthPage = () => {
         }
       }
     } else { // This is Signup
-      if (step === 1) { // Handle initial signup submission to send OTP
-        // The form fields are already validated by handleSubmit before this point.
-        await sendSignupOtp(); // This sends OTP and sets step to 2
+      if (step === 1) { 
+        await sendSignupOtp();
       } else if (step === 2) {
         try {
           const email = getValues('email').toLowerCase();
@@ -193,23 +192,16 @@ const AuthPage = () => {
     await sendSignupOtp();
   };
 
-
-  const handleGoogleLogin = () => {
-    // This would trigger the OAuth flow
-    toast("Google Login is not implemented yet.", { icon: '🚧' });
-  };
-
   const toggleForm = () => {
     setIsLogin(!isLogin);
     setStep(1);
-    reset(); // Clear form fields and errors
+    reset(); 
   }
 
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-6">
-        {/* Animated floating hearts background */}
         {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
@@ -232,7 +224,6 @@ const AuthPage = () => {
           </motion.div>
         ))}
 
-        {/* Auth Card */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -252,7 +243,6 @@ const AuthPage = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {!isLogin && step === 1 && (
               <>
-                {/* Name */}
                 <div>
                   <input
                     type="text"
@@ -262,7 +252,6 @@ const AuthPage = () => {
                   />
                   {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>}
                 </div>
-                {/* Email */}
                 <div>
                   <input
                     type="email"
@@ -278,7 +267,6 @@ const AuthPage = () => {
                   />
                   {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
                 </div>
-                {/* Mobile Number */}
                 <div>
                   <input
                     type="tel"
@@ -294,7 +282,6 @@ const AuthPage = () => {
                   />
                   {errors.mobile && <p className="text-sm text-red-500 mt-1">{errors.mobile.message}</p>}
                 </div>
-                {/* Password */}
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -317,7 +304,6 @@ const AuthPage = () => {
                   </div>
                 </div>
                 {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>}
-                {/* Confirm Password */}
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
@@ -345,7 +331,6 @@ const AuthPage = () => {
                 <p className="text-center text-gray-600">
                   An OTP has been sent to {getValues('email')}.
                 </p>
-                {/* OTP input */}
                 <div>
                   <input
                     type="text"
@@ -360,7 +345,6 @@ const AuthPage = () => {
                   {errors.signupOtp && <p className="text-sm text-red-500 mt-1">{errors.signupOtp.message}</p>}
                 </div>
 
-                {/* Timer and Resend */}
                 <div className="text-center">
                   {isTimerActive ? (
                     <p className="text-gray-500">Resend OTP in {timer}s</p>
@@ -382,7 +366,6 @@ const AuthPage = () => {
               <>
                 {step === 1 ? (
                   <>
-                    {/* Email or Phone */}
                     <div>
                       <input
                         type="text"
@@ -393,7 +376,6 @@ const AuthPage = () => {
                       {errors.identifier && <p className="text-sm text-red-500 mt-1">{errors.identifier.message}</p>}
                     </div>
 
-                    {/* Password */}
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
@@ -419,12 +401,11 @@ const AuthPage = () => {
                       </Link>
                     </div>
                   </>
-                ) : ( // step === 2 
+                ) : ( 
                   <>
                     <p className="text-center text-gray-600">
                       An OTP has been sent to {getValues('identifier')}.
                     </p>
-                    {/* OTP input */}
                     <div>
                       <input
                         type="text"
@@ -439,7 +420,6 @@ const AuthPage = () => {
                       {errors.loginOtp && <p className="text-sm text-red-500 mt-1">{errors.loginOtp.message}</p>}
                     </div>
 
-                    {/* Timer and Resend */}
                     <div className="text-center">
                       {isTimerActive ? (
                         <p className="text-gray-500">Resend OTP in {timer}s</p>
@@ -463,34 +443,37 @@ const AuthPage = () => {
               </>
             )}
 
-            {/* Submit Button */}
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               type="submit"
               disabled={loading}
+              onClick={step === 1 && !isLogin ? handleSendSignupOtp : handleSubmit(onSubmit)}
               className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
             >
-              {loading ? 'Processing...' : isLogin ? (step === 1 ? "Login" : "Verify & Login") : (step === 1 ? "Sign Up" : "Verify & Create Account")}
+              {loading ? 'Processing...' : isLogin ? (step === 1 ? "Login" : "Verify & Login") : (step === 1 ? "Continue" : "Verify & Create Account")}
             </motion.button>
           </form>
 
-          {/* Divider and alternative login options */}
-          <div className="my-4">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleGoogleLogin}
-              type="button"
-              className="w-full py-3 flex items-center justify-center gap-2 border rounded-xl hover:bg-gray-50 transition"
-            >
-              <GoogleIcon size={18} />
-              Continue with Google
-            </motion.button>
+          <div className="my-6 flex items-center">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="flex-shrink mx-4 text-gray-500">OR</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+          
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={credentialResponse => {
+                googleLogin(credentialResponse.credential);
+              }}
+              onError={() => {
+                toast.error('Google Login Failed');
+              }}
+              width="300px"
+              useOneTap
+            />
           </div>
 
-
-          {/* Toggle between Login and Sign Up */}
           <div className="text-center mt-6 text-sm">
             {isLogin ? "Don’t have an account?" : "Already have an account?"}{" "}
             <button onClick={toggleForm} className="text-[#f47b7d] font-semibold underline">

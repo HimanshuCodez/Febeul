@@ -186,6 +186,53 @@ const resetPassword = async (req, res) => {
 };
 
 
+import { OAuth2Client } from 'google-auth-library';
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Google login
+const googleLogin = async (req, res) => {
+    const { credential } = req.body;
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const googleId = payload['sub'];
+        const email = payload['email'];
+        const name = payload['name'];
+
+        let user = await userModel.findOne({ googleId });
+
+        if (!user) {
+            // If user with googleId doesn't exist, check if a user with the same email exists
+            user = await userModel.findOne({ email });
+
+            if (user) {
+                // If user with email exists, link the Google account
+                user.googleId = googleId;
+                await user.save();
+            } else {
+                // If no user exists, create a new one
+                user = new userModel({
+                    name,
+                    email,
+                    googleId,
+                });
+                await user.save();
+            }
+        }
+
+        const token = createToken(user._id);
+        const userResponse = await userModel.findById(user._id).select("-password");
+        res.json({ success: true, token, user: userResponse });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Google login failed" });
+    }
+};
+
 // Route for admin login
 const adminLogin = async (req, res) => {
     try {
@@ -298,4 +345,4 @@ const removeFromWishlist = async (req, res) => {
 };
 
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist }
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin }

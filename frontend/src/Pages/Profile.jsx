@@ -8,6 +8,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import axios from 'axios';
 import { toast } from "react-hot-toast";
 import ProductCard from "../components/ProductCard";
+import MembershipStatus from "../components/MembershipStatus";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -243,6 +244,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
 
 const ProfileInfo = ({ user, editedUser, isEditing, setIsEditing, handleInputChange, handleSave }) => (
   <div className="bg-white rounded-lg shadow-md p-6">
+    <MembershipStatus user={user} />
     <div className="flex justify-between items-center border-b pb-4 mb-6">
       <h2 className="text-xl font-semibold text-gray-800">Personal Information</h2>
       <button 
