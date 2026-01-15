@@ -11,7 +11,14 @@ const orderSchema = new mongoose.Schema({
     }],
     amount: { type: Number, required: true },
     address: { type: Object, required: true },
-    status: { type: String, required: true, default:'Order Placed' },
+    orderStatus: { type: String, default:'Order Placed' },
+    shiprocket: {
+        orderId: { type: String },
+        shipmentId: { type: String },
+        awb: { type: String },
+        courier: { type: String },
+        trackingUrl: { type: String }
+    },
     paymentMethod: { type: String, required: true },
     payment: { type: Boolean, required: true , default: false },
     paymentDetails: { type: Object },

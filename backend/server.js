@@ -32,6 +32,9 @@ app.use('/api/otp',otpRouter)
 app.get('/',(req,res)=>{
     res.send("API Working")
 })
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
 app.use(errorHandler)
 

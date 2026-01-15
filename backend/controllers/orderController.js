@@ -2,6 +2,7 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
+import { shiprocketLogin, createShiprocketOrder } from '../utils/shiprocket.js';
 import crypto from 'crypto'
 
 // global variables
@@ -37,6 +38,35 @@ const placeOrder = async (req,res) => {
         await newOrder.save()
 
         await userModel.findByIdAndUpdate(userId,{cartData:{}})
+
+        const order = await orderModel.findById(newOrder._id).populate('userId');
+
+        // Shiprocket integration
+        try {
+            const shiprocketToken = await shiprocketLogin();
+            const shiprocketOrderData = {
+                _id: order._id,
+                shippingAddress: order.address,
+                user: order.userId,
+                items: order.items,
+                totalPrice: order.amount,
+            };
+            const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken);
+
+            order.shiprocket = {
+                orderId: shiprocketResponse.order_id,
+                shipmentId: shiprocketResponse.shipment_id,
+                awb: shiprocketResponse.awb_code,
+                courier: shiprocketResponse.courier_name,
+                trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
+            };
+            order.orderStatus = "SHIPPED";
+            await order.save();
+
+        } catch (error) {
+            console.log("Error with Shiprocket:", error.message);
+            // If shiprocket fails, the order is still placed, but not shipped.
+        }
 
         res.json({success:true,message:"Order Placed", order: newOrder})
 
@@ -114,6 +144,36 @@ const verifyStripe = async (req,res) => {
         if (success === "true") {
             await orderModel.findByIdAndUpdate(orderId, {payment:true});
             await userModel.findByIdAndUpdate(userId, {cartData: {}})
+
+            const order = await orderModel.findById(orderId).populate('userId');
+
+            // Shiprocket integration
+            try {
+                const shiprocketToken = await shiprocketLogin();
+                const shiprocketOrderData = {
+                    _id: order._id,
+                    shippingAddress: order.address,
+                    user: order.userId,
+                    items: order.items,
+                    totalPrice: order.amount,
+                };
+                const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken);
+
+                order.shiprocket = {
+                    orderId: shiprocketResponse.order_id,
+                    shipmentId: shiprocketResponse.shipment_id,
+                    awb: shiprocketResponse.awb_code,
+                    courier: shiprocketResponse.courier_name,
+                    trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
+                };
+                order.orderStatus = "SHIPPED";
+                await order.save();
+
+            } catch (error) {
+                console.log("Error with Shiprocket:", error.message);
+                // If shiprocket fails, the order is still placed, but not shipped.
+            }
+
             res.json({success: true});
         } else {
             await orderModel.findByIdAndDelete(orderId)
@@ -181,8 +241,10 @@ const verifyRazorpay = async (req,res) => {
         if (expectedSignature === razorpay_signature) {
             const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
             if (orderInfo.status === 'paid') {
-                const order = await orderModel.findByIdAndUpdate(orderInfo.receipt, { payment: true, paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature } });
+                await orderModel.findByIdAndUpdate(orderInfo.receipt, { payment: true, paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature } });
                 
+                const order = await orderModel.findById(orderInfo.receipt).populate('userId');
+
                 // Check if this is a luxe membership purchase
                 const isLuxeOrder = order.items.some(item => item.name === "Febeul Luxe Membership");
 
@@ -196,6 +258,34 @@ const verifyRazorpay = async (req,res) => {
                     });
                 } else {
                     await userModel.findByIdAndUpdate(userId, { cartData: {} });
+
+                    // Shiprocket integration
+                    try {
+                        const shiprocketToken = await shiprocketLogin();
+                        const shiprocketOrderData = {
+                            _id: order._id,
+                            shippingAddress: order.address,
+                            user: order.userId,
+                            items: order.items,
+                            totalPrice: order.amount,
+                        };
+                        const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken);
+
+                        order.shiprocket = {
+                            orderId: shiprocketResponse.order_id,
+                            shipmentId: shiprocketResponse.shipment_id,
+                            awb: shiprocketResponse.awb_code,
+                            courier: shiprocketResponse.courier_name,
+                            trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
+                        };
+                        order.orderStatus = "SHIPPED";
+                        await order.save();
+
+                    } catch (error) {
+                        console.log("Error with Shiprocket:", error.message);
+                        // If shiprocket fails, the order is still placed, but not shipped.
+                        // You might want to add more robust error handling here, like a retry mechanism.
+                    }
                 }
 
                 res.json({ success: true, message: "Payment Successful" });
@@ -250,9 +340,9 @@ const userOrders = async (req,res) => {
 const updateStatus = async (req,res) => {
     try {
         
-        const { orderId, status } = req.body
+        const { orderId, orderStatus } = req.body
 
-        await orderModel.findByIdAndUpdate(orderId, { status })
+        await orderModel.findByIdAndUpdate(orderId, { orderStatus })
         res.json({success:true,message:'Status Updated'})
 
     } catch (error) {
