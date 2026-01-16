@@ -46,12 +46,22 @@ const placeOrder = async (req,res) => {
             const shiprocketToken = await shiprocketLogin();
             const shiprocketOrderData = {
                 _id: order._id,
-                shippingAddress: order.address,
+                shippingAddress: { // Ensure this matches Shiprocket's expected structure
+                    name: order.address.name.split(' ')[0] || '', // First name
+                    lastName: order.address.name.split(' ').slice(1).join(' ') || '', // Last name
+                    address: order.address.address,
+                    city: order.address.city,
+                    pincode: order.address.zip, // Use zip from frontend
+                    state: "Delhi", // Default or fetch state from pincode/city
+                    country: "India",
+                    phone: order.address.phone,
+                    email: order.userId.email // Assuming userId is populated and has email
+                },
                 user: order.userId,
                 items: order.items,
                 totalPrice: order.amount,
             };
-            const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken);
+            const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "COD");
 
             order.shiprocket = {
                 orderId: shiprocketResponse.order_id,
@@ -264,12 +274,22 @@ const verifyRazorpay = async (req,res) => {
                         const shiprocketToken = await shiprocketLogin();
                         const shiprocketOrderData = {
                             _id: order._id,
-                            shippingAddress: order.address,
+                            shippingAddress: { // Ensure this matches Shiprocket's expected structure
+                                name: order.address.name.split(' ')[0] || '', // First name
+                                lastName: order.address.name.split(' ').slice(1).join(' ') || '', // Last name
+                                address: order.address.address,
+                                city: order.address.city,
+                                pincode: order.address.zip, // Use zip from frontend
+                                state: "Delhi", // Default or fetch state from pincode/city
+                                country: "India",
+                                phone: order.address.phone,
+                                email: order.userId.email // Assuming userId is populated and has email
+                            },
                             user: order.userId,
                             items: order.items,
                             totalPrice: order.amount,
                         };
-                        const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken);
+                        const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
 
                         order.shiprocket = {
                             orderId: shiprocketResponse.order_id,

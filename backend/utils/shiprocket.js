@@ -28,7 +28,7 @@ export const shiprocketLogin = async () => {
   }
 };
 
-export const createShiprocketOrder = async (order, token) => {
+export const createShiprocketOrder = async (order, token, paymentMethod) => {
     try {
         const response = await axios.post(
           "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
@@ -37,13 +37,13 @@ export const createShiprocketOrder = async (order, token) => {
             order_date: new Date(),
             pickup_location: "Primary", // Make sure this location is configured in your Shiprocket panel
             billing_customer_name: order.shippingAddress.name,
-            billing_last_name: "", // Shiprocket requires this, even if empty
+            billing_last_name: order.shippingAddress.lastName, 
             billing_address: order.shippingAddress.address,
             billing_city: order.shippingAddress.city,
             billing_pincode: order.shippingAddress.pincode,
             billing_state: order.shippingAddress.state,
-            billing_country: "India",
-            billing_email: order.user.email,
+            billing_country: order.shippingAddress.country,
+            billing_email: order.shippingAddress.email,
             billing_phone: order.shippingAddress.phone,
       
             shipping_is_billing: true,
@@ -56,7 +56,7 @@ export const createShiprocketOrder = async (order, token) => {
               hsn: "" // Add HSN code if available
             })),
       
-            payment_method: "Prepaid",
+            payment_method: paymentMethod,
             sub_total: order.totalPrice,
             length: 10,
             breadth: 10,
