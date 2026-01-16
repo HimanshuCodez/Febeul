@@ -20,6 +20,7 @@ const productSchema = new mongoose.Schema({
     packer: { type: String },
     includedComponents: { type: String },
     fabric: { type: String },
+    type: { type: String },
     pattern: { type: String },
     sleeveStyle: { type: String },
     sleeveLength: { type: String },
