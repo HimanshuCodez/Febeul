@@ -210,4 +210,19 @@ const getSimilarProducts = async (req, res) => {
     }
 }
 
-export { listProducts, addProduct, removeProduct, singleProduct, updateProduct, getSimilarProducts }
+const getMenuFilters = async (req,res) => {
+    try {
+        const categories = await productModel.distinct("category")
+        const types = await productModel.distinct("type")
+        const fabrics = await productModel.distinct("fabric")
+        const sizes = await productModel.distinct("sizes")
+        const colors = await productModel.distinct("variations.color")
+
+        res.json({success:true,data:{categories,types,fabrics,sizes,colors}})
+    } catch (error) {
+        console.log(error)
+        res.json({success:false,message:error.message})
+    }
+}
+
+export { listProducts, addProduct, removeProduct, singleProduct, updateProduct, getSimilarProducts, getMenuFilters }
