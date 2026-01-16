@@ -18,7 +18,7 @@ import { useLocation, Link } from 'react-router-dom';
 export default function OrderSuccess() {
   const location = useLocation();
   // Ensure state exists before destructuring
-  const { order, items, address } = location.state || {};
+  const { order, items, address, pricingDetails } = location.state || {};
 
   // Handle case where state might be missing (e.g., direct navigation)
   if (!order || !items || !address) {
@@ -42,12 +42,10 @@ export default function OrderSuccess() {
   const orderNumber = order._id.slice(-8).toUpperCase(); // Using last 8 chars of order ID
   const estimatedDelivery = "Jan " + new Date(order.date).getDate() + "-" + new Date(new Date(order.date).setDate(new Date(order.date).getDate() + 5)).getDate() + ", " + new Date(order.date).getFullYear(); // Simple estimation
   
-  // Recalculate totals from passed items, or use order.amount for total if reliable
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = order.amount > subtotal ? (order.amount - subtotal).toFixed(2) : 0; // Simple shipping calculation based on total
-  const tax = (subtotal * 0.08).toFixed(2); // Assuming 8% tax as before
-  const total = order.amount.toFixed(2); // Use the final amount from the order object
-
+  // Use pricing details if available, otherwise calculate
+  const subtotal = pricingDetails ? pricingDetails.subtotal : items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shipping = pricingDetails ? pricingDetails.shipping : (order.paymentMethod === 'COD' ? 5.99 : 0); // Default shipping for COD if not provided
+  const total = order.amount;
   // --- End of mock data replacement ---
 
   const checkIconVariants = {
@@ -310,13 +308,9 @@ export default function OrderSuccess() {
               <span>Shipping</span>
               <span>₹{shipping.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Tax</span>
-              <span>₹{tax}</span>
-            </div>
             <div className="border-t pt-3 flex justify-between text-xl font-bold">
               <span className="text-gray-800">Total</span>
-              <span className="text-[#e8767a]">₹{total}</span>
+              <span className="text-[#e8767a]">₹{total.toFixed(2)}</span>
             </div>
           </div>
         </motion.div>

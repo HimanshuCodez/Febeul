@@ -4,6 +4,9 @@ import useAuthStore from "../store/authStore";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast, Toaster } from 'react-hot-toast';
 import axios from 'axios';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { motion } from "framer-motion";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);

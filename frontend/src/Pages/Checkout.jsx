@@ -119,9 +119,8 @@ export default function CheckoutPage() {
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = 5.99;
-  const tax = 0; // No tax
   const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
-  const total = parseFloat((subtotal + shipping + tax + giftWrapPrice).toFixed(2));
+  const total = parseFloat((subtotal + shipping + giftWrapPrice).toFixed(2));
   
   const addresses = user?.addresses || [];
 
@@ -215,7 +214,8 @@ export default function CheckoutPage() {
             if (verifyResponse.data.success) {
               toast.success("Payment successful!");
               const localOrder = { _id: order.receipt, ...orderPayload };
-              navigate('/Success', { state: { order: localOrder, items: cartItems, address: addresses[selectedAddress] } });
+              const pricingDetails = { subtotal, shipping, giftWrapPrice };
+              navigate('/Success', { state: { order: localOrder, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
             } else {
               toast.error("Payment verification failed.");
             }
