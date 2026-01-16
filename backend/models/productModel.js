@@ -33,7 +33,9 @@ const productSchema = new mongoose.Schema({
     itemWeight: { type: String },
     itemDimensionsLxWxH: { type: String },
     netQuantity: { type: String },
-    genericName: { type: String }
+    genericName: { type: String },
+    averageRating: { type: Number, default: 0 },
+    numOfReviews: { type: Number, default: 0 }
 })
 
 const productModel  = mongoose.models.product || mongoose.model("product",productSchema);

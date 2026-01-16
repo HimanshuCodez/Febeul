@@ -16,6 +16,7 @@ import Loader from "../components/Loader";
 import useAuthStore from "../store/authStore";
 import { toast } from "react-hot-toast";
 import SimilarItems from "../components/SimilarItems";
+import Reviews from "../components/Reviews"; // Import the Reviews component
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -32,6 +33,8 @@ const ProductDetailPage = () => {
   const [isProdDetailsExpanded, setIsProdDetailsExpanded] = useState(false);
   const [isAddInfoExpanded, setIsAddInfoExpanded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [averageRating, setAverageRating] = useState(0); // New state for average rating
+  const [numOfReviews, setNumOfReviews] = useState(0); // New state for number of reviews
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -44,6 +47,9 @@ const ProductDetailPage = () => {
           if (data.product.sizes && data.product.sizes.length > 0) {
             setSelectedSize(data.product.sizes[0]);
           }
+          // Set average rating and number of reviews
+          setAverageRating(data.product.averageRating || 0);
+          setNumOfReviews(data.product.numOfReviews || 0);
         } else {
           console.error(data.message);
         }
@@ -236,17 +242,21 @@ const ProductDetailPage = () => {
 
               <div className="flex items-center gap-3 mt-2">
                 <div className="flex items-center">
-                  <span className="mr-1 font-medium">4.5</span>
+                  <span className="mr-1 font-medium">{averageRating.toFixed(1)}</span>
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
                       size={16}
-                      className="text-yellow-500 fill-current"
+                      className={`${
+                        i < Math.round(averageRating)
+                          ? "text-yellow-500 fill-current"
+                          : "text-gray-300"
+                      }`}
                     />
                   ))}
                 </div>
                 <span className="text-sm text-blue-600 font-semibold hover:text-orange-600 cursor-pointer">
-                  125 ratings
+                  {numOfReviews} ratings
                 </span>
               </div>
 
@@ -447,6 +457,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
       <SimilarItems productId={productId} token={token} />
+      <Reviews productId={productId} /> {/* Integrate the Reviews component */}
     </div>
   );
 };

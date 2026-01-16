@@ -1,42 +1,70 @@
-import reviewModel from "../models/reviewModel.js";
-import productModel from "../models/productModel.js";
+import reviewModel from '../models/reviewModel.js';
+import productModel from '../models/productModel.js';
+import { v2 as cloudinary } from 'cloudinary';
 
-// Add review
+// Add new review
 const addReview = async (req, res) => {
     try {
-        const { productId, rating, comment } = req.body;
-        const userId = req.body.userId; // userId is set by auth middleware in req.body
+        const { productId, userId, rating, comment } = req.body;
+        const files = req.files; // Images uploaded via multer
 
-        if (!userId) {
-            return res.json({ success: false, message: "Not authorized, please login" });
+        if (!productId || !userId || !rating || !comment) {
+            return res.json({ success: false, message: "Missing required fields" });
+        }
+
+        let imageUrls = [];
+        if (files && files.length > 0) {
+            imageUrls = await Promise.all(
+                files.map(async (file) => {
+                    const result = await cloudinary.uploader.upload(file.path, { resource_type: 'image' });
+                    return result.secure_url;
+                })
+            );
         }
 
         const newReview = new reviewModel({
             productId,
             userId,
-            rating,
+            rating: Number(rating),
             comment,
+            images: imageUrls,
+            date: Date.now()
         });
 
         await newReview.save();
-        res.json({ success: true, message: "Review Added" });
+
+        // Update product's average rating and number of reviews (Optional - TODO 8)
+        const product = await productModel.findById(productId);
+        if (product) {
+            const reviews = await reviewModel.find({ productId });
+            const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+            product.averageRating = totalRating / reviews.length;
+            product.numOfReviews = reviews.length;
+            await product.save();
+        }
+
+        res.json({ success: true, message: "Review added successfully!" });
 
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Failed to add review" });
     }
 };
 
-// List reviews for a product
-const listReviews = async (req, res) => {
+// Get all reviews for a specific product
+const getProductReviews = async (req, res) => {
     try {
         const { productId } = req.params;
-        const reviews = await reviewModel.find({ productId }).populate('userId', 'name'); // Populate user name
+
+        const reviews = await reviewModel.find({ productId })
+                                        .populate('userId', 'name profilePicture'); // Populate user details
+
         res.json({ success: true, reviews });
+
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Failed to fetch reviews" });
     }
 };
 
-export { addReview, listReviews };
+export { addReview, getProductReviews };

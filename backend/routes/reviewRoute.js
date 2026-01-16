@@ -1,10 +1,11 @@
 import express from 'express';
-import { addReview, listReviews } from '../controllers/reviewController.js';
-import authMiddleware from '../middleware/auth.js';
+import { addReview, getProductReviews } from '../controllers/reviewController.js';
+import authUser from '../middleware/auth.js';
+import upload from '../middleware/multer.js';
 
 const reviewRouter = express.Router();
 
-reviewRouter.post('/add', authMiddleware, addReview);
-reviewRouter.get('/list/:productId', listReviews);
+reviewRouter.post('/add', authUser, upload.array('images', 5), addReview); // Allow up to 5 images per review
+reviewRouter.get('/list/:productId', getProductReviews);
 
 export default reviewRouter;
