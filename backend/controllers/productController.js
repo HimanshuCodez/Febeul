@@ -82,8 +82,13 @@ const listProducts = async (req, res) => {
             filter.subCategory = { $regex: new RegExp(subCategory.replace(/-/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case
         }
         if (search) {
-            // Case-insensitive search on product name
-            filter.name = { $regex: search, $options: 'i' }; 
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { type: { $regex: search, $options: 'i' } },
+                { fabric: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { category: { $regex: search, $options: 'i' } },
+            ];
         }
 
         const products = await productModel.find(filter); // Apply filters

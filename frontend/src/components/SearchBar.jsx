@@ -1,64 +1,94 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Clock, Flame } from "lucide-react";
+import { Clock, Flame, Search } from "lucide-react";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export default function SearchBar() {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const [allProducts, setAllProducts] = useState([]);
-  const [history, setHistory] = useState([
-    "Silk Nightwear Set",
-    "Lace Push-Up Bra",
-    "Comfort Cotton Bra",
-  ]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const debounceTimeout = useRef(null);
+  const [history, setHistory] = useState([]); // Initialize as empty array
   const navigate = useNavigate();
 
+  // Load history from localStorage on component mount
   useEffect(() => {
-    const fetchProducts = async () => {
+    try {
+      const storedHistory = localStorage.getItem('searchHistory');
+      if (storedHistory) {
+        setHistory(JSON.parse(storedHistory));
+      }
+    } catch (error) {
+      console.error("Failed to load search history from localStorage", error);
+    }
+  }, []); // Run once on mount
+
+  // Save history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('searchHistory', JSON.stringify(history));
+    } catch (error) {
+      console.error("Failed to save search history to localStorage", error);
+    }
+  }, [history]); // Run whenever history state changes
+
+  useEffect(() => {
+    if (query.trim() === "") {
+      setSearchResults([]);
+      setLoadingSearch(false);
+      return;
+    }
+
+    setLoadingSearch(true);
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    debounceTimeout.current = setTimeout(async () => {
       try {
-        const response = await axios.get(`${backendUrl}/api/product/list`);
+        const response = await axios.get(`${backendUrl}/api/product/list`, {
+          params: { search: query.trim() },
+        });
         if (response.data.success) {
-          setAllProducts(response.data.products);
+          setSearchResults(response.data.products);
         }
       } catch (error) {
-        console.error("Failed to fetch products:", error);
+        console.error("Failed to fetch search results:", error);
+      } finally {
+        setLoadingSearch(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
       }
     };
-    fetchProducts();
-  }, []);
+  }, [query]); // Depend on query
 
-  // Dummy trending searches
-  const trending = [
-    "Luxury Lingerie",
-    "Seamless Underwear",
-    "Nightwear for Women",
-    "Bralette Tops",
-  ];
-
-  const filtered = query
-    ? allProducts.filter((product) =>
-        product.name.toLowerCase().includes(query.toLowerCase())
-      )
-    : [];
+  // Update filtered to use searchResults directly
+  const filtered = searchResults; // No client-side filtering needed here anymore
 
   const handleProductSelect = (product) => {
-    setHistory((prev) => [
+    const newHistory = [
       product.name,
-      ...prev.filter((x) => x !== product.name).slice(0, 4),
-    ]);
+      ...history.filter((item) => item !== product.name).slice(0, 4),
+    ];
+    setHistory(newHistory);
     setQuery(product.name);
     setShowResults(false);
     navigate(`/product/${product._id}`);
   };
 
   const handleTextSelect = (item) => {
-    setHistory((prev) => [
+    const newHistory = [
       item,
-      ...prev.filter((x) => x !== item).slice(0, 4),
-    ]);
+      ...history.filter((hItem) => hItem !== item).slice(0, 4),
+    ];
+    setHistory(newHistory);
     setQuery(item);
     setShowResults(false);
     navigate(`/products?search=${encodeURIComponent(item)}`);
@@ -67,6 +97,11 @@ export default function SearchBar() {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (query.trim()) {
+      const newHistory = [
+        query.trim(),
+        ...history.filter((item) => item !== query.trim()).slice(0, 4),
+      ];
+      setHistory(newHistory);
       setShowResults(false);
       navigate(`/products?search=${encodeURIComponent(query.trim())}`);
     }
@@ -106,7 +141,9 @@ export default function SearchBar() {
           {/* When user has typed something */}
           {query ? (
             <>
-              {filtered.length > 0 ? (
+              {loadingSearch ? (
+                <div className="px-4 py-3 text-gray-500 text-sm">Searching...</div>
+              ) : filtered.length > 0 ? (
                 filtered.map((product) => (
                   <div
                     key={product._id}
@@ -118,7 +155,11 @@ export default function SearchBar() {
                       alt={product.name}
                       className="w-12 h-16 object-cover rounded"
                     />
-                    <span>{product.name}</span>
+                    <div>
+                      <span>{product.name}</span>
+                      {product.type && <span className="text-xs text-gray-500 ml-2">({product.type})</span>}
+                      {product.fabric && <span className="text-xs text-gray-500 ml-2">({product.fabric})</span>}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -150,22 +191,7 @@ export default function SearchBar() {
                 )}
               </div>
 
-              {/* Trending Searches */}
-              <div className="p-3">
-                <div className="flex items-center gap-2 text-gray-800 font-semibold text-sm mb-2">
-                  <Flame className="w-4 h-4 text-yellow-500" />
-                  Trending Searches
-                </div>
-                {trending.map((item, i) => (
-                  <div
-                    key={i}
-                    onClick={() => handleTextSelect(item)}
-                    className="px-2 py-1 hover:bg-yellow-50 rounded-md cursor-pointer text-sm text-gray-700"
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
+
             </>
           )}
         </div>
