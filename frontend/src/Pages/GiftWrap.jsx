@@ -1,56 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaGift, FaCrown, FaCheck, FaPlus, FaMinus, FaShoppingCart, FaStar } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
+import axios from 'axios';
 
-const giftWraps = [
-  {
-    id: 1,
-    name: "Classic Elegance",
-    image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 2,
-    name: "Rose Gold Shimmer",
-    image: "https://images.unsplash.com/photo-1512909006721-3d6018887383?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 3,
-    name: "Floral Dreams",
-    image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 4,
-    name: "Minimalist Chic",
-    image: "https://images.unsplash.com/photo-1544558103-ec2c3c5b0e9e?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 5,
-    name: "Luxury Satin",
-    image: "https://images.unsplash.com/photo-1464998857633-50e59fbf2fe6?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 6,
-    name: "Festive Sparkle",
-    image: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=400&h=400&fit=crop",
-    price: 30
-  }
-];
-
-
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export default function GiftWrapPage() {
 
+  const [giftWraps, setGiftWraps] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedWrap, setSelectedWrap] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [showPromo, setShowPromo] = useState(true);
   const { fetchCartCount } = useAuthStore();
+
+  useEffect(() => {
+    const fetchGiftWraps = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/api/giftwrap/list`);
+        if (response.data.success) {
+          setGiftWraps(response.data.data);
+        } else {
+          toast.error("Could not load gift wraps.");
+        }
+      } catch (error) {
+        console.error("Failed to fetch gift wraps", error);
+        toast.error("Could not load gift wraps.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGiftWraps();
+  }, []);
 
   const totalPrice = selectedWrap 
     ? selectedWrap.price * quantity 
@@ -59,6 +42,10 @@ export default function GiftWrapPage() {
   const handleAddToCart = () => {
     toast.success(`${quantity} x ${selectedWrap.name} added to cart!`);
     fetchCartCount(); // Update cart count in store
+  }
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
 
   return (
@@ -116,19 +103,19 @@ export default function GiftWrapPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {giftWraps.map((wrap) => (
                   <motion.div
-                    key={wrap.id}
+                    key={wrap._id}
                     whileHover={{ scale: 1.03 }}
                     onClick={() => setSelectedWrap(wrap)}
                     className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedWrap?.id === wrap.id 
+                      selectedWrap?._id === wrap._id 
                         ? 'shadow-lg' 
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
-                    style={selectedWrap?.id === wrap.id ? { borderColor: '#f47b7d' } : {}}
+                    style={selectedWrap?._id === wrap._id ? { borderColor: '#f47b7d' } : {}}
                   >
                     <div className="relative">
                       <img src={wrap.image} alt={wrap.name} className="w-full aspect-square object-cover" />
-                      {selectedWrap?.id === wrap.id && (
+                      {selectedWrap?._id === wrap._id && (
                         <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
                           <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: '#f47b7d' }}>
                             <FaCheck />

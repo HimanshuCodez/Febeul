@@ -17,6 +17,7 @@ import useAuthStore from "../store/authStore";
 import { toast } from "react-hot-toast";
 import SimilarItems from "../components/SimilarItems";
 import Reviews from "../components/Reviews"; // Import the Reviews component
+import AddressModal from "../components/AddressModal";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -35,6 +36,20 @@ const ProductDetailPage = () => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [averageRating, setAverageRating] = useState(0); // New state for average rating
   const [numOfReviews, setNumOfReviews] = useState(0); // New state for number of reviews
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+
+  useEffect(() => {
+    if (isAuthenticated && user && user.addresses && user.addresses.length > 0) {
+      setSelectedAddress(user.addresses[0]);
+    }
+  }, [user, isAuthenticated]);
+
+  const handleSelectAddress = (address) => {
+    setSelectedAddress(address);
+    setIsAddressModalOpen(false);
+  };
+
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -349,10 +364,9 @@ const ProductDetailPage = () => {
                   <p className="flex items-center gap-1 mt-2">
                     <MapPin size={14} />
                     {isAuthenticated && user && user.addresses && user.addresses.length > 0 ? (
-                      <a href="#" className="text-blue-600 hover:text-orange-600">
-                        Deliver to {user.addresses[0].name} - {user.addresses[0].city}{" "}
-                        {user.addresses[0].zip}
-                      </a>
+                      <button onClick={() => setIsAddressModalOpen(true)} className="text-blue-600 hover:text-orange-600 text-left">
+                        {selectedAddress ? `Deliver to ${selectedAddress.name} - ${selectedAddress.city} ${selectedAddress.zip}` : "Select delivery location"}
+                      </button>
                     ) : (
                       <a href="/auth" className="text-blue-600 hover:text-orange-600">
                         Select delivery location
@@ -458,6 +472,13 @@ const ProductDetailPage = () => {
       </div>
       <SimilarItems productId={productId} token={token} />
       <Reviews productId={productId} /> {/* Integrate the Reviews component */}
+      <AddressModal 
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        addresses={user?.addresses || []}
+        selectedAddress={selectedAddress}
+        onSelectAddress={handleSelectAddress}
+      />
     </div>
   );
 };

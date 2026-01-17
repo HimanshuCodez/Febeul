@@ -5,23 +5,23 @@ import { Facebook, Instagram, Youtube, Twitter } from "lucide-react";
 const Footer = () => {
   return (
     <footer className="bg-black text-gray-300 pt-12 pb-6">
-      <div className="max-w-7xl mx-auto px-6 md:px-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           
           {/* Brand + Contact Info */}
-          <div className="space-y-4">
+          <div className="space-y-4 text-center sm:text-left">
             <img
               src="/removebgLogo.png"   /* <-- replace with: /logo.png or actual path */
               alt="Febeul Logo"
-              className="w-44"
+              className="w-44 mx-auto sm:mx-0"
             />
 
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-sm">
               <span>📍</span> <p>Delhi, India</p>
             </div>
 
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-sm">
               <span>📧</span>
               <a href="mailto:Support@Febeul.com" className="hover:text-white">
                 Support@Febeul.com
@@ -35,7 +35,7 @@ const Footer = () => {
           </div>
 
           {/* Quick Links */}
-          <div>
+          <div className="text-center sm:text-left">
             <h3 className="text-white font-semibold mb-4 uppercase text-sm">
               QUICK LINKS
             </h3>
@@ -50,7 +50,7 @@ const Footer = () => {
           </div>
 
           {/* Support */}
-          <div>
+          <div className="text-center sm:text-left">
             <h3 className="text-white font-semibold mb-4 uppercase text-sm">
               SUPPORT
             </h3>
@@ -65,7 +65,7 @@ const Footer = () => {
           </div>
 
           {/* Policies + Account */}
-          <div>
+          <div className="text-center sm:text-left">
             <h3 className="text-white font-semibold mb-4 uppercase text-sm">
               Policies
             </h3>
@@ -75,14 +75,7 @@ const Footer = () => {
               <li><Link to="/DataPrivacy" className="hover:text-white">Data Privacy</Link></li>
               <li><Link to="/LuxePolicy" className="hover:text-white">Luxe membership policy</Link></li>
             </ul>
-
-            <h3 className="text-white font-semibold mb-4 uppercase text-sm mt-6">
-              Account
-            </h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/auth" className="hover:text-white">Create Account</Link></li>
-              <li><Link to="/auth" className="hover:text-white">Sign In</Link></li>
-            </ul>
+           
           </div>
         </div>
 

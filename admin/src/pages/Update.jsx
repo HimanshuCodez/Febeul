@@ -19,6 +19,7 @@ const Update = ({ token }) => {
     const [category, setCategory] = useState("BABYDOLL");
     const [subCategory, setSubCategory] = useState("Topwear");
     const [bestseller, setBestseller] = useState(false);
+    const [isLuxePrive, setIsLuxePrive] = useState(false);
     const [sizes, setSizes] = useState([]);
     const [styleCode, setStyleCode] = useState("");
     const [countryOfOrigin, setCountryOfOrigin] = useState("");
@@ -55,6 +56,7 @@ const Update = ({ token }) => {
                     setSubCategory(product.subCategory);
                     setBestseller(product.bestseller);
                     setSizes(product.sizes);
+                    setIsLuxePrive(product.isLuxePrive || false);
                     setStyleCode(product.styleCode || "");
                     setCountryOfOrigin(product.countryOfOrigin || "");
                     setManufacturer(product.manufacturer || "");
@@ -126,6 +128,7 @@ const Update = ({ token }) => {
             formData.append("category", category);
             formData.append("subCategory", subCategory);
             formData.append("bestseller", bestseller);
+            formData.append("isLuxePrive", isLuxePrive);
             formData.append("sizes", JSON.stringify(sizes));
             formData.append("styleCode", styleCode);
             formData.append("countryOfOrigin", countryOfOrigin);
@@ -224,6 +227,7 @@ const Update = ({ token }) => {
                         <option value="NIGHTY">NIGHTY</option>
                         <option value="PAJAMAS">PAJAMAS</option>
                         <option value="NEW & NOW">NEW & NOW</option>
+                        <option value="GIFT WRAP">GIFT WRAP</option>
                     </select>
                 </div>
                 <div>
@@ -369,6 +373,11 @@ const Update = ({ token }) => {
             <div className='flex gap-2 mt-2'>
                 <input onChange={() => setBestseller(prev => !prev)} checked={bestseller} type="checkbox" id='bestseller' />
                 <label className='cursor-pointer' htmlFor="bestseller">Add to bestseller</label>
+            </div>
+
+            <div className='flex gap-2 mt-2'>
+                <input onChange={() => setIsLuxePrive(prev => !prev)} checked={isLuxePrive} type="checkbox" id='isLuxePrive' />
+                <label className='cursor-pointer' htmlFor="isLuxePrive">Add to Luxe Prive Sale</label>
             </div>
 
             <button type="submit" className='w-28 py-3 mt-4 bg-black text-white'>UPDATE</button>

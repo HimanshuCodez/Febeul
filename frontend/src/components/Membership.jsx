@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gem, X } from "lucide-react";
 
-const levels = [
-  { name: "Bronze", color: "text-amber-600", spend: "₹1,000" },
-  { name: "Silver", color: "text-gray-400", spend: "₹3,000" },
-  { name: "Gold", color: "text-yellow-400", spend: "₹7,000" },
-  { name: "Diamond", color: "text-pink-500", spend: "₹15,000" },
-  { name: "Platinum", color: "text-indigo-400", spend: "₹25,000" },
-];
+const benefits = [
+    { name: "FAST PRIORITY DELIVERY", icon: "/2.png" },
+    { name: "15 GIFT WRAPS", icon: "/1.png" },
+    { name: "LUXE PRIVE SALES", icon: "/3.png" },
+    { name: "COUPONS EVERY PURCHASE", icon: "/4.png" },
+    { name: "DEDICATED SUPPORT", icon: "/5.png" },
+    { name: "FREE DELIVERY", icon: "/6.png" },
+  ];
 
 const FebeulMembershipWidget = () => {
   const [open, setOpen] = useState(false);
@@ -106,27 +107,24 @@ const FebeulMembershipWidget = () => {
                 </p>
               </div>
 
-              {/* Membership Levels */}
+              {/* Benefits */}
               <div className="bg-gray-50 p-5">
                 <h4 className="text-left text-gray-700 font-semibold mb-3">
-                  VIP Levels
+                  Luxe Benefits
                 </h4>
-                <div className="space-y-2">
-                  {levels.map((lvl, i) => (
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {benefits.map((benefit, i) => (
                     <motion.div
-                      key={lvl.name}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      key={benefit.name}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.1 }}
-                      className="flex justify-between items-center bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition"
+                      className="flex flex-col items-center justify-start p-1"
                     >
-                      <div className="flex items-center gap-2">
-                        <Gem className={`${lvl.color} w-5 h-5`} />
-                        <span className="font-medium text-gray-700">{lvl.name}</span>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        Spend {lvl.spend}
-                      </span>
+                      <img src={benefit.icon} alt={benefit.name} className="h-16 mx-auto object-contain" />
+                      <p className="mt-2 text-xs font-semibold text-gray-700 uppercase tracking-tight leading-tight">
+                        {benefit.name}
+                      </p>
                     </motion.div>
                   ))}
                 </div>
