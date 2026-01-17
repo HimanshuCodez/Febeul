@@ -14,16 +14,40 @@ import {
   FaCreditCard // Added for payment method icon
 } from 'react-icons/fa';
 import { useLocation, Link } from 'react-router-dom';
+import axios from 'axios';
+import useAuthStore from '../../store/authStore';
 
 export default function OrderSuccess() {
   const location = useLocation();
   // Ensure state exists before destructuring
   const { order, items, address, pricingDetails } = location.state || {};
+  const { token } = useAuthStore(); // Get token here
 
-  const handleDownloadInvoice = () => {
-    // Assuming a backend endpoint for invoice generation
-    const invoiceUrl = `${import.meta.env.VITE_BACKEND_URL}/api/order/invoice/${order._id}`;
-    window.open(invoiceUrl, '_blank'); // Open in a new tab to trigger download
+  const handleDownloadInvoice = async () => { // Make async
+    try {
+        const invoiceUrl = `${import.meta.env.VITE_BACKEND_URL}/api/order/invoice/${order._id}`;
+        
+        const response = await axios.get(invoiceUrl, {
+            headers: {
+                token: token // Send the token in headers
+            },
+            responseType: 'blob' // Important for handling file download
+        });
+
+        // Create a URL for the blob and trigger download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `invoice_${order._id}.pdf`); // Set filename
+        document.body.appendChild(link);
+        link.click();
+        link.remove(); // Clean up
+        window.URL.revokeObjectURL(url); // Clean up the URL object
+
+    } catch (error) {
+        console.error('Error downloading invoice:', error);
+        // Optionally show a toast error to the user
+    }
   };
 
   // Handle case where state might be missing (e.g., direct navigation)
