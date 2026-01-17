@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Febeul!</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .header { background-color: #f9aeaf; padding: 10px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header img { max-height: 50px; margin-bottom: 10px;}
+        .header h1 { color: #fff; margin: 0; font-size: 24px; }
+        .content { padding: 20px; }
+        .content p { margin: 5px 0; font-size: 14px; }
+        .content h2 { color: #e8767a; font-size: 20px; margin-bottom: 15px; }
+        .button { display: inline-block; background-color: #e8767a; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px; margin-top: 20px; }
+        .button:hover { background-color: #d5666a; }
+        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://febeul.onrender.com/removebgLogo.png" alt="Febeul Logo"> <!-- Hosted logo URL -->
+            <h1>Welcome to Febeul!</h1>
+        </div>
+        <div class="content">
+            <p>Hi {{userName}},</p>
+            <p>Thank you for joining Febeul! We're thrilled to have you as part of our community. Get ready to explore a world of amazing products and exclusive offers.</p>
+            <p>Your journey with us starts now. Discover your favorites and enjoy a seamless shopping experience.</p>
+
+            <p style="text-align: center;">
+                <a href="https://febeul.onrender.com" class="button">Start Shopping Now</a>
+            </p>
+
+            <p>If you have any questions or need assistance, feel free to contact our support team.</p>
+            <p>Happy Shopping!</p>
+            <p>The Febeul Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{currentYear}} Febeul. All rights reserved.</p>
+            <p>If you have any questions, please contact our <a href="#" style="color: #e8767a; text-decoration: none;">support team</a>.</p>
+        </div>
+    </div>
+</body>
+</html>

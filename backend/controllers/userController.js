@@ -3,12 +3,29 @@ import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
 import userModel from "../models/userModel.js";
 import { Resend } from 'resend';
+import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
+import fs from 'fs'; // For reading email template
+import path from 'path'; // Also needed here
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Re-define __dirname in this context for template path resolution
+const __filenameController = fileURLToPath(import.meta.url);
+const __dirnameController = dirname(__filenameController);
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const createToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET)
 }
+
+const constructWelcomeEmailHtml = (user, templateHtml) => {
+    let populatedHtml = templateHtml;
+    populatedHtml = populatedHtml.replace('{{userName}}', user.name || user.email);
+    populatedHtml = populatedHtml.replace('{{currentYear}}', new Date().getFullYear());
+    // Add any other placeholders if needed, e.g., login link
+    return populatedHtml;
+};
 
 // Route for user login
 const loginUser = async (req, res) => {
@@ -83,6 +100,19 @@ const registerUser = async (req, res) => {
         const savedUser = await user.save();
         const token = createToken(savedUser._id);
         const userResponse = await userModel.findById(savedUser._id).select("-password");
+        
+        // Send Welcome Email
+        try {
+            if (savedUser && savedUser.email) {
+                const templatePath = path.resolve(__dirnameController, '../templates/welcomeEmail.html');
+                let emailTemplate = fs.readFileSync(templatePath, 'utf8');
+                const htmlContent = constructWelcomeEmailHtml(savedUser, emailTemplate);
+                await sendEmail(savedUser.email, 'Welcome to Febeul!', htmlContent);
+            }
+        } catch (emailError) {
+            console.error("Error sending welcome email:", emailError);
+        }
+        
         res.json({ success: true, token, user: userResponse });
 
     } catch (error) {

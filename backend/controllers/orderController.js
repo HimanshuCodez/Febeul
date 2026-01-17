@@ -2,18 +2,17 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
-import PDFDocument from 'pdfkit'; // Import PDFDocument
-import path, { dirname } from 'path'; // Add dirname from path
-import { fileURLToPath } from 'url'; // Add fileURLToPath
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 import { shiprocketLogin, createShiprocketOrder } from '../utils/shiprocket.js';
 import crypto from 'crypto'
+import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
+import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
+import fs from 'fs'; // For reading email template
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-// global variables
-const currency = 'inr'
-const deliveryCharge = 10
+// Re-define __dirname in this context for template path resolution
+const __filenameController = fileURLToPath(import.meta.url);
+const __dirnameController = dirname(__filenameController);
 
 // gateway initialize
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -22,6 +21,59 @@ const razorpayInstance = new razorpay({
     key_id : process.env.RAZORPAY_KEY_ID,
     key_secret : process.env.RAZORPAY_KEY_SECRET,
 })
+
+const constructEmailHtml = (order, templateHtml) => {
+    // Dynamically generate item rows
+    let itemRowsHtml = '';
+    order.items.forEach(item => {
+        const itemPrice = item.productId ? item.productId.price : 0; // Assuming populated productId for price
+        const itemTotal = itemPrice * item.quantity;
+        itemRowsHtml += `
+            <tr>
+                <td>${item.name}</td>
+                <td>${item.quantity}</td>
+                <td>₹${itemPrice.toFixed(2)}</td>
+                <td>₹${itemTotal.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    const emailShippingCost = order.paymentMethod === 'COD' ? 50 : 0;
+    const emailGiftWrapPrice = order.giftWrap ? order.giftWrap.price : 0;
+    
+    let giftWrapRowHtml = '';
+    if (emailGiftWrapPrice > 0) {
+        giftWrapRowHtml = `
+            <tr>
+                <td colspan="3" style="text-align:right;">Gift Wrap:</td>
+                <td>₹${emailGiftWrapPrice.toFixed(2)}</td>
+            </tr>
+        `;
+    }
+
+    // Populate template placeholders
+    let populatedHtml = templateHtml;
+    populatedHtml = populatedHtml.replace('{{userName}}', order.userId.name || 'Customer');
+    populatedHtml = populatedHtml.replace('{{orderId}}', order._id.toString());
+    populatedHtml = populatedHtml.replace('{{orderDate}}', new Date(order.date).toLocaleDateString());
+    populatedHtml = populatedHtml.replace('{{totalAmount}}', order.amount.toFixed(2));
+    populatedHtml = populatedHtml.replace('{{itemRows}}', itemRowsHtml);
+    populatedHtml = populatedHtml.replace('{{subtotal}}', (order.amount - emailShippingCost - emailGiftWrapPrice).toFixed(2));
+    populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCost > 0 ? `₹${emailShippingCost.toFixed(2)}` : 'FREE');
+    populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);
+    populatedHtml = populatedHtml.replace('{{shippingAddressName}}', order.address.name);
+    populatedHtml = populatedHtml.replace('{{shippingAddressAddress}}', order.address.address);
+    populatedHtml = populatedHtml.replace('{{shippingAddressCity}}', order.address.city);
+    populatedHtml = populatedHtml.replace('{{shippingAddressZip}}', order.address.zip);
+    populatedHtml = populatedHtml.replace('{{shippingAddressCountry}}', order.address.country);
+    populatedHtml = populatedHtml.replace('{{shippingAddressPhone}}', order.address.phone);
+    populatedHtml = populatedHtml.replace('{{paymentMethod}}', order.paymentMethod);
+    populatedHtml = populatedHtml.replace('{{paymentStatus}}', order.payment ? 'Paid' : 'Pending');
+    populatedHtml = populatedHtml.replace('{{orderTrackingLink}}', `https://febeul.onrender.com/track/${order._id}`); // Placeholder, adjust as needed
+    populatedHtml = populatedHtml.replace('{{currentYear}}', new Date().getFullYear());
+
+    return populatedHtml;
+};
 
 // Placing orders using COD Method
 const placeOrder = async (req,res) => {
@@ -85,6 +137,19 @@ const placeOrder = async (req,res) => {
         }
 
         res.json({success:true,message:"Order Placed", order: newOrder})
+
+        // Send Order Confirmation Email
+        try {
+            const populatedOrder = await orderModel.findById(newOrder._id).populate('userId').populate('items.productId', 'price');
+            if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
+                const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
+                let emailTemplate = fs.readFileSync(templatePath, 'utf8');
+                const htmlContent = constructEmailHtml(populatedOrder, emailTemplate);
+                await sendEmail(populatedOrder.userId.email, `Febeul Order Confirmed - #${populatedOrder._id.toString().slice(-8).toUpperCase()}`, htmlContent);
+            }
+        } catch (emailError) {
+            console.error("Error sending order confirmation email for COD order:", emailError);
+        }
 
 
     } catch (error) {
@@ -191,6 +256,20 @@ const verifyStripe = async (req,res) => {
             }
 
             res.json({success: true});
+
+            // Send Order Confirmation Email
+            try {
+                const populatedOrder = await orderModel.findById(orderId).populate('userId').populate('items.productId', 'price');
+                if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
+                    const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
+                    let emailTemplate = fs.readFileSync(templatePath, 'utf8');
+                    const htmlContent = constructEmailHtml(populatedOrder, emailTemplate);
+                    await sendEmail(populatedOrder.userId.email, `Febeul Order Confirmed - #${populatedOrder._id.toString().slice(-8).toUpperCase()}`, htmlContent);
+                }
+            } catch (emailError) {
+                console.error("Error sending order confirmation email for Stripe order:", emailError);
+            }
+
         } else {
             await orderModel.findByIdAndDelete(orderId)
             res.json({success:false})
@@ -312,6 +391,19 @@ const verifyRazorpay = async (req,res) => {
                         // If shiprocket fails, the order is still placed, but not shipped.
                         // You might want to add more robust error handling here, like a retry mechanism.
                     }
+
+                    // Send Order Confirmation Email
+                    try {
+                        const populatedOrder = await orderModel.findById(orderInfo.receipt).populate('userId').populate('items.productId', 'price');
+                        if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
+                            const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
+                            let emailTemplate = fs.readFileSync(templatePath, 'utf8');
+                            const htmlContent = constructEmailHtml(populatedOrder, emailTemplate);
+                            await sendEmail(populatedOrder.userId.email, `Febeul Order Confirmed - #${populatedOrder._id.toString().slice(-8).toUpperCase()}`, htmlContent);
+                        }
+                    } catch (emailError) {
+                        console.error("Error sending order confirmation email for Razorpay order:", emailError);
+                    }
                 }
 
                 res.json({ success: true, message: "Payment Successful" });
@@ -392,122 +484,7 @@ const generateInvoice = async (req, res) => {
             return res.json({ success: false, message: 'Order not found.' });
         }
 
-        // Create a new PDF document
-        const doc = new PDFDocument({ size: 'A4', margin: 50 });
-        const filename = `Invoice_${order._id}.pdf`; // Changed orderStatus to order._id for simpler filename
-
-        // Set response headers for PDF download
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-        // Pipe the PDF into the response
-        doc.pipe(res);
-
-        // --- Invoice Content ---
-
-        // Company Header with Logo
-        const logoPath = path.resolve(__dirname, '../../frontend/public/removebgLogo.png');
-        doc.image(logoPath, 50, 40, { width: 100 }); // x, y, options
-        doc.fontSize(20).font('Helvetica-Bold').text('INVOICE', 0, 60, { align: 'right' });
-        doc.fontSize(10).font('Helvetica').text('FEBEUL', 0, 85, { align: 'right' });
-        doc.text('Your Slogan Here', 0, 100, { align: 'right' }); // Placeholder for slogan
-        doc.moveDown(4); // Move down enough to clear header content
-
-        // Order Details and Billing Information
-        doc.fontSize(12).font('Helvetica-Bold').text('Invoice Details:', 50, doc.y);
-        doc.font('Helvetica').fontSize(10);
-        doc.text(`Invoice #: ${order._id.toString()}`, 50, doc.y + 15);
-        doc.text(`Order Date: ${new Date(order.date).toLocaleDateString()}`, 50, doc.y + 30);
-        doc.text(`Payment Method: ${order.paymentMethod}`, 50, doc.y + 45);
-        doc.moveDown(4);
-
-        doc.fontSize(12).font('Helvetica-Bold').text('Billed To:', 50, doc.y);
-        doc.font('Helvetica').fontSize(10);
-        doc.text(`${order.address.name}`, 50, doc.y + 15);
-        doc.text(`${order.address.address}`, 50, doc.y + 30);
-        doc.text(`${order.address.city}, ${order.address.zip}`, 50, doc.y + 45);
-        doc.text(`${order.address.country}`, 50, doc.y + 60);
-        doc.text(`Phone: ${order.address.phone}`, 50, doc.y + 75);
-        if (order.userId && order.userId.email) {
-            doc.text(`Email: ${order.userId.email}`, 50, doc.y + 90);
-        }
-        doc.moveDown(2);
-
-
-        // Items Table Headers
-        const tableTop = doc.y;
-        const itemColX = 50;
-        const qtyColX = 320;
-        const priceColX = 390;
-        const totalColX = 480;
-
-        doc.font('Helvetica-Bold')
-           .fontSize(10)
-           .text('Item', itemColX, tableTop, { width: qtyColX - itemColX - 10 })
-           .text('Qty', qtyColX, tableTop, { width: priceColX - qtyColX - 10, align: 'right' })
-           .text('Price', priceColX, tableTop, { width: totalColX - priceColX - 10, align: 'right' })
-           .text('Total', totalColX, tableTop, { width: 50, align: 'right' });
-        
-        doc.font('Helvetica').fontSize(10); // Reset font and size
-        doc.moveDown(0.5);
-        doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(itemColX, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
-        doc.moveDown();
-
-        // Items Table Rows
-        order.items.forEach(item => {
-            const itemPrice = item.productId ? item.productId.price : 0; // Use price from populated productId
-            const itemTotal = itemPrice * item.quantity;
-            
-            doc.text(`${item.name}`, itemColX, doc.y, { width: qtyColX - itemColX - 10, continued: true })
-               .text(`${item.quantity}`, qtyColX, doc.y, { width: priceColX - qtyColX - 10, align: 'right', continued: true })
-               .text(`₹${itemPrice.toFixed(2)}`, priceColX, doc.y, { width: totalColX - priceColX - 10, align: 'right', continued: true })
-               .text(`₹${itemTotal.toFixed(2)}`, totalColX, doc.y, { width: 50, align: 'right' });
-            doc.moveDown();
-        });
-        doc.moveDown();
-        doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(itemColX, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
-        doc.moveDown();
-
-        // Totals Calculation (replicated from frontend logic in Checkout.jsx)
-        const invoiceItemSubtotal = order.items.reduce((sum, item) => sum + ((item.productId ? item.productId.price : 0) * item.quantity), 0);
-        const invoiceShippingCost = order.paymentMethod === 'COD' ? 50 : 0; 
-        const invoiceGiftWrapPrice = order.giftWrap ? order.giftWrap.price : 0;
-
-        const totalsLabelX = 350; // Start x for labels
-        const totalsValueX = 480; // Start x for values
-        const totalsWidth = 100; // Width for values
-        
-        doc.font('Helvetica').fontSize(10);
-        doc.text(`Subtotal:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-        doc.text(`₹${invoiceItemSubtotal.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Subtotal:'), { width: 50, align: 'right' });
-        doc.moveDown();
-        
-        if (invoiceShippingCost > 0) {
-            doc.text(`Shipping:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-            doc.text(`₹${invoiceShippingCost.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Shipping:'), { width: 50, align: 'right' });
-            doc.moveDown();
-        } else {
-            doc.text(`Shipping:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-            doc.text(`FREE`, totalsValueX, doc.y - doc.heightOfString('Shipping:'), { width: 50, align: 'right' });
-            doc.moveDown();
-        }
-
-        if (invoiceGiftWrapPrice > 0) {
-            doc.text(`Gift Wrap:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-            doc.text(`₹${invoiceGiftWrapPrice.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Gift Wrap:'), { width: 50, align: 'right' });
-            doc.moveDown();
-        }
-
-        doc.font('Helvetica-Bold').fontSize(12).text(`Total:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-        doc.text(`₹${order.amount.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Total:'), { width: 50, align: 'right' });
-        doc.moveDown();
-
-        // Thank You message
-        doc.fontSize(10).font('Helvetica').text('Thank you for your purchase!', 50, doc.page.height - 50, { align: 'center', width: doc.page.width - 100 });
-        doc.text('We appreciate your business.', 50, doc.page.height - 35, { align: 'center', width: doc.page.width - 100 });
-
-        // Finalize PDF
-        doc.end();
+        buildInvoicePDF(order, res);
 
     } catch (error) {
         console.error("Error in generateInvoice function:", error); // More specific error log
