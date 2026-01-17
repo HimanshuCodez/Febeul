@@ -15,7 +15,7 @@ import {
 } from 'react-icons/fa';
 import { useLocation, Link } from 'react-router-dom';
 import axios from 'axios';
-import useAuthStore from '../../store/authStore';
+import useAuthStore from "../store/authStore";
 
 export default function OrderSuccess() {
   const location = useLocation();

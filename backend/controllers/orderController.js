@@ -380,7 +380,8 @@ const getRazorpayKey = (req,res) => {
 const generateInvoice = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const order = await orderModel.findById(orderId).populate('userId').populate('items.productId');
+        // Populate userId for email and items.productId for product details (especially price)
+        const order = await orderModel.findById(orderId).populate('userId', 'email').populate('items.productId', 'price');
 
         if (!order) {
             return res.json({ success: false, message: 'Order not found.' });
@@ -388,7 +389,7 @@ const generateInvoice = async (req, res) => {
 
         // Create a new PDF document
         const doc = new PDFDocument({ size: 'A4', margin: 50 });
-        const filename = `Invoice_${order.orderStatus}_${order._id}.pdf`;
+        const filename = `Invoice_${order._id}.pdf`; // Changed orderStatus to order._id for simpler filename
 
         // Set response headers for PDF download
         res.setHeader('Content-Type', 'application/pdf');
@@ -399,74 +400,106 @@ const generateInvoice = async (req, res) => {
 
         // --- Invoice Content ---
 
-        // Company Header
-        doc.fontSize(25).text('FEBEUL', { align: 'center' });
-        doc.fontSize(10).text('Your Company Slogan', { align: 'center' }); // Placeholder
-        doc.moveDown();
+        // Company Header with Logo
+        const logoPath = path.resolve(__dirname, '../../frontend/public/removebgLogo.png');
+        doc.image(logoPath, 50, 40, { width: 100 }); // x, y, options
+        doc.fontSize(20).font('Helvetica-Bold').text('INVOICE', 0, 60, { align: 'right' });
+        doc.fontSize(10).font('Helvetica').text('FEBEUL', 0, 85, { align: 'right' });
+        doc.text('Your Slogan Here', 0, 100, { align: 'right' }); // Placeholder for slogan
+        doc.moveDown(4); // Move down enough to clear header content
 
-        // Invoice Title
-        doc.fontSize(20).text('INVOICE', { align: 'center' });
-        doc.moveDown();
+        // Order Details and Billing Information
+        doc.fontSize(12).font('Helvetica-Bold').text('Invoice Details:', 50, doc.y);
+        doc.font('Helvetica').fontSize(10);
+        doc.text(`Invoice #: ${order._id.toString()}`, 50, doc.y + 15);
+        doc.text(`Order Date: ${new Date(order.date).toLocaleDateString()}`, 50, doc.y + 30);
+        doc.text(`Payment Method: ${order.paymentMethod}`, 50, doc.y + 45);
+        doc.moveDown(4);
 
-        // Order Details
-        doc.fontSize(12).text(`Invoice #: ${order._id.toString()}`);
-        doc.text(`Order Date: ${new Date(order.date).toLocaleDateString()}`);
-        doc.text(`Payment Method: ${order.paymentMethod}`);
-        doc.moveDown();
-
-        // Billing Information
-        doc.fontSize(14).text('Billed To:', { underline: true });
-        doc.fontSize(12).text(`${order.address.name}`);
-        doc.text(`${order.address.address}`);
-        doc.text(`${order.address.city}, ${order.address.zip}`);
-        doc.text(`${order.address.country}`);
-        doc.text(`Phone: ${order.address.phone}`);
+        doc.fontSize(12).font('Helvetica-Bold').text('Billed To:', 50, doc.y);
+        doc.font('Helvetica').fontSize(10);
+        doc.text(`${order.address.name}`, 50, doc.y + 15);
+        doc.text(`${order.address.address}`, 50, doc.y + 30);
+        doc.text(`${order.address.city}, ${order.address.zip}`, 50, doc.y + 45);
+        doc.text(`${order.address.country}`, 50, doc.y + 60);
+        doc.text(`Phone: ${order.address.phone}`, 50, doc.y + 75);
         if (order.userId && order.userId.email) {
-            doc.text(`Email: ${order.userId.email}`);
+            doc.text(`Email: ${order.userId.email}`, 50, doc.y + 90);
         }
-        doc.moveDown();
+        doc.moveDown(2);
 
-        // Items Table Header
+
+        // Items Table Headers
         const tableTop = doc.y;
-        doc.font('Helvetica-Bold').text('Item', 50, tableTop, { width: 250 })
-            .text('Qty', 300, tableTop, { width: 100, align: 'right' })
-            .text('Price', 400, tableTop, { width: 100, align: 'right' })
-            .text('Total', 500, tableTop, { width: 50, align: 'right' });
+        const itemColX = 50;
+        const qtyColX = 320;
+        const priceColX = 390;
+        const totalColX = 480;
+
+        doc.font('Helvetica-Bold')
+           .fontSize(10)
+           .text('Item', itemColX, tableTop, { width: qtyColX - itemColX - 10 })
+           .text('Qty', qtyColX, tableTop, { width: priceColX - qtyColX - 10, align: 'right' })
+           .text('Price', priceColX, tableTop, { width: totalColX - priceColX - 10, align: 'right' })
+           .text('Total', totalColX, tableTop, { width: 50, align: 'right' });
+        
+        doc.font('Helvetica').fontSize(10); // Reset font and size
+        doc.moveDown(0.5);
+        doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(itemColX, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
         doc.moveDown();
-        doc.font('Helvetica'); // Reset font
 
         // Items Table Rows
-        let itemY = doc.y;
         order.items.forEach(item => {
-            const itemPrice = item.price || (item.productId ? item.productId.price : 0); // Use item.price if available, else from populated product
+            const itemPrice = item.productId ? item.productId.price : 0; // Use price from populated productId
             const itemTotal = itemPrice * item.quantity;
-            doc.text(`${item.name}`, 50, itemY, { width: 250 })
-                .text(`${item.quantity}`, 300, itemY, { width: 100, align: 'right' })
-                .text(`₹${itemPrice.toFixed(2)}`, 400, itemY, { width: 100, align: 'right' })
-                .text(`₹${itemTotal.toFixed(2)}`, 500, itemY, { width: 50, align: 'right' });
-            itemY += 20; // Move to next line for next item
+            
+            doc.text(`${item.name}`, itemColX, doc.y, { width: qtyColX - itemColX - 10, continued: true })
+               .text(`${item.quantity}`, qtyColX, doc.y, { width: priceColX - qtyColX - 10, align: 'right', continued: true })
+               .text(`₹${itemPrice.toFixed(2)}`, priceColX, doc.y, { width: totalColX - priceColX - 10, align: 'right', continued: true })
+               .text(`₹${itemTotal.toFixed(2)}`, totalColX, doc.y, { width: 50, align: 'right' });
+            doc.moveDown();
         });
-        doc.y = itemY + 10; // Adjust doc.y after items loop
+        doc.moveDown();
+        doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(itemColX, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
         doc.moveDown();
 
-        // Totals
-        doc.fontSize(12).text(`Subtotal:`, 400, doc.y, { width: 100, align: 'right' })
-            .text(`₹${(order.amount - (order.shipmentCharge || 0)).toFixed(2)}`, 500, doc.y, { width: 50, align: 'right' }); // Assuming shipmentCharge will be on order object for dynamic calculation
-        doc.moveDown();
+        // Totals Calculation (replicated from frontend logic in Checkout.jsx)
+        const invoiceItemSubtotal = order.items.reduce((sum, item) => sum + ((item.productId ? item.productId.price : 0) * item.quantity), 0);
+        const invoiceShippingCost = order.paymentMethod === 'COD' ? 50 : 0; 
+        const invoiceGiftWrapPrice = order.giftWrap ? order.giftWrap.price : 0;
 
-        if (order.shipmentCharge && order.shipmentCharge > 0) { // Assuming shipmentCharge is stored in order model
-            doc.text(`Shipping:`, 400, doc.y, { width: 100, align: 'right' })
-                .text(`₹${order.shipmentCharge.toFixed(2)}`, 500, doc.y, { width: 50, align: 'right' });
+        const totalsLabelX = 350; // Start x for labels
+        const totalsValueX = 480; // Start x for values
+        const totalsWidth = 100; // Width for values
+        
+        doc.font('Helvetica').fontSize(10);
+        doc.text(`Subtotal:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
+        doc.text(`₹${invoiceItemSubtotal.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Subtotal:'), { width: 50, align: 'right' });
+        doc.moveDown();
+        
+        if (invoiceShippingCost > 0) {
+            doc.text(`Shipping:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
+            doc.text(`₹${invoiceShippingCost.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Shipping:'), { width: 50, align: 'right' });
+            doc.moveDown();
+        } else {
+            doc.text(`Shipping:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
+            doc.text(`FREE`, totalsValueX, doc.y - doc.heightOfString('Shipping:'), { width: 50, align: 'right' });
             doc.moveDown();
         }
 
-        doc.font('Helvetica-Bold').fontSize(14).text(`Total:`, 400, doc.y, { width: 100, align: 'right' })
-            .text(`₹${order.amount.toFixed(2)}`, 500, doc.y, { width: 50, align: 'right' });
+        if (invoiceGiftWrapPrice > 0) {
+            doc.text(`Gift Wrap:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
+            doc.text(`₹${invoiceGiftWrapPrice.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Gift Wrap:'), { width: 50, align: 'right' });
+            doc.moveDown();
+        }
+
+        doc.font('Helvetica-Bold').fontSize(12).text(`Total:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
+        doc.text(`₹${order.amount.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Total:'), { width: 50, align: 'right' });
         doc.moveDown();
 
         // Thank You message
-        doc.fontSize(10).text('Thank you for your purchase!', { align: 'center' });
-        doc.text('We appreciate your business.', { align: 'center' });
+        doc.fontSize(10).font('Helvetica').text('Thank you for your purchase!', 50, doc.page.height - 50, { align: 'center', width: doc.page.width - 100 });
+        doc.text('We appreciate your business.', 50, doc.page.height - 35, { align: 'center', width: doc.page.width - 100 });
 
         // Finalize PDF
         doc.end();
