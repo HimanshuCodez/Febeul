@@ -3,7 +3,11 @@ import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
 import PDFDocument from 'pdfkit'; // Import PDFDocument
-import path from 'path'; // Add this import
+import path, { dirname } from 'path'; // Add dirname from path
+import { fileURLToPath } from 'url'; // Add fileURLToPath
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import { shiprocketLogin, createShiprocketOrder } from '../utils/shiprocket.js';
 import crypto from 'crypto'
 
@@ -506,7 +510,7 @@ const generateInvoice = async (req, res) => {
         doc.end();
 
     } catch (error) {
-        console.log(error);
+        console.error("Error in generateInvoice function:", error); // More specific error log
         res.json({ success: false, message: 'Error generating invoice' });
     }
 };
