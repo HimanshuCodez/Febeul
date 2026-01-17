@@ -69,8 +69,24 @@ const addProduct = async (req, res) => {
 // function for list product
 const listProducts = async (req, res) => {
     try {
-        
-        const products = await productModel.find({});
+        const { category, type, subCategory, search } = req.query; // Extract query parameters
+        let filter = {};
+
+        if (category) {
+            filter.category = { $regex: new RegExp(category.replace(/-/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case
+        }
+        if (type) {
+            filter.type = { $regex: new RegExp(type.replace(/-/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case
+        }
+        if (subCategory) {
+            filter.subCategory = { $regex: new RegExp(subCategory.replace(/-/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case
+        }
+        if (search) {
+            // Case-insensitive search on product name
+            filter.name = { $regex: search, $options: 'i' }; 
+        }
+
+        const products = await productModel.find(filter); // Apply filters
         res.json({success:true,products})
 
     } catch (error) {

@@ -31,42 +31,27 @@ const AllProducts = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
       try {
-        const response = await axios.get(`${backendUrl}/api/product/list`);
+        const params = {};
+        if (category) {
+          params.category = category.replace(/-/g, ' '); // Convert kebab-case back to space
+        }
+        if (filterKey && filterValue) {
+          // The backend expects the filterKey as the parameter name (e.g., 'type', 'fabric')
+          // And the filterValue as its value (e.g., 'Sheer Mesh')
+          params[filterKey] = filterValue.replace(/-/g, ' '); // Convert kebab-case back to space
+        }
+        if (searchQuery) {
+          params.search = searchQuery;
+        }
+
+        const response = await axios.get(`${backendUrl}/api/product/list`, { params });
         if (response.data.success) {
           let fetchedProducts = response.data.products;
           
-          if (category) {
-            fetchedProducts = fetchedProducts.filter(
-              (product) =>
-                product.category.toLowerCase().replace(/ /g, "-") === category.toLowerCase()
-            );
-          }
-          
-          if (filterKey && filterValue) {
-            fetchedProducts = fetchedProducts.filter((product) => {
-              const key = filterKey.toLowerCase();
-              const value = filterValue.toLowerCase();
-              if (product[key]) {
-                return product[key].toLowerCase().replace(/ /g, "-") === value;
-              }
-              return false;
-            });
-          }
-
-          if (searchQuery) {
-            const sq = searchQuery.toLowerCase();
-            fetchedProducts = fetchedProducts.filter(p =>
-              p.name.toLowerCase().includes(sq) ||
-              p.description.toLowerCase().includes(sq) ||
-              p.category.toLowerCase().includes(sq) ||
-              (p.type && p.type.toLowerCase().includes(sq)) ||
-              (p.fabric && p.fabric.toLowerCase().includes(sq))
-            );
-          }
-
           setProducts(fetchedProducts);
-          setFilteredProducts(fetchedProducts);
+          setFilteredProducts(fetchedProducts); // Initial set, then useEffect below filters locally
           
           // Extract unique values for filters
           const colors = [...new Set(fetchedProducts.flatMap(p => p.variations.map(v => v.color)).filter(Boolean))];
@@ -81,6 +66,8 @@ const AllProducts = () => {
           if (fetchedProducts.length > 0) {
             const prices = fetchedProducts.map(p => p.price);
             setPriceRange([0, Math.max(...prices)]);
+          } else {
+            setPriceRange([0, 10000]); // Reset if no products
           }
         }
       } catch (error) {
