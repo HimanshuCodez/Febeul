@@ -3,6 +3,7 @@ import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
 import PDFDocument from 'pdfkit'; // Import PDFDocument
+import path from 'path'; // Add this import
 import { shiprocketLogin, createShiprocketOrder } from '../utils/shiprocket.js';
 import crypto from 'crypto'
 
