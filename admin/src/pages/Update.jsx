@@ -370,10 +370,7 @@ const Update = ({ token }) => {
                 </div>
             </div>
 
-            <div className='flex gap-2 mt-2'>
-                <input onChange={() => setBestseller(prev => !prev)} checked={bestseller} type="checkbox" id='bestseller' />
-                <label className='cursor-pointer' htmlFor="bestseller">Add to bestseller</label>
-            </div>
+           
 
             <div className='flex gap-2 mt-2'>
                 <input onChange={() => setIsLuxePrive(prev => !prev)} checked={isLuxePrive} type="checkbox" id='isLuxePrive' />

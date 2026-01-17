@@ -20,6 +20,12 @@ export default function OrderSuccess() {
   // Ensure state exists before destructuring
   const { order, items, address, pricingDetails } = location.state || {};
 
+  const handleDownloadInvoice = () => {
+    // Assuming a backend endpoint for invoice generation
+    const invoiceUrl = `${import.meta.env.VITE_BACKEND_URL}/api/order/invoice/${order._id}`;
+    window.open(invoiceUrl, '_blank'); // Open in a new tab to trigger download
+  };
+
   // Handle case where state might be missing (e.g., direct navigation)
   if (!order || !items || !address) {
     return (
@@ -332,6 +338,15 @@ export default function OrderSuccess() {
                 Continue Shopping
             </motion.button>
           </Link>
+          <motion.button
+              onClick={handleDownloadInvoice}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+          >
+              <FaFileInvoice className="mr-2" />
+              Download Invoice
+          </motion.button>
         </motion.div>
 
         {/* Help Section */}

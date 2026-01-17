@@ -2,6 +2,7 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
+import PDFDocument from 'pdfkit'; // Import PDFDocument
 import { shiprocketLogin, createShiprocketOrder } from '../utils/shiprocket.js';
 import crypto from 'crypto'
 
@@ -375,4 +376,105 @@ const getRazorpayKey = (req,res) => {
     res.json({success:true,key:process.env.RAZORPAY_KEY_ID})
 }
 
-export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getRazorpayKey}
+// Generate Invoice
+const generateInvoice = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const order = await orderModel.findById(orderId).populate('userId').populate('items.productId');
+
+        if (!order) {
+            return res.json({ success: false, message: 'Order not found.' });
+        }
+
+        // Create a new PDF document
+        const doc = new PDFDocument({ size: 'A4', margin: 50 });
+        const filename = `Invoice_${order.orderStatus}_${order._id}.pdf`;
+
+        // Set response headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        // Pipe the PDF into the response
+        doc.pipe(res);
+
+        // --- Invoice Content ---
+
+        // Company Header
+        doc.fontSize(25).text('FEBEUL', { align: 'center' });
+        doc.fontSize(10).text('Your Company Slogan', { align: 'center' }); // Placeholder
+        doc.moveDown();
+
+        // Invoice Title
+        doc.fontSize(20).text('INVOICE', { align: 'center' });
+        doc.moveDown();
+
+        // Order Details
+        doc.fontSize(12).text(`Invoice #: ${order._id.toString()}`);
+        doc.text(`Order Date: ${new Date(order.date).toLocaleDateString()}`);
+        doc.text(`Payment Method: ${order.paymentMethod}`);
+        doc.moveDown();
+
+        // Billing Information
+        doc.fontSize(14).text('Billed To:', { underline: true });
+        doc.fontSize(12).text(`${order.address.name}`);
+        doc.text(`${order.address.address}`);
+        doc.text(`${order.address.city}, ${order.address.zip}`);
+        doc.text(`${order.address.country}`);
+        doc.text(`Phone: ${order.address.phone}`);
+        if (order.userId && order.userId.email) {
+            doc.text(`Email: ${order.userId.email}`);
+        }
+        doc.moveDown();
+
+        // Items Table Header
+        const tableTop = doc.y;
+        doc.font('Helvetica-Bold').text('Item', 50, tableTop, { width: 250 })
+            .text('Qty', 300, tableTop, { width: 100, align: 'right' })
+            .text('Price', 400, tableTop, { width: 100, align: 'right' })
+            .text('Total', 500, tableTop, { width: 50, align: 'right' });
+        doc.moveDown();
+        doc.font('Helvetica'); // Reset font
+
+        // Items Table Rows
+        let itemY = doc.y;
+        order.items.forEach(item => {
+            const itemPrice = item.price || (item.productId ? item.productId.price : 0); // Use item.price if available, else from populated product
+            const itemTotal = itemPrice * item.quantity;
+            doc.text(`${item.name}`, 50, itemY, { width: 250 })
+                .text(`${item.quantity}`, 300, itemY, { width: 100, align: 'right' })
+                .text(`₹${itemPrice.toFixed(2)}`, 400, itemY, { width: 100, align: 'right' })
+                .text(`₹${itemTotal.toFixed(2)}`, 500, itemY, { width: 50, align: 'right' });
+            itemY += 20; // Move to next line for next item
+        });
+        doc.y = itemY + 10; // Adjust doc.y after items loop
+        doc.moveDown();
+
+        // Totals
+        doc.fontSize(12).text(`Subtotal:`, 400, doc.y, { width: 100, align: 'right' })
+            .text(`₹${(order.amount - (order.shipmentCharge || 0)).toFixed(2)}`, 500, doc.y, { width: 50, align: 'right' }); // Assuming shipmentCharge will be on order object for dynamic calculation
+        doc.moveDown();
+
+        if (order.shipmentCharge && order.shipmentCharge > 0) { // Assuming shipmentCharge is stored in order model
+            doc.text(`Shipping:`, 400, doc.y, { width: 100, align: 'right' })
+                .text(`₹${order.shipmentCharge.toFixed(2)}`, 500, doc.y, { width: 50, align: 'right' });
+            doc.moveDown();
+        }
+
+        doc.font('Helvetica-Bold').fontSize(14).text(`Total:`, 400, doc.y, { width: 100, align: 'right' })
+            .text(`₹${order.amount.toFixed(2)}`, 500, doc.y, { width: 50, align: 'right' });
+        doc.moveDown();
+
+        // Thank You message
+        doc.fontSize(10).text('Thank you for your purchase!', { align: 'center' });
+        doc.text('We appreciate your business.', { align: 'center' });
+
+        // Finalize PDF
+        doc.end();
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: 'Error generating invoice' });
+    }
+};
+
+export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getRazorpayKey, generateInvoice}

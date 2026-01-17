@@ -33,6 +33,9 @@ export default function CheckoutPage() {
   const [selectedGiftWrap, setSelectedGiftWrap] = useState(null);
   const [isGiftWrapModalOpen, setIsGiftWrapModalOpen] = useState(false);
 
+  const STANDARD_SHIPPING_CHARGE = 0; // Changed to 0 as per user request
+  const COD_SHIPPING_CHARGE = 50.00; // Assuming 50 rs is 50.00 in current currency
+
   // Address Form State
   const [addressName, setAddressName] = useState('');
   const [addressLine, setAddressLine] = useState('');
@@ -115,14 +118,13 @@ export default function CheckoutPage() {
     } catch (error) {
         toast.error("Failed to add address.");
     }
-  }
-
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = 5.99;
-  const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
-  const total = parseFloat((subtotal + shipping + giftWrapPrice).toFixed(2));
-  
-  const addresses = user?.addresses || [];
+    }
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shippingCost = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : STANDARD_SHIPPING_CHARGE;
+    const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
+    const total = parseFloat((subtotal + shippingCost + giftWrapPrice).toFixed(2));
+    
+    const addresses = user?.addresses || [];
 
   const handleSelectGiftWrap = (wrap) => {
     setSelectedGiftWrap(wrap);
@@ -414,7 +416,7 @@ export default function CheckoutPage() {
                         <div className="flex items-center">
                           <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
                           <div>
-                            <p className="font-bold text-gray-800">Upi / Net Banking</p>
+                            <p className="font-bold text-gray-800">Upi / Net Banking / Card</p>
                             <p className="text-sm text-gray-600">Pay with your via payment gateway</p>
                           </div>
                         </div>
@@ -483,7 +485,7 @@ export default function CheckoutPage() {
                       <>
                         <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
                         <div>
-                          <p className="font-bold text-gray-800">Upi / Net Banking</p>
+                          <p className="font-bold text-gray-800">Upi / Net Banking / Card</p>
                           <p className="text-sm text-gray-600">Payment Gateway</p>
                         </div>
                       </>
@@ -535,7 +537,13 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>₹{shipping.toFixed(2)}</span>
+                  {shippingCost > 0 ? (
+                    <span>
+                      ₹{shippingCost.toFixed(2)} {selectedPayment === 'cod' ? '(COD charges)' : ''}
+                    </span>
+                  ) : (
+                    <span>FREE</span> 
+                  )}
                 </div>
                 {selectedGiftWrap && (
                   <div className="flex justify-between items-center text-gray-600">

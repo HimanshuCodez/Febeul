@@ -2,11 +2,14 @@ import React, { useState, useEffect } from "react";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { FaCrown } from "react-icons/fa"; // Add FaCrown
 
 export default function FebeulLuxe() {
   const { user, token, isAuthenticated, getProfile } = useAuthStore();
   const [razorpayKey, setRazorpayKey] = useState("");
   const navigate = useNavigate();
+  const [showPromo, setShowPromo] = useState(true); // Add this
 
   useEffect(() => {
     const fetchRazorpayKey = async () => {
@@ -127,6 +130,35 @@ export default function FebeulLuxe() {
         <h1 className="text-4xl font-serif text-black">LUXE</h1>
       </div>
 
+      {/* Promo Banner */}
+      <AnimatePresence>
+        {showPromo && (
+          <motion.div
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            exit={{ y: -100 }}
+            className="text-white py-4 px-6 relative mb-8"
+            style={{ background: 'linear-gradient(135deg, #f47b7d 0%, #ff9a9c 100%)' }}
+          >
+            <div className="max-w-6xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FaCrown className="text-2xl" />
+                <div>
+                  <p className="font-semibold text-sm">Join Febeul Luxe Today!</p>
+                  <p className="text-xs opacity-90">Unlock exclusive sales and premium benefits!</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowPromo(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Features Grid */}
       <div className="max-w-4xl mx-auto grid grid-cols-2 gap-y-7 gap-x-10 text-center">
 
@@ -148,6 +180,14 @@ export default function FebeulLuxe() {
           {/* ICON HERE */}
           <img src="/3.png" className="mx-auto h-48" />
           <p className="mt-4 font-bold text-black">LUXE PRIVE SALES</p>
+          <motion.p
+            className="text-sm text-gray-700 mt-1 px-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            Join to reveal exclusive sale products!
+          </motion.p>
         </div>
 
         {/* Item 4 */}
