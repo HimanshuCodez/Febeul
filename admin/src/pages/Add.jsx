@@ -9,18 +9,16 @@ import 'react-quill/dist/quill.snow.css';
 const Add = ({token}) => {
 
    const [type, setType] = useState("");
-   const [variations, setVariations] = useState([{ color: '', images: [] }]);
+   const [variations, setVariations] = useState([{ color: '', images: [], price: '', mrp: '' }]);
    const [name, setName] = useState("");
    const [description, setDescription] = useState("");
-   const [price, setPrice] = useState("");
-   const [mrp, setMrp] = useState("");
    const [category, setCategory] = useState("BABYDOLL");
    const [subCategory, setSubCategory] = useState("Topwear");
    const [bestseller, setBestseller] = useState(false);
    const [isLuxePrive, setIsLuxePrive] = useState(false);
    const [sizes, setSizes] = useState([]);
 
-   const [styleCode, setStyleCode] = useState("");
+   const [sku, setSku] = useState("");
    const [countryOfOrigin, setCountryOfOrigin] = useState("");
    const [manufacturer, setManufacturer] = useState("");
    const [packer, setPacker] = useState("");
@@ -53,7 +51,7 @@ const Add = ({token}) => {
    }
 
    const addVariation = () => {
-    setVariations([...variations, { color: '', images: [] }]);
+    setVariations([...variations, { color: '', images: [], price: '', mrp: '' }]);
    }
 
    const removeVariation = (index) => {
@@ -77,15 +75,13 @@ const Add = ({token}) => {
 
       formData.append("name",name)
       formData.append("description",description)
-      formData.append("price",price)
-      formData.append("mrp",mrp)
       formData.append("category",category)
       formData.append("subCategory",subCategory)
       formData.append("bestseller",bestseller)
       formData.append("isLuxePrive", isLuxePrive)
       formData.append("sizes",JSON.stringify(sizes))
 
-      formData.append("styleCode",styleCode)
+      formData.append("sku",sku)
       formData.append("countryOfOrigin",countryOfOrigin)
       formData.append("manufacturer",manufacturer)
       formData.append("packer",packer)
@@ -106,7 +102,7 @@ const Add = ({token}) => {
       formData.append("netQuantity",netQuantity)
       formData.append("genericName",genericName)
       
-      const variationsData = variations.map(v => ({color: v.color}));
+      const variationsData = variations.map(v => ({color: v.color, price: v.price, mrp: v.mrp}));
       formData.append("variations", JSON.stringify(variationsData));
       
       variations.forEach((variation, v_idx) => {
@@ -121,10 +117,8 @@ const Add = ({token}) => {
         toast.success(response.data.message)
         setName('')
         setDescription('')
-        setVariations([{ color: '', images: [] }])
-        setPrice('')
-        setMrp('')
-        setStyleCode('')
+        setVariations([{ color: '', images: [], price: '', mrp: '' }])
+        setSku('')
         setBestseller(false)
         setIsLuxePrive(false)
         setCountryOfOrigin('')
@@ -165,6 +159,16 @@ const Add = ({token}) => {
                 <div className='w-full'>
                     <p className='mb-2'>Color</p>
                     <input name='color' onChange={(e)=>handleVariationChange(index,e)} value={variation.color} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='e.g. Red' required/>
+                </div>
+                <div classsName='flex gap-2'>
+                  <div>
+                    <p className='mb-2'>MRP</p>
+                    <input name='mrp' onChange={(e)=>handleVariationChange(index,e)} value={variation.mrp} className='w-full max-w-[120px] px-3 py-2' type="number" placeholder='e.g. 100' required/>
+                  </div>
+                  <div>
+                    <p className='mb-2'>Selling Price</p>
+                    <input name='price' onChange={(e)=>handleVariationChange(index,e)} value={variation.price} className='w-full max-w-[120px] px-3 py-2' type="number" placeholder='e.g. 80' required/>
+                  </div>
                 </div>
                 <div>
                     <p className='mb-2'>Upload Images</p>
@@ -209,20 +213,12 @@ const Add = ({token}) => {
                   <option value="GIFT WRAP">GIFT WRAP</option>
               </select>
             </div>
-            <div>
-              <p className='mb-2'>MRP</p>
-              <input onChange={(e) => setMrp(e.target.value)} value={mrp} className='w-full px-3 py-2 sm:w-[120px]' type="Number" placeholder='45' />
-            </div>
-            <div>
-              <p className='mb-2'>Selling Price</p>
-              <input onChange={(e) => setPrice(e.target.value)} value={price} className='w-full px-3 py-2 sm:w-[120px]' type="Number" placeholder='25' />
-            </div>
         </div>
 
         <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl'>
           <div className='w-full'>
-            <p className='mb-2'>Style Code</p>
-            <input onChange={(e)=>setStyleCode(e.target.value)} value={styleCode} className='w-full px-3 py-2' type="text" placeholder='s-110' />
+            <p className='mb-2'>SKU</p>
+            <input onChange={(e)=>setSku(e.target.value)} value={sku} className='w-full px-3 py-2' type="text" placeholder='s-110' />
           </div>
           <div className='w-full'>
             <p className='mb-2'>Country of Origin</p>

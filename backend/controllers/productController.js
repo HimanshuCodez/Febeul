@@ -4,7 +4,7 @@ import productModel from "../models/productModel.js"
 // function for add product
 const addProduct = async (req, res) => {
     try {
-        const { name, description, price, mrp, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
+        const { name, description, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
         const variations = JSON.parse(variationsJSON);
         const files = req.files;
 
@@ -18,7 +18,9 @@ const addProduct = async (req, res) => {
             );
             return {
                 color: variation.color,
-                images: imagesUrl
+                images: imagesUrl,
+                price: Number(variation.price),
+                mrp: Number(variation.mrp)
             };
         }));
 
@@ -26,8 +28,6 @@ const addProduct = async (req, res) => {
             name,
             description,
             category,
-            price: Number(price),
-            mrp: Number(mrp),
             subCategory,
             bestseller: bestseller === "true" ? true : false,
             sizes: JSON.parse(sizes),
@@ -130,7 +130,7 @@ const singleProduct = async (req, res) => {
 // function for updating product
 const updateProduct = async (req, res) => {
     try {
-        const { productId, name, description, price, mrp, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
+        const { productId, name, description, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
         
         const product = await productModel.findById(productId);
         if (!product) {
@@ -165,14 +165,14 @@ const updateProduct = async (req, res) => {
 
             return {
                 color: variation.color,
-                images: [...existingImages, ...newImagesUrl]
+                images: [...existingImages, ...newImagesUrl],
+                price: Number(variation.price),
+                mrp: Number(variation.mrp)
             };
         }));
         
         product.name = name;
         product.description = description;
-        product.price = price;
-        product.mrp = mrp;
         product.category = category;
         product.subCategory = subCategory;
         product.sizes = JSON.parse(sizes);

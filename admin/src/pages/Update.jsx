@@ -14,8 +14,6 @@ const Update = ({ token }) => {
     const [variations, setVariations] = useState([]);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
-    const [price, setPrice] = useState("");
-    const [mrp, setMrp] = useState("");
     const [category, setCategory] = useState("BABYDOLL");
     const [subCategory, setSubCategory] = useState("Topwear");
     const [bestseller, setBestseller] = useState(false);
@@ -50,8 +48,6 @@ const Update = ({ token }) => {
                     const product = response.data.product;
                     setName(product.name);
                     setDescription(product.description);
-                    setPrice(product.price);
-                    setMrp(product.mrp || "");
                     setCategory(product.category);
                     setSubCategory(product.subCategory);
                     setBestseller(product.bestseller);
@@ -101,7 +97,7 @@ const Update = ({ token }) => {
     }
     
     const addVariation = () => {
-        setVariations([...variations, { color: '', images: [] }]);
+        setVariations([...variations, { color: '', images: [], price: '', mrp: '' }]);
     }
     
     const removeVariation = (index) => {
@@ -123,8 +119,6 @@ const Update = ({ token }) => {
             formData.append("productId", productId);
             formData.append("name", name);
             formData.append("description", description);
-            formData.append("price", price);
-            formData.append("mrp", mrp);
             formData.append("category", category);
             formData.append("subCategory", subCategory);
             formData.append("bestseller", bestseller);
@@ -153,7 +147,9 @@ const Update = ({ token }) => {
 
             const variationsData = variations.map(v => ({
                 color: v.color,
-                images: v.images.filter(img => typeof img === 'string') // only existing images
+                images: v.images.filter(img => typeof img === 'string'), // only existing images
+                price: v.price,
+                mrp: v.mrp
             }));
             formData.append("variations", JSON.stringify(variationsData));
 
