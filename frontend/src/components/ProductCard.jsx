@@ -61,12 +61,13 @@ const ProductCard = ({ product }) => {
     }
   };
 
-  const discount = product.mrp
-    ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
-    : 0;
-
   const variations = product.variations || [];
   const activeVariation = variations[activeVariationIndex] || {};
+
+  const discount = activeVariation.mrp
+    ? Math.round(((activeVariation.mrp - activeVariation.price) / activeVariation.mrp) * 100)
+    : 0;
+
   const defaultImage = activeVariation.images?.[0] || product.variations?.[0]?.images?.[0];
   const hoverImage = activeVariation.images?.[1] || defaultImage;
 
@@ -135,9 +136,9 @@ const ProductCard = ({ product }) => {
 
           <div className="flex items-baseline justify-between">
             <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-gray-900">₹{product.price.toLocaleString('en-IN')}</span>
-                {product.mrp && product.mrp > product.price && (
-                  <span className="text-sm text-gray-500 line-through">₹{product.mrp.toLocaleString('en-IN')}</span>
+                <span className="text-lg font-bold text-gray-900">₹{activeVariation.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                {activeVariation.mrp && activeVariation.mrp > activeVariation.price && (
+                  <span className="text-sm text-gray-500 line-through">₹{activeVariation.mrp.toLocaleString('en-IN')}</span>
                 )}
             </div>
           </div>

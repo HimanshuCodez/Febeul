@@ -133,7 +133,7 @@ const ProductDetailPage = () => {
     }
     try {
       const response = await axios.post(`${backendUrl}/api/cart/add`, 
-        { userId: user._id, itemId: product._id, size: selectedSize },
+        { userId: user._id, itemId: product._id, size: selectedSize, color: selectedVariation.color },
         { headers: { token } }
       );
       if (response.data.success) {
@@ -165,8 +165,8 @@ const ProductDetailPage = () => {
   const selectedVariation = variations[selectedVariationIndex] || {};
   const images = selectedVariation.images || [];
   const discount =
-    product.mrp > 0
-      ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+    selectedVariation.mrp > 0
+      ? Math.round(((selectedVariation.mrp - selectedVariation.price) / selectedVariation.mrp) * 100)
       : 0;
 
   const productDetailRows = [
@@ -342,11 +342,11 @@ const ProductDetailPage = () => {
               <div className="border border-gray-300 rounded-lg p-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-gray-900">
-                    ₹{product.price}
+                    ₹{selectedVariation.price?.toLocaleString('en-IN')}
                   </span>
-                  {product.mrp > product.price && (
+                  {selectedVariation.mrp > selectedVariation.price && (
                     <span className="text-base text-gray-500 line-through">
-                      ₹{product.mrp}
+                      ₹{selectedVariation.mrp?.toLocaleString('en-IN')}
                     </span>
                   )}
                 </div>

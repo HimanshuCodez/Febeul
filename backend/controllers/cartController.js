@@ -1,26 +1,20 @@
 import userModel from "../models/userModel.js"
-import productModel from "../models/productModel.js";
 
 // add products to user cart
 const addToCart = async (req,res) => {
     try {
-        const { userId, itemId, size } = req.body
-        const userData = await userModel.findById(userId)
-        let cartData = await userData.cartData;
+        const { userId, itemId, size, color } = req.body
+        const user = await userModel.findById(userId)
+        
+        const cartItemIndex = user.cartData.findIndex(item => item.product.toString() === itemId && item.size === size && item.color === color);
 
-        if (cartData[itemId]) {
-            if (cartData[itemId][size]) {
-                cartData[itemId][size] += 1
-            }
-            else {
-                cartData[itemId][size] = 1
-            }
+        if (cartItemIndex > -1) {
+            user.cartData[cartItemIndex].quantity += 1;
         } else {
-            cartData[itemId] = {}
-            cartData[itemId][size] = 1
+            user.cartData.push({ product: itemId, size, color, quantity: 1 });
         }
 
-        await userModel.findByIdAndUpdate(userId, {cartData})
+        await user.save();
         res.json({ success: true, message: "Added To Cart" })
     } catch (error) {
         console.log(error)
@@ -31,20 +25,22 @@ const addToCart = async (req,res) => {
 // update user cart
 const updateCart = async (req,res) => {
     try {
-        const { userId ,itemId, size, quantity } = req.body
-        const userData = await userModel.findById(userId)
-        let cartData = await userData.cartData;
+        const { userId ,itemId, size, quantity, color } = req.body
+        const user = await userModel.findById(userId)
+        
+        const cartItemIndex = user.cartData.findIndex(item => item.product.toString() === itemId && item.size === size && item.color === color);
 
         if (quantity === 0) {
-            delete cartData[itemId][size];
-            if (Object.keys(cartData[itemId]).length === 0) {
-                delete cartData[itemId];
+            if (cartItemIndex > -1) {
+                user.cartData.splice(cartItemIndex, 1);
             }
         } else {
-            cartData[itemId][size] = quantity
+            if (cartItemIndex > -1) {
+                user.cartData[cartItemIndex].quantity = quantity;
+            }
         }
 
-        await userModel.findByIdAndUpdate(userId, {cartData})
+        await user.save();
         res.json({ success: true, message: "Cart Updated" })
     } catch (error) {
         console.log(error)
@@ -55,18 +51,16 @@ const updateCart = async (req,res) => {
 // remove products from user cart
 const removeFromCart = async (req, res) => {
     try {
-        const { userId, itemId, size } = req.body;
-        const userData = await userModel.findById(userId);
-        let cartData = userData.cartData;
+        const { userId, itemId, size, color } = req.body;
+        const user = await userModel.findById(userId);
+        
+        const cartItemIndex = user.cartData.findIndex(item => item.product.toString() === itemId && item.size === size && item.color === color);
 
-        if (cartData[itemId] && cartData[itemId][size]) {
-            delete cartData[itemId][size];
-            if (Object.keys(cartData[itemId]).length === 0) {
-                delete cartData[itemId];
-            }
+        if (cartItemIndex > -1) {
+            user.cartData.splice(cartItemIndex, 1);
         }
 
-        await userModel.findByIdAndUpdate(userId, { cartData });
+        await user.save();
         res.json({ success: true, message: "Removed From Cart" });
     } catch (error) {
         console.log(error);
@@ -77,33 +71,29 @@ const removeFromCart = async (req, res) => {
 // get user cart data
 const getUserCart = async (req,res) => {
     try {
-        const userData = await userModel.findById(req.body.userId);
-        let cartData = await userData.cartData;
+        const user = await userModel.findById(req.body.userId).populate({
+            path: 'cartData.product'
+        });
         
-        if (!cartData || Object.keys(cartData).length === 0) {
-            return res.json({ success: true, cartItems: [] });
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
         }
 
-        const product_ids = Object.keys(cartData);
-        const products = await productModel.find({_id: {$in: product_ids}});
-
-        let cart_items = [];
-
-        products.forEach(product => {
-            const product_id_str = product._id.toString();
-            if (cartData[product_id_str]) {
-                Object.keys(cartData[product_id_str]).forEach(size => {
-                    cart_items.push({
-                        ...product.toObject(),
-                        _id: product_id_str, // ensure _id is a string
-                        quantity: cartData[product_id_str][size],
-                        size: size
-                    });
-                });
+        // The cartItems are now populated with product details
+        const cartItems = user.cartData.map(item => {
+            if (item.product) {
+                return {
+                    ...item.product.toObject(),
+                    quantity: item.quantity,
+                    size: item.size,
+                    color: item.color,
+                    _id: item.product._id // ensure the product's _id is what we use as the main identifier
+                };
             }
-        });
+            return null;
+        }).filter(item => item !== null);
 
-        res.json({ success: true, cartItems: cart_items });
+        res.json({ success: true, cartItems: cartItems });
 
     } catch (error) {
         console.log(error);

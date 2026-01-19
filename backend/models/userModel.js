@@ -10,7 +10,12 @@ const userSchema = new mongoose.Schema({
     luxeMembershipExpires: { type: Date },
     otp: { type: String },
     otp_expiry: { type: Date },
-    cartData: { type: Object, default: {} },
+    cartData: [{
+        product: { type: mongoose.Schema.Types.ObjectId, ref: 'product' },
+        size: { type: String, required: true },
+        quantity: { type: Number, required: true },
+        color: { type: String, required: true }
+    }],
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }],
     addresses: [{
         name: { type: String, required: true },

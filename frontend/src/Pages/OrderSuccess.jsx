@@ -74,7 +74,7 @@ export default function OrderSuccess() {
   
   // Use pricing details if available, otherwise calculate
   const subtotal = pricingDetails ? pricingDetails.subtotal : items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = pricingDetails ? pricingDetails.shipping : (order.paymentMethod === 'COD' ? 5.99 : 0); // Default shipping for COD if not provided
+  const shipping = pricingDetails ? pricingDetails.shippingCost : (order.paymentMethod === 'COD' ? 50 : 0); // Default shipping for COD if not provided
   const total = order.amount;
   // --- End of mock data replacement ---
 

@@ -40,18 +40,18 @@ const Cart = () => {
     fetchCart();
   }, [isAuthenticated, user]);
 
-  const handleQuantityChange = async (itemId, size, delta) => {
-    const item = cartItems.find(item => item._id === itemId && item.size === size);
+  const handleQuantityChange = async (itemId, size, color, delta) => {
+    const item = cartItems.find(item => item._id === itemId && item.size === size && item.color === color);
     const newQuantity = (item.quantity || 0) + delta;
 
     if (newQuantity < 1) {
-        handleRemove(itemId, size);
+        handleRemove(itemId, size, color);
         return;
     }
 
     try {
         const response = await axios.post(`${backendUrl}/api/cart/update`, 
-            { userId: user._id, itemId, size, quantity: newQuantity },
+            { userId: user._id, itemId, size, color, quantity: newQuantity },
             { headers: { token } }
         );
         if (response.data.success) {
@@ -65,10 +65,10 @@ const Cart = () => {
     }
   };
 
-  const handleRemove = async (itemId, size) => {
+  const handleRemove = async (itemId, size, color) => {
     try {
         const response = await axios.post(`${backendUrl}/api/cart/remove`, 
-            { userId: user._id, itemId, size },
+            { userId: user._id, itemId, size, color },
             { headers: { token } }
         );
         if (response.data.success) {
@@ -84,7 +84,11 @@ const Cart = () => {
   };
 
   const subtotal = (cartItems || []).reduce(
-    (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+    (sum, item) => {
+      const variation = item.variations.find(v => v.color === item.color);
+      const price = variation ? variation.price : 0;
+      return sum + (price * item.quantity);
+    },
     0
   );
   const shipping = subtotal > 499 ? 0 : 50;
@@ -127,16 +131,21 @@ const Cart = () => {
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
-              {cartItems.map((item, index) => (
+              {cartItems.map((item, index) => {
+                const variation = item.variations.find(v => v.color === item.color);
+                const price = variation ? variation.price : 0;
+                const image = variation ? variation.images[0] : item.variations?.[0]?.images?.[0];
+
+                return (
                 <motion.div
-                  key={`${item._id}-${item.size}`}
+                  key={`${item._id}-${item.size}-${item.color}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="bg-white rounded-lg shadow-md p-4 flex items-start space-x-4"
                 >
                   <img
-                    src={item.variations?.[0]?.images?.[0]}
+                    src={image}
                     alt={item.name}
                     className="w-24 h-24 md:w-32 md:h-32 rounded-md object-cover object-top"
                   />
@@ -145,15 +154,15 @@ const Cart = () => {
                       {item.name}
                     </h2>
                     <p className="text-sm text-gray-500">
-                      {item.size} / {item.variations?.[0]?.color}
+                      {item.size} / {item.color}
                     </p>
                     <p className="text-lg font-bold text-pink-500 mt-1">
-                      ₹{item.price.toFixed(2)}
+                      ₹{price.toFixed(2)}
                     </p>
                     <div className="flex items-center mt-4">
                       <div className="flex items-center border rounded-md">
                         <button
-                          onClick={() => handleQuantityChange(item._id, item.size, -1)}
+                          onClick={() => handleQuantityChange(item._id, item.size, item.color, -1)}
                           className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md"
                         >
                           -
@@ -162,7 +171,7 @@ const Cart = () => {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => handleQuantityChange(item._id, item.size, 1)}
+                          onClick={() => handleQuantityChange(item._id, item.size, item.color, 1)}
                           className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-md"
                         >
                           +
@@ -171,13 +180,13 @@ const Cart = () => {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleRemove(item._id, item.size)}
+                    onClick={() => handleRemove(item._id, item.size, item.color)}
                     className="text-gray-400 hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={20} />
                   </button>
                 </motion.div>
-              ))}
+              )})}
             </div>
 
             <motion.div

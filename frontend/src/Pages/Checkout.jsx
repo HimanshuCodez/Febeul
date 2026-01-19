@@ -119,7 +119,11 @@ export default function CheckoutPage() {
         toast.error("Failed to add address.");
     }
     }
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotal = cartItems.reduce((sum, item) => {
+        const variation = item.variations.find(v => v.color === item.color);
+        const price = variation ? variation.price : 0;
+        return sum + (price * item.quantity);
+    }, 0);
     const shippingCost = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : STANDARD_SHIPPING_CHARGE;
     const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
     const total = parseFloat((subtotal + shippingCost + giftWrapPrice).toFixed(2));
@@ -140,13 +144,18 @@ export default function CheckoutPage() {
   }
 
   const placeCodOrder = async () => {
-    const orderItems = cartItems.map((item) => ({
-      productId: item._id,
-      quantity: item.quantity,
-      size: item.size,
-      name: item.name,
-      image: item.variations?.[0]?.images?.[0],
-    }));
+    const orderItems = cartItems.map((item) => {
+        const variation = item.variations.find(v => v.color === item.color);
+        return {
+            productId: item._id,
+            quantity: item.quantity,
+            size: item.size,
+            name: item.name,
+            image: variation ? variation.images[0] : item.variations?.[0]?.images?.[0],
+            price: variation ? variation.price : 0,
+            color: item.color
+        }
+    });
     const orderData = {
         userId: user._id,
         items: orderItems,
@@ -169,13 +178,18 @@ export default function CheckoutPage() {
 
   const handleRazorpayPayment = async () => {
     try {
-      const orderItems = cartItems.map((item) => ({
-        productId: item._id,
-        quantity: item.quantity,
-        size: item.size,
-        name: item.name,
-        image: item.variations?.[0]?.images?.[0],
-      }));
+      const orderItems = cartItems.map((item) => {
+        const variation = item.variations.find(v => v.color === item.color);
+        return {
+            productId: item._id,
+            quantity: item.quantity,
+            size: item.size,
+            name: item.name,
+            image: variation ? variation.images[0] : item.variations?.[0]?.images?.[0],
+            price: variation ? variation.price : 0,
+            color: item.color
+        }
+      });
       const orderPayload = {
         userId: user._id,
         items: orderItems,
@@ -216,7 +230,7 @@ export default function CheckoutPage() {
             if (verifyResponse.data.success) {
               toast.success("Payment successful!");
               const localOrder = { _id: order.receipt, ...orderPayload };
-              const pricingDetails = { subtotal, shipping, giftWrapPrice };
+              const pricingDetails = { subtotal, shippingCost, giftWrapPrice };
               navigate('/Success', { state: { order: localOrder, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
             } else {
               toast.error("Payment verification failed.");
@@ -516,18 +530,23 @@ export default function CheckoutPage() {
               </h2>
 
               <div className="space-y-3 mb-4">
-                {cartItems.map(item => (
-                  <div key={item._id + item.size} className="flex items-start justify-between text-sm">
-                    <div className="flex items-start flex-1">
-                      <img src={item.variations?.[0]?.images?.[0]} className="w-10 h-10 object-cover mr-2 rounded" />
-                      <div>
-                        <p className="text-gray-800 font-medium">{item.name}</p>
-                        <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
-                      </div>
+                {cartItems.map(item => {
+                  const variation = item.variations.find(v => v.color === item.color);
+                  const price = variation ? variation.price : 0;
+                  const image = variation ? variation.images[0] : item.variations?.[0]?.images?.[0];
+                  return (
+                    <div key={item._id + item.size + item.color} className="flex items-start justify-between text-sm">
+                        <div className="flex items-start flex-1">
+                        <img src={image} className="w-10 h-10 object-cover mr-2 rounded" />
+                        <div>
+                            <p className="text-gray-800 font-medium">{item.name}</p>
+                            <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
+                        </div>
+                        </div>
+                        <p className="font-bold text-gray-800">₹{(price * item.quantity).toFixed(2)}</p>
                     </div>
-                    <p className="font-bold text-gray-800">₹{(item.price * item.quantity).toFixed(2)}</p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               <div className="border-t pt-4 space-y-2 text-sm">

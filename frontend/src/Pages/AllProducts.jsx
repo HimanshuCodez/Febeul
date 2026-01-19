@@ -64,8 +64,12 @@ const AllProducts = () => {
           
           // Set price range based on products
           if (fetchedProducts.length > 0) {
-            const prices = fetchedProducts.map(p => p.price);
-            setPriceRange([0, Math.max(...prices)]);
+            const allVariationPrices = fetchedProducts.flatMap(p => p.variations.map(v => v.price)).filter(Boolean);
+            if (allVariationPrices.length > 0) {
+                setPriceRange([0, Math.max(...allVariationPrices)]);
+            } else {
+                setPriceRange([0, 10000]);
+            }
           } else {
             setPriceRange([0, 10000]); // Reset if no products
           }
@@ -85,11 +89,11 @@ const AllProducts = () => {
     let result = [...products];
 
     // Price filter
-    result = result.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
+    result = result.filter(p => p.variations.some(v => v.price >= priceRange[0] && v.price <= priceRange[1]));
 
     // Color filter
     if (selectedColors.length > 0) {
-      result = result.filter(p => selectedColors.includes(p.color));
+      result = result.filter(p => p.variations.some(v => selectedColors.includes(v.color)));
     }
 
     // Size filter
@@ -105,10 +109,18 @@ const AllProducts = () => {
     // Sorting
     switch (sortBy) {
       case 'price-low':
-        result.sort((a, b) => a.price - b.price);
+        result.sort((a, b) => {
+            const priceA = a.variations?.[0]?.price || 0;
+            const priceB = b.variations?.[0]?.price || 0;
+            return priceA - priceB;
+        });
         break;
       case 'price-high':
-        result.sort((a, b) => b.price - a.price);
+        result.sort((a, b) => {
+            const priceA = a.variations?.[0]?.price || 0;
+            const priceB = b.variations?.[0]?.price || 0;
+            return priceB - priceA;
+        });
         break;
       case 'newest':
         result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -121,7 +133,9 @@ const AllProducts = () => {
   }, [products, priceRange, selectedColors, selectedSizes, selectedCategories, sortBy]);
 
   const clearFilters = () => {
-    setPriceRange([0, Math.max(...products.map(p => p.price))]);
+    const allVariationPrices = products.flatMap(p => p.variations.map(v => v.price)).filter(Boolean);
+    const maxPrice = allVariationPrices.length > 0 ? Math.max(...allVariationPrices) : 10000;
+    setPriceRange([0, maxPrice]);
     setSelectedColors([]);
     setSelectedSizes([]);
     setSelectedCategories([]);
