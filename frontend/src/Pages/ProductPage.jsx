@@ -131,6 +131,10 @@ const ProductDetailPage = () => {
       toast.error("Please select a size.");
       return;
     }
+    if (!selectedVariation || !selectedVariation.color) {
+      toast.error("Please select a color.");
+      return;
+    }
     try {
       const response = await axios.post(`${backendUrl}/api/cart/add`, 
         { userId: user._id, itemId: product._id, size: selectedSize, color: selectedVariation.color },

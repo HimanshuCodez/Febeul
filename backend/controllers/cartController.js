@@ -6,7 +6,7 @@ const addToCart = async (req,res) => {
         const { userId, itemId, size, color } = req.body
         const user = await userModel.findById(userId)
         
-        const cartItemIndex = user.cartData.findIndex(item => item.product.toString() === itemId && item.size === size && item.color === color);
+        const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
         if (cartItemIndex > -1) {
             user.cartData[cartItemIndex].quantity += 1;
@@ -28,7 +28,7 @@ const updateCart = async (req,res) => {
         const { userId ,itemId, size, quantity, color } = req.body
         const user = await userModel.findById(userId)
         
-        const cartItemIndex = user.cartData.findIndex(item => item.product.toString() === itemId && item.size === size && item.color === color);
+        const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
         if (quantity === 0) {
             if (cartItemIndex > -1) {
@@ -54,7 +54,7 @@ const removeFromCart = async (req, res) => {
         const { userId, itemId, size, color } = req.body;
         const user = await userModel.findById(userId);
         
-        const cartItemIndex = user.cartData.findIndex(item => item.product.toString() === itemId && item.size === size && item.color === color);
+        const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
         if (cartItemIndex > -1) {
             user.cartData.splice(cartItemIndex, 1);
