@@ -95,7 +95,7 @@ const placeOrder = async (req,res) => {
         const newOrder = new orderModel(orderData)
         await newOrder.save()
 
-        await userModel.findByIdAndUpdate(userId,{cartData:{}})
+        await userModel.findByIdAndUpdate(userId,{cartData:[]})
 
         const order = await orderModel.findById(newOrder._id).populate('userId');
 
@@ -224,7 +224,7 @@ const verifyStripe = async (req,res) => {
     try {
         if (success === "true") {
             await orderModel.findByIdAndUpdate(orderId, {payment:true});
-            await userModel.findByIdAndUpdate(userId, {cartData: {}})
+            await userModel.findByIdAndUpdate(userId, {cartData: []})
 
             const order = await orderModel.findById(orderId).populate('userId');
 
@@ -349,10 +349,10 @@ const verifyRazorpay = async (req,res) => {
                     await userModel.findByIdAndUpdate(userId, {
                         isLuxeMember: true,
                         luxeMembershipExpires: expiryDate,
-                        cartData: {} 
+                        cartData: [] 
                     });
                 } else {
-                    await userModel.findByIdAndUpdate(userId, { cartData: {} });
+                    await userModel.findByIdAndUpdate(userId, { cartData: [] });
 
                     // Shiprocket integration
                     try {
