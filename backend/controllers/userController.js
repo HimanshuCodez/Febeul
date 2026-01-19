@@ -304,6 +304,11 @@ const addAddress = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
+
+        if (!Array.isArray(user.cartData)) {
+            user.cartData = [];
+        }
+
         user.addresses.push(req.body.address);
         await user.save();
         res.json({ success: true, message: "Address added" });
@@ -346,6 +351,11 @@ const addToWishlist = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
+
+        if (!Array.isArray(user.cartData)) {
+            user.cartData = [];
+        }
+
         if (!user.wishlist.includes(productId)) {
             user.wishlist.push(productId);
             await user.save();
@@ -365,6 +375,11 @@ const removeFromWishlist = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
+
+        if (!Array.isArray(user.cartData)) {
+            user.cartData = [];
+        }
+        
         user.wishlist = user.wishlist.filter((id) => id.toString() !== productId);
         await user.save();
         res.json({ success: true, message: "Removed from wishlist" });

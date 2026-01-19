@@ -5,6 +5,14 @@ const addToCart = async (req,res) => {
     try {
         const { userId, itemId, size, color } = req.body
         const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        if (!Array.isArray(user.cartData)) {
+            user.cartData = [];
+        }
         
         const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
@@ -27,6 +35,14 @@ const updateCart = async (req,res) => {
     try {
         const { userId ,itemId, size, quantity, color } = req.body
         const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        if (!Array.isArray(user.cartData)) {
+            user.cartData = [];
+        }
         
         const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
@@ -53,6 +69,14 @@ const removeFromCart = async (req, res) => {
     try {
         const { userId, itemId, size, color } = req.body;
         const user = await userModel.findById(userId);
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        if (!Array.isArray(user.cartData)) {
+            user.cartData = [];
+        }
         
         const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
@@ -77,6 +101,10 @@ const getUserCart = async (req,res) => {
         
         if (!user) {
             return res.json({ success: false, message: "User not found" });
+        }
+
+        if (!Array.isArray(user.cartData)) {
+            user.cartData = [];
         }
 
         // The cartItems are now populated with product details
