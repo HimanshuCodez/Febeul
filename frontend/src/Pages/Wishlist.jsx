@@ -22,7 +22,7 @@ const Wishlist = () => {
         return;
       }
       try {
-        const response = await axios.post(
+        const response = await axios.get(
           `${backendUrl}/api/user/wishlist`,
           { userId: user._id },
           {
