@@ -118,7 +118,7 @@ const placeOrder = async (req,res) => {
                     address: order.address.address,
                     city: order.address.city,
                     pincode: order.address.zip, // Use zip from frontend
-                    state: "Delhi", // Default or fetch state from pincode/city
+                    state: order.address.state,
                     country: "India",
                     phone: order.address.phone,
                     email: order.userId.email // Assuming userId is populated and has email
@@ -373,7 +373,7 @@ const verifyRazorpay = async (req,res) => {
                                 address: order.address.address,
                                 city: order.address.city,
                                 pincode: order.address.zip, // Use zip from frontend
-                                state: "Delhi", // Default or fetch state from pincode/city
+                                state: order.address.state,
                                 country: "India",
                                 phone: order.address.phone,
                                 email: order.userId.email // Assuming userId is populated and has email
