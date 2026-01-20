@@ -27,20 +27,24 @@ const constructEmailHtml = (order, templateHtml) => {
     // Dynamically generate item rows
     let itemRowsHtml = '';
     order.items.forEach(item => {
-        const itemPrice = item.productId ? item.productId.price : 0; // Assuming populated productId for price
-        const itemTotal = itemPrice * item.quantity;
+        // Ensure itemPrice is a float, default to 0
+        const itemPrice = parseFloat(item.productId && item.productId.price || 0); 
+        // Ensure quantity is a float, default to 0
+        const itemQuantity = parseFloat(item.quantity || 0);
+        const itemTotal = parseFloat(itemPrice * itemQuantity || 0); // Ensure itemTotal is a float, default to 0
+
         itemRowsHtml += `
             <tr>
                 <td>${item.name}</td>
-                <td>${item.quantity}</td>
+                <td>${itemQuantity}</td>
                 <td>₹${itemPrice.toFixed(2)}</td>
                 <td>₹${itemTotal.toFixed(2)}</td>
             </tr>
         `;
     });
 
-    const emailShippingCost = order.paymentMethod === 'COD' ? 50 : 0;
-    const emailGiftWrapPrice = order.giftWrap ? order.giftWrap.price : 0;
+    const emailShippingCost = parseFloat(order.paymentMethod === 'COD' ? 50 : 0); // Ensure it's a number
+    const emailGiftWrapPrice = parseFloat(order.giftWrap && order.giftWrap.price || 0); // Safely get price, default to 0
     
     let giftWrapRowHtml = '';
     if (emailGiftWrapPrice > 0) {
@@ -52,14 +56,17 @@ const constructEmailHtml = (order, templateHtml) => {
         `;
     }
 
+    // Ensure order.amount is a number
+    const orderAmount = parseFloat(order.amount || 0);
+
     // Populate template placeholders
     let populatedHtml = templateHtml;
     populatedHtml = populatedHtml.replace('{{userName}}', order.userId.name || 'Customer');
     populatedHtml = populatedHtml.replace('{{orderId}}', order._id.toString());
     populatedHtml = populatedHtml.replace('{{orderDate}}', new Date(order.date).toLocaleDateString());
-    populatedHtml = populatedHtml.replace('{{totalAmount}}', order.amount.toFixed(2));
+    populatedHtml = populatedHtml.replace('{{totalAmount}}', orderAmount.toFixed(2)); // Use orderAmount
     populatedHtml = populatedHtml.replace('{{itemRows}}', itemRowsHtml);
-    populatedHtml = populatedHtml.replace('{{subtotal}}', (order.amount - emailShippingCost - emailGiftWrapPrice).toFixed(2));
+    populatedHtml = populatedHtml.replace('{{subtotal}}', (orderAmount - emailShippingCost - emailGiftWrapPrice).toFixed(2)); // Use orderAmount
     populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCost > 0 ? `₹${emailShippingCost.toFixed(2)}` : 'FREE');
     populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);
     populatedHtml = populatedHtml.replace('{{shippingAddressName}}', order.address.name);

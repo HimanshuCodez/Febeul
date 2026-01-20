@@ -69,11 +69,16 @@ export default function OrderSuccess() {
   }
 
   // --- Replace mock data with real data ---
-  const orderNumber = order._id.slice(-8).toUpperCase(); // Using last 8 chars of order ID
-  const estimatedDelivery = "Jan " + new Date(order.date).getDate() + "-" + new Date(new Date(order.date).setDate(new Date(order.date).getDate() + 5)).getDate() + ", " + new Date(order.date).getFullYear(); // Simple estimation
+    const formattedOrderNumber = order && order._id && order.date ? `FEB-WEB-${String(new Date(order.date).getFullYear()).slice(-2)}${String(new Date(order.date).getMonth() + 1).padStart(2, '0')}${String(new Date(order.date).getDate()).padStart(2, '0')}-${order._id.slice(-8).toUpperCase()}` : '';
+  
+    const orderNumber = formattedOrderNumber; // Assign the formatted string to orderNumber
+  
+    const estimatedDelivery = order && order.date 
+    ? "Jan " + new Date(order.date).getDate() + "-" + new Date(new Date(order.date).setDate(new Date(order.date).getDate() + 5)).getDate() + ", " + new Date(order.date).getFullYear()
+    : 'Not available'; // Simple estimation
   
   // Use pricing details if available, otherwise calculate
-  const subtotal = pricingDetails ? pricingDetails.subtotal : items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = pricingDetails ? pricingDetails.subtotal : items.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
   const shipping = pricingDetails ? pricingDetails.shippingCost : (order.paymentMethod === 'COD' ? 50 : 0); // Default shipping for COD if not provided
   const total = order.amount;
   // --- End of mock data replacement ---
@@ -324,7 +329,7 @@ export default function OrderSuccess() {
                     <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
                   </div>
                 </div>
-                <p className="font-bold text-gray-800">₹{(item.price * item.quantity).toFixed(2)}</p>
+                <p className="font-bold text-gray-800">₹{(parseFloat(item.price || 0) * parseFloat(item.quantity || 0)).toFixed(2)}</p>
               </motion.div>
             ))}
           </div>
