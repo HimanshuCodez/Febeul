@@ -18,7 +18,7 @@ userRouter.post('/verify-password-otp', verifyPasswordOtp);
 userRouter.post('/reset-password', resetPassword);
 
 // Wishlist Routes
-userRouter.post('/wishlist', authUser, getWishlist);
+userRouter.get('/wishlist', authUser, getWishlist);
 userRouter.post('/wishlist/add', authUser, addToWishlist);
 userRouter.post('/wishlist/remove', authUser, removeFromWishlist);
 
