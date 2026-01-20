@@ -39,6 +39,7 @@ export const createShiprocketOrder = async (order, token, paymentMethod) => {
             billing_customer_name: order.shippingAddress.name,
             billing_last_name: order.shippingAddress.lastName, 
             billing_address: order.shippingAddress.address,
+            billing_address_2: "", // Added this line for Shiprocket API
             billing_city: order.shippingAddress.city,
             billing_pincode: order.shippingAddress.pincode,
             billing_state: order.shippingAddress.state,
