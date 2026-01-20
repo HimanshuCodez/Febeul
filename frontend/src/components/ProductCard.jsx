@@ -68,6 +68,12 @@ const ProductCard = ({ product }) => {
       return;
     }
 
+    // Add validation for size and color
+    if (!activeVariation.size || !activeVariation.color) {
+      toast.error("Please select a size and color for the product.");
+      return;
+    }
+
     try {
       const response = await axios.post(`${backendUrl}/api/cart/add`, 
         { 

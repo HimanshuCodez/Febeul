@@ -3,15 +3,13 @@ import userModel from "../models/userModel.js"
 // add products to user cart
 const addToCart = async (req,res) => {
     try {
-        const { itemId, size, color } = req.body
-        const user = await userModel.findById(req.userId)
-
-        if (!user) {
-            return res.json({ success: false, message: "User not found" });
-        }
-
         if (!user.cartData) { 
             user.cartData = [];
+        } else {
+            // Filter out any malformed cartData entries before proceeding
+            user.cartData = user.cartData.filter(item => 
+                item && item.product && item.size && item.color && item.quantity !== undefined
+            );
         }
         
         const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
@@ -42,6 +40,11 @@ const updateCart = async (req,res) => {
 
         if (!user.cartData) { 
             user.cartData = [];
+        } else {
+            // Filter out any malformed cartData entries before proceeding
+            user.cartData = user.cartData.filter(item => 
+                item && item.product && item.size && item.color && item.quantity !== undefined
+            );
         }
         
         const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
@@ -69,6 +72,18 @@ const removeFromCart = async (req, res) => {
     try {
         const { itemId, size, color } = req.body;
         const user = await userModel.findById(req.userId);
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+        
+        if (!user.cartData) { 
+            user.cartData = [];
+        } else {
+            user.cartData = user.cartData.filter(item => 
+                item && item.product && item.size && item.color && item.quantity !== undefined
+            );
+        }
         
         const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
@@ -97,6 +112,11 @@ const getUserCart = async (req,res) => {
 
         if (!user.cartData) { 
             user.cartData = [];
+        } else {
+            // Filter out any malformed cartData entries before proceeding
+            user.cartData = user.cartData.filter(item => 
+                item && item.product && item.size && item.color && item.quantity !== undefined
+            );
         }
 
         // The cartItems are now populated with product details
