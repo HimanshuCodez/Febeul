@@ -20,9 +20,8 @@ const Cart = () => {
     }
     try {
       setLoading(true);
-      const response = await axios.post(
+      const response = await axios.get(
         `${backendUrl}/api/cart/get`,
-        { userId: user._id },
         { headers: { token } }
       );
       if (response.data.success) {

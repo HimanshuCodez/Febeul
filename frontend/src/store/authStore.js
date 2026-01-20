@@ -17,7 +17,7 @@ const useAuthStore = create((set, get) => ({
       return;
     }
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/wishlist`, { userId: user._id }, {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/wishlist`, {
         headers: { token }
       });
       if (response.data.success) {
@@ -36,7 +36,7 @@ const useAuthStore = create((set, get) => ({
       return;
     }
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/cart/get`, { userId: user._id }, {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cart/get`, {
         headers: { token }
       });
       if (response.data.success) {

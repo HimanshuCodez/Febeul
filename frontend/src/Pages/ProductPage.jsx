@@ -81,8 +81,7 @@ const ProductDetailPage = () => {
     const checkWishlist = async () => {
       if (isAuthenticated && user) {
         try {
-          const response = await axios.post(`${backendUrl}/api/user/wishlist`, 
-          { userId: user._id },
+          const response = await axios.get(`${backendUrl}/api/user/wishlist`, 
           {
             headers: { token },
           });
