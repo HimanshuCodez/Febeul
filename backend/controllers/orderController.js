@@ -9,6 +9,7 @@ import { sendEmail } from '../utils/sendEmail.js'; // New import for email utili
 import fs from 'fs'; // For reading email template
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import path from 'path';
 
 // Re-define __dirname in this context for template path resolution
 const __filenameController = fileURLToPath(import.meta.url);
