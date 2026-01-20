@@ -1,49 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaCheck, FaTimes } from 'react-icons/fa';
+import axios from 'axios';
 
-const giftWraps = [
-  {
-    id: 1,
-    name: "Classic Elegance",
-    image: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 2,
-    name: "Rose Gold Shimmer",
-    image: "https://images.unsplash.com/photo-1512909006721-3d6018887383?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 3,
-    name: "Floral Dreams",
-    image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 4,
-    name: "Minimalist Chic",
-    image: "https://images.unsplash.com/photo-1544558103-ec2c3c5b0e9e?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 5,
-    name: "Luxury Satin",
-    image: "https://images.unsplash.com/photo-1464998857633-50e59fbf2fe6?w=400&h=400&fit=crop",
-    price: 30
-  },
-  {
-    id: 6,
-    name: "Festive Sparkle",
-    image: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=400&h=400&fit=crop",
-    price: 30
-  }
-];
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
   const [selectedWrap, setSelectedWrap] = useState(null);
   const [giftMessage, setGiftMessage] = useState('');
+  const [giftWraps, setGiftWraps] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchGiftWraps = async () => {
+        setLoading(true);
+        try {
+          const response = await axios.get(`${backendUrl}/api/giftwrap/list`);
+          if (response.data.success) {
+            setGiftWraps(response.data.data);
+          } else {
+            console.error("Failed to load gift wraps");
+          }
+        } catch (error) {
+          console.error("Error fetching gift wraps:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchGiftWraps();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -68,30 +55,36 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
           </button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto p-2">
-          {giftWraps.map((wrap) => (
-            <div
-              key={wrap.id}
-              onClick={() => setSelectedWrap(wrap)}
-              className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                selectedWrap?.id === wrap.id ? 'border-pink-500' : 'border-gray-200 hover:border-pink-300'
-              }`}
-            >
-                <div className="relative">
-                  <img src={wrap.image} alt={wrap.name} className="w-full h-40 object-cover" />
-                  {selectedWrap?.id === wrap.id && (
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white">
-                        <FaCheck />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 text-center">
-                  <p className="font-semibold text-gray-700">{wrap.name}</p>
-                  <p className="text-pink-500 font-bold">₹{wrap.price}</p>
-                </div>
+          {loading ? (
+            <div className="col-span-full text-center p-8">
+              <p>Loading wraps...</p>
             </div>
-          ))}
+          ) : (
+            giftWraps.map((wrap) => (
+              <div
+                key={wrap._id}
+                onClick={() => setSelectedWrap(wrap)}
+                className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                  selectedWrap?._id === wrap._id ? 'border-pink-500' : 'border-gray-200 hover:border-pink-300'
+                }`}
+              >
+                  <div className="relative">
+                    <img src={wrap.image} alt={wrap.name} className="w-full h-40 object-cover" />
+                    {selectedWrap?._id === wrap._id && (
+                      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white">
+                          <FaCheck />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 text-center">
+                    <p className="font-semibold text-gray-700">{wrap.name}</p>
+                    <p className="text-pink-500 font-bold">₹{wrap.price}</p>
+                  </div>
+              </div>
+            ))
+          )}
         </div>
         <div className="mt-4">
           <label htmlFor="gift-message" className="block text-sm font-medium text-gray-700 mb-1">
