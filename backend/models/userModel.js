@@ -12,9 +12,9 @@ const userSchema = new mongoose.Schema({
     otp_expiry: { type: Date },
     cartData: [{
         product: { type: mongoose.Schema.Types.ObjectId, ref: 'product' },
-        size: { type: String, required: true },
-        quantity: { type: Number, required: true },
-        color: { type: String, required: true }
+        size: { type: String, },
+        quantity: { type: Number,  },
+        color: { type: String,}
     }],
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }],
     addresses: [{
