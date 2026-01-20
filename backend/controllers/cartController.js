@@ -3,14 +3,14 @@ import userModel from "../models/userModel.js"
 // add products to user cart
 const addToCart = async (req,res) => {
     try {
-        const { userId, itemId, size, color } = req.body
-        const user = await userModel.findById(userId)
+        const { itemId, size, color } = req.body
+        const user = await userModel.findById(req.userId)
 
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
 
-        if (!Array.isArray(user.cartData)) {
+        if (!user.cartData) { 
             user.cartData = [];
         }
         
@@ -33,14 +33,14 @@ const addToCart = async (req,res) => {
 // update user cart
 const updateCart = async (req,res) => {
     try {
-        const { userId ,itemId, size, quantity, color } = req.body
-        const user = await userModel.findById(userId)
+        const { itemId, size, quantity, color } = req.body
+        const user = await userModel.findById(req.userId)
 
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
 
-        if (!Array.isArray(user.cartData)) {
+        if (!user.cartData) { 
             user.cartData = [];
         }
         
@@ -67,16 +67,8 @@ const updateCart = async (req,res) => {
 // remove products from user cart
 const removeFromCart = async (req, res) => {
     try {
-        const { userId, itemId, size, color } = req.body;
-        const user = await userModel.findById(userId);
-
-        if (!user) {
-            return res.json({ success: false, message: "User not found" });
-        }
-
-        if (!Array.isArray(user.cartData)) {
-            user.cartData = [];
-        }
+        const { itemId, size, color } = req.body;
+        const user = await userModel.findById(req.userId);
         
         const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
@@ -95,7 +87,7 @@ const removeFromCart = async (req, res) => {
 // get user cart data
 const getUserCart = async (req,res) => {
     try {
-        const user = await userModel.findById(req.body.userId).populate({
+        const user = await userModel.findById(req.userId).populate({
             path: 'cartData.product'
         });
         
@@ -103,7 +95,7 @@ const getUserCart = async (req,res) => {
             return res.json({ success: false, message: "User not found" });
         }
 
-        if (!Array.isArray(user.cartData)) {
+        if (!user.cartData) { 
             user.cartData = [];
         }
 

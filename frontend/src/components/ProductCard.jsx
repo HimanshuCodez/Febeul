@@ -21,8 +21,7 @@ const ProductCard = ({ product }) => {
       if (isAuthenticated && user) {
         try {
           const response = await axios.get(`${backendUrl}/api/user/wishlist`, {
-            headers: { token },
-            params: { userId: user._id }
+            headers: { token }
           });
           if (response.data.success) {
             const isProductInWishlist = response.data.wishlist.some(item => item._id === product._id);
@@ -48,7 +47,7 @@ const ProductCard = ({ product }) => {
     const endpoint = isWishlisted ? 'remove' : 'add';
     try {
       const response = await axios.post(`${backendUrl}/api/user/wishlist/${endpoint}`, 
-        { userId: user._id, productId: product._id },
+        { productId: product._id },
         { headers: { token } }
       );
       if (response.data.success) {
@@ -58,6 +57,33 @@ const ProductCard = ({ product }) => {
       }
     } catch (error) {
       toast.error("Failed to update wishlist.");
+    }
+  };
+
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error("Please log in to add items to your cart.");
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${backendUrl}/api/cart/add`, 
+        { 
+          itemId: product._id, 
+          size: activeVariation.size, 
+          color: activeVariation.color 
+        },
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        toast.success("Added to cart!");
+        // Optionally, you might want to fetch cart count or update cart state here
+      }
+    } catch (error) {
+      console.error("Error adding to cart", error);
+      toast.error("Failed to add to cart.");
     }
   };
 
@@ -115,7 +141,11 @@ const ProductCard = ({ product }) => {
               />
             </button>
 
-            <button title="Add to Cart" className="bg-white p-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-pink-50">
+            <button
+              title="Add to Cart"
+              onClick={handleAddToCart}
+              className="bg-white p-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-pink-50"
+            >
               <ShoppingCart className="w-5 h-5 text-gray-700" />
             </button>
           </div>

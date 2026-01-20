@@ -332,7 +332,7 @@ const getAllUsers = async (req, res) => {
 // Get user's wishlist
 const getWishlist = async (req, res) => {
     try {
-        const user = await userModel.findById(req.body.userId).populate('wishlist');
+        const user = await userModel.findById(req.userId).populate('wishlist');
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
@@ -346,15 +346,8 @@ const getWishlist = async (req, res) => {
 // Add to wishlist
 const addToWishlist = async (req, res) => {
     try {
-        const { userId, productId } = req.body;
-        const user = await userModel.findById(userId);
-        if (!user) {
-            return res.json({ success: false, message: "User not found" });
-        }
-
-        if (!Array.isArray(user.cartData)) {
-            user.cartData = [];
-        }
+        const { productId } = req.body;
+        const user = await userModel.findById(req.userId);
 
         if (!user.wishlist.includes(productId)) {
             user.wishlist.push(productId);
@@ -370,15 +363,8 @@ const addToWishlist = async (req, res) => {
 // Remove from wishlist
 const removeFromWishlist = async (req, res) => {
     try {
-        const { userId, productId } = req.body;
-        const user = await userModel.findById(userId);
-        if (!user) {
-            return res.json({ success: false, message: "User not found" });
-        }
-
-        if (!Array.isArray(user.cartData)) {
-            user.cartData = [];
-        }
+        const { productId } = req.body;
+        const user = await userModel.findById(req.userId);
         
         user.wishlist = user.wishlist.filter((id) => id.toString() !== productId);
         await user.save();
