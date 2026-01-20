@@ -39,10 +39,11 @@ const ForgotPassword = () => {
     clearError();
     if (step === 1) {
       try {
-        const response = await forgotPassword(data.email);
+        const emailToProcess = data.email.toLowerCase();
+        const response = await forgotPassword(emailToProcess);
         if (response.success) {
           toast.success(response.message || "OTP sent to your email.");
-          setEmail(data.email);
+          setEmail(emailToProcess);
           setStep(2);
         } else {
           toast.error(response.message || "Failed to send OTP.");

@@ -3,7 +3,7 @@ import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCrown } from "react-icons/fa"; // Add FaCrown
+import { FaCrown, FaBusAlt } from "react-icons/fa"; // Add FaCrown
 
 export default function FebeulLuxe() {
   const { user, token, isAuthenticated, getProfile } = useAuthStore();
@@ -164,7 +164,7 @@ export default function FebeulLuxe() {
 
         {/* Item 1 */}
         <div>
-         <img src="/2.png" className="mx-auto h-48" />
+         <FaBusAlt className="mx-auto h-16 w-auto text-red-500" />
           <p className=" font-bold text-black">FAST PRIORITY DELIVERY</p>
         </div>
 
@@ -193,7 +193,7 @@ export default function FebeulLuxe() {
         {/* Item 4 */}
         <div>
           {/* ICON HERE */}
-          <img src="/4.png" className="mx-auto h-48" />
+          <img src="/bags.png" className="mx-auto h-40" />
           <p className="mt-4 font-bold text-black">COUPONS EVERY PURCHASE</p>
         </div>
 

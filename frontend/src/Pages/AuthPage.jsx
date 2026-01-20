@@ -15,6 +15,7 @@ const AuthPage = () => {
   const [step, setStep] = useState(1);
   const [timer, setTimer] = useState(60);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [signupFormData, setSignupFormData] = useState(null);
   const { login, register: signup, isAuthenticated, error, loading, clearError, setToken, googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,6 +102,7 @@ const AuthPage = () => {
       }
     } else { // This is Signup
       if (step === 1) { 
+        setSignupFormData(data); // Store data
         await sendSignupOtp();
       } else if (step === 2) {
         try {
@@ -113,10 +115,10 @@ const AuthPage = () => {
           if (verifyResponse.data.success) {
             toast.success('Email verified successfully!');
             await signup({
-              name: getValues('name'),
+              name: signupFormData.name,
               email: email,
-              mobile: getValues('mobile'),
-              password: getValues('password')
+              mobile: signupFormData.mobile,
+              password: signupFormData.password
             });
           } else {
             toast.error(verifyResponse.data.message || 'Invalid OTP.');

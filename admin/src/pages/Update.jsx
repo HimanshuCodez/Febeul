@@ -184,6 +184,14 @@ const Update = ({ token }) => {
                         <p className='mb-2'>Color</p>
                         <input name='color' onChange={(e)=>handleVariationChange(index,e)} value={variation.color} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='e.g. Red' required/>
                     </div>
+                    <div className='w-full'>
+                        <p className='mb-2'>Price</p>
+                        <input name='price' onChange={(e)=>handleVariationChange(index,e)} value={variation.price} className='w-full max-w-[500px] px-3 py-2' type="Number" placeholder='e.g. 25' required/>
+                    </div>
+                    <div className='w-full'>
+                        <p className='mb-2'>MRP</p>
+                        <input name='mrp' onChange={(e)=>handleVariationChange(index,e)} value={variation.mrp} className='w-full max-w-[500px] px-3 py-2' type="Number" placeholder='e.g. 45' required/>
+                    </div>
                     <div>
                         <p className='mb-2'>Images</p>
                         <div className='flex gap-2 flex-wrap'>
@@ -234,14 +242,7 @@ const Update = ({ token }) => {
                         <option value="Winterwear">Winterwear</option>
                     </select>
                 </div>
-                <div>
-                    <p className='mb-2'>Product Price</p>
-                    <input onChange={(e) => setPrice(e.target.value)} value={price} className='w-full px-3 py-2 sm:w-[120px]' type="Number" placeholder='25' />
-                </div>
-                <div>
-                    <p className='mb-2'>Product MRP</p>
-                    <input onChange={(e) => setMrp(e.target.value)} value={mrp} className='w-full px-3 py-2 sm:w-[120px]' type="Number" placeholder='45' />
-                </div>
+                
             </div>
 
             <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl'>
