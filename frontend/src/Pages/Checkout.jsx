@@ -68,9 +68,8 @@ export default function CheckoutPage() {
     const fetchCart = async () => {
       if (!user) return;
       try {
-        const response = await axios.post(
+        const response = await axios.get(
           `${backendUrl}/api/cart/get`,
-          { userId: user._id },
           { headers: { token } }
         );
         if (response.data.success) {
