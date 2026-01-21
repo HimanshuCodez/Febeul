@@ -171,7 +171,7 @@ const placeOrder = async (req,res) => {
 const placeOrderStripe = async (req,res) => {
     try {
         
-        const { userId, items, amount, address} = req.body
+        const { userId, items, amount, address, currency} = req.body
         const { origin } = req.headers;
 
         const orderData = {
@@ -294,7 +294,7 @@ const verifyStripe = async (req,res) => {
 const placeOrderRazorpay = async (req,res) => {
     try {
         
-        const { userId, items, amount, address} = req.body
+        const { userId, items, amount, address, currency} = req.body
 
         const orderData = {
             userId,

@@ -197,6 +197,7 @@ export default function CheckoutPage() {
         amount: total,
         address: addresses[selectedAddress],
         giftWrap: selectedGiftWrap,
+        currency: 'INR',
       };
       
       const orderResponse = await axios.post(`${backendUrl}/api/order/razorpay`, orderPayload, { headers: { token } });
@@ -211,7 +212,7 @@ export default function CheckoutPage() {
       const options = {
         key: razorpayKey,
         amount: order.amount,
-        currency: order.currency,
+        currency: "INR",
         name: "FEBEUL",
         description: "Order Payment",
         order_id: order.id,
