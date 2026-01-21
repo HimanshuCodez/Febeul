@@ -144,8 +144,9 @@ export default function FebeulLuxe() {
               <div className="flex items-center gap-3">
                 <FaCrown className="text-2xl" />
                 <div>
-                  <p className="font-semibold text-sm">Join Febeul Luxe Today!</p>
-                  <p className="text-xs opacity-90">Unlock exclusive sales and premium benefits!</p>
+                  <p className="font-bold text-lg">Join Febeul Luxe Today!</p>
+                  <p className="text-sm font-mediuopacity-90">Unlock exclusive sales and premium benefits!</p>
+                  <p className="text-xs font-bold text-black mt-1 animate-pulse">Sale products only available after purchasing Luxe membership.</p>
                 </div>
               </div>
               <button 
