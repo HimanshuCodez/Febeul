@@ -78,7 +78,7 @@ export default function OrderSuccess() {
     : 'Not available'; // Simple estimation
   
   // Use pricing details if available, otherwise calculate
-  const subtotal = pricingDetails ? pricingDetails.subtotal : items.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
+  const subtotal = pricingDetails ? pricingDetails.subtotal : order.items.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
   const shipping = pricingDetails ? pricingDetails.shippingCost : (order.paymentMethod === 'COD' ? 50 : 0); // Default shipping for COD if not provided
   const total = order.amount;
   // --- End of mock data replacement ---
@@ -314,16 +314,16 @@ export default function OrderSuccess() {
           </h3>
 
           <div className="space-y-4 mb-4">
-            {items.map((item, index) => (
+            {order.items.map((item, index) => (
               <motion.div
-                key={item._id + item.size}
+                key={item.productId + item.size}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7 + (index * 0.1) }}
                 className="flex items-center justify-between pb-4 border-b border-gray-200 last:border-0"
               >
                 <div className="flex items-center flex-1">
-                  <img src={item.variations?.[0]?.images?.[0]} className="w-12 h-12 object-cover mr-3 rounded" />
+                  <img src={item.image} className="w-12 h-12 object-cover mr-3 rounded" />
                   <div>
                     <p className="font-medium text-gray-800">{item.name}</p>
                     <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
