@@ -27,36 +27,62 @@ const buildInvoicePDF = (order, res) => {
         // Company Header with Logo
         try {
             const logoPath = path.resolve(__dirname, '../../frontend/public/removebgLogo.png');
+            // Pink background for logo
+            doc.fillColor('#f9aeaf').rect(45, 35, 110, 45).fill();
             doc.image(logoPath, 50, 40, { width: 100 });
         } catch (imgError) {
             console.error("Error loading logo image in invoice generator:", imgError);
-            // Continue without image or handle more gracefully
         }
         
-        doc.fontSize(20).font('Helvetica-Bold').text('INVOICE', 0, 60, { align: 'right' });
+        doc.fontSize(20).font('Helvetica-Bold').text('Tax Invoice', 0, 60, { align: 'right' });
         doc.fontSize(10).font('Helvetica').text('FEBEUL', 0, 85, { align: 'right' });
         doc.text('Your Slogan Here', 0, 100, { align: 'right' }); // Placeholder for slogan
-        doc.moveDown(4); // Move down enough to clear header content
-
-        // Order Details and Billing Information
-        doc.fontSize(12).font('Helvetica-Bold').text('Invoice Details:', 50, doc.y);
-        doc.font('Helvetica').fontSize(10);
-        doc.text(`Invoice #: ${order._id.toString()}`, 50, doc.y + 15);
-        doc.text(`Order Date: ${new Date(order.date).toLocaleDateString()}`, 50, doc.y + 30);
-        doc.text(`Payment Method: ${order.paymentMethod}`, 50, doc.y + 45);
         doc.moveDown(4);
 
-        doc.fontSize(12).font('Helvetica-Bold').text('Billed To:', 50, doc.y);
+        // Seller and Invoice Details
+        const sellerY = doc.y;
+        doc.fontSize(11).font('Helvetica-Bold').text('Sold By:', 50, sellerY);
         doc.font('Helvetica').fontSize(10);
-        doc.text(`${order.address.name}`, 50, doc.y + 15);
-        doc.text(`${order.address.address}`, 50, doc.y + 30);
-        doc.text(`${order.address.city}, ${order.address.zip}`, 50, doc.y + 45);
-        doc.text(`${order.address.country}`, 50, doc.y + 60);
-        doc.text(`Phone: ${order.address.phone}`, 50, doc.y + 75);
+        doc.text('FEBEUL', 50, sellerY + 15);
+        doc.text('123 Beauty Lane, Glamour City, 110001', 50, sellerY + 30);
+        // TODO: Replace with your actual GSTIN and PAN
+        doc.text('GSTIN: 07BGQPY8326L1ZC', 50, sellerY + 45);
+        doc.text('PAN: BGQPY8326L', 50, sellerY + 60);
+
+        doc.fontSize(11).font('Helvetica-Bold').text('Invoice Details:', 300, sellerY);
+        doc.font('Helvetica').fontSize(10);
+        doc.text(`Invoice #: ${order._id.toString()}`, 300, sellerY + 15);
+        const orderDate = new Date(order.date).toLocaleDateString();
+        doc.text(`Invoice Date: ${orderDate}`, 300, sellerY + 30);
+        doc.text(`Order Date: ${orderDate}`, 300, sellerY + 45);
+        doc.text(`Payment Method: ${order.paymentMethod}`, 300, sellerY + 60);
+        doc.y = sellerY + 80;
+
+
+        // Billing and Shipping Addresses
+        const addressY = doc.y;
+        doc.fontSize(11).font('Helvetica-Bold').text('Billing Address:', 50, addressY);
+        doc.text('Shipping Address:', 300, addressY);
+        doc.font('Helvetica').fontSize(10);
+        let billY = addressY + 15;
+        doc.text(`${order.address.name}`, 50, billY);
+        doc.text(`${order.address.address}`, 50, billY += 15);
+        doc.text(`${order.address.city}, ${order.address.zip}`, 50, billY += 15);
+        doc.text(`${order.address.country}`, 50, billY += 15);
+        doc.text(`Phone: ${order.address.phone}`, 50, billY += 15);
+        
+        let shipY = addressY + 15;
+        doc.text(`${order.address.name}`, 300, shipY);
+        doc.text(`${order.address.address}`, 300, shipY += 15);
+        doc.text(`${order.address.city}, ${order.address.zip}`, 300, shipY += 15);
+        doc.text(`${order.address.country}`, 300, shipY += 15);
+        doc.text(`Phone: ${order.address.phone}`, 300, shipY += 15);
+
         if (order.userId && order.userId.email) {
-            doc.text(`Email: ${order.userId.email}`, 50, doc.y + 90);
+            const emailY = Math.max(billY, shipY) + 15;
+            doc.text(`Email: ${order.userId.email}`, 50, emailY);
         }
-        doc.moveDown(2);
+        doc.y = Math.max(billY, shipY) + 30;
 
 
         // Items Table Headers
@@ -98,38 +124,42 @@ const buildInvoicePDF = (order, res) => {
         doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(itemColX, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
         doc.moveDown();
 
-        // Totals Calculation (replicated from frontend logic in Checkout.jsx)
+        // Totals Calculation
         const invoiceItemSubtotal = order.items.reduce((sum, item) => sum + ((item.productId ? item.productId.price : 0) * item.quantity), 0);
+        const taxableValue = invoiceItemSubtotal / 1.18;
+        const gst = invoiceItemSubtotal - taxableValue;
+        const cgst = gst / 2;
+        const sgst = gst / 2;
         const invoiceShippingCost = order.paymentMethod === 'COD' ? 50 : 0; 
         const invoiceGiftWrapPrice = order.giftWrap ? order.giftWrap.price : 0;
 
         const totalsLabelX = 350; // Start x for labels
         const totalsValueX = 480; // Start x for values
-        const totalsWidth = 100; // Width for values
+        
+        const addTotalRow = (label, value) => {
+            doc.text(label, totalsLabelX, doc.y, { width: 120, align: 'right' });
+            doc.text(value, totalsValueX, doc.y - doc.heightOfString(label), { width: 50, align: 'right' });
+            doc.moveDown(0.7);
+        };
         
         doc.font('Helvetica').fontSize(10);
-        doc.text(`Subtotal:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-        doc.text(`₹${invoiceItemSubtotal.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Subtotal:'), { width: 50, align: 'right' });
-        doc.moveDown();
+        addTotalRow('Taxable Value:', `₹${taxableValue.toFixed(2)}`);
+        addTotalRow('CGST (9%):', `₹${cgst.toFixed(2)}`);
+        addTotalRow('SGST (9%):', `₹${sgst.toFixed(2)}`);
         
         if (invoiceShippingCost > 0) {
-            doc.text(`Shipping:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-            doc.text(`₹${invoiceShippingCost.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Shipping:'), { width: 50, align: 'right' });
-            doc.moveDown();
+            addTotalRow('Shipping:', `₹${invoiceShippingCost.toFixed(2)}`);
         } else {
-            doc.text(`Shipping:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-            doc.text(`FREE`, totalsValueX, doc.y - doc.heightOfString('Shipping:'), { width: 50, align: 'right' });
-            doc.moveDown();
+            addTotalRow('Shipping:', 'FREE');
         }
 
         if (invoiceGiftWrapPrice > 0) {
-            doc.text(`Gift Wrap:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-            doc.text(`₹${invoiceGiftWrapPrice.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Gift Wrap:'), { width: 50, align: 'right' });
-            doc.moveDown();
+            addTotalRow('Gift Wrap:', `₹${invoiceGiftWrapPrice.toFixed(2)}`);
         }
 
-        doc.font('Helvetica-Bold').fontSize(12).text(`Total:`, totalsLabelX, doc.y, { width: totalsWidth, align: 'right' });
-        doc.text(`₹${order.amount.toFixed(2)}`, totalsValueX, doc.y - doc.heightOfString('Total:'), { width: 50, align: 'right' });
+        doc.moveDown(0.5);
+        doc.font('Helvetica-Bold').fontSize(12);
+        addTotalRow('Total:', `₹${order.amount.toFixed(2)}`);
         doc.moveDown();
 
         // Thank You message

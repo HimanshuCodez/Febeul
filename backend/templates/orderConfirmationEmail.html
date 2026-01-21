@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmation - Febeul</title>
+    <title>Tax Invoice - Febeul</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
         .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
@@ -11,9 +11,9 @@
         .header img { max-height: 50px; margin-bottom: 10px;}
         .header h1 { color: #fff; margin: 0; font-size: 24px; }
         .content { padding: 20px; }
-        .content h2 { color: #e8767a; font-size: 20px; margin-bottom: 15px; }
-        .order-details, .shipping-address, .payment-info { margin-bottom: 20px; border-top: 1px solid #eee; padding-top: 15px; }
-        .order-details p, .shipping-address p, .payment-info p { margin: 5px 0; font-size: 14px; }
+        .content h2 { color: #e8767a; font-size: 20px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
+        .order-details, .shipping-address, .payment-info, .seller-info, .billing-address { margin-bottom: 20px; padding-top: 15px; }
+        .order-details p, .shipping-address p, .payment-info p, .seller-info p, .billing-address p { margin: 5px 0; font-size: 14px; }
         .item-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         .item-table th, .item-table td { border: 1px solid #eee; padding: 10px; text-align: left; font-size: 14px; }
         .item-table th { background-color: #f9f9f9; }
@@ -21,24 +21,51 @@
         .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 20px; }
         .button { display: inline-block; background-color: #e8767a; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px; margin-top: 20px; }
         .button:hover { background-color: #d5666a; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://i.postimg.cc/brz9vx2j/removebg-Logo.png" alt="Febeul Logo"> <!-- Hosted logo URL -->
-            <h1>Order Confirmed!</h1>
+            <img src="https://i.postimg.cc/brz9vx2j/removebg-Logo.png" alt="Febeul Logo">
+            <h1>Tax Invoice</h1>
         </div>
         <div class="content">
-            <p>Hi {{userName}},</p>
-            <p>Thank you for your order from Febeul. We're excited for you to receive your items!</p>
-
-            <div class="order-details">
-                <h2>Order Details</h2>
-                <p><strong>Order ID:</strong> {{orderId}}</p>
-                <p><strong>Order Date:</strong> {{orderDate}}</p>
-                <p><strong>Total Amount:</strong> ₹{{totalAmount}}</p>
+            <div class="grid-container">
+                <div class="seller-info">
+                    <h2>Sold By:</h2>
+                    <p><strong>FEBEUL</strong></p>
+                    <p>123 Beauty Lane, Glamour City, 110001</p>
+                    <p><strong>GSTIN:</strong> {{sellerGSTIN}}</p>
+                    <p><strong>PAN:</strong> {{sellerPAN}}</p>
+                </div>
+                <div class="order-details">
+                    <h2>Invoice Details:</h2>
+                    <p><strong>Invoice No:</strong> {{invoiceNumber}}</p>
+                    <p><strong>Invoice Date:</strong> {{invoiceDate}}</p>
+                    <p><strong>Order ID:</strong> {{orderId}}</p>
+                    <p><strong>Order Date:</strong> {{orderDate}}</p>
+                </div>
             </div>
+             <div class="grid-container">
+                <div class="billing-address">
+                    <h2>Billing Address:</h2>
+                    <p><strong>{{shippingAddressName}}</strong></p>
+                    <p>{{shippingAddressAddress}}</p>
+                    <p>{{shippingAddressCity}}, {{shippingAddressZip}}</p>
+                    <p>{{shippingAddressCountry}}</p>
+                </div>
+    
+                <div class="shipping-address">
+                    <h2>Shipping Address:</h2>
+                    <p><strong>{{shippingAddressName}}</strong></p>
+                    <p>{{shippingAddressAddress}}</p>
+                    <p>{{shippingAddressCity}}, {{shippingAddressZip}}</p>
+                    <p>{{shippingAddressCountry}}</p>
+                    <p>Phone: {{shippingAddressPhone}}</p>
+                </div>
+            </div>
+
 
             <table class="item-table">
                 <thead>
@@ -54,8 +81,16 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="3" style="text-align:right;">Subtotal:</td>
-                        <td>₹{{subtotal}}</td>
+                        <td colspan="3" style="text-align:right;">Taxable Value:</td>
+                        <td>₹{{taxableValue}}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" style="text-align:right;">CGST (9%):</td>
+                        <td>₹{{cgst}}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" style="text-align:right;">SGST (9%):</td>
+                        <td>₹{{sgst}}</td>
                     </tr>
                     <tr>
                         <td colspan="3" style="text-align:right;">Shipping:</td>
@@ -68,15 +103,6 @@
                     </tr>
                 </tfoot>
             </table>
-
-            <div class="shipping-address">
-                <h2>Shipping Address</h2>
-                <p><strong>{{shippingAddressName}}</strong></p>
-                <p>{{shippingAddressAddress}}</p>
-                <p>{{shippingAddressCity}}, {{shippingAddressZip}}</p>
-                <p>{{shippingAddressCountry}}</p>
-                <p>Phone: {{shippingAddressPhone}}</p>
-            </div>
 
             <div class="payment-info">
                 <h2>Payment Information</h2>
