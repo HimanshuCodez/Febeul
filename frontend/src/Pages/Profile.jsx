@@ -32,7 +32,7 @@ export default function Profile() {
     try {
       const response = await axios.post(`${backendUrl}/api/order/userorders`, {}, { headers: { token } });
       if (response.data.success) {
-        setOrders(response.data.data.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        setOrders(response.data.orders.sort((a, b) => new Date(b.date) - new Date(a.date)));
       }
     } catch (error) {
       toast.error("Failed to fetch orders.");
@@ -303,24 +303,34 @@ const OrderHistory = ({ orders, onOrderSelect }) => (
       {orders.length > 0 ? (
           <div className="space-y-4">
           {orders.map(order => (
-              <div key={order._id} className="p-4 rounded-lg border hover:border-pink-200 hover:bg-pink-50/50 transition-colors flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                <div className="mb-2 sm:mb-0">
-                  <p className="font-semibold text-gray-800">Order #{order._id.slice(-6)}</p>
-                  <p className="text-sm text-gray-500">{new Date(order.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} &bull; {order.items.length} items</p>
+              <div key={order._id} className="p-4 rounded-lg border hover:border-pink-200 hover:bg-pink-50/50 transition-colors">
+                {/* Mobile: Grid for Order ID/Date vs Amount */}
+                <div className="grid grid-cols-2 gap-x-4 items-center justify-between mb-2 sm:flex sm:flex-row sm:mb-0">
+                    <div> {/* Left side: Order ID and Date */}
+                        <p className="font-semibold text-gray-800">Order #{order._id.slice(-6)}</p>
+                        <p className="text-xs text-gray-500">{new Date(order.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    </div>
+                    <div className="text-right sm:text-left"> {/* Right side: Amount */}
+                        <p className="font-bold text-gray-800 text-lg">₹{order.amount.toFixed(2)}</p>
+                    </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <p className="font-semibold text-gray-700">₹{order.amount.toFixed(2)}</p>
-                  <span className={`text-xs font-medium px-3 py-1 rounded-full capitalize ${
-                    order.status === "Food Processing" ? "bg-yellow-100 text-yellow-700" :
-                    order.status === "Out for delivery" ? "bg-blue-100 text-blue-700" :
-                    order.status === "Delivered" ? "bg-green-100 text-green-700" :
-                    "bg-gray-100 text-gray-700"
-                  }`}>
-                    {order.status}
-                  </span>
-                  <button onClick={() => onOrderSelect(order)} className="text-pink-500 hover:text-pink-700">
-                    <ArrowRight size={20} />
-                  </button>
+
+                {/* Mobile: Items Count, Status, and Details Button */}
+                <div className="flex justify-between items-center mt-2 sm:mt-0">
+                    <p className="text-sm text-gray-500">{order.items.length} items</p>
+                    <div className="flex items-center space-x-2">
+                        <span className={`text-xs font-medium px-3 py-1 rounded-full capitalize ${
+                            order.orderStatus === "Food Processing" ? "bg-yellow-100 text-yellow-700" :
+                            order.orderStatus === "Out for delivery" ? "bg-blue-100 text-blue-700" :
+                            order.orderStatus === "Delivered" ? "bg-green-100 text-green-700" :
+                            "bg-gray-100 text-gray-700"
+                        }`}>
+                            {order.orderStatus}
+                        </span>
+                        <button onClick={() => onOrderSelect(order)} className="text-pink-500 hover:text-pink-700">
+                            <ArrowRight size={20} />
+                        </button>
+                    </div>
                 </div>
               </div>
           ))}

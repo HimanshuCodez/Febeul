@@ -371,82 +371,78 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Menu Overlay and Content */}
+      {/* Mobile Menu Overlay and Content */}
+      <div
+        className={`fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 block' : 'opacity-0 hidden'}`}
+        onClick={() => setIsMenuOpen(false)} // Close when clicking overlay
+      >
         <div
-          className={`fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity duration-300 ${
-            isMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          } md:hidden`}
-          onClick={() => setIsMenuOpen(false)} // Close when clicking overlay
+          className={`fixed top-0 left-0 h-full w-64 bg-white shadow-xl transform transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          onClick={(e) => e.stopPropagation()} // Prevent closing when clicking menu content
         >
-          <div
-            className={`fixed inset-y-0 left-0 w-64 bg-white shadow-xl transform transition-transform duration-300 ${
-              isMenuOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking menu content
-          >
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-800">Menu</h2>
-              <button onClick={() => setIsMenuOpen(false)} className="text-gray-500 hover:text-gray-800">
-                <X className="h-6 w-6" />
-              </button>
-            </div>
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-800">Menu</h2>
+            <button onClick={() => setIsMenuOpen(false)} className="text-gray-500 hover:text-gray-800">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
 
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {navigation.map((item, index) => (
-                <div key={index}>
-                  <Link
-                    to={item.megaMenu ? "#" : (
-                      item.title === "GIFT WRAP 🎁"
-                        ? "/GiftWrap"
-                        : item.title === "LUXE PRIVE SALE"
-                        ? "/luxe"
-                        : item.title === "NEW & NOW"
-                        ? "/new-and-now"
-                        : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
-                    )}
-                    onClick={(e) => item.megaMenu && e.preventDefault()}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                  >
-                    {item.title}
-                  </Link>
-                  {item.megaMenu && (
-                    <div className="pl-4">
-                      {Object.entries(item.megaMenu).map(
-                        ([category, links], catIndex) => (
-                          <div key={catIndex}>
-                            <h3 className="px-3 py-2 text-sm font-semibold text-gray-600">
-                              {category}
-                            </h3>
-                            <div className="pl-4">
-                              {links.map((link, linkIndex) => (
-                              <Link
-                                  key={linkIndex}
-                                  to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/ /g, "-")}`}
-                                  className="block px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                                >
-                                  {link.includes("New") ? (
-                                    <>
-                                      {link.replace("New", "")}
-                                      <span className="ml-2 text-xs bg-[#f9aeaf] text-white px-1 rounded">
-                                        New
-                                      </span>
-                                    </>
-                                  ) : (
-                                    link
-                                  )}
-                                </Link>
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
+          <div className="px-2 pt-2 pb-3 space-y-1">
+            {navigation.map((item, index) => (
+              <div key={index}>
+                <Link
+                  to={item.megaMenu ? "#" : (
+                    item.title === "GIFT WRAP 🎁"
+                      ? "/GiftWrap"
+                      : item.title === "LUXE PRIVE SALE"
+                      ? "/luxe"
+                      : item.title === "NEW & NOW"
+                      ? "/new-and-now"
+                      : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
                   )}
-                </div>
-              ))}
-            </div>
+                  onClick={(e) => item.megaMenu && e.preventDefault()}
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                >
+                  {item.title}
+                </Link>
+                {item.megaMenu && (
+                  <div className="pl-4">
+                    {Object.entries(item.megaMenu).map(
+                      ([category, links], catIndex) => (
+                        <div key={catIndex}>
+                          <h3 className="px-3 py-2 text-sm font-semibold text-gray-600">
+                            {category}
+                          </h3>
+                          <div className="pl-4">
+                            {links.map((link, linkIndex) => (
+                            <Link
+                                key={linkIndex}
+                                to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/ /g, "-")}`}
+                                className="block px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                              >
+                                {link.includes("New") ? (
+                                  <>
+                                    {link.replace("New", "")}
+                                    <span className="ml-2 text-xs bg-[#f9aeaf] text-white px-1 rounded">
+                                      New
+                                    </span>
+                                  </>
+                                ) : (
+                                  link
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
+      </div>
       </nav>
       {/* Mobile Search Overlay */}
       {isSearchOpen && (
