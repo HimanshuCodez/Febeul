@@ -7,7 +7,8 @@ const orderSchema = new mongoose.Schema({
         quantity: { type: Number, required: true },
         size: { type: String },
         name: { type: String, required: true}, // Adding name for easier access without populating
-        image: { type: String, required: true} // Adding image for easier access without populating
+        image: { type: String, required: true}, // Adding image for easier access without populating
+        price: { type: Number, required: true }
     }],
     amount: { type: Number, required: true },
     address: { type: Object, required: true },
