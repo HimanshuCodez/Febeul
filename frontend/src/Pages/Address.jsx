@@ -16,6 +16,7 @@ const Address = () => {
         phone: '',
         address: '', // Changed from street to address
         city: '',
+        state: '',
         zip: '',
         country: '',
     });
@@ -73,15 +74,18 @@ const Address = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Contact Details</label>
                         <input type="text" name="name" placeholder="Full Name" value={address.name} onChange={handleChange} required className="form-input" />
-                        <input type="tel" name="phone" placeholder="Phone Number" value={address.phone} onChange={handleChange} required className="form-input mt-2" />
+                        <input type="tel" name="phone" placeholder="Phone Number" value={address.phone} onChange={handleChange} required className="form-input mt-2" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                         <input type="text" name="address" placeholder="Street Address, House No." value={address.address} onChange={handleChange} required className="form-input" />
-                        <input type="text" name="city" placeholder="City" value={address.city} onChange={handleChange} required className="form-input mt-2" />
                         <div className="grid grid-cols-2 gap-4 mt-2">
-                            <input type="text" name="zip" placeholder="ZIP Code" value={address.zip} onChange={handleChange} required className="form-input" />
+                            <input type="text" name="city" placeholder="City" value={address.city} onChange={handleChange} required className="form-input" />
+                            <input type="text" name="state" placeholder="State" value={address.state} onChange={handleChange} required className="form-input" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                            <input type="text" name="zip" placeholder="ZIP Code" value={address.zip} onChange={handleChange} required className="form-input" pattern="[0-9]{6}" title="ZIP Code must be 6 digits." />
                             <input type="text" name="country" placeholder="Country" value={address.country} onChange={handleChange} required className="form-input" />
                         </div>
                     </div>

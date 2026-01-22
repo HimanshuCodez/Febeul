@@ -331,10 +331,10 @@ export default function CheckoutPage() {
                         <input type="text" placeholder="Full Name" value={addressName} onChange={e => setAddressName(e.target.value)} className="w-full p-2 border rounded" required />
                         <input type="text" placeholder="Address Line" value={addressLine} onChange={e => setAddressLine(e.target.value)} className="w-full p-2 border rounded" required />
                         <input type="text" placeholder="City" value={addressCity} onChange={e => setAddressCity(e.target.value)} className="w-full p-2 border rounded" required />
-                        <input type="text" placeholder="ZIP Code" value={addressZip} onChange={e => setAddressZip(e.target.value)} className="w-full p-2 border rounded" required />
+                        <input type="text" placeholder="ZIP Code" value={addressZip} onChange={e => setAddressZip(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{6}" title="ZIP Code must be 6 digits." />
                         <input type="text" placeholder="State" value={addressState} onChange={e => setAddressState(e.target.value)} className="w-full p-2 border rounded" required />
                         <input type="text" placeholder="Country" value={addressCountry} onChange={e => setAddressCountry(e.target.value)} className="w-full p-2 border rounded" required />
-                        <input type="text" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className="w-full p-2 border rounded" required />
+                        <input type="text" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{10}" title="Phone number must be 10 digits." />
                         <button type="submit" className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4">Save Address</button>
                     </form>
                 ) : (
