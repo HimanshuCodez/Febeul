@@ -10,6 +10,7 @@ import orderRouter from './routes/orderRoute.js'
 import reviewRouter from './routes/reviewRoute.js'
 import otpRouter from './routes/otpRoute.js'
 import giftWrapRouter from './routes/giftWrapRoute.js'
+import shiprocketWebhookRouter from './routes/shiprocketWebhookRoute.js'
 import errorHandler from './middleware/errorHandler.js'
 
 // App Config
@@ -30,6 +31,7 @@ app.use('/api/order',orderRouter)
 app.use('/api/review',reviewRouter)
 app.use('/api/otp',otpRouter)
 app.use('/api/giftwrap',giftWrapRouter)
+app.use('/api/shiprocket',shiprocketWebhookRouter)
 
 app.get('/',(req,res)=>{
     res.send("API Working")

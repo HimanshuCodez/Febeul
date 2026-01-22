@@ -501,4 +501,17 @@ const generateInvoice = async (req, res) => {
     }
 };
 
-export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getRazorpayKey, generateInvoice}
+const getOrderById = async (req, res) => {
+    try {
+        const order = await orderModel.findById(req.params.id);
+        if (!order) {
+            return res.json({ success: false, message: 'Order not found' });
+        }
+        res.json({ success: true, order });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: 'Error fetching order' });
+    }
+};
+
+export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getRazorpayKey, generateInvoice, getOrderById}

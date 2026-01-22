@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   FaCheckCircle, 
@@ -20,8 +20,30 @@ import useAuthStore from "../store/authStore";
 export default function OrderSuccess() {
   const location = useLocation();
   // Ensure state exists before destructuring
-  const { order, items, address, pricingDetails } = location.state || {};
+  const { order: initialOrder, items, address, pricingDetails } = location.state || {};
   const { token } = useAuthStore(); // Get token here
+  const [order, setOrder] = useState(initialOrder);
+
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/order/${order._id}`, {
+          headers: { token },
+        });
+        if (response.data.success) {
+          setOrder(response.data.order);
+        }
+      } catch (error) {
+        console.error('Error fetching order status:', error);
+      }
+    };
+
+    if (order && order._id && order.orderStatus !== 'Delivered' && token) { // Check token presence
+      const interval = setInterval(fetchOrder, 5000); // Poll every 5 seconds
+      return () => clearInterval(interval);
+    }
+  }, [order, token]);
+
 
   const handleDownloadInvoice = async () => { // Make async
     try {
@@ -117,6 +139,14 @@ export default function OrderSuccess() {
     }
   };
 
+  const statusLevels = {
+    'Order Placed': 1,
+    'Processing': 2,
+    'Shipped': 3,
+    'Delivered': 4
+  };
+  const currentStatusLevel = statusLevels[order.orderStatus] || 1;
+
   return (
     <div className="min-h-screen bg-[#f9aeaf] py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -193,7 +223,7 @@ export default function OrderSuccess() {
           <div className="space-y-4">
             <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
               <div className="flex flex-col items-center mr-4">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                <div className={`w-10 h-10 ${currentStatusLevel >= 1 ? 'bg-green-500' : 'bg-gray-200'} rounded-full flex items-center justify-center`}>
                   <FaCheckCircle className="text-white" />
                 </div>
                 <div className="w-1 h-16 bg-[#f9aeaf] mt-2"></div>
@@ -207,13 +237,13 @@ export default function OrderSuccess() {
 
             <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
               <div className="flex flex-col items-center mr-4">
-                <div className="w-10 h-10 bg-[#e8767a] rounded-full flex items-center justify-center">
+                <div className={`w-10 h-10 ${currentStatusLevel >= 2 ? 'bg-[#e8767a]' : 'bg-gray-200'} rounded-full flex items-center justify-center`}>
                   <FaBox className="text-white" />
                 </div>
                 <div className="w-1 h-16 bg-gray-200 mt-2"></div>
               </div>
               <div className="flex-1 pt-2">
-                <p className="font-bold text-gray-800">Processing</p>
+                <p className={`font-bold ${currentStatusLevel >= 2 ? 'text-gray-800' : 'text-gray-400'}`}>Processing</p>
                 <p className="text-sm text-gray-600">We're preparing your items</p>
                 <p className="text-xs text-gray-400 mt-1">Expected: Tomorrow</p>
               </div>
@@ -221,13 +251,13 @@ export default function OrderSuccess() {
 
             <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
               <div className="flex flex-col items-center mr-4">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                  <FaShippingFast className="text-gray-400" />
+                <div className={`w-10 h-10 ${currentStatusLevel >= 3 ? 'bg-[#e8767a]' : 'bg-gray-200'} rounded-full flex items-center justify-center`}>
+                  <FaShippingFast className="text-white" />
                 </div>
                 <div className="w-1 h-16 bg-gray-200 mt-2"></div>
               </div>
               <div className="flex-1 pt-2">
-                <p className="font-bold text-gray-400">Shipped</p>
+                <p className={`font-bold ${currentStatusLevel >= 3 ? 'text-gray-800' : 'text-gray-400'}`}>Shipped</p>
                 <p className="text-sm text-gray-500">On the way to you</p>
                 <p className="text-xs text-gray-400 mt-1">Expected: {new Date(new Date().setDate(new Date().getDate() + 2)).toLocaleDateString()}</p>
               </div>
@@ -235,12 +265,12 @@ export default function OrderSuccess() {
 
             <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
               <div className="flex flex-col items-center mr-4">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                  <FaMapMarkerAlt className="text-gray-400" />
+                <div className={`w-10 h-10 ${currentStatusLevel >= 4 ? 'bg-[#e8767a]' : 'bg-gray-200'} rounded-full flex items-center justify-center`}>
+                  <FaMapMarkerAlt className="text-white" />
                 </div>
               </div>
               <div className="flex-1 pt-2">
-                <p className="font-bold text-gray-400">Delivered</p>
+                <p className={`font-bold ${currentStatusLevel >= 4 ? 'text-gray-800' : 'text-gray-400'}`}>Delivered</p>
                 <p className="text-sm text-gray-500">Package delivered</p>
                 <p className="text-xs text-gray-400 mt-1">Expected: {estimatedDelivery}</p>
               </div>
