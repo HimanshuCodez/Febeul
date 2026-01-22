@@ -44,8 +44,7 @@ const buildInvoicePDF = (order, res) => {
         doc.fontSize(11).font('Helvetica-Bold').text('Sold By:', 50, sellerY);
         doc.font('Helvetica').fontSize(10);
         doc.text('FEBEUL', 50, sellerY + 15);
-        doc.text('123 Beauty Lane, Glamour City, 110001', 50, sellerY + 30);
-        // TODO: Replace with your actual GSTIN and PAN
+        doc.text('H. no 89, blk-D1 bhalswa resettlement colony, new swaroop nagar near government dispensary and 101 riksha stand 110042', 50, sellerY + 30);
         doc.text('GSTIN: 07BGQPY8326L1ZC', 50, sellerY + 45);
         doc.text('PAN: BGQPY8326L', 50, sellerY + 60);
 
