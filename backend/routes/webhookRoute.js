@@ -3,6 +3,6 @@ import { handleWebhook } from '../controllers/shiprocketWebhookController.js';
 
 const router = express.Router();
 
-router.post('/webhook', handleWebhook);
+router.post('/tracking-updates', handleWebhook);
 
 export default router;
