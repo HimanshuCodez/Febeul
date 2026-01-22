@@ -35,7 +35,7 @@ export const createShiprocketOrder = async (order, token, paymentMethod) => {
           {
             order_id: order._id.toString(),
             order_date: new Date(),
-            pickup_location: "Primary", // Make sure this location is configured in your Shiprocket panel
+            pickup_location: "warehouse", // Make sure this location is configured in your Shiprocket panel
             billing_customer_name: order.shippingAddress.name,
             billing_last_name: order.shippingAddress.lastName, 
             billing_address: order.shippingAddress.address,
