@@ -2,7 +2,7 @@ import React from "react";
 
 export default function InfoBar() {
   return (
-    <div className="w-full bg-[#F4B8BE] py-3 px-4 flex items-center justify-center gap-32 text-black text-sm sm:text-base">
+    <div className="w-full bg-[#F4B8BE] py-6 px-4 flex flex-wrap items-center justify-around gap-y-4 md:gap-x-8 lg:gap-x-32 text-black text-sm sm:text-base">
       
       {/* Free Shipping */}
       <div className="flex items-center gap-2">
@@ -24,38 +24,25 @@ export default function InfoBar() {
         </svg>
 
         <div>
-          <div className="font-semibold">Free shipping</div>
-          <div className="text-sm">on orders over ₹499</div>
+          <div className="text-lg font-semibold">Free shipping</div>
+          <div className="text-base">on orders over ₹499</div>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="w-px h-8 bg-black"></div>
-
-      {/* Scan & Shop */}
+      <div className="hidden md:block w-px h-8 bg-black"></div>
       <div className="flex items-center gap-2">
         {/* QR Icon */}
-        <svg
-          width="28"
-          height="28"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="black"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M3 3h4v4H3V3zM17 3h4v4h-4V3zM3 17h4v4H3v-4zM17 17h4v4h-4v-4zM10 3h4v4h-4V3zM10 17h4v4h-4v-4zM3 10h4v4H3v-4zM17 10h4v4h-4v-4z"></path>
-        </svg>
+        <img src="/qramazon.jpeg" alt="QR Code for Amazon" className="w-12 h-12 object-contain" />
 
         <div>
-          <div className="font-semibold">Scan & Shop</div>
-          <div className="text-sm">Available on Amazon</div>
+          <div className="text-lg font-semibold">Scan & Shop</div>
+          <div className="text-base">Available on Amazon</div>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="w-px h-8 bg-black"></div>
+      <div className="hidden md:block w-px h-8 bg-black"></div>
 
       {/* Free Return */}
       <div className="flex items-center gap-2">
@@ -75,8 +62,8 @@ export default function InfoBar() {
         </svg>
 
         <div>
-          <div className="font-semibold">FREE RETURN</div>
-          <div className="text-sm">3-Days free return</div>
+          <div className="text-lg font-semibold">FREE RETURN</div>
+          <div className="text-base">3-Days free return</div>
         </div>
       </div>
 

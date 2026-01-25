@@ -11,6 +11,7 @@ import reviewRouter from './routes/reviewRoute.js'
 import otpRouter from './routes/otpRoute.js'
 import giftWrapRouter from './routes/giftWrapRoute.js'
 import webhookRouter from './routes/webhookRoute.js'
+import policyRouter from './routes/policyRoute.js'
 import errorHandler from './middleware/errorHandler.js'
 
 // App Config
@@ -32,6 +33,7 @@ app.use('/api/review',reviewRouter)
 app.use('/api/otp',otpRouter)
 app.use('/api/giftwrap',giftWrapRouter)
 app.use('/api/tracking',webhookRouter)
+app.use('/api/policy',policyRouter)
 
 app.get('/',(req,res)=>{
     res.send("API Working")

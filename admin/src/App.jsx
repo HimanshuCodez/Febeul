@@ -8,6 +8,7 @@ import Orders from './pages/Orders'
 import Update from './pages/Update' // Import the Update component
 import AllUsers from './pages/AllUsers'
 import ManageGiftWraps from './pages/ManageGiftWraps'
+import PolicyUpdate from './pages/PolicyUpdate' // Import the PolicyUpdate component
 import Login from './components/Login'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -41,6 +42,7 @@ const App = () => {
                 <Route path='/update/:productId' element={<Update token={token} />} />
                 <Route path='/allusers' element={<AllUsers token={token} />} />
                 <Route path='/gift-wraps' element={<ManageGiftWraps token={token} />} />
+                <Route path='/policy-update' element={<PolicyUpdate token={token} />} />
               </Routes>
             </div>
           </div>
