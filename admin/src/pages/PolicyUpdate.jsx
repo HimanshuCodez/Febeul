@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify'; // Assuming toast is available for notifications
+import { toast } from 'react-toastify';
+import { backendUrl } from '../App.jsx';
 
-const PolicyUpdate = () => {
+const PolicyUpdate = ({ token }) => {
     const [policyNames, setPolicyNames] = useState([]); // [{ policyName: "DataPrivacy", pageTitle: "Privacy Policy" }]
     const [selectedPolicyName, setSelectedPolicyName] = useState('');
     const [policyContent, setPolicyContent] = useState(null); // Full policy object from DB
@@ -11,18 +12,7 @@ const PolicyUpdate = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const API_BASE_URL = 'http://localhost:4000/api/policy'; // Adjust if your backend runs on a different port
-
-    // Dummy token for development. In a real app, this would come from auth context/local storage.
-    // Replace with a valid admin token when deploying or testing with auth enabled.
-    const ADMIN_TOKEN = 'YOUR_ADMIN_JWT_TOKEN_HERE'; 
-
-    const axiosConfig = {
-        headers: {
-            'Content-Type': 'application/json',
-            'token': ADMIN_TOKEN 
-        }
-    };
+    const API_BASE_URL = `${backendUrl}/api/policy`;
 
     useEffect(() => {
         fetchPolicyNames();
@@ -100,6 +90,13 @@ const PolicyUpdate = () => {
                 content: contentArray
             };
             
+            const axiosConfig = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'token': token 
+                }
+            };
+
             await axios.post(API_BASE_URL, payload, axiosConfig);
             toast.success(`${selectedPolicyName} policy updated successfully!`);
         } catch (err) {

@@ -172,7 +172,7 @@ export default function FebeulLuxe() {
         {/* Item 2 */}
         <div>
           {/* ICON HERE */}
-          <img src="/6.png" className="mx-auto h-48" />
+          <img src="/6.png" className=" h-48" />
           <p className="mt-4 font-bold text-black">15 GIFT WRAPS</p>
         </div>
 
