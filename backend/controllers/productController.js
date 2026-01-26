@@ -18,22 +18,23 @@ const addProduct = async (req, res) => {
             );
             return {
                 color: variation.color,
-                images: imagesUrl,
-                price: Number(variation.price),
-                mrp: Number(variation.mrp)
-            };
-        }));
-
-        const productData = {
-            name,
-            description,
-            category,
-            subCategory,
-            bestseller: bestseller === "true" ? true : false,
-            sizes: JSON.parse(sizes),
-            variations: processedVariations,
-            date: Date.now(),
-            styleCode,
+                            images: imagesUrl,
+                            sizes: variation.sizes.map(s => ({ // Process sizes array
+                                size: s.size,
+                                price: Number(s.price),
+                                mrp: Number(s.mrp)
+                            }))
+                        };
+                    }));
+                
+                    const productData = {
+                        name,
+                        description,
+                        category,
+                        subCategory,
+                        bestseller: bestseller === "true" ? true : false,
+                        variations: processedVariations,
+                        date: Date.now(),            styleCode,
             countryOfOrigin,
             manufacturer,
             packer,
@@ -130,7 +131,7 @@ const singleProduct = async (req, res) => {
 // function for updating product
 const updateProduct = async (req, res) => {
     try {
-        const { productId, name, description, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
+        const { productId, name, description, category, subCategory, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
         
         const product = await productModel.findById(productId);
         if (!product) {
@@ -166,8 +167,11 @@ const updateProduct = async (req, res) => {
             return {
                 color: variation.color,
                 images: [...existingImages, ...newImagesUrl],
-                price: Number(variation.price),
-                mrp: Number(variation.mrp)
+                sizes: variation.sizes.map(s => ({ // Process sizes array
+                    size: s.size,
+                    price: Number(s.price),
+                    mrp: Number(s.mrp)
+                }))
             };
         }));
         
@@ -175,7 +179,6 @@ const updateProduct = async (req, res) => {
         product.description = description;
         product.category = category;
         product.subCategory = subCategory;
-        product.sizes = JSON.parse(sizes);
         product.bestseller = bestseller;
         product.styleCode = styleCode;
         product.countryOfOrigin = countryOfOrigin;
@@ -236,7 +239,7 @@ const getMenuFilters = async (req,res) => {
         const categories = await productModel.distinct("category")
         const types = await productModel.distinct("type")
         const fabrics = await productModel.distinct("fabric")
-        const sizes = await productModel.distinct("sizes")
+        const sizes = await productModel.distinct("variations.sizes.size")
         const colors = await productModel.distinct("variations.color")
 
         res.json({success:true,data:{categories,types,fabrics,sizes,colors}})

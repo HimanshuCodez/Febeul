@@ -28,7 +28,7 @@ const constructEmailHtml = (order, templateHtml) => {
     let itemRowsHtml = '';
     order.items.forEach(item => {
         // Ensure itemPrice is a float, default to 0
-        const itemPrice = parseFloat(item.productId && item.productId.price || 0); 
+        const itemPrice = parseFloat(item.price || 0); 
         // Ensure quantity is a float, default to 0
         const itemQuantity = parseFloat(item.quantity || 0);
         const itemTotal = parseFloat(itemPrice * itemQuantity || 0); // Ensure itemTotal is a float, default to 0
@@ -88,16 +88,57 @@ const placeOrder = async (req,res) => {
     
     try {
         
-        const { userId, items, amount, address} = req.body;
+        const { userId, items, address} = req.body; // Remove `amount` from destructuring
+
+        // Function to get item price based on product, color, and size
+        const getItemPrice = (product, color, size) => {
+            const variation = product.variations.find(v => v.color === color);
+            if (variation) {
+                const sizeData = variation.sizes.find(s => s.size === size);
+                if (sizeData) {
+                    return sizeData.price;
+                }
+            }
+            return 0; // Default to 0 if not found
+        };
+
+        let orderTotal = 0;
+        const processedItems = await Promise.all(items.map(async (item) => {
+            const product = await productModel.findById(item.productId);
+            if (!product) {
+                throw new Error(`Product not found for ID: ${item.productId}`);
+            }
+            const itemPrice = getItemPrice(product, item.color, item.size);
+            orderTotal += itemPrice * item.quantity;
+
+            return {
+                productId: item.productId,
+                quantity: item.quantity,
+                size: item.size,
+                name: product.name, // Use backend product name
+                image: product.variations.find(v => v.color === item.color)?.images[0] || '', // Get image from backend
+                price: itemPrice,
+                color: item.color
+            };
+        }));
+
+        // Apply gift wrap price if any
+        const giftWrapPrice = req.body.giftWrap ? parseFloat(req.body.giftWrap.price || 0) : 0;
+        orderTotal += giftWrapPrice;
+
+        // For COD, add COD shipping charge
+        const shippingCost = 50; // Assuming COD_SHIPPING_CHARGE is 50.00
+        orderTotal += shippingCost;
 
         const orderData = {
             userId,
-            items,
+            items: processedItems,
+            amount: orderTotal, // Use backend calculated amount
             address,
-            amount,
             paymentMethod:"COD",
             payment:false,
-            date: Date.now()
+            date: Date.now(),
+            giftWrap: req.body.giftWrap // Add gift wrap data
         }
 
         const newOrder = new orderModel(orderData)
@@ -171,23 +212,51 @@ const placeOrder = async (req,res) => {
 const placeOrderStripe = async (req,res) => {
     try {
         
-        const { userId, items, amount, address, currency} = req.body
+        const { userId, items, address, currency} = req.body; // Removed 'amount'
         const { origin } = req.headers;
+
+        let orderTotal = 0;
+        const processedItems = await Promise.all(items.map(async (item) => {
+            const product = await productModel.findById(item.productId);
+            if (!product) {
+                throw new Error(`Product not found for ID: ${item.productId}`);
+            }
+            const itemPrice = getItemPrice(product, item.color, item.size);
+            orderTotal += itemPrice * item.quantity;
+
+            return {
+                productId: item.productId,
+                quantity: item.quantity,
+                size: item.size,
+                name: product.name,
+                image: product.variations.find(v => v.color === item.color)?.images[0] || '',
+                price: itemPrice,
+                color: item.color
+            };
+        }));
+
+        const giftWrapPrice = req.body.giftWrap ? parseFloat(req.body.giftWrap.price || 0) : 0;
+        orderTotal += giftWrapPrice;
+
+        // Stripe orders don't have COD shipping, so shipping is STANDARD_SHIPPING_CHARGE (0)
+        const shippingCost = 0; 
+        orderTotal += shippingCost;
 
         const orderData = {
             userId,
-            items,
+            items: processedItems,
             address,
-            amount,
+            amount: orderTotal,
             paymentMethod:"Stripe",
             payment:false,
-            date: Date.now()
+            date: Date.now(),
+            giftWrap: req.body.giftWrap
         }
 
         const newOrder = new orderModel(orderData)
         await newOrder.save()
 
-        const line_items = items.map((item) => ({
+        const line_items = processedItems.map((item) => ({ // Use processedItems here
             price_data: {
                 currency:currency,
                 product_data: {
@@ -198,16 +267,20 @@ const placeOrderStripe = async (req,res) => {
             quantity: item.quantity
         }))
 
-        line_items.push({
-            price_data: {
-                currency:currency,
-                product_data: {
-                    name:'Delivery Charges'
+        // Add delivery charges to line_items.
+        const deliveryCharge = 0; 
+        if (deliveryCharge > 0) { 
+            line_items.push({
+                price_data: {
+                    currency:currency,
+                    product_data: {
+                        name:'Delivery Charges'
+                    },
+                    unit_amount: Math.round(deliveryCharge * 100)
                 },
-                unit_amount: Math.round(deliveryCharge * 100)
-            },
-            quantity: 1
-        })
+                quantity: 1
+            })
+        }
 
         const session = await stripe.checkout.sessions.create({
             success_url: `${origin}/verify?success=true&orderId=${newOrder._id}`,
@@ -267,7 +340,7 @@ const verifyStripe = async (req,res) => {
 
             // Send Order Confirmation Email
             try {
-                const populatedOrder = await orderModel.findById(orderId).populate('userId').populate('items.productId', 'price');
+                const populatedOrder = await orderModel.findById(orderId).populate('userId');
                 if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
                     const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
                     let emailTemplate = fs.readFileSync(templatePath, 'utf8');
@@ -294,23 +367,50 @@ const verifyStripe = async (req,res) => {
 const placeOrderRazorpay = async (req,res) => {
     try {
         
-        const { userId, items, amount, address, currency} = req.body
+        const { userId, items, address, currency} = req.body; // Removed 'amount'
+
+        let orderTotal = 0;
+        const processedItems = await Promise.all(items.map(async (item) => {
+            const product = await productModel.findById(item.productId);
+            if (!product) {
+                throw new Error(`Product not found for ID: ${item.productId}`);
+            }
+            const itemPrice = getItemPrice(product, item.color, item.size);
+            orderTotal += itemPrice * item.quantity;
+
+            return {
+                productId: item.productId,
+                quantity: item.quantity,
+                size: item.size,
+                name: product.name,
+                image: product.variations.find(v => v.color === item.color)?.images[0] || '',
+                price: itemPrice,
+                color: item.color
+            };
+        }));
+
+        const giftWrapPrice = req.body.giftWrap ? parseFloat(req.body.giftWrap.price || 0) : 0;
+        orderTotal += giftWrapPrice;
+
+        const shippingCost = 0; // Razorpay typically prepaid, so no COD charge
+        orderTotal += shippingCost;
 
         const orderData = {
             userId,
-            items,
+            items: processedItems,
             address,
-            amount,
+            amount: orderTotal,
             paymentMethod:"Razorpay",
             payment:false,
-            date: Date.now()
+            date: Date.now(),
+            giftWrap: req.body.giftWrap
         }
 
         const newOrder = new orderModel(orderData)
         await newOrder.save()
 
         const options = {
-            amount: Math.round(amount * 100),
+            amount: Math.round(orderTotal * 100), // Use calculated orderTotal
             currency: currency.toUpperCase(),
             receipt : newOrder._id.toString()
         }
@@ -402,7 +502,7 @@ const verifyRazorpay = async (req,res) => {
 
                     // Send Order Confirmation Email
                     try {
-                        const populatedOrder = await orderModel.findById(orderInfo.receipt).populate('userId').populate('items.productId', 'price');
+                        const populatedOrder = await orderModel.findById(orderInfo.receipt).populate('userId');
                         if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
                             const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
                             let emailTemplate = fs.readFileSync(templatePath, 'utf8');
@@ -487,7 +587,7 @@ const generateInvoice = async (req, res) => {
     try {
         const { orderId } = req.params;
         // Populate userId for email and items.productId for product details (especially price)
-        const order = await orderModel.findById(orderId).populate('userId', 'email').populate('items.productId', 'price');
+        const order = await orderModel.findById(orderId).populate('userId', 'email');
 
         if (!order) {
             return res.json({ success: false, message: 'Order not found.' });

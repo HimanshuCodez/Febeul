@@ -84,9 +84,8 @@ const Cart = () => {
 
   const subtotal = (cartItems || []).reduce(
     (sum, item) => {
-      const variation = item.variations.find(v => v.color === item.color);
-      const price = variation ? variation.price : 0;
-      return sum + (price * item.quantity);
+      // item.price is now directly available from the backend response in getUserCart
+      return sum + (item.price * item.quantity);
     },
     0
   );
@@ -131,9 +130,9 @@ const Cart = () => {
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               {cartItems.map((item, index) => {
-                const variation = item.variations.find(v => v.color === item.color);
-                const price = variation ? variation.price : 0;
-                const image = variation ? variation.images[0] : item.variations?.[0]?.images?.[0];
+                // item.price and item.image are now directly available from the backend response
+                const price = item.price;
+                const image = item.image; 
 
                 return (
                 <motion.div

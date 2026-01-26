@@ -6,8 +6,11 @@ const productSchema = new mongoose.Schema({
     variations: [{
         color: { type: String },
         images: { type: [String] },
-        price: { type: Number, required: true },
-        mrp: { type: Number }
+        sizes: [{
+            size: { type: String, required: true },
+            price: { type: Number, required: true },
+            mrp: { type: Number }
+        }]
     }],
     category: { type: String, required: true },
     subCategory: { type: String, required: true },

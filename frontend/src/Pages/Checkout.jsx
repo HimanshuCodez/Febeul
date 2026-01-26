@@ -121,9 +121,8 @@ export default function CheckoutPage() {
     }
     }
     const subtotal = cartItems.reduce((sum, item) => {
-        const variation = item.variations.find(v => v.color === item.color);
-        const price = variation ? variation.price : 0;
-        return sum + (price * item.quantity);
+        // item.price is now directly available from the backend response in getUserCart
+        return sum + (item.price * item.quantity);
     }, 0);
     const shippingCost = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : STANDARD_SHIPPING_CHARGE;
     const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
@@ -146,14 +145,13 @@ export default function CheckoutPage() {
 
   const placeCodOrder = async () => {
     const orderItems = cartItems.map((item) => {
-        const variation = item.variations.find(v => v.color === item.color);
         return {
-            productId: item._id,
+            productId: item._id, // Use item._id as it's the product ID
             quantity: item.quantity,
             size: item.size,
             name: item.name,
-            image: variation ? variation.images[0] : item.variations?.[0]?.images?.[0],
-            price: variation ? variation.price : 0,
+            image: item.image, // Use item.image directly
+            price: item.price, // Use item.price directly
             color: item.color
         }
     });
@@ -180,14 +178,13 @@ export default function CheckoutPage() {
   const handleRazorpayPayment = async () => {
     try {
       const orderItems = cartItems.map((item) => {
-        const variation = item.variations.find(v => v.color === item.color);
         return {
-            productId: item._id,
+            productId: item._id, // Use item._id as it's the product ID
             quantity: item.quantity,
             size: item.size,
             name: item.name,
-            image: variation ? variation.images[0] : item.variations?.[0]?.images?.[0],
-            price: variation ? variation.price : 0,
+            image: item.image, // Use item.image directly
+            price: item.price, // Use item.price directly
             color: item.color
         }
       });

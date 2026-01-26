@@ -30,7 +30,7 @@ const ProductDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariationIndex, setSelectedVariationIndex] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedSizeValue, setSelectedSizeValue] = useState(null); // Renamed selectedSize
   const [isProdDetailsExpanded, setIsProdDetailsExpanded] = useState(false);
   const [isAddInfoExpanded, setIsAddInfoExpanded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -59,8 +59,10 @@ const ProductDetailPage = () => {
         });
         if (data.success) {
           setProduct(data.product);
-          if (data.product.sizes && data.product.sizes.length > 0) {
-            setSelectedSize(data.product.sizes[0]);
+          // Initialize selected size from the first variation's first size
+          if (data.product.variations && data.product.variations.length > 0 && 
+              data.product.variations[0].sizes && data.product.variations[0].sizes.length > 0) {
+            setSelectedSizeValue(data.product.variations[0].sizes[0].size);
           }
           // Set average rating and number of reviews
           setAverageRating(data.product.averageRating || 0);
@@ -126,7 +128,7 @@ const ProductDetailPage = () => {
       navigate("/auth");
       return;
     }
-    if (!selectedSize) {
+    if (!selectedSizeValue) { // Use selectedSizeValue
       toast.error("Please select a size.");
       return;
     }
@@ -136,7 +138,7 @@ const ProductDetailPage = () => {
     }
     try {
       const response = await axios.post(`${backendUrl}/api/cart/add`, 
-        { userId: user._id, itemId: product._id, size: selectedSize, color: selectedVariation.color },
+        { userId: user._id, itemId: product._id, size: selectedSizeValue, color: selectedVariation.color }, // Use selectedSizeValue
         { headers: { token } }
       );
       if (response.data.success) {
@@ -167,9 +169,15 @@ const ProductDetailPage = () => {
   const variations = product.variations || [];
   const selectedVariation = variations[selectedVariationIndex] || {};
   const images = selectedVariation.images || [];
+
+  // Find the price and mrp for the currently selected size and variation
+  const currentSizeData = selectedVariation.sizes?.find(s => s.size === selectedSizeValue);
+  const displayPrice = currentSizeData?.price;
+  const displayMrp = currentSizeData?.mrp;
+
   const discount =
-    selectedVariation.mrp > 0
-      ? Math.round(((selectedVariation.mrp - selectedVariation.price) / selectedVariation.mrp) * 100)
+    displayMrp > displayPrice
+      ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
       : 0;
 
   const productDetailRows = [
@@ -289,7 +297,15 @@ const ProductDetailPage = () => {
                   {variations.map((variation, index) => (
                     <div
                       key={index}
-                      onClick={() => setSelectedVariationIndex(index)}
+                      onClick={() => {
+                        setSelectedVariationIndex(index);
+                        // Update selected size when color variation changes
+                        if (variation.sizes && variation.sizes.length > 0) {
+                          setSelectedSizeValue(variation.sizes[0].size);
+                        } else {
+                          setSelectedSizeValue(null);
+                        }
+                      }}
                       className={`p-1 border-2 rounded-md cursor-pointer transition-all ${
                         index === selectedVariationIndex
                           ? "border-orange-500"
@@ -308,20 +324,20 @@ const ProductDetailPage = () => {
 
               <div className="mt-4">
                 <div className="text-base font-semibold text-gray-800 mb-3">
-                  Size: <span className="font-bold">{selectedSize}</span>
+                  Size: <span className="font-bold">{selectedSizeValue || 'N/A'}</span> {/* Use selectedSizeValue */}
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  {product.sizes.map((size) => (
+                  {selectedVariation.sizes?.map((sizeData) => ( // Iterate through sizes of selected variation
                     <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
+                      key={sizeData.size}
+                      onClick={() => setSelectedSizeValue(sizeData.size)} // Update selectedSizeValue
                       className={`px-4 py-1 border rounded-md transition-colors ${
-                        selectedSize === size
+                        selectedSizeValue === sizeData.size
                           ? "border-orange-500 bg-orange-50 text-orange-700 font-semibold"
                           : "border-gray-300 bg-white hover:bg-gray-50"
                       }`}
                     >
-                      {size}
+                      {sizeData.size}
                     </button>
                   ))}
                 </div>
@@ -345,11 +361,11 @@ const ProductDetailPage = () => {
               <div className="border border-gray-300 rounded-lg p-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-gray-900">
-                    ₹{selectedVariation.price?.toLocaleString('en-IN')}
+                    ₹{displayPrice?.toLocaleString('en-IN')} {/* Use displayPrice */}
                   </span>
-                  {selectedVariation.mrp > selectedVariation.price && (
+                  {displayMrp > displayPrice && ( // Use displayMrp and displayPrice
                     <span className="text-base text-gray-500 line-through">
-                      ₹{selectedVariation.mrp?.toLocaleString('en-IN')}
+                      ₹{displayMrp?.toLocaleString('en-IN')} {/* Use displayMrp */}
                     </span>
                   )}
                 </div>

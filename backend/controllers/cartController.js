@@ -129,12 +129,26 @@ const getUserCart = async (req,res) => {
         // The cartItems are now populated with product details
         const cartItems = user.cartData.map(item => {
             if (item.product) {
+                const productObject = item.product.toObject();
+                const variation = productObject.variations.find(v => v.color === item.color);
+                let price = 0;
+                let mrp = 0;
+                if (variation) {
+                    const sizeData = variation.sizes.find(s => s.size === item.size);
+                    if (sizeData) {
+                        price = sizeData.price;
+                        mrp = sizeData.mrp;
+                    }
+                }
+
                 return {
-                    ...item.product.toObject(),
+                    ...productObject,
                     quantity: item.quantity,
                     size: item.size,
                     color: item.color,
-                    _id: item.product._id // ensure the product's _id is what we use as the main identifier
+                    price: price, // Add the correct price
+                    mrp: mrp,   // Add the correct mrp
+                    _id: item.product._id
                 };
             }
             return null;
