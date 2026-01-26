@@ -36,6 +36,7 @@ import PrimeMember from "./Pages/PrimeMember";
 import CheckoutPage from "./Pages/Checkout";
 import OrderSuccess from "./Pages/OrderSuccess";
 import { Toaster } from "react-hot-toast";
+import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
 
 const AppContent = () => {
   const location = useLocation();
@@ -82,6 +83,7 @@ const AppContent = () => {
         <Route path="/PaymentPolicy" element={<PaymentPolicy />} />
         <Route path="/ReturnRefund" element={<ReturnRefund />} />
         <Route path="/TermsConditions" element={<TermsConditions />} />
+        <Route path="/GiftWrapPolicy" element={<GiftWrapPolicy />} />
         {/*      
         <Route path="/contact" element={<Contact />} />  */}
         {/* Other routes */}

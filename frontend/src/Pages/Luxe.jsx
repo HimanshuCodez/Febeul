@@ -165,22 +165,22 @@ export default function FebeulLuxe() {
 
         {/* Item 1 */}
         <div>
-         <FaBusAlt className="mx-auto h-16 w-auto text-red-500" />
-          <p className=" font-bold text-black">FAST PRIORITY DELIVERY</p>
+         <img src="/2.png" className="mx-auto h-16 mb-4" />
+          <p className="font-bold text-black">FAST PRIORITY DELIVERY</p>
         </div>
 
         {/* Item 2 */}
         <div>
           {/* ICON HERE */}
-          <img src="/6.png" className=" h-48" />
-          <p className="mt-4 font-bold text-black">15 GIFT WRAPS</p>
+          <img src="/6.png" className="mx-auto h-16 mb-4" />
+          <p className="font-bold text-black">15 GIFT WRAPS</p>
         </div>
 
         {/* Item 3 */}
         <div>
           {/* ICON HERE */}
-          <img src="/3.png" className="mx-auto h-48" />
-          <p className="mt-4 font-bold text-black">LUXE PRIVE SALES</p>
+          <img src="/3.png" className="mx-auto h-16 mb-4" />
+          <p className="font-bold text-black">LUXE PRIVE SALES</p>
           <motion.p
             className="text-sm text-gray-700 mt-1 px-2"
             initial={{ opacity: 0, y: 20 }}
@@ -194,22 +194,22 @@ export default function FebeulLuxe() {
         {/* Item 4 */}
         <div>
           {/* ICON HERE */}
-          <img src="/bags.png" className="mx-auto h-40" />
-          <p className="mt-4 font-bold text-black">COUPONS EVERY PURCHASE</p>
+          <img src="/4.png" className="mx-auto h-16 mb-4" />
+          <p className="font-bold text-black">COUPONS EVERY PURCHASE</p>
         </div>
 
         {/* Item 5 */}
         <div>
           {/* ICON HERE */}
-          <img src="/5.png" className="mx-auto h-48" />
-          <p className="mt-4 font-bold text-black">DEDICATED SUPPORT</p>
+          <img src="/5.png" className="mx-auto h-16 mb-4" />
+          <p className="font-bold text-black">DEDICATED SUPPORT</p>
         </div>
 
         {/* Item 6 */}
         <div>
           {/* ICON HERE */}
-          <img src="/6.png" className="mx-auto h-48" />
-          <p className=" font-bold text-black">FREE DELIVERY</p>
+          <img src="/6.png" className="mx-auto h-16 mb-4" />
+          <p className="font-bold text-black">FREE DELIVERY</p>
         </div>
 
       </div>
