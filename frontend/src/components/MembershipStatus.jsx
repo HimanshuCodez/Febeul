@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Crown, Calendar } from 'lucide-react';
+import { Crown, Calendar, Gift } from 'lucide-react';
 
 const MembershipStatus = ({ user }) => {
   if (user && user.isLuxeMember) {
@@ -19,6 +19,10 @@ const MembershipStatus = ({ user }) => {
             <p className="text-sm opacity-90 flex items-center mt-1">
               <Calendar size={14} className="mr-2" />
               Membership valid until: <strong>{expiryDate}</strong>
+            </p>
+            <p className="text-sm opacity-90 flex items-center mt-1">
+              <Gift size={14} className="mr-2" />
+              You have <strong>{user.giftWrapsLeft !== undefined ? user.giftWrapsLeft : 15}</strong> free gift wraps left this month.
             </p>
           </div>
         </div>

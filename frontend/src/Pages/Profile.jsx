@@ -158,6 +158,13 @@ export default function Profile() {
         return <ProfileInfo user={user} editedUser={editedUser} isEditing={isEditing} setIsEditing={setIsEditing} handleInputChange={handleInputChange} handleSave={handleSave} />;
       case "orders":
         return <OrderHistory orders={orders} onOrderSelect={setSelectedOrder} />;
+      case "luxeMembership":
+        return (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-6">Febeul Luxe Membership</h2>
+            <MembershipStatus user={user} />
+          </div>
+        );
       case "addresses":
         return <ManageAddresses addresses={addresses} />;
       case "wishlist":
@@ -200,6 +207,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
   const navItems = [
     { id: "profile", icon: User, label: "My Profile" },
     { id: "orders", icon: ShoppingBag, label: "My Orders" },
+    { id: "luxeMembership", icon: Gift, label: "Luxe Membership" },
     { id: "addresses", icon: MapPin, label: "Manage Addresses" },
     { id: "wishlist", icon: Heart, label: "My Wishlist" },
   ];

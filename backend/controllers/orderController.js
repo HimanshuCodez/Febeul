@@ -458,6 +458,7 @@ const verifyRazorpay = async (req,res) => {
                     await userModel.findByIdAndUpdate(userId, {
                         isLuxeMember: true,
                         luxeMembershipExpires: expiryDate,
+                        giftWrapsLeft: 15, // Initialize gift wraps
                         cartData: [] 
                     });
                 } else {

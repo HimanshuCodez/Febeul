@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
     googleId: { type: String, unique: true, sparse: true },
     isLuxeMember: { type: Boolean, default: false },
     luxeMembershipExpires: { type: Date },
+    giftWrapsLeft: { type: Number, default: 15 },
     otp: { type: String },
     otp_expiry: { type: Date },
     cartData: [{
