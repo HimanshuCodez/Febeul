@@ -375,5 +375,28 @@ const removeFromWishlist = async (req, res) => {
     }
 };
 
+// Decrement gift wraps for Luxe members
+const decrementGiftWraps = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const user = await userModel.findById(userId);
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin }
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        if (user.isLuxeMember && user.giftWrapsLeft > 0) {
+            user.giftWrapsLeft -= 1;
+            await user.save();
+            res.json({ success: true, message: "Gift wrap count decremented", giftWrapsLeft: user.giftWrapsLeft });
+        } else {
+            res.json({ success: false, message: "No free gift wraps available or not a Luxe member" });
+        }
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error decrementing gift wraps" });
+    }
+};
+
+
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps }

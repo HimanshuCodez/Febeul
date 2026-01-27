@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
 
 const userRouter = express.Router();
@@ -21,5 +21,8 @@ userRouter.post('/reset-password', resetPassword);
 userRouter.get('/wishlist', authUser, getWishlist);
 userRouter.post('/wishlist/add', authUser, addToWishlist);
 userRouter.post('/wishlist/remove', authUser, removeFromWishlist);
+
+// Gift Wrap Routes
+userRouter.post('/giftwrap/decrement', authUser, decrementGiftWraps);
 
 export default userRouter;

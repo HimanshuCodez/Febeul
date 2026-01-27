@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, unique: true, sparse: true },
-    password: { type: String },
-    mobile: { type: String, unique: true, sparse: true },
-    googleId: { type: String, unique: true, sparse: true },
+    name: { type: String, required: true, required: true },
+    email: { type: String, unique: true, required: true },
+    password: { type: String ,required: true},
+    mobile: { type: String, unique: true, },
+    googleId: { type: String, unique: true, },
     isLuxeMember: { type: Boolean, default: false },
     luxeMembershipExpires: { type: Date },
     giftWrapsLeft: { type: Number, default: 15 },

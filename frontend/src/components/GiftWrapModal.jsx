@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FaCheck, FaTimes } from 'react-icons/fa';
-import axios from 'axios';
+import { toast } from 'react-hot-toast';
+import useAuthStore from '../store/authStore';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -10,6 +8,9 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
   const [giftMessage, setGiftMessage] = useState('');
   const [giftWraps, setGiftWraps] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user, getProfile } = useAuthStore();
+  const isLuxeMember = user?.isLuxeMember || false;
+  const giftWrapsLeft = user?.giftWrapsLeft || 0;
 
   useEffect(() => {
     if (isOpen) {
@@ -34,10 +35,44 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
 
   if (!isOpen) return null;
 
-  const handleSelect = () => {
+  const getDisplayedPrice = (wrap) => {
+    if (isLuxeMember && giftWrapsLeft > 0) {
+      return "FREE";
+    }
+    return `₹${wrap.price}`;
+  };
+
+  const getCalculatedPrice = (wrap) => {
+    if (isLuxeMember && giftWrapsLeft > 0) {
+      return 0;
+    }
+    return wrap.price;
+  };
+
+  const handleSelect = async () => {
     if (selectedWrap) {
-      onSelect({ ...selectedWrap, message: giftMessage });
+      const finalPrice = getCalculatedPrice(selectedWrap);
+      onSelect({ ...selectedWrap, price: finalPrice, message: giftMessage });
       onClose();
+
+      if (isLuxeMember && giftWrapsLeft > 0) {
+        try {
+          const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
+          const response = await axios.post(
+            `${backendUrl}/api/user/giftwrap/decrement`,
+            {},
+            { headers: { token } }
+          );
+          if (response.data.success) {
+            getProfile(); // Refresh user profile to get updated giftWrapsLeft
+          } else {
+            toast.error(response.data.message);
+          }
+        } catch (error) {
+          console.error("Error decrementing gift wraps:", error);
+          toast.error("Failed to update gift wrap count.");
+        }
+      }
     }
   };
 
@@ -80,7 +115,7 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
                   </div>
                   <div className="p-3 text-center">
                     <p className="font-semibold text-gray-700">{wrap.name}</p>
-                    <p className="text-pink-500 font-bold">₹{wrap.price}</p>
+                    <p className="text-pink-500 font-bold">{getDisplayedPrice(wrap)}</p>
                   </div>
               </div>
             ))
@@ -119,6 +154,7 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
       </motion.div>
     </div>
   );
+};
 };
 
 export default GiftWrapModal;
