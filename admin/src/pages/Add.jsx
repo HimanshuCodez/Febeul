@@ -9,7 +9,7 @@ import "react-quill/dist/quill.snow.css";
 const Add = ({ token }) => {
   const [type, setType] = useState("");
   const [variations, setVariations] = useState([
-    { color: "", images: [], price: "", mrp: "" },
+    { color: "", images: [], sizes: [] },
   ]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -17,7 +17,6 @@ const Add = ({ token }) => {
   const [subCategory, setSubCategory] = useState("Topwear");
   const [bestseller, setBestseller] = useState(false);
   const [isLuxePrive, setIsLuxePrive] = useState(false);
-  const [sizes, setSizes] = useState([]);
 
   const [sku, setSku] = useState("");
   const [countryOfOrigin, setCountryOfOrigin] = useState("");
@@ -39,9 +38,18 @@ const Add = ({ token }) => {
   const [netQuantity, setNetQuantity] = useState("");
   const [genericName, setGenericName] = useState("");
 
+  const availableSizes = ["S", "M", "L", "XL", "XXL", "Free Size"];
+
   const handleVariationChange = (index, event) => {
     const newVariations = [...variations];
     newVariations[index][event.target.name] = event.target.value;
+    setVariations(newVariations);
+  };
+
+  const handleSizeChange = (v_index, s_index, event) => {
+    const newVariations = [...variations];
+    newVariations[v_index].sizes[s_index][event.target.name] =
+      event.target.value;
     setVariations(newVariations);
   };
 
@@ -52,15 +60,24 @@ const Add = ({ token }) => {
   };
 
   const addVariation = () => {
-    setVariations([
-      ...variations,
-      { color: "", images: [], price: "", mrp: "" },
-    ]);
+    setVariations([...variations, { color: "", images: [], sizes: [] }]);
   };
 
   const removeVariation = (index) => {
     const newVariations = [...variations];
     newVariations.splice(index, 1);
+    setVariations(newVariations);
+  };
+
+  const addSize = (v_index, size) => {
+    const newVariations = [...variations];
+    newVariations[v_index].sizes.push({ size: size, price: "", mrp: "" });
+    setVariations(newVariations);
+  };
+
+  const removeSize = (v_index, s_index) => {
+    const newVariations = [...variations];
+    newVariations[v_index].sizes.splice(s_index, 1);
     setVariations(newVariations);
   };
 
@@ -82,7 +99,6 @@ const Add = ({ token }) => {
       formData.append("subCategory", subCategory);
       formData.append("bestseller", bestseller);
       formData.append("isLuxePrive", isLuxePrive);
-      formData.append("sizes", JSON.stringify(sizes));
 
       formData.append("sku", sku);
       formData.append("countryOfOrigin", countryOfOrigin);
@@ -107,8 +123,11 @@ const Add = ({ token }) => {
 
       const variationsData = variations.map((v) => ({
         color: v.color,
-        price: v.price,
-        mrp: v.mrp,
+        sizes: v.sizes.map((s) => ({
+          size: s.size,
+          price: s.price,
+          mrp: s.mrp,
+        })),
       }));
       formData.append("variations", JSON.stringify(variationsData));
 
@@ -128,7 +147,7 @@ const Add = ({ token }) => {
         toast.success(response.data.message);
         setName("");
         setDescription("");
-        setVariations([{ color: "", images: [], price: "", mrp: "" }]);
+        setVariations([{ color: "", images: [], sizes: [] }]);
         setSku("");
         setBestseller(false);
         setIsLuxePrive(false);
@@ -165,76 +184,114 @@ const Add = ({ token }) => {
       onSubmit={onSubmitHandler}
       className="flex flex-col w-full items-start gap-3"
     >
-      {variations.map((variation, index) => (
+      {variations.map((variation, v_index) => (
         <div
-          key={index}
-          className="flex flex-col gap-2 border p-4 rounded-md w-full"
+          key={v_index}
+          className="flex flex-col gap-4 border p-4 rounded-md w-full relative"
         >
-          <p className="font-semibold">Variation {index + 1}</p>
+          <p className="font-semibold">Variation {v_index + 1}</p>
+
           <div className="w-full">
             <p className="mb-2">Color</p>
             <input
               name="color"
-              onChange={(e) => handleVariationChange(index, e)}
+              onChange={(e) => handleVariationChange(v_index, e)}
               value={variation.color}
-              className="w-full max-w-[500px] px-3 py-2"
+              className="w-full max-w-[500px] px-3 py-2 border rounded-md"
               type="text"
               placeholder="e.g. Red"
               required
             />
           </div>
-          <div className="flex gap-2">
-            <div>
-              <p className="mb-2">MRP</p>
-              <input
-                name="mrp"
-                onChange={(e) => handleVariationChange(index, e)}
-                value={variation.mrp}
-                className="w-full max-w-[120px] px-3 py-2"
-                type="number"
-                placeholder="e.g. 100"
-                required
-              />
-            </div>
-            <div>
-              <p className="mb-2">Selling Price</p>
-              <input
-                name="price"
-                onChange={(e) => handleVariationChange(index, e)}
-                value={variation.price}
-                className="w-full max-w-[120px] px-3 py-2"
-                type="number"
-                placeholder="e.g. 80"
-                required
-              />
+
+          <div>
+            <p className="mb-2">Sizes & Pricing</p>
+            {variation.sizes.map((sizeData, s_index) => (
+              <div key={s_index} className="flex gap-2 items-end mb-2">
+                <div className="w-24">
+                  <p className="text-sm mb-1">Size</p>
+                  <input
+                    name="size"
+                    value={sizeData.size}
+                    readOnly
+                    className="w-full px-2 py-1 border rounded-md bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm mb-1">MRP</p>
+                  <input
+                    name="mrp"
+                    onChange={(e) => handleSizeChange(v_index, s_index, e)}
+                    value={sizeData.mrp}
+                    className="w-full max-w-[100px] px-2 py-1 border rounded-md"
+                    type="number"
+                    placeholder="MRP"
+                    required
+                  />
+                </div>
+                <div>
+                  <p className="text-sm mb-1">Price</p>
+                  <input
+                    name="price"
+                    onChange={(e) => handleSizeChange(v_index, s_index, e)}
+                    value={sizeData.price}
+                    className="w-full max-w-[100px] px-2 py-1 border rounded-md"
+                    type="number"
+                    placeholder="Price"
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeSize(v_index, s_index)}
+                  className="bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit"
+                >
+                  -
+                </button>
+              </div>
+            ))}
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {availableSizes
+                .filter((size) => !variation.sizes.some((s) => s.size === size))
+                .map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => addSize(v_index, size)}
+                    className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-300"
+                  >
+                    Add {size}
+                  </button>
+                ))}
             </div>
           </div>
+
           <div>
-            <p className="mb-2">Upload Images</p>
+            <p className="mb-2">Images</p>
             <div className="flex gap-2 flex-wrap">
               {variation.images.map((image, i_index) => (
                 <div key={i_index} className="relative">
                   <img
-                    className="w-20"
+                    className="w-20 object-cover"
                     src={URL.createObjectURL(image)}
                     alt=""
                   />
                   <p
-                    onClick={() => removeImage(index, i_index)}
-                    className="absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                    onClick={() => removeImage(v_index, i_index)}
+                    className="absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
                   >
                     x
                   </p>
                 </div>
               ))}
-              <label>
+              <label className="cursor-pointer">
                 <img
-                  className="w-20 cursor-pointer"
+                  className="w-20 object-cover"
                   src={assets.upload_area}
                   alt=""
                 />
                 <input
-                  onChange={(e) => handleImageChange(index, e)}
+                  onChange={(e) => handleImageChange(v_index, e)}
                   type="file"
                   multiple
                   hidden
@@ -242,13 +299,15 @@ const Add = ({ token }) => {
               </label>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => removeVariation(index)}
-            className="bg-red-500 text-white px-3 py-1 rounded-md w-fit"
-          >
-            Remove Variation
-          </button>
+          {variations.length > 1 && (
+            <button
+              type="button"
+              onClick={() => removeVariation(v_index)}
+              className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm"
+            >
+              Remove Variation
+            </button>
+          )}
         </div>
       ))}
 
@@ -514,106 +573,6 @@ const Add = ({ token }) => {
             type="text"
             placeholder="Nightgown"
           />
-        </div>
-      </div>
-
-      <div>
-        <p className="mb-2">Product Sizes</p>
-        <div className="flex gap-3">
-          <div
-            onClick={() =>
-              setSizes((prev) =>
-                prev.includes("S")
-                  ? prev.filter((item) => item !== "S")
-                  : [...prev, "S"],
-              )
-            }
-          >
-            <p
-              className={`${sizes.includes("S") ? "bg-pink-100" : "bg-slate-200"} px-3 py-1 cursor-pointer`}
-            >
-              S
-            </p>
-          </div>
-
-          <div
-            onClick={() =>
-              setSizes((prev) =>
-                prev.includes("M")
-                  ? prev.filter((item) => item !== "M")
-                  : [...prev, "M"],
-              )
-            }
-          >
-            <p
-              className={`${sizes.includes("M") ? "bg-pink-100" : "bg-slate-200"} px-3 py-1 cursor-pointer`}
-            >
-              M
-            </p>
-          </div>
-
-          <div
-            onClick={() =>
-              setSizes((prev) =>
-                prev.includes("L")
-                  ? prev.filter((item) => item !== "L")
-                  : [...prev, "L"],
-              )
-            }
-          >
-            <p
-              className={`${sizes.includes("L") ? "bg-pink-100" : "bg-slate-200"} px-3 py-1 cursor-pointer`}
-            >
-              L
-            </p>
-          </div>
-
-          <div
-            onClick={() =>
-              setSizes((prev) =>
-                prev.includes("XL")
-                  ? prev.filter((item) => item !== "XL")
-                  : [...prev, "XL"],
-              )
-            }
-          >
-            <p
-              className={`${sizes.includes("XL") ? "bg-pink-100" : "bg-slate-200"} px-3 py-1 cursor-pointer`}
-            >
-              XL
-            </p>
-          </div>
-
-          <div
-            onClick={() =>
-              setSizes((prev) =>
-                prev.includes("XXL")
-                  ? prev.filter((item) => item !== "XXL")
-                  : [...prev, "XXL"],
-              )
-            }
-          >
-            <p
-              className={`${sizes.includes("XXL") ? "bg-pink-100" : "bg-slate-200"} px-3 py-1 cursor-pointer`}
-            >
-              XXL
-            </p>
-          </div>
-          <div
-            onClick={() =>
-              setSizes((prev) =>
-                prev.includes("Free Size")
-                  ? prev.filter((item) => item !== "Free Size")
-                  : [...prev, "Free Size"],
-              )
-            }
-          >
-            <p
-              className={`${sizes.includes("Free Size") ? "bg-pink-100" : "bg-slate-200"} px-3 py-1 cursor-pointer`}
-            >
-              Free Size
-            </p>
-          </div>
         </div>
       </div>
 
