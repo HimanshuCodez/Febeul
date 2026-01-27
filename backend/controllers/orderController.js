@@ -10,6 +10,7 @@ import fs from 'fs'; // For reading email template
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
+import productModel from "../models/productModel.js";
 
 // Re-define __dirname in this context for template path resolution
 const __filenameController = fileURLToPath(import.meta.url);
