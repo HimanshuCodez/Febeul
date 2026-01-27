@@ -34,11 +34,7 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Toast logic is tricky with multiple login types. Let's simplify.
-      // A success toast will now be shown inside the login/signup/googleLogin functions if needed.
-      // This effect will just handle the redirect.
       if (location.pathname === '/auth') {
-        toast.success("Logged in successfully!");
         navigate("/", { replace: true });
       }
     }
@@ -120,6 +116,7 @@ const AuthPage = () => {
               mobile: signupFormData.mobile,
               password: signupFormData.password
             });
+            toast.success("Signed up successfully!"); // Add this toast here
           } else {
             toast.error(verifyResponse.data.message || 'Invalid OTP.');
           }
