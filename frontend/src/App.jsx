@@ -37,6 +37,7 @@ import CheckoutPage from "./Pages/Checkout";
 import OrderSuccess from "./Pages/OrderSuccess";
 import { Toaster } from "react-hot-toast";
 import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
+import MaintenancePage from "./Pages/Maintenance";
 
 const AppContent = () => {
   const location = useLocation();
@@ -50,7 +51,7 @@ const AppContent = () => {
       {showHeaderFooter && <Header />}
       <Routes>
         {/* Default route - Home */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<MaintenancePage />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/address" element={<Address />} /> {/* Added route for Address */}

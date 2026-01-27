@@ -4,7 +4,7 @@ import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
-import 'react-quill/dist/react-quill.snow.css';
+import 'react-quill/dist/quill.snow.css';
 import { assets } from '../assets/assets';
 
 const availableSizes = ["S", "M", "L", "XL", "XXL", "Free Size"];
