@@ -155,6 +155,6 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
     </div>
   );
 };
-};
+
 
 export default GiftWrapModal;

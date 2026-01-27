@@ -1,6 +1,7 @@
 import userModel from "../models/userModel.js";
 import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
+import bcrypt from "bcrypt";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -54,7 +55,14 @@ const sendEmailOTP = async (req, res) => {
 
         if (isNewUser) {
             // If user doesn't exist, create a temporary one for OTP verification during signup
-            user = new userModel({ email });
+            // Provide placeholder name and hashed password to satisfy schema validation
+            const tempPassword = Math.random().toString(36).slice(-8); // Generate a random string
+            const hashedPassword = await bcrypt.hash(tempPassword, 10); // Hash it with 10 rounds
+            user = new userModel({ 
+                email,
+                name: 'Temporary OTP User', 
+                password: hashedPassword 
+            });
         }
 
         user.otp = otp;
