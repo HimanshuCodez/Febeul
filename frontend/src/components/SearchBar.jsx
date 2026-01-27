@@ -108,7 +108,7 @@ export default function SearchBar() {
   };
 
   return (
-    <div className="relative w-full max-w-md">
+    <div className="relative w-full max-w-xl">
       <form onSubmit={handleSearchSubmit}>
         <div className="flex items-center border pl-4 gap-2 border-black h-[40px] rounded-full overflow-hidden w-full bg-gray-50 hover:bg-white transition">
           <svg

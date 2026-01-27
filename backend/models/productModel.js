@@ -37,6 +37,7 @@ const productSchema = new mongoose.Schema({
     itemDimensionsLxWxH: { type: String },
     netQuantity: { type: String },
     genericName: { type: String },
+    keywords: { type: [String], default: [] },
     averageRating: { type: Number, default: 0 },
     numOfReviews: { type: Number, default: 0 }
 })

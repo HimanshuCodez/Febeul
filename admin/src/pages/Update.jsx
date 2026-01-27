@@ -41,6 +41,7 @@ const Update = ({ token }) => {
     const [itemDimensionsLxWxH, setItemDimensionsLxWxH] = useState("");
     const [netQuantity, setNetQuantity] = useState("");
     const [genericName, setGenericName] = useState("");
+    const [keywords, setKeywords] = useState("");
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -76,6 +77,7 @@ const Update = ({ token }) => {
                     setNetQuantity(product.netQuantity || "");
                     setGenericName(product.genericName || "");
                     setVariations(product.variations || []); // Updated to new structure
+                    setKeywords(product.keywords ? product.keywords.join(", ") : "");
                 } else {
                     toast.error(response.data.message);
                 }
@@ -164,6 +166,7 @@ const Update = ({ token }) => {
             formData.append("itemDimensionsLxWxH", itemDimensionsLxWxH);
             formData.append("netQuantity", netQuantity);
             formData.append("genericName", genericName);
+            formData.append("keywords", keywords);
 
             const variationsData = variations.map(v => ({
                 color: v.color,
@@ -272,6 +275,17 @@ const Update = ({ token }) => {
             <div className='w-full'>
                 <p className='mb-2'>Product description</p>
                 <ReactQuill theme="snow" value={description} onChange={setDescription} className='w-full max-w-[500px] min-h-40 mb-12' required/>
+            </div>
+
+            <div className='w-full'>
+                <p className='mb-2'>Product Keywords</p>
+                <input
+                    onChange={(e) => setKeywords(e.target.value)}
+                    value={keywords}
+                    className='w-full max-w-[500px] px-3 py-2 border rounded-md'
+                    type="text"
+                    placeholder="Enter comma-separated keywords"
+                />
             </div>
 
             <div className='flex flex-col sm:flex-row gap-2 w-full sm:gap-8'>

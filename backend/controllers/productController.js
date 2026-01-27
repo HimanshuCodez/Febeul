@@ -4,7 +4,7 @@ import productModel from "../models/productModel.js"
 // function for add product
 const addProduct = async (req, res) => {
     try {
-        const { name, description, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
+        const { name, description, category, subCategory, sizes, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
         const variations = JSON.parse(variationsJSON);
         const files = req.files;
 
@@ -53,7 +53,8 @@ const addProduct = async (req, res) => {
             itemWeight,
             itemDimensionsLxWxH,
             netQuantity,
-            genericName
+            genericName,
+            keywords: keywords ? keywords.split(',').map(kw => kw.trim()) : [],
         };
 
         const product = new productModel(productData);
@@ -85,10 +86,18 @@ const listProducts = async (req, res) => {
         if (search) {
             filter.$or = [
                 { name: { $regex: search, $options: 'i' } },
-                { type: { $regex: search, $options: 'i' } },
-                { fabric: { $regex: search, $options: 'i' } },
                 { description: { $regex: search, $options: 'i' } },
                 { category: { $regex: search, $options: 'i' } },
+                { subCategory: { $regex: search, $options: 'i' } },
+                { fabric: { $regex: search, $options: 'i' } },
+                { type: { $regex: search, $options: 'i' } },
+                { pattern: { $regex: search, $options: 'i' } },
+                { sleeveStyle: { $regex: search, $options: 'i' } },
+                { sleeveLength: { $regex: search, $options: 'i' } },
+                { neck: { $regex: search, $options: 'i' } },
+                { materialComposition: { $regex: search, $options: 'i' } },
+                { genericName: { $regex: search, $options: 'i' } },
+                { keywords: { $in: [new RegExp(search, "i")] } }
             ];
         }
 
@@ -131,7 +140,7 @@ const singleProduct = async (req, res) => {
 // function for updating product
 const updateProduct = async (req, res) => {
     try {
-        const { productId, name, description, category, subCategory, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, variations: variationsJSON } = req.body;
+        const { productId, name, description, category, subCategory, bestseller, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
         
         const product = await productModel.findById(productId);
         if (!product) {
@@ -200,6 +209,7 @@ const updateProduct = async (req, res) => {
         product.itemDimensionsLxWxH = itemDimensionsLxWxH;
         product.netQuantity = netQuantity;
         product.genericName = genericName;
+        product.keywords = keywords ? keywords.split(',').map(kw => kw.trim()) : [];
         product.variations = processedVariations;
 
         await product.save();

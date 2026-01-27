@@ -130,9 +130,17 @@ const Cart = () => {
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               {cartItems.map((item, index) => {
-                // item.price and item.image are now directly available from the backend response
-                const price = item.price;
-                const image = item.image; 
+                const selectedVariation = item.variations?.find(
+                  (v) => v.color === item.color
+                );
+
+                const itemImage = selectedVariation?.images?.[0];
+                const itemPrice = selectedVariation?.sizes?.find(
+                  (s) => s.size === item.size
+                )?.price;
+
+                const price = item.price || itemPrice;
+                const image = item.image || itemImage;
 
                 return (
                 <motion.div

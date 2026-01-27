@@ -37,6 +37,7 @@ const Add = ({ token }) => {
   const [itemDimensionsLxWxH, setItemDimensionsLxWxH] = useState("");
   const [netQuantity, setNetQuantity] = useState("");
   const [genericName, setGenericName] = useState("");
+  const [keywords, setKeywords] = useState("");
 
   const availableSizes = ["S", "M", "L", "XL", "XXL", "Free Size"];
 
@@ -120,6 +121,7 @@ const Add = ({ token }) => {
       formData.append("itemDimensionsLxWxH", itemDimensionsLxWxH);
       formData.append("netQuantity", netQuantity);
       formData.append("genericName", genericName);
+      formData.append("keywords", keywords);
 
       const variationsData = variations.map((v) => ({
         color: v.color,
@@ -170,6 +172,7 @@ const Add = ({ token }) => {
         setItemDimensionsLxWxH("");
         setNetQuantity("");
         setGenericName("");
+        setKeywords("");
       } else {
         toast.error(response.data.message);
       }
@@ -339,6 +342,17 @@ const Add = ({ token }) => {
           onChange={setDescription}
           className="w-full max-w-[500px] min-h-40 mb-12"
           required
+        />
+      </div>
+
+      <div className="w-full">
+        <p className="mb-2">Product Keywords</p>
+        <input
+          onChange={(e) => setKeywords(e.target.value)}
+          value={keywords}
+          className="w-full max-w-[500px] px-3 py-2"
+          type="text"
+          placeholder="Enter comma-separated keywords"
         />
       </div>
 

@@ -60,44 +60,15 @@ const ProductCard = ({ product }) => {
     }
   };
 
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-    if (!isAuthenticated) {
-      toast.error("Please log in to add items to your cart.");
-      navigate("/auth");
-      return;
-    }
-
-    // Add validation for size and color
-    if (!activeVariation.size || !activeVariation.color) {
-      toast.error("Please select a size and color for the product.");
-      return;
-    }
-
-    try {
-      const response = await axios.post(`${backendUrl}/api/cart/add`, 
-        { 
-          itemId: product._id, 
-          size: activeVariation.size, 
-          color: activeVariation.color 
-        },
-        { headers: { token } }
-      );
-      if (response.data.success) {
-        toast.success("Added to cart!");
-        // Optionally, you might want to fetch cart count or update cart state here
-      }
-    } catch (error) {
-      console.error("Error adding to cart", error);
-      toast.error("Failed to add to cart.");
-    }
-  };
-
   const variations = product.variations || [];
   const activeVariation = variations[activeVariationIndex] || {};
+  
+  const firstSize = activeVariation.sizes?.[0];
+  const displayPrice = firstSize?.price;
+  const displayMrp = firstSize?.mrp;
 
-  const discount = activeVariation.mrp
-    ? Math.round(((activeVariation.mrp - activeVariation.price) / activeVariation.mrp) * 100)
+  const discount = displayMrp && displayPrice
+    ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
     : 0;
 
   const defaultImage = activeVariation.images?.[0] || product.variations?.[0]?.images?.[0];
@@ -148,8 +119,11 @@ const ProductCard = ({ product }) => {
             </button>
 
             <button
-              title="Add to Cart"
-              onClick={handleAddToCart}
+              title="View Product"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/product/${product._id}`);
+              }}
               className="bg-white p-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-pink-50"
             >
               <ShoppingCart className="w-5 h-5 text-gray-700" />
@@ -172,9 +146,9 @@ const ProductCard = ({ product }) => {
 
           <div className="flex items-baseline justify-between">
             <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-gray-900">₹{activeVariation.price?.toLocaleString('en-IN') || 'N/A'}</span>
-                {activeVariation.mrp && activeVariation.mrp > activeVariation.price && (
-                  <span className="text-sm text-gray-500 line-through">₹{activeVariation.mrp.toLocaleString('en-IN')}</span>
+                <span className="text-lg font-bold text-gray-900">₹{displayPrice?.toLocaleString('en-IN') || 'N/A'}</span>
+                {displayMrp && displayMrp > displayPrice && (
+                  <span className="text-sm text-gray-500 line-through">₹{displayMrp.toLocaleString('en-IN')}</span>
                 )}
             </div>
           </div>

@@ -121,8 +121,15 @@ export default function CheckoutPage() {
     }
     }
     const subtotal = cartItems.reduce((sum, item) => {
-        // item.price is now directly available from the backend response in getUserCart
-        return sum + (item.price * item.quantity);
+        const selectedVariation = item.variations?.find(
+            (v) => v.color === item.color
+        );
+        const itemPrice = selectedVariation?.sizes?.find(
+            (s) => s.size === item.size
+        )?.price;
+        const actualPrice = item.price || itemPrice || 0; // Prioritize item.price if backend provides it directly, else use derived, fallback to 0
+
+        return sum + (actualPrice * item.quantity);
     }, 0);
     const shippingCost = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : STANDARD_SHIPPING_CHARGE;
     const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
@@ -135,23 +142,26 @@ export default function CheckoutPage() {
     toast.success(`${wrap.name} gift wrap added!`);
   }
 
-  const handlePlaceOrder = async () => {
-    if (selectedPayment === 'cod') {
-      await placeCodOrder();
-    } else if (selectedPayment === 'card') {
-      await handleRazorpayPayment();
-    }
-  }
-
   const placeCodOrder = async () => {
     const orderItems = cartItems.map((item) => {
+        const selectedVariation = item.variations?.find(
+            (v) => v.color === item.color
+        );
+        const itemPrice = selectedVariation?.sizes?.find(
+            (s) => s.size === item.size
+        )?.price;
+        const actualPrice = item.price || itemPrice || 0;
+
+        const itemImage = selectedVariation?.images?.[0]; // Get the first image of the selected variation
+        const actualImage = item.image || itemImage;
+
         return {
             productId: item._id, // Use item._id as it's the product ID
             quantity: item.quantity,
             size: item.size,
             name: item.name,
-            image: item.image, // Use item.image directly
-            price: item.price, // Use item.price directly
+            image: actualImage, // Use item.image directly
+            price: actualPrice, // Use item.price directly
             color: item.color
         }
     });
@@ -175,16 +185,35 @@ export default function CheckoutPage() {
     }
   }
 
+  const handlePlaceOrder = async () => {
+    if (selectedPayment === 'cod') {
+      await placeCodOrder();
+    } else if (selectedPayment === 'card') {
+      await handleRazorpayPayment();
+    }
+  }
+
   const handleRazorpayPayment = async () => {
     try {
       const orderItems = cartItems.map((item) => {
+        const selectedVariation = item.variations?.find(
+            (v) => v.color === item.color
+        );
+        const itemPrice = selectedVariation?.sizes?.find(
+            (s) => s.size === item.size
+        )?.price;
+        const actualPrice = item.price || itemPrice || 0;
+
+        const itemImage = selectedVariation?.images?.[0]; // Get the first image of the selected variation
+        const actualImage = item.image || itemImage;
+
         return {
             productId: item._id, // Use item._id as it's the product ID
             quantity: item.quantity,
             size: item.size,
             name: item.name,
-            image: item.image, // Use item.image directly
-            price: item.price, // Use item.price directly
+            image: actualImage, // Use item.image directly
+            price: actualPrice, // Use item.price directly
             color: item.color
         }
       });
@@ -531,19 +560,22 @@ export default function CheckoutPage() {
 
               <div className="space-y-3 mb-4">
                 {cartItems.map(item => {
-                  const variation = item.variations.find(v => v.color === item.color);
-                  const price = variation ? variation.price : 0;
-                  const image = variation ? variation.images[0] : item.variations?.[0]?.images?.[0];
+                  const selectedVariation = item.variations?.find(v => v.color === item.color);
+                  const selectedSizePrice = selectedVariation?.sizes?.find(s => s.size === item.size)?.price;
+
+                  const actualPrice = item.price || selectedSizePrice || 0; // Use 0 as fallback if price is still not found
+                  const actualImage = selectedVariation?.images?.[0] || item.variations?.[0]?.images?.[0]; // Fallback to first variation's first image
+
                   return (
                     <div key={item._id + item.size + item.color} className="flex items-start justify-between text-sm">
                         <div className="flex items-start flex-1">
-                        <img src={image} className="w-10 h-10 object-cover mr-2 rounded" />
+                        <img src={actualImage} className="w-10 h-10 object-cover mr-2 rounded" />
                         <div>
                             <p className="text-gray-800 font-medium">{item.name}</p>
                             <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
                         </div>
                         </div>
-                        <p className="font-bold text-gray-800">₹{(price * item.quantity).toFixed(2)}</p>
+                        <p className="font-bold text-gray-800">₹{(actualPrice * item.quantity).toFixed(2)}</p>
                     </div>
                   )
                 })}
