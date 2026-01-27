@@ -453,7 +453,7 @@ const AuthPage = () => {
               whileTap={{ scale: 0.97 }}
               type="submit"
               disabled={loading}
-              onClick={step === 1 && !isLogin ? handleSendSignupOtp : handleSubmit(onSubmit)}
+              onClick={handleSubmit(onSubmit)}
               className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
             >
               {loading ? 'Processing...' : isLogin ? (step === 1 ? "Login" : "Verify & Login") : (step === 1 ? "Continue" : "Verify & Create Account")}

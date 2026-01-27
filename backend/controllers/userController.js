@@ -66,29 +66,30 @@ const registerUser = async (req, res) => {
     try {
         const { name, email, password, mobile } = req.body;
 
-        let user = await userModel.findOne({ email });
-
-        if (user && user.password) { // User is fully registered
-            return res.json({ success: false, message: "User already exists with this email. Please log in." });
-        }
-
         if (!validator.isEmail(email)) {
-            return res.json({ success: false, message: "Please enter a valid email" })
+            return res.json({ success: false, message: "Please enter a valid email" });
         }
         if (password.length < 6) {
-            return res.json({ success: false, message: "Password must be at least 6 characters" })
+            return res.json({ success: false, message: "Password must be at least 6 characters" });
         }
 
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(password, salt)
+        let user = await userModel.findOne({ email });
 
-        if (user) { // It's a temporary user, let's update it
-            user.name = name;
-            user.password = hashedPassword;
-            user.mobile = mobile;
-            user.otp = undefined; // Clear OTP stuff
-            user.otp_expiry = undefined;
-        } else { // It's a new registration without a prior temporary record
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        if (user) {
+            // Check if it's a temporary user (from OTP process) or a fully registered user
+            if (user.otp && user.otp_expiry) { // This is a temporary user
+                user.name = name;
+                user.password = hashedPassword;
+                user.mobile = mobile;
+                user.otp = undefined; // Clear OTP stuff
+                user.otp_expiry = undefined;
+            } else { // User exists and is not a temporary OTP user, meaning they are fully registered
+                return res.json({ success: false, message: "User already exists with this email. Please log in." });
+            }
+        } else { // User does not exist at all, create a new one
              user = new userModel({
                 name,
                 email,
@@ -97,7 +98,7 @@ const registerUser = async (req, res) => {
             });
         }
         
-        const savedUser = await user.save();
+        const savedUser = await user.save(); // Save the updated or new user
         const token = createToken(savedUser._id);
         const userResponse = await userModel.findById(savedUser._id).select("-password");
         
@@ -117,7 +118,7 @@ const registerUser = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: error.message });
     }
 }
 
