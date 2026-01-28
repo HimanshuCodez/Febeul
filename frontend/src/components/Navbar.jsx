@@ -16,7 +16,7 @@ import {
   AtSign,
 } from "lucide-react";
 import SearchBar from "./SearchBar";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 
 const SwipingMessages = () => {
@@ -122,6 +122,12 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { isAuthenticated, wishlistCount, cartCount } = useAuthStore();
+  const location = useLocation(); // Get location object
+
+  useEffect(() => {
+    setIsSearchOpen(false); // Close search overlay on route change
+    setIsMenuOpen(false); // Close menu overlay on route change (good practice)
+  }, [location.pathname]);
 
   const navigation = [
     {
@@ -228,19 +234,19 @@ export default function Header() {
       <div className="bg-[#f9aeaf] border-b">
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
           {/* Mobile Menu Button & Search (hidden on mobile) */}
-                    <div className="flex-1 flex justify-start">
-                      <div className="hidden md:block"> {/* SearchBar desktop only */}
-                        <SearchBar />
-                      </div>
-                    </div>
+          <div className="flex-1 flex justify-start">
+            <div className="hidden md:block"> {/* SearchBar desktop only */}
+              <SearchBar />
+            </div>
+          </div>
           
-                    <div className="flex-shrink-0 flex-1 flex justify-center"> {/* Centered Logo */}
-                      <Link to="/">
-                        <img src="/removebgLogo.png" alt="AdiLove" className="h-12 w-auto" />
-                      </Link>
-                    </div>
+          <div className="flex-shrink-0 flex-1 flex justify-center"> {/* Centered Logo */}
+            <Link to="/">
+              <img src="/removebgLogo.png" alt="AdiLove" className="h-12 w-auto" />
+            </Link>
+          </div>
           
-                    <div className="flex-1 flex items-center justify-end gap-3 md:gap-5">
+          <div className="flex-1 flex items-center justify-end gap-3 md:gap-5">
                       <button onClick={() => setIsSearchOpen(true)} className="md:hidden p-2 text-gray-700"> {/* Mobile search icon */}
                         <Search className="h-6 w-6" />
                       </button>

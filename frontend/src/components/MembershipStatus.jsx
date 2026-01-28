@@ -4,11 +4,15 @@ import { Crown, Calendar, Gift } from 'lucide-react';
 
 const MembershipStatus = ({ user }) => {
   if (user && user.isLuxeMember) {
-    const expiryDate = new Date(user.luxeMembershipExpires).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+    const expiryDate = user.luxeMembershipExpires && !isNaN(new Date(user.luxeMembershipExpires))
+      ? new Date(user.luxeMembershipExpires).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        })
+      : 'N/A';
+
+    const giftWrapsLeft = user.giftWrapsLeft !== undefined ? user.giftWrapsLeft : 15;
 
     return (
       <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg shadow-lg p-6 mb-6">

@@ -102,9 +102,7 @@ const ProductCard = ({ product }) => {
 
           {/* Quick Actions - Appear on Hover */}
           <div
-            className={`absolute top-3 right-3 flex flex-col gap-2 transition-all duration-300 ${
-              isHovered ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'
-            }`}
+            className={`absolute top-3 right-3 flex flex-col gap-2 transition-all duration-300 opacity-100 sm:group-hover:translate-x-0 sm:translate-x-full sm:group-hover:opacity-100 sm:opacity-0`}
           >
             <button
               onClick={handleWishlistToggle}
@@ -160,7 +158,7 @@ const ProductCard = ({ product }) => {
                     {variations.slice(0, 5).map((variation, index) => (
                         <div
                             key={index}
-                            onMouseEnter={() => setActiveVariationIndex(index)}
+                            onClick={() => setActiveVariationIndex(index)}
                             className={`w-6 h-6 rounded-full overflow-hidden border-2 cursor-pointer transition-all ${
                                 activeVariationIndex === index ? 'border-pink-600 scale-110' : 'border-gray-200'
                             }`}

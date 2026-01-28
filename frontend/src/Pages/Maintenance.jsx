@@ -232,7 +232,7 @@ export default function MaintenancePage() {
           We're crafting an extraordinary experience just for you. Stay tuned for the grand launch!
         </motion.p>
 
-        {/* Countdown Timer */}
+        {/* Countdown Timer
         <motion.div 
           variants={itemVariants}
           className="grid grid-cols-4 gap-4 md:gap-8 mb-12 max-w-3xl mx-auto"
@@ -264,7 +264,7 @@ export default function MaintenancePage() {
               </div>
             </motion.div>
           ))}
-        </motion.div>
+        </motion.div> */}
 
        
 

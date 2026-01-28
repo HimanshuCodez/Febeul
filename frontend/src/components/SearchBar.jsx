@@ -11,6 +11,7 @@ export default function SearchBar() {
   const [searchResults, setSearchResults] = useState([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const debounceTimeout = useRef(null);
+  const searchBarRef = useRef(null); // Add this line
   const [history, setHistory] = useState([]); // Initialize as empty array
   const navigate = useNavigate();
 
@@ -34,6 +35,20 @@ export default function SearchBar() {
       console.error("Failed to save search history to localStorage", error);
     }
   }, [history]); // Run whenever history state changes
+
+  // Effect for click outside to close search results
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchBarRef.current && !searchBarRef.current.contains(event.target)) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [searchBarRef]); // Add searchBarRef to dependency array
 
   useEffect(() => {
     if (query.trim() === "") {
@@ -80,7 +95,9 @@ export default function SearchBar() {
     setHistory(newHistory);
     setQuery(product.name);
     setShowResults(false);
-    navigate(`/product/${product._id}`);
+    setTimeout(() => { // Add setTimeout
+      navigate(`/product/${product._id}`);
+    }, 50); // Small delay to allow UI update
   };
 
   const handleTextSelect = (item) => {
@@ -91,7 +108,9 @@ export default function SearchBar() {
     setHistory(newHistory);
     setQuery(item);
     setShowResults(false);
-    navigate(`/products?search=${encodeURIComponent(item)}`);
+    setTimeout(() => { // Add setTimeout
+      navigate(`/products?search=${encodeURIComponent(item)}`);
+    }, 50); // Small delay to allow UI update
   };
 
   const handleSearchSubmit = (e) => {
@@ -108,9 +127,9 @@ export default function SearchBar() {
   };
 
   return (
-    <div className="relative w-full max-w-xl">
+    <div className="relative w-full" ref={searchBarRef}>
       <form onSubmit={handleSearchSubmit}>
-        <div className="flex items-center border pl-4 gap-2 border-black h-[40px] rounded-full overflow-hidden w-full bg-gray-50 hover:bg-white transition">
+        <div className="flex items-center border pl-4 gap-2 border-black h-[40px] rounded-full overflow-hidden w-full md:max-w-4xl bg-gray-50 hover:bg-white transition">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="22"
@@ -129,7 +148,6 @@ export default function SearchBar() {
               setShowResults(true);
             }}
             onFocus={() => setShowResults(true)}
-            onBlur={() => setTimeout(() => setShowResults(false), 200)}
             className="w-full h-full outline-none text-black bg-transparent placeholder-black text-sm"
           />
         </div>

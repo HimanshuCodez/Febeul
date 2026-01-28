@@ -3,13 +3,35 @@ import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCrown, FaBusAlt } from "react-icons/fa"; // Add FaCrown
+import { FaCrown, FaBusAlt } from "react-icons/fa";
+import ProductCard from "../components/ProductCard";
+import Loader from "../components/Loader";
 
 export default function FebeulLuxe() {
   const { user, token, isAuthenticated, getProfile } = useAuthStore();
   const [razorpayKey, setRazorpayKey] = useState("");
   const navigate = useNavigate();
-  const [showPromo, setShowPromo] = useState(true); // Add this
+  const [showPromo, setShowPromo] = useState(true);
+
+  const [luxeProducts, setLuxeProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  const fetchLuxePriveProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/product/list?isLuxePrive=true`,
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        setLuxeProducts(response.data.products);
+      }
+    } catch (error) {
+      console.error("Failed to fetch Luxe Prive products", error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   useEffect(() => {
     const fetchRazorpayKey = async () => {
@@ -23,7 +45,13 @@ export default function FebeulLuxe() {
       }
     };
     fetchRazorpayKey();
-  }, []);
+
+    if (isAuthenticated && user?.isLuxeMember) {
+      fetchLuxePriveProducts();
+    } else {
+        setLoadingProducts(false); // If not a luxe member, no products to load
+    }
+  }, [isAuthenticated, user?.isLuxeMember, token]);
 
   const handlePayment = async () => {
     if (!isAuthenticated) {
@@ -119,6 +147,36 @@ export default function FebeulLuxe() {
       alert("Payment failed. Please try again.");
     }
   };
+
+  if (isAuthenticated && user?.isLuxeMember) {
+    return (
+      <section className="w-full bg-[#f8b7b7] py-12 px-6 min-h-screen">
+        <div className="text-center mb-10 flex items-center justify-center gap-2">
+          <Link to="/">
+            <img src="/removebgLogo.png" alt="Febeul Logo" className="h-12 w-auto" />
+          </Link>
+          <h1 className="text-4xl font-serif text-black">LUXE PRIVE SALE</h1>
+        </div>
+
+        {loadingProducts ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader size={48} className="text-pink-500" />
+          </div>
+        ) : luxeProducts.length > 0 ? (
+          <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {luxeProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">No Luxe Prive Sale Products Available</h2>
+            <p className="text-gray-700">Check back later for exclusive deals!</p>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="w-full bg-[#f8b7b7] py-12 px-6">

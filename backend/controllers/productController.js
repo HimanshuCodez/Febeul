@@ -71,7 +71,7 @@ const addProduct = async (req, res) => {
 // function for list product
 const listProducts = async (req, res) => {
     try {
-        const { category, type, subCategory, search } = req.query; // Extract query parameters
+        const { category, type, subCategory, search, isLuxePrive } = req.query; // Extract query parameters
         let filter = {};
 
         if (category) {
@@ -99,6 +99,12 @@ const listProducts = async (req, res) => {
                 { genericName: { $regex: search, $options: 'i' } },
                 { keywords: { $in: [new RegExp(search, "i")] } }
             ];
+        }
+        // Add isLuxePrive filter
+        if (isLuxePrive === "true") {
+            filter.isLuxePrive = true;
+        } else if (isLuxePrive === "false") {
+            filter.isLuxePrive = false;
         }
 
         const products = await productModel.find(filter); // Apply filters
