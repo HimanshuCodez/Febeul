@@ -100,9 +100,10 @@ export default function OrderSuccess() {
     : 'Not available'; // Simple estimation
   
   // Use pricing details if available, otherwise calculate
-  const subtotal = pricingDetails ? pricingDetails.subtotal : order.items.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
-  const shipping = pricingDetails ? pricingDetails.shippingCost : (order.paymentMethod === 'COD' ? 50 : 0); // Default shipping for COD if not provided
-  const total = order.amount;
+  const subtotal = order.productAmount || 0; // Use productAmount from backend
+  const shipping = order.shippingCharge || 0; // Use shippingCharge from backend
+  const cod = order.codCharge || 0; // Use codCharge from backend
+  const total = order.orderTotal || 0; // Use orderTotal from backend
   // --- End of mock data replacement ---
 
   const checkIconVariants = {

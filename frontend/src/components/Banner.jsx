@@ -4,13 +4,13 @@ import { Shirt, Star, Gem, Scissors, Shield, Grid, Network, Layers } from "lucid
 const styles = [
   { icon: <Shirt className="w-4 h-4" />, label: "TeddyS & Bodysuits" },
   { icon: <Star className="w-4 h-4" />, label: "Satin Babydoll" },
-  { icon: <Gem className="w-4 h-4" />, label: "Luxury Satin" },
+  { icon: <Gem className="w-4 h-4" />, label: "Net Nighty" },
   { icon: <Scissors className="w-4 h-4" />, label: "Garter Lingerie" },
   { icon: <Shield className="w-4 h-4" />, label: "Satin Pj" },
   { icon: <Grid className="w-4 h-4" />, label: "Skirt Babydoll" },
   { icon: <Network className="w-4 h-4" />, label: "Sheer Mesh" },
-  { icon: <Network className="w-4 h-4" />, label: "Satin Nighty" },
-  { icon: <Layers className="w-4 h-4" />, label: "Garter Lingerie" },
+  { icon: <Network className="w-4 h-4" />, label: "Eye Mask Dress" },
+  { icon: <Layers className="w-4 h-4" />, label: "Silk Nighty" },
 ];
 
 const StylesSection = () => {
