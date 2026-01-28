@@ -89,7 +89,9 @@ const Cart = () => {
     },
     0
   );
-  const shipping = subtotal > 499 ? 0 : 50;
+  const shipping = (isAuthenticated && user?.isLuxeMember)
+    ? 0 // Luxe members get free shipping here (COD is handled in Checkout)
+    : (subtotal > 499 ? 0 : 50); // Non-Luxe members pay 50 if subtotal <= 499
   const tax = 0;
   const total = subtotal + shipping + tax;
 

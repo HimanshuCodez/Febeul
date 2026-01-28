@@ -7,8 +7,8 @@ import useAuthStore from "../store/authStore";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import axios from 'axios';
 import { toast } from "react-hot-toast";
-import ProductCard from "../components/ProductCard";
 import MembershipStatus from "../components/MembershipStatus";
+import MyOrders from "./MyOrders"; // Import MyOrders component
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -21,27 +21,10 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState(user);
 
-  const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.post(`${backendUrl}/api/order/userorders`, {}, { headers: { token } });
-      if (response.data.success) {
-        setOrders(response.data.orders.sort((a, b) => new Date(b.date) - new Date(a.date)));
-      }
-    } catch (error) {
-      toast.error("Failed to fetch orders.");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
   const fetchAddresses = async () => {
     setLoading(true);
     try {
@@ -98,8 +81,8 @@ export default function Profile() {
 
   useEffect(() => {
     if(user) {
-        if (activeTab === 'orders') fetchOrders();
-        else if (activeTab === 'addresses') fetchAddresses();
+        // 'orders' tab no longer triggers a fetchOrders here as it's handled by MyOrders component
+        if (activeTab === 'addresses') fetchAddresses();
         else if (activeTab === 'wishlist') fetchWishlist();
         else setLoading(false);
     }
@@ -157,7 +140,7 @@ export default function Profile() {
       case "profile":
         return <ProfileInfo user={user} editedUser={editedUser} isEditing={isEditing} setIsEditing={setIsEditing} handleInputChange={handleInputChange} handleSave={handleSave} />;
       case "orders":
-        return <OrderHistory orders={orders} onOrderSelect={setSelectedOrder} />;
+        return <MyOrders />; // Render MyOrders component directly
       case "luxeMembership":
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
@@ -194,11 +177,7 @@ export default function Profile() {
           </main>
         </div>
       </div>
-      <AnimatePresence>
-        {selectedOrder && (
-            <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-        )}
-      </AnimatePresence>
+
     </div>
   );
 }
@@ -305,57 +284,6 @@ const ProfileForm = ({ user, onInputChange, onSave }) => (
   </div>
 );
 
-const OrderHistory = ({ orders, onOrderSelect }) => (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-6">Order History</h2>
-      {orders.length > 0 ? (
-          <div className="space-y-4">
-          {orders.map(order => (
-              <div key={order._id} className="p-4 rounded-lg border hover:border-pink-200 hover:bg-pink-50/50 transition-colors">
-                {/* Mobile: Grid for Order ID/Date vs Amount */}
-                <div className="grid grid-cols-2 gap-x-4 items-center justify-between mb-2 sm:flex sm:flex-row sm:mb-0">
-                    <div> {/* Left side: Order ID and Date */}
-                        <p className="font-semibold text-gray-800">Order #{order._id.slice(-6)}</p>
-                        <p className="text-xs text-gray-500">{new Date(order.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                    </div>
-                    <div className="text-right sm:text-left"> {/* Right side: Amount */}
-                        <p className="font-bold text-gray-800 text-lg">₹{order.amount.toFixed(2)}</p>
-                    </div>
-                </div>
-
-                {/* Mobile: Items Count, Status, and Details Button */}
-                <div className="flex justify-between items-center mt-2 sm:mt-0">
-                    <p className="text-sm text-gray-500">{order.items.length} items</p>
-                    <div className="flex items-center space-x-2">
-                        <span className={`text-xs font-medium px-3 py-1 rounded-full capitalize ${
-                            order.orderStatus === "Food Processing" ? "bg-yellow-100 text-yellow-700" :
-                            order.orderStatus === "Out for delivery" ? "bg-blue-100 text-blue-700" :
-                            order.orderStatus === "Delivered" ? "bg-green-100 text-green-700" :
-                            "bg-gray-100 text-gray-700"
-                        }`}>
-                            {order.orderStatus}
-                        </span>
-                        <button onClick={() => onOrderSelect(order)} className="text-pink-500 hover:text-pink-700">
-                            <ArrowRight size={20} />
-                        </button>
-                    </div>
-                </div>
-              </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-            <ShoppingBag className="mx-auto w-12 h-12 text-gray-300 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700">No Orders Yet</h3>
-            <p className="text-gray-500 mt-1">Your past orders will appear here.</p>
-            <Link to="/" className="mt-4 inline-block bg-pink-500 text-white px-6 py-2 rounded-full font-semibold hover:bg-pink-600 transition-colors">
-                Start Shopping
-            </Link>
-        </div>
-      )}
-    </div>
-);
-
 const ManageAddresses = ({ addresses }) => {
     const navigate = useNavigate();
     return (
@@ -423,78 +351,7 @@ const WishlistItems = ({ wishlist, onRemove }) => (
     </div>
 );
 
-const OrderDetailModal = ({ order, onClose }) => {
-    const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    // Note: Shipping and Tax might not be stored per order, so we're estimating/omitting
-    const total = order.amount;
 
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-gray-50 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-                onClick={e => e.stopPropagation()}
-            >
-                <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-sm">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800">Order Details</h2>
-                        <p className="text-sm text-gray-500">Order #{order._id.slice(-8).toUpperCase()} &bull; Placed on {new Date(order.date).toLocaleDateString()}</p>
-                    </div>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
-                </div>
-                <div className="p-6 space-y-6">
-                    {/* Items */}
-                    <div className="space-y-3">
-                        {order.items.map(item => (
-                            <div key={item._id} className="flex items-center">
-                                <img src={item.variations?.[0]?.images?.[0] || item.image} alt={item.name} className="w-16 h-16 rounded-md object-cover mr-4"/>
-                                <div className="flex-grow">
-                                    <p className="font-semibold text-gray-800">{item.name}</p>
-                                    <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                                </div>
-                                <p className="font-semibold text-gray-700">₹{(item.price * item.quantity).toFixed(2)}</p>
-                            </div>
-                        ))}
-                    </div>
-                    {/* Summary */}
-                    <div className="border-t pt-4 space-y-2">
-                        <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-                        <div className="flex justify-between text-gray-600"><span>Shipping</span><span>{order.amount > subtotal ? `₹${(order.amount - subtotal).toFixed(2)}` : 'Free'}</span></div>
-                        <div className="flex justify-between font-bold text-lg text-gray-800 mt-2 pt-2 border-t"><span>Total</span><span className="text-pink-600">₹{total.toFixed(2)}</span></div>
-                    </div>
-                    {/* Address and Status */}
-                    <div className="grid md:grid-cols-2 gap-6 pt-4 border-t">
-                        <div>
-                            <h3 className="font-semibold text-gray-800 mb-2 flex items-center"><MapPin size={16} className="mr-2 text-pink-500"/> Shipping Address</h3>
-                            <div className="text-sm text-gray-600">
-                                <p className="font-bold">{order.address.name}</p>
-                                <p>{order.address.street}, {order.address.city}</p>
-                                <p>{order.address.state}, {order.address.country} - {order.address.zip}</p>
-                                <p>Phone: {order.address.phone}</p>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-gray-800 mb-2 flex items-center"><Package size={16} className="mr-2 text-pink-500"/> Order Status</h3>
-                            <p className={`text-sm font-semibold capitalize p-2 rounded-md inline-block
-                                ${order.status === "Delivered" ? "bg-green-100 text-green-700" :
-                                order.status === "Out for delivery" ? "bg-blue-100 text-blue-700" :
-                                "bg-yellow-100 text-yellow-700"}
-                            `}>{order.status}</p>
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-}
 
 const InfoItem = ({ icon: Icon, label, value, wide = false }) => (
   <div className={`flex items-start space-x-3 ${wide ? 'md:col-span-2' : ''}`}>

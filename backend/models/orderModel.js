@@ -10,20 +10,40 @@ const orderSchema = new mongoose.Schema({
         image: { type: String, required: true}, // Adding image for easier access without populating
         price: { type: Number, required: true }
     }],
-    amount: { type: Number, required: true },
+    orderTotal: { type: Number, required: true }, // Renamed from 'amount' for clarity
+    productAmount: { type: Number, default: 0 }, // Sum of product prices only
+    shippingCharge: { type: Number, default: 0 },
+    codCharge: { type: Number, default: 0 },
+    razorpayPaymentId: { type: String }, // For prepaid refunds
     address: { type: Object, required: true },
-    orderStatus: { type: String, default:'Order Placed' },
-    shiprocket: {
-        orderId: { type: String },
-        shipmentId: { type: String },
-        awb: { type: String },
-        courier: { type: String },
-        trackingUrl: { type: String }
-    },
-    paymentMethod: { type: String, required: true },
+    orderStatus: { type: String, enum: ['Order Placed', 'Processing', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refund Initiated', 'Refunded', 'Failed'], default:'Order Placed' },
+    shiprocketStatus: { type: String, enum: ['NEW', 'PICKUP SCHEDULED', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'RTO', 'CANCELLED', 'UNKNOWN'], default: 'NEW' }, // Shiprocket status
+    shippedAt: { type: Date },
+    deliveredAt: { type: Date },
+    paymentMethod: { type: String, required: true, enum: ['COD', 'Stripe', 'Razorpay'] },
     payment: { type: Boolean, required: true , default: false },
     paymentDetails: { type: Object },
-    date: {type: Number, required:true}
+    date: {type: Number, required:true},
+
+    // Refund details
+    refundDetails: {
+        status: { type: String, enum: ['none', 'pending', 'initiated', 'processing', 'completed', 'failed'], default: 'none' },
+        amount: { type: Number, default: 0 },
+        id: { type: String }, // Razorpay refund ID
+        reason: { type: String, enum: ['buyer_fault', 'seller_fault', 'courier_fault', 'cancelled_before_shipment', 'cancelled_after_shipment', 'other'] },
+        requestedAt: { type: Date },
+        processedAt: { type: Date },
+        customerPayoutDetails: { // For COD refunds
+            type: { type: String, enum: ['upi', 'bank'] },
+            upiId: { type: String },
+            bankAccount: { type: String },
+            ifsc: { type: String },
+            accountHolderName: { type: String }
+        }
+    },
+    // To prevent double refunds or conflicting operations
+    isRefundable: { type: Boolean, default: true }, 
+    isCancelled: { type: Boolean, default: false }
 })
 
 const orderModel = mongoose.models.order || mongoose.model('order',orderSchema)

@@ -12,6 +12,11 @@ import { dirname } from 'path';
 import path from 'path';
 import productModel from "../models/productModel.js";
 
+// Define pricing constants
+const SHIPPING_CHARGE_THRESHOLD = 499;
+const DEFAULT_SHIPPING_CHARGE = 50;
+const COD_CHARGE_AMOUNT = 50; // This will act as the COD fee / base shipping for non-luxe below threshold
+
 // Re-define __dirname in this context for template path resolution
 const __filenameController = fileURLToPath(import.meta.url);
 const __dirnameController = dirname(__filenameController);
@@ -24,15 +29,72 @@ const razorpayInstance = new razorpay({
     key_secret : process.env.RAZORPAY_KEY_SECRET,
 })
 
+// Helper to get item price from product variations
+const getItemPrice = (product, color, size) => {
+    const variation = product.variations.find(v => v.color === color);
+    if (variation) {
+        const sizeData = variation.sizes.find(s => s.size === size);
+        if (sizeData) {
+            return sizeData.price;
+        }
+    }
+    return 0; // Default to 0 if not found
+};
+
+// Helper function to calculate all pricing components
+const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData) => {
+    let productAmount = 0;
+    const processedItems = await Promise.all(items.map(async (item) => {
+        const product = await productModel.findById(item.productId);
+        if (!product) {
+            throw new Error(`Product not found for ID: ${item.productId}`);
+        }
+        const itemPrice = getItemPrice(product, item.color, item.size); 
+        productAmount += itemPrice * item.quantity;
+
+        return { 
+            productId: item.productId,
+            quantity: item.quantity,
+            size: item.size,
+            name: product.name,
+            image: product.variations.find(v => v.color === item.color)?.images[0] || '',
+            price: itemPrice,
+            color: item.color
+        };
+    }));
+
+    const giftWrapPrice = giftWrapData ? parseFloat(giftWrapData.price || 0) : 0;
+
+    let shippingCharge = 0;
+    let codCharge = 0;
+    const user = await userModel.findById(userId); // Fetch user to check luxe status
+    const isLuxeMember = user?.isLuxeMember || false;
+
+    if (paymentMethod === 'COD') {
+        codCharge = COD_CHARGE_AMOUNT; // COD charge always applies for COD orders
+        // For Luxe members, COD charge is the only extra cost
+        // For non-Luxe, if productAmount is below threshold, 50 shipping is also applied
+        if (!isLuxeMember && productAmount < SHIPPING_CHARGE_THRESHOLD) {
+            shippingCharge = DEFAULT_SHIPPING_CHARGE;
+        }
+    } else { // Prepaid orders
+        if (!isLuxeMember && productAmount < SHIPPING_CHARGE_THRESHOLD) {
+            shippingCharge = DEFAULT_SHIPPING_CHARGE;
+        }
+    }
+    
+    const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice;
+
+    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems };
+};
+
 const constructEmailHtml = (order, templateHtml) => {
     // Dynamically generate item rows
     let itemRowsHtml = '';
     order.items.forEach(item => {
-        // Ensure itemPrice is a float, default to 0
         const itemPrice = parseFloat(item.price || 0); 
-        // Ensure quantity is a float, default to 0
         const itemQuantity = parseFloat(item.quantity || 0);
-        const itemTotal = parseFloat(itemPrice * itemQuantity || 0); // Ensure itemTotal is a float, default to 0
+        const itemTotal = parseFloat(itemPrice * itemQuantity || 0);
 
         itemRowsHtml += `
             <tr>
@@ -44,9 +106,12 @@ const constructEmailHtml = (order, templateHtml) => {
         `;
     });
 
-    const emailShippingCost = parseFloat(order.paymentMethod === 'COD' ? 50 : 0); // Ensure it's a number
-    const emailGiftWrapPrice = parseFloat(order.giftWrap && order.giftWrap.price || 0); // Safely get price, default to 0
-    
+    const emailShippingCharge = parseFloat(order.shippingCharge || 0);
+    const emailCodCharge = parseFloat(order.codCharge || 0);
+    const emailGiftWrapPrice = parseFloat(order.giftWrap && order.giftWrap.price || 0);
+    const emailProductAmount = parseFloat(order.productAmount || 0);
+    const emailOrderTotal = parseFloat(order.orderTotal || 0);
+
     let giftWrapRowHtml = '';
     if (emailGiftWrapPrice > 0) {
         giftWrapRowHtml = `
@@ -57,18 +122,16 @@ const constructEmailHtml = (order, templateHtml) => {
         `;
     }
 
-    // Ensure order.amount is a number
-    const orderAmount = parseFloat(order.amount || 0);
-
     // Populate template placeholders
     let populatedHtml = templateHtml;
     populatedHtml = populatedHtml.replace('{{userName}}', order.userId.name || 'Customer');
     populatedHtml = populatedHtml.replace('{{orderId}}', order._id.toString());
     populatedHtml = populatedHtml.replace('{{orderDate}}', new Date(order.date).toLocaleDateString());
-    populatedHtml = populatedHtml.replace('{{totalAmount}}', orderAmount.toFixed(2)); // Use orderAmount
+    populatedHtml = populatedHtml.replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
     populatedHtml = populatedHtml.replace('{{itemRows}}', itemRowsHtml);
-    populatedHtml = populatedHtml.replace('{{subtotal}}', (orderAmount - emailShippingCost - emailGiftWrapPrice).toFixed(2)); // Use orderAmount
-    populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCost > 0 ? `₹${emailShippingCost.toFixed(2)}` : 'FREE');
+    populatedHtml = populatedHtml.replace('{{subtotal}}', emailProductAmount.toFixed(2));
+    populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE');
+    populatedHtml = populatedHtml.replace('{{codCharge}}', emailCodCharge > 0 ? `+ ₹${emailCodCharge.toFixed(2)} (COD Fee)` : '');
     populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);
     populatedHtml = populatedHtml.replace('{{shippingAddressName}}', order.address.name);
     populatedHtml = populatedHtml.replace('{{shippingAddressAddress}}', order.address.address);
@@ -78,7 +141,7 @@ const constructEmailHtml = (order, templateHtml) => {
     populatedHtml = populatedHtml.replace('{{shippingAddressPhone}}', order.address.phone);
     populatedHtml = populatedHtml.replace('{{paymentMethod}}', order.paymentMethod);
     populatedHtml = populatedHtml.replace('{{paymentStatus}}', order.payment ? 'Paid' : 'Pending');
-    populatedHtml = populatedHtml.replace('{{orderTrackingLink}}', `https://febeul.onrender.com/track/${order._id}`); // Placeholder, adjust as needed
+    populatedHtml = populatedHtml.replace('{{orderTrackingLink}}', `https://febeul.onrender.com/track/${order._id}`);
     populatedHtml = populatedHtml.replace('{{currentYear}}', new Date().getFullYear());
 
     return populatedHtml;
@@ -89,57 +152,22 @@ const placeOrder = async (req,res) => {
     
     try {
         
-        const { userId, items, address} = req.body; // Remove `amount` from destructuring
+        const { userId, items, address, giftWrap: giftWrapData } = req.body;
 
-        // Function to get item price based on product, color, and size
-        const getItemPrice = (product, color, size) => {
-            const variation = product.variations.find(v => v.color === color);
-            if (variation) {
-                const sizeData = variation.sizes.find(s => s.size === size);
-                if (sizeData) {
-                    return sizeData.price;
-                }
-            }
-            return 0; // Default to 0 if not found
-        };
-
-        let orderTotal = 0;
-        const processedItems = await Promise.all(items.map(async (item) => {
-            const product = await productModel.findById(item.productId);
-            if (!product) {
-                throw new Error(`Product not found for ID: ${item.productId}`);
-            }
-            const itemPrice = getItemPrice(product, item.color, item.size);
-            orderTotal += itemPrice * item.quantity;
-
-            return {
-                productId: item.productId,
-                quantity: item.quantity,
-                size: item.size,
-                name: product.name, // Use backend product name
-                image: product.variations.find(v => v.color === item.color)?.images[0] || '', // Get image from backend
-                price: itemPrice,
-                color: item.color
-            };
-        }));
-
-        // Apply gift wrap price if any
-        const giftWrapPrice = req.body.giftWrap ? parseFloat(req.body.giftWrap.price || 0) : 0;
-        orderTotal += giftWrapPrice;
-
-        // For COD, add COD shipping charge
-        const shippingCost = 50; // Assuming COD_SHIPPING_CHARGE is 50.00
-        orderTotal += shippingCost;
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems } = await calculateOrderPricing(userId, items, 'COD', giftWrapData);
 
         const orderData = {
             userId,
             items: processedItems,
-            amount: orderTotal, // Use backend calculated amount
+            orderTotal: orderTotal, // Use backend calculated total
+            productAmount,
+            shippingCharge,
+            codCharge,
             address,
             paymentMethod:"COD",
             payment:false,
             date: Date.now(),
-            giftWrap: req.body.giftWrap // Add gift wrap data
+            giftWrap: giftWrapData
         }
 
         const newOrder = new orderModel(orderData)
@@ -213,51 +241,29 @@ const placeOrder = async (req,res) => {
 const placeOrderStripe = async (req,res) => {
     try {
         
-        const { userId, items, address, currency} = req.body; // Removed 'amount'
+        const { userId, items, address, currency, giftWrap: giftWrapData } = req.body;
         const { origin } = req.headers;
 
-        let orderTotal = 0;
-        const processedItems = await Promise.all(items.map(async (item) => {
-            const product = await productModel.findById(item.productId);
-            if (!product) {
-                throw new Error(`Product not found for ID: ${item.productId}`);
-            }
-            const itemPrice = getItemPrice(product, item.color, item.size);
-            orderTotal += itemPrice * item.quantity;
-
-            return {
-                productId: item.productId,
-                quantity: item.quantity,
-                size: item.size,
-                name: product.name,
-                image: product.variations.find(v => v.color === item.color)?.images[0] || '',
-                price: itemPrice,
-                color: item.color
-            };
-        }));
-
-        const giftWrapPrice = req.body.giftWrap ? parseFloat(req.body.giftWrap.price || 0) : 0;
-        orderTotal += giftWrapPrice;
-
-        // Stripe orders don't have COD shipping, so shipping is STANDARD_SHIPPING_CHARGE (0)
-        const shippingCost = 0; 
-        orderTotal += shippingCost;
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData);
 
         const orderData = {
             userId,
             items: processedItems,
+            orderTotal: orderTotal,
+            productAmount,
+            shippingCharge,
+            codCharge,
             address,
-            amount: orderTotal,
             paymentMethod:"Stripe",
             payment:false,
             date: Date.now(),
-            giftWrap: req.body.giftWrap
+            giftWrap: giftWrapData
         }
 
         const newOrder = new orderModel(orderData)
         await newOrder.save()
 
-        const line_items = processedItems.map((item) => ({ // Use processedItems here
+        const line_items = processedItems.map((item) => ({
             price_data: {
                 currency:currency,
                 product_data: {
@@ -266,21 +272,34 @@ const placeOrderStripe = async (req,res) => {
                 unit_amount: Math.round(item.price * 100)
             },
             quantity: item.quantity
-        }))
+        }));
 
-        // Add delivery charges to line_items.
-        const deliveryCharge = 0; 
-        if (deliveryCharge > 0) { 
+        // Add shipping charge to line_items if applicable
+        if (shippingCharge > 0) {
             line_items.push({
                 price_data: {
                     currency:currency,
                     product_data: {
-                        name:'Delivery Charges'
+                        name:'Shipping Charge'
                     },
-                    unit_amount: Math.round(deliveryCharge * 100)
+                    unit_amount: Math.round(shippingCharge * 100)
                 },
                 quantity: 1
-            })
+            });
+        }
+
+        // Add gift wrap charge to line_items if applicable
+        if (giftWrapData && giftWrapData.price > 0) {
+            line_items.push({
+                price_data: {
+                    currency: currency,
+                    product_data: {
+                        name: 'Gift Wrap'
+                    },
+                    unit_amount: Math.round(giftWrapData.price * 100)
+                },
+                quantity: 1
+            });
         }
 
         const session = await stripe.checkout.sessions.create({
@@ -291,7 +310,6 @@ const placeOrderStripe = async (req,res) => {
         })
 
         res.json({success:true,session_url:session.url});
-
     } catch (error) {
         console.log(error)
         res.json({success:false,message:error.message})
@@ -305,36 +323,62 @@ const verifyStripe = async (req,res) => {
 
     try {
         if (success === "true") {
-            await orderModel.findByIdAndUpdate(orderId, {payment:true});
-            await userModel.findByIdAndUpdate(userId, {cartData: []})
-
+            // Retrieve the order to get full details before updating
             const order = await orderModel.findById(orderId).populate('userId');
+            if (!order) {
+                return res.json({ success: false, message: "Order not found" });
+            }
+
+            // Update order with payment success and confirmed status
+            await orderModel.findByIdAndUpdate(orderId, {
+                payment: true,
+                // Assuming paymentDetails might contain stripe's charge ID or equivalent if needed
+                orderStatus: 'Confirmed' 
+            });
+            // Re-fetch the updated order for further processing
+            const updatedOrder = await orderModel.findById(orderId).populate('userId');
+
+            await userModel.findByIdAndUpdate(userId, { cartData: [] });
 
             // Shiprocket integration
             try {
                 const shiprocketToken = await shiprocketLogin();
                 const shiprocketOrderData = {
-                    _id: order._id,
-                    shippingAddress: order.address,
-                    user: order.userId,
-                    items: order.items,
-                    totalPrice: order.amount,
+                    _id: updatedOrder._id,
+                    shippingAddress: { // Ensure this matches Shiprocket's expected structure
+                        name: updatedOrder.address.name.split(' ')[0] || '', // First name
+                        lastName: updatedOrder.address.name.split(' ').slice(1).join(' ') || '', // Last name
+                        address: updatedOrder.address.address,
+                        city: updatedOrder.address.city,
+                        pincode: updatedOrder.address.zip, // Use zip from frontend
+                        state: updatedOrder.address.state,
+                        country: "India",
+                        phone: updatedOrder.address.phone,
+                        email: updatedOrder.userId.email
+                    },
+                    user: updatedOrder.userId,
+                    items: updatedOrder.items,
+                    totalPrice: updatedOrder.orderTotal, // Use orderTotal from new schema
+                    shippingCharge: updatedOrder.shippingCharge,
+                    codCharge: updatedOrder.codCharge
                 };
-                const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken);
+                const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
 
-                order.shiprocket = {
+                updatedOrder.shiprocket = {
                     orderId: shiprocketResponse.order_id,
                     shipmentId: shiprocketResponse.shipment_id,
                     awb: shiprocketResponse.awb_code,
                     courier: shiprocketResponse.courier_name,
                     trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
                 };
-                order.orderStatus = "SHIPPED";
-                await order.save();
-
+                updatedOrder.orderStatus = "Shipped"; // Update order status to Shipped after Shiprocket order creation
+                updatedOrder.shiprocketStatus = "SHIPPED"; // Update shiprocketStatus
+                updatedOrder.shippedAt = new Date(); // Set shippedAt timestamp
+                await updatedOrder.save(); // Save after all updates
             } catch (error) {
                 console.log("Error with Shiprocket:", error.message);
-                // If shiprocket fails, the order is still placed, but not shipped.
+                // If shiprocket fails, update order status accordingly but don't fail the entire payment verification
+                await orderModel.findByIdAndUpdate(orderId, { orderStatus: 'Confirmed', shiprocketStatus: 'NEW' }); // Keep Confirmed status if Shiprocket fails
             }
 
             res.json({success: true});
@@ -368,43 +412,22 @@ const verifyStripe = async (req,res) => {
 const placeOrderRazorpay = async (req,res) => {
     try {
         
-        const { userId, items, address, currency} = req.body; // Removed 'amount'
+        const { userId, items, address, currency, giftWrap: giftWrapData } = req.body;
 
-        let orderTotal = 0;
-        const processedItems = await Promise.all(items.map(async (item) => {
-            const product = await productModel.findById(item.productId);
-            if (!product) {
-                throw new Error(`Product not found for ID: ${item.productId}`);
-            }
-            const itemPrice = getItemPrice(product, item.color, item.size);
-            orderTotal += itemPrice * item.quantity;
-
-            return {
-                productId: item.productId,
-                quantity: item.quantity,
-                size: item.size,
-                name: product.name,
-                image: product.variations.find(v => v.color === item.color)?.images[0] || '',
-                price: itemPrice,
-                color: item.color
-            };
-        }));
-
-        const giftWrapPrice = req.body.giftWrap ? parseFloat(req.body.giftWrap.price || 0) : 0;
-        orderTotal += giftWrapPrice;
-
-        const shippingCost = 0; // Razorpay typically prepaid, so no COD charge
-        orderTotal += shippingCost;
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData);
 
         const orderData = {
             userId,
             items: processedItems,
+            orderTotal: orderTotal, // Use backend calculated amount
+            productAmount,
+            shippingCharge,
+            codCharge,
             address,
-            amount: orderTotal,
             paymentMethod:"Razorpay",
             payment:false,
             date: Date.now(),
-            giftWrap: req.body.giftWrap
+            giftWrap: giftWrapData
         }
 
         const newOrder = new orderModel(orderData)
@@ -445,7 +468,12 @@ const verifyRazorpay = async (req,res) => {
         if (expectedSignature === razorpay_signature) {
             const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
             if (orderInfo.status === 'paid') {
-                await orderModel.findByIdAndUpdate(orderInfo.receipt, { payment: true, paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature } });
+                await orderModel.findByIdAndUpdate(orderInfo.receipt, { 
+                    payment: true, 
+                    paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature },
+                    razorpayPaymentId: razorpay_payment_id, // Store Razorpay Payment ID
+                    orderStatus: 'Confirmed' // Update status to Confirmed after successful payment
+                });
                 
                 const order = await orderModel.findById(orderInfo.receipt).populate('userId');
 
@@ -482,7 +510,9 @@ const verifyRazorpay = async (req,res) => {
                             },
                             user: order.userId,
                             items: order.items,
-                            totalPrice: order.amount,
+                            totalPrice: order.orderTotal, // Use orderTotal from new schema
+                            shippingCharge: order.shippingCharge, // Pass shippingCharge to shiprocket
+                            codCharge: order.codCharge // Pass codCharge to shiprocket
                         };
                         const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
 
@@ -493,7 +523,9 @@ const verifyRazorpay = async (req,res) => {
                             courier: shiprocketResponse.courier_name,
                             trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
                         };
-                        order.orderStatus = "SHIPPED";
+                        order.orderStatus = "SHIPPED"; // Update order status to shipped after Shiprocket order creation
+                        order.shiprocketStatus = "SHIPPED"; // Update shiprocketStatus
+                        order.shippedAt = new Date(); // Set shippedAt timestamp
                         await order.save();
 
                     } catch (error) {

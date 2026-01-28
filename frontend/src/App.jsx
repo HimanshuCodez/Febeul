@@ -35,6 +35,7 @@ import LuxePage from "./Pages/Luxe";
 import PrimeMember from "./Pages/PrimeMember";
 import CheckoutPage from "./Pages/Checkout";
 import OrderSuccess from "./Pages/OrderSuccess";
+import OrderDetailPage from "./Pages/OrderDetail"; // Import OrderDetailPage
 import { Toaster } from "react-hot-toast";
 import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
 import MaintenancePage from "./Pages/Maintenance";
@@ -74,6 +75,7 @@ const AppContent = () => {
         <Route path="/PrimeMember" element={<PrimeMember />} />
         <Route path="/Checkout" element={<CheckoutPage />} />
         <Route path="/Success" element={<OrderSuccess />} />
+        <Route path="/order-detail/:orderId" element={<OrderDetailPage />} /> {/* New Order Detail Page */}
 
         {/* Footer items */}
         <Route path="/ReviewRating" element={<ReviewRating />} />

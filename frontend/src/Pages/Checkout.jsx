@@ -131,7 +131,26 @@ export default function CheckoutPage() {
 
         return sum + (actualPrice * item.quantity);
     }, 0);
-    const shippingCost = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : STANDARD_SHIPPING_CHARGE;
+    const isLuxeMember = user?.isLuxeMember;
+    let calculatedShippingCost = 0;
+
+    if (isLuxeMember) {
+        // Luxe members only pay shipping if it's COD
+        if (selectedPayment === 'cod') {
+            calculatedShippingCost = COD_SHIPPING_CHARGE;
+        }
+    } else {
+        // Non-Luxe members
+        if (selectedPayment === 'cod') {
+            calculatedShippingCost = COD_SHIPPING_CHARGE;
+        } else {
+            // Not COD, so apply subtotal condition
+            if (subtotal < 499) {
+                calculatedShippingCost = COD_SHIPPING_CHARGE;
+            }
+        }
+    }
+    const shippingCost = calculatedShippingCost;
     const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
     const total = parseFloat((subtotal + shippingCost + giftWrapPrice).toFixed(2));
     
