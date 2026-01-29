@@ -106,7 +106,7 @@ const buildInvoicePDF = (order, res) => {
         // Items Table Rows
         order.items.forEach((item, index) => {
             try {
-                const itemPrice = item.productId ? item.productId.price : 0; // Use price from populated productId
+                const itemPrice = item.price || 0;
                 const itemTotal = itemPrice * item.quantity;
                 
                 doc.text(`${item.name}`, itemColX, doc.y, { width: qtyColX - itemColX - 10, continued: true })
@@ -124,13 +124,13 @@ const buildInvoicePDF = (order, res) => {
         doc.moveDown();
 
         // Totals Calculation
-        const invoiceItemSubtotal = order.items.reduce((sum, item) => sum + ((item.productId ? item.productId.price : 0) * item.quantity), 0);
+        const invoiceItemSubtotal = order.productAmount || order.items.reduce((sum, item) => sum + ((item.price || 0) * item.quantity), 0);
         const taxableValue = invoiceItemSubtotal / 1.18;
         const gst = invoiceItemSubtotal - taxableValue;
         const cgst = gst / 2;
         const sgst = gst / 2;
-        const invoiceShippingCost = order.paymentMethod === 'COD' ? 50 : 0; 
-        const invoiceGiftWrapPrice = order.giftWrap ? order.giftWrap.price : 0;
+        const invoiceShippingCost = (order.shippingCharge || 0) + (order.codCharge || 0);
+        const invoiceGiftWrapPrice = order.giftWrap ? (order.giftWrap.price || 0) : 0;
 
         const totalsLabelX = 350; // Start x for labels
         const totalsValueX = 480; // Start x for values
@@ -142,7 +142,7 @@ const buildInvoicePDF = (order, res) => {
         };
         
         doc.font('Helvetica').fontSize(10);
-        addTotalRow('Taxable Value:', `₹${taxableValue.toFixed(2)}`);
+        addTotalRow('Subtotal:', `₹${invoiceItemSubtotal.toFixed(2)}`);
         addTotalRow('CGST (9%):', `₹${cgst.toFixed(2)}`);
         addTotalRow('SGST (9%):', `₹${sgst.toFixed(2)}`);
         
@@ -158,7 +158,7 @@ const buildInvoicePDF = (order, res) => {
 
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold').fontSize(12);
-        addTotalRow('Total:', `₹${order.amount.toFixed(2)}`);
+        addTotalRow('Total:', `₹${(order.orderTotal || 0).toFixed(2)}`);
         doc.moveDown();
 
         // Thank You message
