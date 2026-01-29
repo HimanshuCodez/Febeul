@@ -1,6 +1,8 @@
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Razorpay from "razorpay";
+import { v2 as cloudinary } from "cloudinary"; // Import cloudinary
+
 // Assume shiprocket client/utility functions are available
 // import { getShiprocketOrderStatus } from '../utils/shiprocket.js'; 
 
@@ -149,8 +151,9 @@ const processCodRefund = async (orderId, refundAmount, customerPayoutDetails) =>
 
 // --- Main function to handle cancellation/return requests ---
 const requestRefund = async (req, res) => {
-    const { orderId, returnReason, customerPayoutDetails } = req.body;
+    const { orderId, reason } = req.body;
     const userId = req.userId; // Assuming userId is available from auth middleware
+    const uploadedImages = req.files; // Array of uploaded files from multer
 
     try {
         const order = await orderModel.findById(orderId).populate('userId');
@@ -159,90 +162,47 @@ const requestRefund = async (req, res) => {
             return res.json({ success: false, message: "Order not found." });
         }
 
-        // --- Safeguards ---
+        // --- Safeguards & Eligibility ---
         if (order.userId._id.toString() !== userId) {
             return res.json({ success: false, message: "Not authorized to request refund for this order." });
-        }
-        if (!order.isRefundable) {
-            return res.json({ success: false, message: "Refund already processed or not eligible." });
         }
         if (order.refundDetails.status !== 'none' && order.refundDetails.status !== 'failed') {
              return res.json({ success: false, message: `Refund is already ${order.refundDetails.status}.` });
         }
 
-        // Set refund status to pending while processing
-        await orderModel.findByIdAndUpdate(orderId, { 
-            'refundDetails.status': 'pending', 
-            'refundDetails.requestedAt': new Date(),
-            'refundDetails.reason': returnReason || 'cancelled_before_shipment' // Default reason
-        });
-        
-        // Get current Shiprocket status (from DB or API)
-        const currentShiprocketStatus = await getShiprocketStatusFromOrder(orderId);
-        
-        // Calculate refund amount
-        const refundAmount = await calculateRefundAmount(order, returnReason, currentShiprocketStatus);
-        
-        let refundResult;
-        if (order.paymentMethod === 'COD') {
-            if (!customerPayoutDetails) {
-                 await orderModel.findByIdAndUpdate(orderId, { 'refundDetails.status': 'failed', 'refundDetails.processedAt': new Date() });
-                 return res.json({ success: false, message: "Customer payout details are required for COD refund." });
-            }
-            refundResult = await processCodRefund(orderId, refundAmount, customerPayoutDetails);
-        } else { // Prepaid (Razorpay, Stripe)
-            // For Stripe, we would need to integrate with Stripe Refund API here.
-            // Assuming Razorpay is the primary prepaid method for now as per instructions.
-            if (order.paymentMethod === 'Razorpay') {
-                refundResult = await processPrepaidRefund(orderId, order.razorpayPaymentId, refundAmount);
-            } else if (order.paymentMethod === 'Stripe') {
-                // Placeholder for Stripe refund
-                console.warn(`Stripe refund for order ${orderId} is not yet implemented.`);
-                refundResult = { success: false, message: "Stripe refunds not implemented.", refundId: null };
-            } else {
-                refundResult = { success: false, message: "Unknown payment method for prepaid refund.", refundId: null };
+        // Check if return is eligible (Delivered within 3 days)
+        if (order.orderStatus !== 'Delivered' || !order.deliveredAt) {
+            return res.json({ success: false, message: "Order is not eligible for return (must be delivered)." });
+        }
+        const threeDaysInMillis = 3 * 24 * 60 * 60 * 1000;
+        const deliveredDate = new Date(order.deliveredAt);
+        const currentDate = new Date();
+        if ((currentDate - deliveredDate) > threeDaysInMillis) {
+            return res.json({ success: false, message: "Return/Exchange window has closed (3 days after delivery)." });
+        }
+
+        // Upload images to Cloudinary
+        const imageUrls = [];
+        if (uploadedImages && uploadedImages.length > 0) {
+            for (const file of uploadedImages) {
+                const result = await cloudinary.uploader.upload(file.path, { resource_type: 'image' });
+                imageUrls.push(result.secure_url);
             }
         }
 
-        if (refundResult.success) {
-            // Update order status based on current state (Cancelled or Returned)
-            let newOrderStatus = order.orderStatus;
-            if (currentShiprocketStatus === 'NEW' || currentShiprocketStatus === 'PICKUP SCHEDULED') {
-                newOrderStatus = 'Cancelled';
-            } else {
-                newOrderStatus = 'Returned';
-            }
+        // Update order with refund request details
+        await orderModel.findByIdAndUpdate(orderId, {
+            orderStatus: 'Refund Initiated', // Update main order status
+            'refundDetails.status': 'pending', // Set refund status to pending
+            'refundDetails.reason': reason, // Store the user's reason
+            'refundDetails.images': imageUrls, // Store image URLs
+            'refundDetails.requestedAt': new Date(), // Set request timestamp
+        }, { new: true }); // Return the updated document
 
-            await orderModel.findByIdAndUpdate(orderId, {
-                orderStatus: newOrderStatus,
-                'shiprocketStatus': 'CANCELLED', // Assuming order is cancelled in Shiprocket too
-                'refundDetails.status': 'completed', // Or 'processing' if it takes time
-                'refundDetails.amount': refundAmount,
-                'refundDetails.id': refundResult.refundId,
-                'refundDetails.processedAt': new Date(),
-                isRefundable: false, // Prevent further refunds
-                isCancelled: true // Mark as cancelled
-            });
-            return res.json({ success: true, message: `Refund initiated successfully. Refund ID: ${refundResult.refundId}`, refundAmount: refundAmount });
-        } else {
-            await orderModel.findByIdAndUpdate(orderId, { 
-                'refundDetails.status': 'failed',
-                'refundDetails.processedAt': new Date()
-            });
-            return res.json({ success: false, message: refundResult.message || "Failed to initiate refund." });
-        }
+        return res.json({ success: true, message: "Return/Exchange request submitted successfully. We will review your request shortly." });
 
     } catch (error) {
         console.error("Error in requestRefund:", error);
-        // Attempt to update refund status to failed if an error occurred during refund processing
-        try {
-            await orderModel.findByIdAndUpdate(orderId, { 
-                'refundDetails.status': 'failed',
-                'refundDetails.processedAt': new Date()
-            });
-        } catch (updateError) {
-            console.error(`Failed to update refund status to 'failed' for order ${orderId}:`, updateError);
-        }
         res.json({ success: false, message: `Internal server error: ${error.message}` });
     }
 };

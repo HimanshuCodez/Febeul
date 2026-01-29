@@ -206,7 +206,8 @@ const placeOrder = async (req,res) => {
                 courier: shiprocketResponse.courier_name,
                 trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
             };
-            order.orderStatus = "Shipped";
+            order.orderStatus = "Processing";
+            order.shiprocketStatus = "NEW";
             await order.save();
 
         } catch (error) {
@@ -371,8 +372,8 @@ const verifyStripe = async (req,res) => {
                     courier: shiprocketResponse.courier_name,
                     trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
                 };
-                updatedOrder.orderStatus = "Shipped"; // Update order status to Shipped after Shiprocket order creation
-                updatedOrder.shiprocketStatus = "SHIPPED"; // Update shiprocketStatus
+                updatedOrder.orderStatus = "Confirmed"; // The order is paid and confirmed
+                updatedOrder.shiprocketStatus = "NEW"; // It's a new order for Shiprocket
                 updatedOrder.shippedAt = new Date(); // Set shippedAt timestamp
                 await updatedOrder.save(); // Save after all updates
             } catch (error) {
@@ -523,11 +524,10 @@ const verifyRazorpay = async (req,res) => {
                             courier: shiprocketResponse.courier_name,
                             trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
                         };
-                        order.orderStatus = "Shipped"; // Update order status to shipped after Shiprocket order creation
-                        order.shiprocketStatus = "SHIPPED"; // Update shiprocketStatus
-                        order.shippedAt = new Date(); // Set shippedAt timestamp
-                        await order.save();
-
+                                                order.orderStatus = "Confirmed"; // The order is paid and confirmed
+                                                order.shiprocketStatus = "NEW"; // It's a new order for Shiprocket
+                                                order.shippedAt = new Date(); // Set shippedAt timestamp
+                                                await order.save();
                     } catch (error) {
                         console.log("Error with Shiprocket:", error.message);
                         // If shiprocket fails, the order is still placed, but not shipped.

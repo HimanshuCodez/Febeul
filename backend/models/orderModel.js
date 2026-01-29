@@ -30,7 +30,8 @@ const orderSchema = new mongoose.Schema({
         status: { type: String, enum: ['none', 'pending', 'initiated', 'processing', 'completed', 'failed'], default: 'none' },
         amount: { type: Number, default: 0 },
         id: { type: String }, // Razorpay refund ID
-        reason: { type: String, enum: ['buyer_fault', 'seller_fault', 'courier_fault', 'cancelled_before_shipment', 'cancelled_after_shipment', 'other'] },
+        reason: { type: String },
+        images: { type: [String], default: [] }, // Added images for refund request
         requestedAt: { type: Date },
         processedAt: { type: Date },
         customerPayoutDetails: { // For COD refunds
@@ -43,7 +44,14 @@ const orderSchema = new mongoose.Schema({
     },
     // To prevent double refunds or conflicting operations
     isRefundable: { type: Boolean, default: true }, 
-    isCancelled: { type: Boolean, default: false }
+    isCancelled: { type: Boolean, default: false },
+    shiprocket: {
+        orderId: { type: String },
+        shipmentId: { type: String },
+        awb: { type: String },
+        courier: { type: String },
+        trackingUrl: { type: String }
+    }
 })
 
 const orderModel = mongoose.models.order || mongoose.model('order',orderSchema)
