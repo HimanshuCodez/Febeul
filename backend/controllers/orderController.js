@@ -206,7 +206,7 @@ const placeOrder = async (req,res) => {
                 courier: shiprocketResponse.courier_name,
                 trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
             };
-            order.orderStatus = "SHIPPED";
+            order.orderStatus = "Shipped";
             await order.save();
 
         } catch (error) {
@@ -523,7 +523,7 @@ const verifyRazorpay = async (req,res) => {
                             courier: shiprocketResponse.courier_name,
                             trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
                         };
-                        order.orderStatus = "SHIPPED"; // Update order status to shipped after Shiprocket order creation
+                        order.orderStatus = "Shipped"; // Update order status to shipped after Shiprocket order creation
                         order.shiprocketStatus = "SHIPPED"; // Update shiprocketStatus
                         order.shippedAt = new Date(); // Set shippedAt timestamp
                         await order.save();

@@ -422,16 +422,7 @@ export default function OrderDetailPage() {
                 Go to Homepage
             </motion.button>
           </Link>
-          <Link to="/myorders" className="flex-1"> {/* Link to MyOrders page */}
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
-            >
-                <FaShoppingBag className="mr-2" />
-                View All Orders
-            </motion.button>
-          </Link>
+          
           <motion.button
               onClick={handleDownloadInvoice}
               whileHover={{ scale: 1.05 }}
