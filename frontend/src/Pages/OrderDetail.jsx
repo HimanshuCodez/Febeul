@@ -273,8 +273,13 @@ export default function OrderDetailPage() {
 
   const formattedOrderNumber = order._id && order.date ? `FEB-WEB-${String(new Date(order.date).getFullYear()).slice(-2)}${String(new Date(order.date).getMonth() + 1).padStart(2, '0')}${String(new Date(order.date).getDate()).padStart(2, '0')}-${order._id.slice(-8).toUpperCase()}` : '';
   
+  console.log("Debug: order.deliveredAt from backend:", order.deliveredAt);
+  const parsedDeliveredDate = new Date(order.deliveredAt);
+  console.log("Debug: new Date(order.deliveredAt):", parsedDeliveredDate);
+  console.log("Debug: parsedDeliveredDate is valid:", !isNaN(parsedDeliveredDate.getTime()));
+
   const estimatedDelivery = order.deliveredAt 
-    ? new Date(order.deliveredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? parsedDeliveredDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : (order.shippedAt ? `Est: ${new Date(new Date(order.shippedAt).setDate(new Date(order.shippedAt).getDate() + 5)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Not available');
   
   const statusLevels = {

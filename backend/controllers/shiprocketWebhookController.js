@@ -73,12 +73,31 @@ export const handleWebhook = async (req, res) => {
         }
 
         // Update timestamps
-        if (newStatus && newStatus.orderStatus === 'Shipped' && !order.shippedAt) {
-            order.shippedAt = new Date();
+        const webhookTimestampStr = req.body.current_timestamp;
+        let webhookTimestamp = null;
+        if (webhookTimestampStr) {
+            // Shiprocket timestamp format: 'DD MM YYYY HH:MM:SS'
+            const parts = webhookTimestampStr.match(/(\d{2}) (\d{2}) (\d{4}) (\d{2}):(\d{2}):(\d{2})/);
+            if (parts) {
+                // Reformat to YYYY-MM-DD HH:MM:SS for robust Date parsing
+                webhookTimestamp = new Date(`${parts[3]}-${parts[2]}-${parts[1]} ${parts[4]}:${parts[5]}:${parts[6]}`);
+            } else {
+                // Fallback if regex parsing fails or format is different
+                webhookTimestamp = new Date(webhookTimestampStr); 
+            }
+        }
+        
+        // Ensure webhookTimestamp is a valid Date object before using it
+        if (!webhookTimestamp || isNaN(webhookTimestamp.getTime())) {
+            webhookTimestamp = new Date(); // Fallback to current time if webhook timestamp is invalid
+        }
+
+        if (newStatus && newStatus.orderStatus === 'Shipped' && (!order.shippedAt || order.shippedAt < webhookTimestamp)) {
+            order.shippedAt = webhookTimestamp;
             statusChanged = true;
         }
-        if (newStatus && newStatus.orderStatus === 'Delivered' && !order.deliveredAt) {
-            order.deliveredAt = new Date();
+        if (newStatus && newStatus.orderStatus === 'Delivered' && (!order.deliveredAt || order.deliveredAt < webhookTimestamp)) {
+            order.deliveredAt = webhookTimestamp;
             statusChanged = true;
         }
 
