@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Youtube, Twitter } from "lucide-react";
+import { Facebook, Instagram, Youtube, Twitter, AtSign } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -96,8 +96,9 @@ const Footer = () => {
           <p>© {new Date().getFullYear()} Febeul.com. All Rights Reserved</p>
 
           <div className="flex gap-5 text-gray-400">
-            <a href="#" className="hover:text-white"><Facebook size={20} /></a>
-            <a href="#" className="hover:text-white"><Instagram size={20} /></a>
+            <a href="https://www.facebook.com/febeul" target="_blank" className="hover:text-white"><Facebook size={20} /></a>
+            <a href="https://www.instagram.com/febeul.official" target="_blank" className="hover:text-white"><Instagram size={20} /></a>
+            <a href="https://www.threads.com/@febeul.official" target="_blank" className="hover:text-white"><AtSign size={20} /></a>
             <a href="#" className="hover:text-white"><Youtube size={20} /></a>
             <a href="#" className="hover:text-white"><Twitter size={20} /></a>
           </div>
