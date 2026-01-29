@@ -195,7 +195,7 @@ const placeOrder = async (req,res) => {
                 },
                 user: order.userId,
                 items: order.items,
-                totalPrice: order.amount,
+                totalPrice: order.productAmount,
             };
             const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "COD");
 
@@ -358,7 +358,7 @@ const verifyStripe = async (req,res) => {
                     },
                     user: updatedOrder.userId,
                     items: updatedOrder.items,
-                    totalPrice: updatedOrder.orderTotal, // Use orderTotal from new schema
+                    totalPrice: updatedOrder.productAmount, // Use productAmount for subtotal
                     shippingCharge: updatedOrder.shippingCharge,
                     codCharge: updatedOrder.codCharge
                 };
@@ -510,7 +510,7 @@ const verifyRazorpay = async (req,res) => {
                             },
                             user: order.userId,
                             items: order.items,
-                            totalPrice: order.orderTotal, // Use orderTotal from new schema
+                            totalPrice: order.productAmount, // Use productAmount for subtotal
                             shippingCharge: order.shippingCharge, // Pass shippingCharge to shiprocket
                             codCharge: order.codCharge // Pass codCharge to shiprocket
                         };
