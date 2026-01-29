@@ -637,7 +637,7 @@ const generateInvoice = async (req, res) => {
 
 const getOrderById = async (req, res) => {
     try {
-        const order = await orderModel.findById(req.params.id);
+        const order = await orderModel.findById(req.params.id).populate('userId', 'name email'); // Populate userId
         if (!order) {
             return res.json({ success: false, message: 'Order not found' });
         }
