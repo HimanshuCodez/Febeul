@@ -70,22 +70,13 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData)
     const user = await userModel.findById(userId); // Fetch user to check luxe status
     const isLuxeMember = user?.isLuxeMember || false;
 
-    if (paymentMethod === 'COD') {
-        codCharge = COD_CHARGE_AMOUNT; // COD charge always applies for COD orders
-        // For Luxe members, COD charge is the only extra cost
-        // For non-Luxe, if productAmount is below threshold, 50 shipping is also applied
-        if (!isLuxeMember && productAmount < SHIPPING_CHARGE_THRESHOLD) {
-            shippingCharge = DEFAULT_SHIPPING_CHARGE;
-        }
-    } else { // Prepaid orders
-        if (!isLuxeMember && productAmount < SHIPPING_CHARGE_THRESHOLD) {
-            shippingCharge = DEFAULT_SHIPPING_CHARGE;
-        }
+    if (isLuxeMember && giftWrapData) { // If user is luxe and gift wrap is requested
+        giftWrapPrice = 0; // Luxe members get gift wrap for free
     }
     
     const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice;
 
-    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems };
+    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember };
 };
 
 const constructEmailHtml = (order, templateHtml) => {
@@ -164,7 +155,7 @@ const placeOrder = async (req,res) => {
         
         const { userId, items, address, giftWrap: giftWrapData } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems } = await calculateOrderPricing(userId, items, 'COD', giftWrapData);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'COD', giftWrapData);
 
         const orderData = {
             userId,
@@ -184,6 +175,11 @@ const placeOrder = async (req,res) => {
         await newOrder.save()
 
         await userModel.findByIdAndUpdate(userId,{cartData:[]})
+        
+        // Decrement giftWrapsLeft if Luxe member used a gift wrap
+        if (isLuxeMember && giftWrapData) {
+            await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
+        }
 
         const order = await orderModel.findById(newOrder._id).populate('userId');
 
@@ -256,7 +252,7 @@ const placeOrderStripe = async (req,res) => {
         const { userId, items, address, currency, giftWrap: giftWrapData } = req.body;
         const { origin } = req.headers;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData);
 
         const orderData = {
             userId,
@@ -269,7 +265,8 @@ const placeOrderStripe = async (req,res) => {
             paymentMethod:"Stripe",
             payment:false,
             date: Date.now(),
-            giftWrap: giftWrapData
+            giftWrap: giftWrapData,
+            isLuxeMemberAtTimeOfOrder: isLuxeMember // Store this for later verification
         }
 
         const newOrder = new orderModel(orderData)
@@ -352,6 +349,11 @@ const verifyStripe = async (req,res) => {
 
             await userModel.findByIdAndUpdate(userId, { cartData: [] });
 
+            // Decrement giftWrapsLeft if Luxe member used a gift wrap
+            if (updatedOrder.isLuxeMemberAtTimeOfOrder && updatedOrder.giftWrap) {
+                await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
+            }
+
             // Shiprocket integration
             try {
                 const shiprocketToken = await shiprocketLogin();
@@ -427,7 +429,7 @@ const placeOrderRazorpay = async (req,res) => {
         
         const { userId, items, address, currency, giftWrap: giftWrapData } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData);
 
         const orderData = {
             userId,
@@ -440,7 +442,8 @@ const placeOrderRazorpay = async (req,res) => {
             paymentMethod:"Razorpay",
             payment:false,
             date: Date.now(),
-            giftWrap: giftWrapData
+            giftWrap: giftWrapData,
+            isLuxeMemberAtTimeOfOrder: isLuxeMember // Store this for later verification
         }
 
         const newOrder = new orderModel(orderData)
@@ -504,6 +507,11 @@ const verifyRazorpay = async (req,res) => {
                     });
                 } else {
                     await userModel.findByIdAndUpdate(userId, { cartData: [] });
+
+                    // Decrement giftWrapsLeft if Luxe member used a gift wrap on a non-luxe order
+                    if (order.isLuxeMemberAtTimeOfOrder && order.giftWrap) {
+                        await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
+                    }
 
                     // Shiprocket integration
                     try {

@@ -78,35 +78,45 @@ const Orders = ({ token }) => {
                   </>
                 )}
                 <p className='text-sm text-gray-600 mt-2 font-semibold'>Shipping Address</p>
-                <p className='text-xs text-gray-600'>{order.address.firstName + " " + order.address.lastName}</p>
-                <p className='text-xs text-gray-600'>{order.address.street + ","}</p>
-                <p className='text-xs text-gray-600'>{order.address.city + ", " + order.address.state + ", " + order.address.country + ", " + order.address.zipcode}</p>
+                <p className='text-xs text-gray-600'>{order.address.name}</p>
+                <p className='text-xs text-gray-600'>{order.address.address + ","}</p>
+                <p className='text-xs text-gray-600'>{order.address.city + ", " + order.address.state + ", " + order.address.country + ", " + order.address.zip}</p>
                 <p className='text-xs text-gray-600'>{order.address.phone}</p>
               </div>
 
               {/* Order Details */}
               <div className='col-span-1'>
                 <p className='font-semibold text-gray-700 mb-2'>Order Details</p>
+                <p className='text-sm text-gray-600'>Order ID: {order._id}</p>
                 <p className='text-sm text-gray-600'>Items: {order.items.length}</p>
                 <p className='text-sm text-gray-600'>Method: {order.paymentMethod}</p>
                 <p className='text-sm text-gray-600'>Payment: { order.payment ? 'Done' : 'Pending' }</p>
                 <p className='text-sm text-gray-600'>Date: {new Date(order.date).toLocaleDateString()}</p>
-              </div>
 
-              {/* Total Amount */}
-              <div className='col-span-1'>
-                <p className='font-semibold text-gray-700 mb-2'>Total</p>
-                <p className='text-xl font-bold text-gray-800'>{currency}{order.amount}</p>
+                {order.shiprocket && (
+                  <div className='mt-2'>
+                    <p className='font-semibold text-gray-700'>Shiprocket Info</p>
+                    {order.shiprocket.awb && <p className='text-xs text-gray-600'>AWB: {order.shiprocket.awb}</p>}
+                    {order.shiprocket.courier && <p className='text-xs text-gray-600'>Courier: {order.shiprocket.courier}</p>}
+                    {order.shiprocket.trackingUrl && <p className='text-xs text-blue-600 hover:underline'><a href={order.shiprocket.trackingUrl} target='_blank' rel='noopener noreferrer'>Track Shipment</a></p>}
+                  </div>
+                )}
               </div>
 
               {/* Status */}
               <div className='col-span-1 flex justify-center lg:justify-end'>
-                <select onChange={(event)=>statusHandler(event,order._id)} value={order.status} className='p-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500'>
+                <select onChange={(event)=>statusHandler(event,order._id)} value={order.orderStatus} className='p-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500'>
                   <option value="Order Placed">Order Placed</option>
-                  <option value="Packing">Packing</option>
+                  <option value="Processing">Processing</option>
+                  <option value="Confirmed">Confirmed</option>
                   <option value="Shipped">Shipped</option>
                   <option value="Out for delivery">Out for delivery</option>
                   <option value="Delivered">Delivered</option>
+                  <option value="Cancelled">Cancelled</option>
+                  <option value="Returned">Returned</option>
+                  <option value="Refund Initiated">Refund Initiated</option>
+                  <option value="Refunded">Refunded</option>
+                  <option value="Failed">Failed</option>
                 </select>
               </div>
             </div>
