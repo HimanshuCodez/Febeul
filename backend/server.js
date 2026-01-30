@@ -13,6 +13,7 @@ import giftWrapRouter from './routes/giftWrapRoute.js'
 import webhookRouter from './routes/webhookRoute.js'
 import refundRouter from './routes/refundRoute.js' // Import refundRouter
 import policyRouter from './routes/policyRoute.js'
+import adminRouter from './routes/adminRoute.js' // Import adminRouter
 import errorHandler from './middleware/errorHandler.js'
 
 // App Config
@@ -36,6 +37,7 @@ app.use('/api/giftwrap',giftWrapRouter)
 app.use('/api/tracking',webhookRouter)
 app.use('/api/refund',refundRouter) // Use refundRouter
 app.use('/api/policy',policyRouter)
+app.use('/api/admin',adminRouter) // Use adminRouter
 
 app.get('/',(req,res)=>{
     res.send("API Working")

@@ -22,10 +22,12 @@ const FebeulDashboard = ({ token }) => {
 
   // Define category colors for consistency (can be fetched from backend or defined centrally)
   const categoryColors = {
-    'Electronics': '#f9aeaf',
-    'Fashion': '#e88b8d',
-    'Home & Living': '#d66a6c',
-    'Beauty': '#c44a4d',
+    'BABYDOLL': '#f9aeaf',
+    'LINGERIE': '#e88b8d',
+    'NIGHTY': '#d66a6c',
+    'PAJAMAS': '#c44a4d',
+    'NEW & NOW': '#b33a3d',
+    'GIFT WRAP': '#8B008B', // A distinct color for Gift Wrap
     // Add more categories and colors as needed
   };
 
