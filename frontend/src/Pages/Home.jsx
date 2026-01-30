@@ -1,11 +1,8 @@
 import React from 'react'
 import Hero from '../components/HeroSection'
-
 import PromoBanner from '../components/PromoBanner'
 import OfferBar from '../components/ReturnBanner'
 import StylesSection from '../components/Banner'
-
-
 import Spotlight from '../components/Spotlight'
 import BlackBanner from '../components/BlackBanner'
 import ProductDealBanner from '../components/ProductDealer'
@@ -23,7 +20,7 @@ const Home = () => {
 
     <div>
 
-
+{/* 
   <Hero />
     <OfferBar/> 
      <div className='mt-5'><Spotlight/></div>
@@ -36,9 +33,9 @@ const Home = () => {
     <div className='mt-5'><StylesSection/></div>
     
     
-    <AboutUs/> 
+    <AboutUs/>  */}
     {/* <div className='mt-5'><PurpleBanner/></div> */}
-    <div><Aboutt/></div> 
+    {/* <div><Aboutt/></div>  */}
     
     
     </div>

@@ -122,6 +122,16 @@ const constructEmailHtml = (order, templateHtml) => {
         `;
     }
 
+    let codChargeRowHtml = '';
+    if (emailCodCharge > 0) {
+        codChargeRowHtml = `
+            <tr>
+                <td colspan="3" style="text-align:right;">COD Charges:</td>
+                <td>₹${emailCodCharge.toFixed(2)}</td>
+            </tr>
+        `;
+    }
+
     // Populate template placeholders
     let populatedHtml = templateHtml;
     populatedHtml = populatedHtml.replace('{{userName}}', order.userId.name || 'Customer');
@@ -131,7 +141,7 @@ const constructEmailHtml = (order, templateHtml) => {
     populatedHtml = populatedHtml.replace('{{itemRows}}', itemRowsHtml);
     populatedHtml = populatedHtml.replace('{{subtotal}}', emailProductAmount.toFixed(2));
     populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE');
-    populatedHtml = populatedHtml.replace('{{codCharge}}', emailCodCharge > 0 ? `+ ₹${emailCodCharge.toFixed(2)} (COD Fee)` : '');
+    populatedHtml = populatedHtml.replace('{{codChargeRow}}', codChargeRowHtml);
     populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);
     populatedHtml = populatedHtml.replace('{{shippingAddressName}}', order.address.name);
     populatedHtml = populatedHtml.replace('{{shippingAddressAddress}}', order.address.address);
@@ -200,7 +210,8 @@ const placeOrder = async (req,res) => {
             const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "COD");
 
             order.shiprocket = {
-                orderId: shiprocketResponse.order_id,
+                ourOrderId: order._id.toString(),
+                srOrderId: shiprocketResponse.order_id,
                 shipmentId: shiprocketResponse.shipment_id,
                 awb: shiprocketResponse.awb_code,
                 courier: shiprocketResponse.courier_name,
@@ -366,7 +377,8 @@ const verifyStripe = async (req,res) => {
                 const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
 
                 updatedOrder.shiprocket = {
-                    orderId: shiprocketResponse.order_id,
+                    ourOrderId: updatedOrder._id.toString(),
+                    srOrderId: shiprocketResponse.order_id,
                     shipmentId: shiprocketResponse.shipment_id,
                     awb: shiprocketResponse.awb_code,
                     courier: shiprocketResponse.courier_name,
@@ -518,7 +530,8 @@ const verifyRazorpay = async (req,res) => {
                         const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
 
                         order.shiprocket = {
-                            orderId: shiprocketResponse.order_id,
+                            ourOrderId: order._id.toString(),
+                            srOrderId: shiprocketResponse.order_id,
                             shipmentId: shiprocketResponse.shipment_id,
                             awb: shiprocketResponse.awb_code,
                             courier: shiprocketResponse.courier_name,

@@ -46,7 +46,8 @@ const orderSchema = new mongoose.Schema({
     isRefundable: { type: Boolean, default: true }, 
     isCancelled: { type: Boolean, default: false },
     shiprocket: {
-        orderId: { type: String },
+        ourOrderId: { type: String }, // Our internal order ID sent to Shiprocket
+        srOrderId: { type: String }, // Shiprocket's internal order ID (integer from their response)
         shipmentId: { type: String },
         awb: { type: String },
         courier: { type: String },

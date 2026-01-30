@@ -25,7 +25,8 @@ export const handleWebhook = async (req, res) => {
         // Find the order in the database
         let order = await orderModel.findOne({
             $or: [
-                { 'shiprocket.orderId': order_id },
+                { 'shiprocket.ourOrderId': order_id },
+                { 'shiprocket.srOrderId': req.body.sr_order_id },
                 { 'shiprocket.shipmentId': shipment_id },
                 { 'shiprocket.awb': awb }
             ]

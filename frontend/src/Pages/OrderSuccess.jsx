@@ -374,6 +374,12 @@ export default function OrderSuccess() {
               <span>Shipping</span>
               <span>₹{shipping.toFixed(2)}</span>
             </div>
+            {cod > 0 && (
+              <div className="flex justify-between text-gray-600">
+                <span>COD Charges</span>
+                <span>₹{cod.toFixed(2)}</span>
+              </div>
+            )}
             <div className="border-t pt-3 flex justify-between text-xl font-bold">
               <span className="text-gray-800">Total</span>
               <span className="text-[#e8767a]">₹{total.toFixed(2)}</span>
