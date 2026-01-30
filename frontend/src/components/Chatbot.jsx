@@ -1,36 +1,50 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Chatbot = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { sender: "bot", text: "Hi there 💖! I'm Febeul Assistant. How can I help you today?" },
+    { sender: "bot", type: "text", text: "Hi there 💖! I'm Febeul Assistant. How can I help you today? Here are some quick options:" },
   ]);
   const [input, setInput] = useState("");
+
+  const quickActions = [
+    { label: "My Orders", payload: "/my-orders" },
+    { label: "Support", payload: "/support" },
+    { label: "Return Policy", payload: "/policy" }, // Assuming a policy page
+    { label: "Track Order", payload: "/my-orders" }, // Can lead to orders page where tracking is visible
+  ];
 
   const handleSend = () => {
     if (!input.trim()) return;
 
     // Add user message
-    const userMessage = { sender: "user", text: input };
+    const userMessage = { sender: "user", type: "text", text: input };
     setMessages((prev) => [...prev, userMessage]);
 
     // Simple bot responses
-    let botResponse = "I’m here to help with your Febeul experience! 💕";
+    let botResponse = { sender: "bot", type: "text", text: "I’m here to help with your Febeul experience! 💕" };
 
     if (input.toLowerCase().includes("order")) {
-      botResponse = "You can track your order in the 'My Orders' section 🌸";
+      botResponse = {
+        sender: "bot",
+        type: "action",
+        text: "Sure! You can view all your orders here:",
+        action: { type: "navigate", payload: "/my-orders", label: "View My Orders" }
+      };
     } else if (input.toLowerCase().includes("return")) {
-      botResponse = "No worries! You can return within 7 days of delivery. 💌";
+      botResponse = { sender: "bot", type: "text", text: "No worries! You can return within 7 days of delivery. 💌" };
     } else if (input.toLowerCase().includes("size")) {
-      botResponse = "Our Size Guide helps you find your perfect fit 👗 — you’ll find it on every product page.";
+      botResponse = { sender: "bot", type: "text", text: "Our Size Guide helps you find your perfect fit 👗 — you’ll find it on every product page." };
     } else if (input.toLowerCase().includes("hello") || input.toLowerCase().includes("hi")) {
-      botResponse = "Hey beautiful 💕 How’s your day going?";
+      botResponse = { sender: "bot", type: "text", text: "Hey beautiful 💕 How’s your day going?" };
     }
 
     setTimeout(() => {
-      setMessages((prev) => [...prev, { sender: "bot", text: botResponse }]);
+      setMessages((prev) => [...prev, botResponse]);
     }, 700);
 
     setInput("");
@@ -80,18 +94,67 @@ const Chatbot = () => {
                     msg.sender === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <div
-                    className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${
-                      msg.sender === "user"
-                        ? "bg-[#f9aeaf] text-white rounded-br-none"
-                        : "bg-pink-100 text-gray-800 rounded-bl-none"
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
+                  {msg.type === "text" && (
+                    <div
+                      className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${
+                        msg.sender === "user"
+                          ? "bg-[#f9aeaf] text-white rounded-br-none"
+                          : "bg-pink-100 text-gray-800 rounded-bl-none"
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  )}
+                  {msg.type === "action" && (
+                    <div
+                      className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${
+                        msg.sender === "user"
+                          ? "bg-[#f9aeaf] text-white rounded-br-none"
+                          : "bg-pink-100 text-gray-800 rounded-bl-none"
+                      } flex flex-col items-start space-y-2`}
+                    >
+                      <span>{msg.text}</span>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          navigate(msg.action.payload);
+                          setIsOpen(false);
+                        }}
+                        className="mt-2 px-3 py-1 bg-[#e8767a] text-white rounded-full text-xs hover:bg-[#d5666a]"
+                      >
+                        {msg.action.label}
+                      </motion.button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+
+            {/* Quick Actions */}
+            {isOpen && (
+              <div className="p-3 border-t border-pink-200 bg-pink-50 grid grid-cols-2 gap-2">
+                {quickActions.map((action, index) => (
+                  <motion.button
+                    key={index}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      // Optional: Add user message to history indicating button click
+                      setMessages((prev) => [
+                        ...prev,
+                        { sender: "user", type: "text", text: action.label },
+                      ]);
+                      navigate(action.payload);
+                      setIsOpen(false);
+                    }}
+                    className="px-3 py-2 bg-pink-100 text-pink-700 rounded-full text-sm hover:bg-pink-200 transition-colors shadow-sm"
+                  >
+                    {action.label}
+                  </motion.button>
+                ))}
+              </div>
+            )}
 
             {/* Input */}
             <div className="p-3 border-t border-pink-200 flex items-center bg-pink-50">
