@@ -12,10 +12,10 @@ const Chatbot = () => {
   const [input, setInput] = useState("");
 
   const quickActions = [
-    { label: "My Orders", payload: "/my-orders" },
+    { label: "My Orders", payload: "/myorders" },
     { label: "Support", payload: "/support" },
-    { label: "Return Policy", payload: "/policy" }, // Assuming a policy page
-    { label: "Track Order", payload: "/my-orders" }, // Can lead to orders page where tracking is visible
+    { label: "Return Policy", payload: "/ReturnRefund" }, // Assuming a policy page
+    { label: "Track Order", payload: "/myorders" }, // Can lead to orders page where tracking is visible
   ];
 
   const handleSend = () => {
@@ -33,7 +33,7 @@ const Chatbot = () => {
         sender: "bot",
         type: "action",
         text: "Sure! You can view all your orders here:",
-        action: { type: "navigate", payload: "/my-orders", label: "View My Orders" }
+        action: { type: "navigate", payload: "/myorders", label: "View My Orders" }
       };
     } else if (input.toLowerCase().includes("return")) {
       botResponse = { sender: "bot", type: "text", text: "No worries! You can return within 7 days of delivery. 💌" };
