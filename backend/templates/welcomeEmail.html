@@ -5,41 +5,447 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to Febeul!</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        .header { background-color: #f9aeaf; padding: 10px 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .header img { max-height: 50px; margin-bottom: 10px;}
-        .header h1 { color: #fff; margin: 0; font-size: 24px; }
-        .content { padding: 20px; }
-        .content p { margin: 5px 0; font-size: 14px; }
-        .content h2 { color: #e8767a; font-size: 20px; margin-bottom: 15px; }
-        .button { display: inline-block; background-color: #e8767a; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px; margin-top: 20px; }
-        .button:hover { background-color: #d5666a; }
-        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 20px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8edf2 100%);
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .email-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header with Gradient */
+        .email-header {
+            background: linear-gradient(135deg, #f9aeaf 0%, #e88b8d 100%);
+            padding: 50px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .email-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .email-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            right: -5%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+        }
+
+        .logo-container {
+            position: relative;
+            z-index: 2;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-height: 70px;
+            filter: brightness(0) invert(1);
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .welcome-title {
+            color: #ffffff;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 2;
+            letter-spacing: -0.5px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .welcome-subtitle {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 16px;
+            font-weight: 500;
+            position: relative;
+            z-index: 2;
+            animation: fadeInUp 0.8s ease-out 0.2s;
+            animation-fill-mode: both;
+        }
+
+        /* Content Section */
+        .email-content {
+            padding: 50px 40px;
+        }
+
+        .greeting {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .greeting-name {
+            color: #f9aeaf;
+        }
+
+        .message-text {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #f9aeaf15 0%, #e88b8d15 100%);
+            border-left: 4px solid #f9aeaf;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+
+        .highlight-box h3 {
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .benefits-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .benefits-list li {
+            padding: 10px 0;
+            font-size: 15px;
+            color: #555;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .benefits-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #f9aeaf;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        /* CTA Button */
+        .cta-section {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #f9aeaf 0%, #e88b8d 100%);
+            color: #ffffff;
+            padding: 18px 50px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 25px rgba(249, 174, 175, 0.3);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(249, 174, 175, 0.4);
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .feature-item {
+            text-align: center;
+            padding: 25px 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            background: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .feature-desc {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        /* Social Section */
+        .social-section {
+            text-align: center;
+            padding: 30px 40px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .social-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #f9aeaf 0%, #e88b8d 100%);
+            border-radius: 50%;
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(249, 174, 175, 0.2);
+        }
+
+        .social-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(249, 174, 175, 0.3);
+        }
+
+        /* Footer */
+        .email-footer {
+            padding: 30px 40px;
+            text-align: center;
+            background: #2c3e50;
+            color: #ecf0f1;
+        }
+
+        .footer-text {
+            font-size: 13px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .footer-links {
+            margin: 20px 0;
+        }
+
+        .footer-link {
+            color: #f9aeaf;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 0 10px;
+            font-size: 13px;
+            transition: color 0.3s;
+        }
+
+        .footer-link:hover {
+            color: #e88b8d;
+            text-decoration: underline;
+        }
+
+        .copyright {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #34495e;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .email-header {
+                padding: 40px 25px;
+            }
+
+            .email-content {
+                padding: 35px 25px;
+            }
+
+            .welcome-title {
+                font-size: 28px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .cta-button {
+                padding: 16px 40px;
+                font-size: 15px;
+            }
+
+            .social-section {
+                padding: 25px 25px;
+            }
+
+            .email-footer {
+                padding: 25px 25px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <img src="https://i.postimg.cc/brz9vx2j/removebg-Logo.png" alt="Febeul Logo"> <!-- Hosted logo URL -->
-            <h1>Welcome to Febeul!</h1>
+    <div class="email-wrapper">
+        <!-- Header -->
+        <div class="email-header">
+            <div class="logo-container">
+                <img src="https://i.postimg.cc/brz9vx2j/removebg-Logo.png" alt="Febeul Logo">
+            </div>
+            <h1 class="welcome-title">Welcome to Febeul!</h1>
+            <p class="welcome-subtitle">Your journey to amazing shopping starts here</p>
         </div>
-        <div class="content">
-            <p>Hi {{userName}},</p>
-            <p>Thank you for joining Febeul! We're thrilled to have you as part of our community. Get ready to explore a world of amazing products and exclusive offers.</p>
-            <p>Your journey with us starts now. Discover your favorites and enjoy a seamless shopping experience.</p>
 
-            <p style="text-align: center;">
-                <a href="https://febeul.onrender.com" class="button">Start Shopping Now</a>
+        <!-- Content -->
+        <div class="email-content">
+            <h2 class="greeting">Hello <span class="greeting-name">{{userName}}</span>! 👋</h2>
+            
+            <p class="message-text">
+                We're absolutely thrilled to have you join the Febeul family! Thank you for choosing us as your shopping destination. 
+                You've just unlocked a world of incredible products, exclusive deals, and a seamless shopping experience tailored just for you.
             </p>
 
-            <p>If you have any questions or need assistance, feel free to contact our support team.</p>
-            <p>Happy Shopping!</p>
-            <p>The Febeul Team</p>
+            <!-- Highlight Box -->
+            <div class="highlight-box">
+                <h3>🎉 What's Waiting for You:</h3>
+                <ul class="benefits-list">
+                    <li><strong>Exclusive Offers</strong> – Get access to member-only deals</li>
+                    <li><strong>Fast & Secure Checkout</strong> – Shop with confidence</li>
+                    <li><strong>24/7 Support</strong> – We're always here to help</li>
+                    <li><strong>Latest Collections</strong> – Be the first to discover new arrivals</li>
+                </ul>
+            </div>
+
+            <p class="message-text">
+                Ready to explore? Browse our collections and find your perfect match. Whether you're looking for the latest trends 
+                or timeless classics, we've got something special for everyone.
+            </p>
+
+            <!-- CTA Button -->
+            <div class="cta-section">
+                <a href="https://febeul.onrender.com" class="cta-button">Start Shopping Now</a>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">🚚</div>
+                    <div class="feature-title">Fast Delivery</div>
+                    <div class="feature-desc">Quick & reliable shipping</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-title">Secure Payment</div>
+                    <div class="feature-desc">100% safe transactions</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">💎</div>
+                    <div class="feature-title">Quality Products</div>
+                    <div class="feature-desc">Curated with care</div>
+                </div>
+            </div>
+
+            <p class="message-text" style="text-align: center; margin-top: 40px;">
+                Need help getting started? Our friendly support team is just a click away!
+            </p>
         </div>
-        <div class="footer">
-            <p>&copy; {{currentYear}} Febeul. All rights reserved.</p>
-            <p>If you have any questions, please contact our <a href="#" style="color: #e8767a; text-decoration: none;">support team</a>.</p>
+
+        <!-- Social Section -->
+        <div class="social-section">
+            <h3 class="social-title">Follow Us & Stay Connected</h3>
+            <div class="social-links">
+                <a href="#" class="social-link" title="Facebook">f</a>
+                <a href="#" class="social-link" title="Instagram">📷</a>
+                <a href="#" class="social-link" title="Twitter">🐦</a>
+                <a href="#" class="social-link" title="Pinterest">📌</a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="email-footer">
+            <p class="footer-text">
+                <strong>Febeul</strong> – Your trusted shopping partner<br>
+                H. no 89, Blk-D1 Bhalswa, New Swaroop Nagar, Delhi - 110042, India
+            </p>
+            
+            <div class="footer-links">
+                <a href="mailto:support@febeul.com" class="footer-link">Email Support</a>
+                <a href="#" class="footer-link">FAQs</a>
+                <a href="#" class="footer-link">Privacy Policy</a>
+            </div>
+
+            <p class="copyright">
+                &copy; {{currentYear}} Febeul. All rights reserved.
+            </p>
         </div>
     </div>
 </body>

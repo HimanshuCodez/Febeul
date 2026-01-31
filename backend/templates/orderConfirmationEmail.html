@@ -5,112 +5,539 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tax Invoice - Febeul</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        .header { background-color: #f9aeaf; padding: 10px 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .header img { max-height: 50px; margin-bottom: 10px;}
-        .header h1 { color: #fff; margin: 0; font-size: 24px; }
-        .content { padding: 20px; }
-        .content h2 { color: #e8767a; font-size: 20px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
-        .order-details, .shipping-address, .payment-info, .seller-info, .billing-address { margin-bottom: 20px; padding-top: 15px; }
-        .order-details p, .shipping-address p, .payment-info p, .seller-info p, .billing-address p { margin: 5px 0; font-size: 14px; }
-        .item-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .item-table th, .item-table td { border: 1px solid #eee; padding: 10px; text-align: left; font-size: 14px; }
-        .item-table th { background-color: #f9f9f9; }
-        .total-row { font-weight: bold; background-color: #fefefe; }
-        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 20px; }
-        .button { display: inline-block; background-color: #e8767a; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px; margin-top: 20px; }
-        .button:hover { background-color: #d5666a; }
-        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8edf2 100%);
+            padding: 40px 20px;
+            line-height: 1.6;
+            color: #2c3e50;
+        }
+
+        .invoice-container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Header Section */
+        .invoice-header {
+            background: linear-gradient(135deg, #f9aeaf 0%, #e88b8d 100%);
+            padding: 40px 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .invoice-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section img {
+            max-height: 60px;
+            filter: brightness(0) invert(1);
+        }
+
+        .invoice-title {
+            text-align: right;
+        }
+
+        .invoice-title h1 {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 5px;
+        }
+
+        .invoice-title p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .invoice-body {
+            padding: 50px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .info-block h2 {
+            color: #f9aeaf;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f9aeaf;
+            display: inline-block;
+        }
+
+        .info-block p {
+            font-size: 14px;
+            color: #555;
+            margin: 8px 0;
+            line-height: 1.7;
+        }
+
+        .info-block strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .info-label {
+            display: inline-block;
+            min-width: 120px;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        /* Items Table */
+        .items-section {
+            margin: 40px 0;
+        }
+
+        .section-title {
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f9aeaf;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .items-table thead {
+            background: linear-gradient(135deg, #f9aeaf 0%, #e88b8d 100%);
+        }
+
+        .items-table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .items-table th:last-child,
+        .items-table td:last-child {
+            text-align: right;
+        }
+
+        .items-table tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .items-table tbody tr:hover {
+            background-color: #fafafa;
+        }
+
+        .items-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .items-table td {
+            padding: 16px 20px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* Totals Section */
+        .items-table tfoot tr {
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .items-table tfoot td {
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .tax-row td {
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+
+        .grand-total-row {
+            background: linear-gradient(135deg, #f9aeaf15 0%, #e88b8d15 100%);
+        }
+
+        .grand-total-row td {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2c3e50;
+            padding: 18px 20px;
+        }
+
+        /* Payment Info */
+        .payment-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 40px 0;
+            border-left: 4px solid #f9aeaf;
+        }
+
+        .payment-section h2 {
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .payment-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .payment-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .payment-item strong {
+            min-width: 100px;
+            color: #7f8c8d;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .payment-item span {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-paid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* CTA Button */
+        .cta-section {
+            text-align: center;
+            margin: 40px 0 30px;
+        }
+
+        .track-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #f9aeaf 0%, #e88b8d 100%);
+            color: #ffffff;
+            padding: 14px 40px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(249, 174, 175, 0.3);
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+        }
+
+        .track-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(249, 174, 175, 0.4);
+        }
+
+        /* Footer */
+        .invoice-footer {
+            background: #f8f9fa;
+            padding: 30px 50px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer-note {
+            color: #7f8c8d;
+            font-size: 13px;
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        .footer-links {
+            margin-top: 15px;
+        }
+
+        .footer-links a {
+            color: #f9aeaf;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 0 10px;
+            font-size: 13px;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: #e88b8d;
+            text-decoration: underline;
+        }
+
+        .copyright {
+            color: #95a5a6;
+            font-size: 12px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .invoice-body {
+                padding: 30px 25px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .invoice-title {
+                text-align: center;
+                margin-top: 20px;
+            }
+
+            .items-table th,
+            .items-table td {
+                padding: 12px 10px;
+                font-size: 12px;
+            }
+
+            .payment-details {
+                grid-template-columns: 1fr;
+            }
+
+            .invoice-footer {
+                padding: 25px 25px;
+            }
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+
+            .invoice-container {
+                box-shadow: none;
+            }
+
+            .track-button {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <img src="https://i.postimg.cc/brz9vx2j/removebg-Logo.png" alt="Febeul Logo">
-            <h1>Tax Invoice</h1>
+    <div class="invoice-container">
+        <!-- Header -->
+        <div class="invoice-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="https://i.postimg.cc/brz9vx2j/removebg-Logo.png" alt="Febeul Logo">
+                </div>
+                <div class="invoice-title">
+                    <h1>TAX INVOICE</h1>
+                    <p>Original for Recipient</p>
+                </div>
+            </div>
         </div>
-        <div class="content">
-            <div class="grid-container">
-                <div class="seller-info">
-                    <h2>Sold By:</h2>
+
+        <!-- Body -->
+        <div class="invoice-body">
+            <!-- Company & Invoice Details -->
+            <div class="info-grid">
+                <div class="info-block">
+                    <h2>Sold By</h2>
                     <p><strong>FEBEUL</strong></p>
-                    <p>H. no 89, blk-D1 bhalswa resettlement colony, new swaroop nagar near government dispensary and 101 riksha stand 110042</p>
-                    <p><strong>GSTIN:</strong> 07BGQPY8326L1ZC</p>
-                    <p><strong>PAN:</strong> BGQPY8326L</p>
+                    <p>H. no 89, Blk-D1 Bhalswa Resettlement Colony,<br>
+                       New Swaroop Nagar, Near Government Dispensary<br>
+                       and 101 Riksha Stand<br>
+                       Delhi - 110042, India</p>
+                    <p style="margin-top: 12px;">
+                        <span class="info-label">GSTIN:</span> <strong>07BGQPY8326L1ZC</strong><br>
+                        <span class="info-label">PAN:</span> <strong>BGQPY8326L</strong>
+                    </p>
                 </div>
-                <div class="order-details">
-                    <h2>Invoice Details:</h2>
-                    <p><strong>Invoice No:</strong> {{invoiceNumber}}</p>
-                    <p><strong>Invoice Date:</strong> {{invoiceDate}}</p>
-                    <p><strong>Order ID:</strong> {{orderId}}</p>
-                    <p><strong>Order Date:</strong> {{orderDate}}</p>
+
+                <div class="info-block">
+                    <h2>Invoice Details</h2>
+                    <p><span class="info-label">Invoice No:</span> <strong>{{invoiceNumber}}</strong></p>
+                    <p><span class="info-label">Invoice Date:</span> <strong>{{invoiceDate}}</strong></p>
+                    <p><span class="info-label">Order ID:</span> <strong>{{orderId}}</strong></p>
+                    <p><span class="info-label">Order Date:</span> <strong>{{orderDate}}</strong></p>
                 </div>
             </div>
-             <div class="grid-container">
-                <div class="billing-address">
-                    <h2>Shipping Address:</h2>
+
+            <!-- Shipping Address -->
+            <div class="info-grid">
+                <div class="info-block">
+                    <h2>Shipping Address</h2>
                     <p><strong>{{shippingAddressName}}</strong></p>
-                    <p>{{shippingAddressAddress}}</p>
-                    <p>{{shippingAddressCity}}, {{shippingAddressZip}}</p>
-                    <p>{{shippingAddressCountry}}</p>
+                    <p>{{shippingAddressAddress}}<br>
+                       {{shippingAddressCity}}, {{shippingAddressZip}}<br>
+                       {{shippingAddressCountry}}</p>
                 </div>
-    
-              
+
+                <div class="info-block">
+                    <h2>Billing Address</h2>
+                    <p><strong>{{billingAddressName}}</strong></p>
+                    <p>{{billingAddressAddress}}<br>
+                       {{billingAddressCity}}, {{billingAddressZip}}<br>
+                       {{billingAddressCountry}}</p>
+                </div>
             </div>
 
+            <!-- Items Table -->
+            <div class="items-section">
+                <h3 class="section-title">Order Items</h3>
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th style="text-align: center; width: 80px;">Qty</th>
+                            <th style="text-align: right; width: 120px;">Unit Price</th>
+                            <th style="text-align: right; width: 120px;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{itemRows}}
+                    </tbody>
+                    <tfoot>
+                        <tr class="tax-row">
+                            <td colspan="3" style="text-align: right; font-weight: 600;">Subtotal:</td>
+                            <td style="text-align: right;">₹{{taxableValue}}</td>
+                        </tr>
+                        <tr class="tax-row">
+                            <td colspan="3" style="text-align: right;">CGST (9%):</td>
+                            <td style="text-align: right;">₹{{cgst}}</td>
+                        </tr>
+                        <tr class="tax-row">
+                            <td colspan="3" style="text-align: right;">SGST (9%):</td>
+                            <td style="text-align: right;">₹{{sgst}}</td>
+                        </tr>
+                        <tr class="tax-row">
+                            <td colspan="3" style="text-align: right;">Shipping Charges:</td>
+                            <td style="text-align: right;">{{shipping}}</td>
+                        </tr>
+                        {{codChargeRow}}
+                        {{giftWrapRow}}
+                        <tr class="grand-total-row">
+                            <td colspan="3" style="text-align: right;">GRAND TOTAL:</td>
+                            <td style="text-align: right;">₹{{totalAmount}}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
 
-            <table class="item-table">
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{itemRows}}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3" style="text-align:right;">Taxable Value:</td>
-                        <td>₹{{taxableValue}}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" style="text-align:right;">CGST (9%):</td>
-                        <td>₹{{cgst}}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" style="text-align:right;">SGST (9%):</td>
-                        <td>₹{{sgst}}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" style="text-align:right;">Shipping:</td>
-                        <td>{{shipping}}</td>
-                    </tr>
-                    {{codChargeRow}}
-                    {{giftWrapRow}}
-                    <tr class="total-row">
-                        <td colspan="3" style="text-align:right;">Grand Total:</td>
-                        <td>₹{{totalAmount}}</td>
-                    </tr>
-                </tfoot>
-            </table>
-
-            <div class="payment-info">
+            <!-- Payment Information -->
+            <div class="payment-section">
                 <h2>Payment Information</h2>
-                <p><strong>Method:</strong> {{paymentMethod}}</p>
-                <p><strong>Status:</strong> {{paymentStatus}}</p>
+                <div class="payment-details">
+                    <div class="payment-item">
+                        <strong>Payment Method:</strong>
+                        <span>{{paymentMethod}}</span>
+                    </div>
+                    <div class="payment-item">
+                        <strong>Payment Status:</strong>
+                        <span class="status-badge status-{{paymentStatusClass}}">{{paymentStatus}}</span>
+                    </div>
+                </div>
             </div>
 
-            <p style="text-align: center;">
-                <a href="{{orderTrackingLink}}" class="button">Track Your Order</a>
-            </p>
+            <!-- Track Order Button -->
+            <div class="cta-section">
+                <a href="{{orderTrackingLink}}" class="track-button">TRACK YOUR ORDER</a>
+            </div>
+
+            <!-- Terms & Conditions -->
+            <div style="margin-top: 40px; padding: 20px; background: #fafafa; border-radius: 8px; border-left: 4px solid #f9aeaf;">
+                <p style="font-size: 12px; color: #7f8c8d; line-height: 1.8;">
+                    <strong style="color: #2c3e50; display: block; margin-bottom: 8px;">Terms & Conditions:</strong>
+                    This is a computer-generated invoice and does not require a physical signature. All disputes are subject to Delhi jurisdiction. 
+                    Goods once sold cannot be returned or exchanged. Please check the product before accepting delivery.
+                </p>
+            </div>
         </div>
-        <div class="footer">
-            <p>&copy; {{currentYear}} Febeul. All rights reserved.</p>
-            <p>If you have any questions, please contact our <a href="#" style="color: #e8767a; text-decoration: none;">support team</a>.</p>
+
+        <!-- Footer -->
+        <div class="invoice-footer">
+            <p class="footer-note">
+                Thank you for shopping with <strong>Febeul</strong>!<br>
+                For any queries regarding this invoice, please contact our support team.
+            </p>
+            <div class="footer-links">
+                <a href="mailto:support@febeul.com">Email Support</a>
+                <a href="tel:+911234567890">Call Us</a>
+                <a href="https://febeul.com">Visit Website</a>
+            </div>
+            <p class="copyright">
+                &copy; {{currentYear}} Febeul. All rights reserved.
+            </p>
         </div>
     </div>
 </body>

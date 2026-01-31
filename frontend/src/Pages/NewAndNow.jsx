@@ -44,7 +44,7 @@ const NewAndNow = () => {
   return (
     <div className="py-12 bg-white">
       <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-center text-gray-800 mb-2">New Arrivals</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2">New Arrivals</h1>
         <p className="text-center text-gray-600 mb-8">{products.length} products found</p>
         <div className="flex justify-end mb-4">
           <select
