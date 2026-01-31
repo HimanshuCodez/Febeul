@@ -123,10 +123,10 @@ const buildInvoicePDF = (order, res) => {
             doc.fillColor(mediumGray)
                .fontSize(9)
                .font('Helvetica')
-               .text(label, 320, y, { width: 100, continued: true });
+               .text(label, 320, y);
             doc.fillColor(darkGray)
                .font('Helvetica-Bold')
-               .text(value);
+               .text(value, 405, y);
         };
 
         addDetailRow('Invoice No:', `#INV-${order._id.toString().slice(-8).toUpperCase()}`, infoY + 18);
