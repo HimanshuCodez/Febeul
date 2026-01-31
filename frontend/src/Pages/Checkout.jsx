@@ -132,27 +132,16 @@ export default function CheckoutPage() {
         return sum + (actualPrice * item.quantity);
     }, 0);
     const isLuxeMember = user?.isLuxeMember;
-    let calculatedShippingCost = 0;
-
-    if (isLuxeMember) {
-        // Luxe members only pay shipping if it's COD
-        if (selectedPayment === 'cod') {
-            calculatedShippingCost = COD_SHIPPING_CHARGE;
-        }
-    } else {
-        // Non-Luxe members
-        if (selectedPayment === 'cod') {
-            calculatedShippingCost = COD_SHIPPING_CHARGE;
-        } else {
-            // Not COD, so apply subtotal condition
-            if (subtotal < 499) {
-                calculatedShippingCost = COD_SHIPPING_CHARGE;
-            }
-        }
+    
+    let shippingCharge = 0;
+    if (selectedPayment !== 'cod' && !isLuxeMember && subtotal < 499) {
+        shippingCharge = 50.00;
     }
-    const shippingCost = calculatedShippingCost;
+
+    const codCharge = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : 0;
+    
     const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
-    const total = parseFloat((subtotal + shippingCost + giftWrapPrice).toFixed(2));
+    const total = parseFloat((subtotal + shippingCharge + codCharge + giftWrapPrice).toFixed(2));
     
     const addresses = user?.addresses || [];
 
@@ -195,7 +184,8 @@ export default function CheckoutPage() {
         const response = await axios.post(`${backendUrl}/api/order/place`, orderData, { headers: { token } });
         if (response.data.success) {
             toast.success("Order placed successfully!");
-            navigate("/Success", { state: { order: response.data.order, items: cartItems, address: addresses[selectedAddress] } });
+            const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice };
+            navigate("/Success", { state: { order: response.data.order, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
         } else {
             toast.error(response.data.message || "Failed to place order.");
         }
@@ -277,7 +267,7 @@ export default function CheckoutPage() {
             if (verifyResponse.data.success) {
               toast.success("Payment successful!");
               const localOrder = { _id: order.receipt, ...orderPayload };
-              const pricingDetails = { subtotal, shippingCost, giftWrapPrice };
+              const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice };
               navigate('/Success', { state: { order: localOrder, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
             } else {
               toast.error("Payment verification failed.");
@@ -607,14 +597,18 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  {shippingCost > 0 ? (
-                    <span>
-                      ₹{shippingCost.toFixed(2)} {selectedPayment === 'cod' ? '(COD charges)' : ''}
-                    </span>
+                  {shippingCharge > 0 ? (
+                    <span>₹{shippingCharge.toFixed(2)}</span>
                   ) : (
                     <span>FREE</span> 
                   )}
                 </div>
+                {codCharge > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>COD Charges</span>
+                    <span>₹{codCharge.toFixed(2)}</span>
+                  </div>
+                )}
                 {selectedGiftWrap && (
                   <div className="flex justify-between items-center text-gray-600">
                     <div>
