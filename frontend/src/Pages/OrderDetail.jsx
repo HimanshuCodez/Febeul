@@ -266,7 +266,7 @@ export default function OrderDetailPage() {
   const returnPossible = isReturnEligible();
 
   // Use pricing details from the order object
-  const productAmount = order.productAmount || order.items.reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
+  const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
   const shippingCharge = order.shippingCharge || 0;
   const codCharge = order.codCharge || 0;
   const orderTotal = order.orderTotal || (productAmount + shippingCharge + codCharge); // Fallback if orderTotal not explicitly stored
