@@ -327,6 +327,11 @@ const AuthPage = () => {
                 {errors.confirmPassword && <p className="text-sm text-red-500 mt-1">{errors.confirmPassword.message}</p>}
               </>
             )}
+            {!isLogin && step === 1 && (
+              <p className="text-xs text-gray-500 text-center mt-4">
+                By clicking "Continue", you agree to our <Link to="/TermsConditions" className="text-[#f47b7d] hover:underline">Terms of Service</Link> and <Link to="/DataPrivacy" className="text-[#f47b7d] hover:underline">Privacy Policy</Link>
+              </p>
+            )}
 
             {!isLogin && step === 2 && (
               <>

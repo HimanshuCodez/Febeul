@@ -87,7 +87,7 @@ const Cart = () => {
       // item.price is now directly available from the backend response in getUserCart
       return sum + (item.price * item.quantity);
     },
-    0
+    
   );
   const shipping = (isAuthenticated && user?.isLuxeMember)
     ? 0 // Luxe members get free shipping here (COD is handled in Checkout)
