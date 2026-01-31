@@ -142,7 +142,7 @@ const buildInvoicePDF = (order, res) => {
            .lineTo(doc.page.width - 50, infoY + 110)
            .stroke();
 
-        doc.y = infoY + 130;
+        doc.y = infoY + 120;
 
         // ===================================
         // ADDRESSES SECTION
@@ -192,7 +192,7 @@ const buildInvoicePDF = (order, res) => {
            .text(order.address.country, 320, addressY + 63, { width: 230 })
            .text(`Phone: ${order.address.phone}`, 320, addressY + 78, { width: 230 });
 
-        doc.y = addressY + 115;
+        doc.y = addressY + 105;
 
         // ===================================
         // ITEMS TABLE
@@ -252,7 +252,7 @@ const buildInvoicePDF = (order, res) => {
                 // Alternating row background
                 if (index % 2 === 0) {
                     doc.fillColor(lightGray)
-                       .rect(itemColX, itemY - 5, doc.page.width - 100, 22)
+                       .rect(itemColX, itemY - 4, doc.page.width - 100, 20)
                        .fillOpacity(0.3)
                        .fill();
                     doc.fillOpacity(1);
@@ -272,7 +272,7 @@ const buildInvoicePDF = (order, res) => {
                    .font('Helvetica-Bold')
                    .text(`₹${itemTotal.toFixed(2)}`, totalColX, itemY, { width: 55, align: 'right' });
                 
-                doc.y = itemY + 18;
+                doc.y = itemY + 16;
             } catch (itemError) {
                 console.error(`Error processing item ${index}:`, itemError);
             }
@@ -287,7 +287,7 @@ const buildInvoicePDF = (order, res) => {
            .lineTo(doc.page.width - 50, doc.y)
            .stroke();
 
-        doc.moveDown(1.5);
+        doc.moveDown(1);
 
         // ===================================
         // TOTALS SECTION
@@ -353,7 +353,7 @@ const buildInvoicePDF = (order, res) => {
         // PAYMENT INFO BOX
         // ===================================
         
-        doc.y = grandTotalY + 50;
+        doc.y = grandTotalY + 40;
         
         const paymentBoxY = doc.y;
         doc.fillColor(lightGray)
@@ -394,7 +394,7 @@ const buildInvoicePDF = (order, res) => {
         // TERMS & FOOTER
         // ===================================
         
-        doc.y = paymentBoxY + 70;
+        doc.y = paymentBoxY + 60;
 
         // Terms & Conditions
         doc.fillColor(mediumGray)
