@@ -14,6 +14,8 @@ import webhookRouter from './routes/webhookRoute.js'
 import refundRouter from './routes/refundRoute.js' // Import refundRouter
 import policyRouter from './routes/policyRoute.js'
 import adminRouter from './routes/adminRoute.js' // Import adminRouter
+import ticketRouter from './routes/ticketRoute.js';
+import couponRouter from './routes/couponRoute.js';
 import errorHandler from './middleware/errorHandler.js'
 
 // App Config
@@ -38,6 +40,8 @@ app.use('/api/tracking',webhookRouter)
 app.use('/api/refund',refundRouter) // Use refundRouter
 app.use('/api/policy',policyRouter)
 app.use('/api/admin',adminRouter) // Use adminRouter
+app.use('/api/ticket', ticketRouter);
+app.use('/api/coupon', couponRouter);
 
 app.get('/',(req,res)=>{
     res.send("API Working")

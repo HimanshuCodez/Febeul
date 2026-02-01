@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
 import productModel from "../models/productModel.js";
+import couponModel from "../models/couponModel.js"; // Import couponModel
 
 // Define pricing constants
 const SHIPPING_CHARGE_THRESHOLD = 499;
@@ -42,7 +43,7 @@ const getItemPrice = (product, color, size) => {
 };
 
 // Helper function to calculate all pricing components
-const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData) => {
+const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, couponDiscount = 0) => {
     let productAmount = 0;
     const processedItems = await Promise.all(items.map(async (item) => {
         const product = await productModel.findById(item.productId);
@@ -74,7 +75,7 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData)
         giftWrapPrice = 0; // Luxe members get gift wrap for free
     }
     
-    const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice;
+    const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice - couponDiscount;
 
     return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember };
 };
@@ -101,6 +102,7 @@ const constructEmailHtml = (order, templateHtml) => {
     const emailCodCharge = parseFloat(order.codCharge || 0);
     const emailGiftWrapPrice = parseFloat(order.giftWrap && order.giftWrap.price || 0);
     const emailProductAmount = parseFloat(order.productAmount || 0);
+    const emailCouponDiscount = parseFloat(order.couponDiscount || 0);
     const emailOrderTotal = parseFloat(order.orderTotal || 0);
 
     let giftWrapRowHtml = '';
@@ -122,6 +124,16 @@ const constructEmailHtml = (order, templateHtml) => {
             </tr>
         `;
     }
+    
+    let couponDiscountRowHtml = '';
+    if (emailCouponDiscount > 0) {
+        couponDiscountRowHtml = `
+            <tr>
+                <td colspan="3" style="text-align:right;">Coupon Discount:</td>
+                <td>- ₹${emailCouponDiscount.toFixed(2)}</td>
+            </tr>
+        `;
+    }
 
     // Populate template placeholders
     let populatedHtml = templateHtml;
@@ -134,6 +146,7 @@ const constructEmailHtml = (order, templateHtml) => {
     populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE');
     populatedHtml = populatedHtml.replace('{{codChargeRow}}', codChargeRowHtml);
     populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);
+    populatedHtml = populatedHtml.replace('{{couponDiscountRow}}', couponDiscountRowHtml);
     populatedHtml = populatedHtml.replace('{{shippingAddressName}}', order.address.name);
     populatedHtml = populatedHtml.replace('{{shippingAddressAddress}}', order.address.address);
     populatedHtml = populatedHtml.replace('{{shippingAddressCity}}', order.address.city);
@@ -153,9 +166,9 @@ const placeOrder = async (req,res) => {
     
     try {
         
-        const { userId, items, address, giftWrap: giftWrapData } = req.body;
+        const { userId, items, address, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'COD', giftWrapData);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount);
 
         const orderData = {
             userId,
@@ -168,7 +181,9 @@ const placeOrder = async (req,res) => {
             paymentMethod:"COD",
             payment:false,
             date: Date.now(),
-            giftWrap: giftWrapData
+            giftWrap: giftWrapData,
+            couponCode,
+            couponDiscount,
         }
 
         const newOrder = new orderModel(orderData)
@@ -179,6 +194,17 @@ const placeOrder = async (req,res) => {
         // Decrement giftWrapsLeft if Luxe member used a gift wrap
         if (isLuxeMember && giftWrapData) {
             await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
+        }
+
+        // Update coupon usage
+        if (couponCode) {
+            await couponModel.updateOne(
+                { code: couponCode },
+                { 
+                    $inc: { usageCount: 1 },
+                    $push: { usersWhoUsed: { userId } }
+                }
+            );
         }
 
         const order = await orderModel.findById(newOrder._id).populate('userId');
@@ -249,10 +275,10 @@ const placeOrder = async (req,res) => {
 const placeOrderStripe = async (req,res) => {
     try {
         
-        const { userId, items, address, currency, giftWrap: giftWrapData } = req.body;
+        const { userId, items, address, currency, giftWrap: giftWrapData, couponDiscount } = req.body;
         const { origin } = req.headers;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount);
 
         const orderData = {
             userId,
@@ -266,7 +292,9 @@ const placeOrderStripe = async (req,res) => {
             payment:false,
             date: Date.now(),
             giftWrap: giftWrapData,
-            isLuxeMemberAtTimeOfOrder: isLuxeMember // Store this for later verification
+            isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
+            couponCode: req.body.couponCode,
+            couponDiscount,
         }
 
         const newOrder = new orderModel(orderData)
@@ -317,6 +345,16 @@ const placeOrderStripe = async (req,res) => {
             line_items,
             mode: 'payment',
         })
+
+        if (req.body.couponCode) {
+            await couponModel.updateOne(
+                { code: req.body.couponCode },
+                { 
+                    $inc: { usageCount: 1 },
+                    $push: { usersWhoUsed: { userId } }
+                }
+            );
+        }
 
         res.json({success:true,session_url:session.url});
     } catch (error) {
@@ -427,9 +465,9 @@ const verifyStripe = async (req,res) => {
 const placeOrderRazorpay = async (req,res) => {
     try {
         
-        const { userId, items, address, currency, giftWrap: giftWrapData } = req.body;
+        const { userId, items, address, currency, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount);
 
         const orderData = {
             userId,
@@ -443,11 +481,23 @@ const placeOrderRazorpay = async (req,res) => {
             payment:false,
             date: Date.now(),
             giftWrap: giftWrapData,
-            isLuxeMemberAtTimeOfOrder: isLuxeMember // Store this for later verification
+            isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
+            couponCode,
+            couponDiscount,
         }
 
         const newOrder = new orderModel(orderData)
         await newOrder.save()
+
+        if (couponCode) {
+            await couponModel.updateOne(
+                { code: couponCode },
+                { 
+                    $inc: { usageCount: 1 },
+                    $push: { usersWhoUsed: { userId } }
+                }
+            );
+        }
 
         const options = {
             amount: Math.round(orderTotal * 100), // Use calculated orderTotal

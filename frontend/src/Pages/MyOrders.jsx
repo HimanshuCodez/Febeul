@@ -21,7 +21,32 @@ const MyOrders = () => {
     try {
       const response = await axios.post(`${backendUrl}/api/order/userorders`, {}, { headers: { token } });
       if (response.data.success) {
-        setOrders(response.data.orders.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        const processedOrders = response.data.orders.map(order => {
+            const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+            let shippingCharge = order.shippingCharge || 0;
+            let codCharge = order.codCharge || 0;
+            const giftWrapPrice = order.giftWrap?.price || 0;
+            let orderTotal = order.orderTotal || 0;
+
+            if (order.paymentMethod === 'COD' && codCharge === 0) {
+                const unaccountedAmount = orderTotal - (productAmount + shippingCharge + giftWrapPrice);
+                if (unaccountedAmount > 49 && unaccountedAmount < 51) {
+                    codCharge = unaccountedAmount;
+                    if (shippingCharge === unaccountedAmount) {
+                        shippingCharge = 0;
+                    }
+                }
+            }
+
+            const finalTotal = productAmount + shippingCharge + codCharge + giftWrapPrice;
+            
+            return {
+                ...order,
+                displayTotal: Math.max(orderTotal, finalTotal)
+            };
+        });
+
+        setOrders(processedOrders.sort((a, b) => new Date(b.date) - new Date(a.date)));
       }
     } catch (error) {
       toast.error("Failed to fetch orders.");
@@ -59,7 +84,7 @@ const MyOrders = () => {
                         <p className="text-xs text-gray-500">{new Date(order.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     </div>
                     <div className="text-right sm:text-left"> {/* Right side: Amount */}
-                        <p className="font-bold text-gray-800 text-lg">₹{(order.orderTotal || order.amount || 0).toFixed(2)}</p> {/* Use orderTotal or fallback to amount */}
+                        <p className="font-bold text-gray-800 text-lg">₹{(order.displayTotal || 0).toFixed(2)}</p>
                     </div>
                 </div>
 

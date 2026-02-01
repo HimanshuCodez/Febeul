@@ -1,20 +1,24 @@
-import jwt from 'jsonwebtoken'
+const userModel = require('../models/userModel.js');
+const jwt = require('jsonwebtoken');
 
-const adminAuth = async (req,res,next) => {
-    try {
-        const { token } = req.headers
-        if (!token) {
-            return res.json({success:false,message:"Not Authorized Login Again"})
-        }
-        const token_decode = jwt.verify(token,process.env.JWT_SECRET);
-        if (token_decode !== process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD) {
-            return res.json({success:false,message:"Not Authorized Login Again"})
-        }
-        next()
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
+const adminAuth = async (req, res, next) => {
+    const { token } = req.headers;
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'Not authorized. Login again.' });
     }
-}
+    try {
+        const token_decode = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await userModel.findById(token_decode.id);
+        if (!user || !user.isAdmin) {
+            return res.status(403).json({ success: false, message: 'Not authorized for this action.' });
+        }
+        req.body.userId = token_decode.id;
+        req.body.isAdmin = true; // Flag for admin
+        next();
+    } catch (error) {
+        console.log(error);
+        res.status(401).json({ success: false, message: 'Error in admin authentication.' });
+    }
+};
 
-export default adminAuth
+module.exports = adminAuth;

@@ -24,6 +24,8 @@ const orderSchema = new mongoose.Schema({
     payment: { type: Boolean, required: true , default: false },
     paymentDetails: { type: Object },
     date: {type: Number, required:true},
+    couponCode: { type: String },
+    couponDiscount: { type: Number, default: 0 },
 
     // Refund details
     refundDetails: {

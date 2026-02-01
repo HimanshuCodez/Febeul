@@ -51,16 +51,14 @@ const Tickets = ({ token }) => {
   const handleReply = async (ticketId) => {
     if (!token || !replyMessage.trim()) return;
     try {
-      const response = await axios.post(`${backendUrl}/api/ticket/reply`, { ticketId, message: replyMessage }, { headers: { token } });
+      const response = await axios.post(`${backendUrl}/api/ticket/admin-reply`, { ticketId, message: replyMessage }, { headers: { token } });
       if (response.data.success) {
         toast.success('Reply sent!');
         setReplyMessage('');
-        fetchTickets(); // Refresh tickets
+        fetchTickets(); // Refresh tickets to get the most up-to-date state
+        // Update the selected ticket in the modal view
         if (selectedTicket && selectedTicket._id === ticketId) {
-          setSelectedTicket((prev) => ({
-            ...prev,
-            messages: [...prev.messages, response.data.newMessage], // Assuming backend returns the new message
-          }));
+            setSelectedTicket(response.data.ticket);
         }
       } else {
         toast.error(response.data.message);

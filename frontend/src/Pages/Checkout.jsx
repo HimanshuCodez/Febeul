@@ -16,6 +16,7 @@ import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 import GiftWrapModal from '../components/GiftWrapModal';
+import CouponCodeInput from '../components/CouponCodeInput'; // Import the new component
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -32,6 +33,8 @@ export default function CheckoutPage() {
   const [razorpayKey, setRazorpayKey] = useState("");
   const [selectedGiftWrap, setSelectedGiftWrap] = useState(null);
   const [isGiftWrapModalOpen, setIsGiftWrapModalOpen] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
 
   const STANDARD_SHIPPING_CHARGE = 0; // Changed to 0 as per user request
   const COD_SHIPPING_CHARGE = 50.00; // Assuming 50 rs is 50.00 in current currency
@@ -141,13 +144,23 @@ export default function CheckoutPage() {
     const codCharge = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : 0;
     
     const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
-    const total = parseFloat((subtotal + shippingCharge + codCharge + giftWrapPrice).toFixed(2));
+    const total = parseFloat((subtotal + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
     
     const addresses = user?.addresses || [];
 
   const handleSelectGiftWrap = (wrap) => {
     setSelectedGiftWrap(wrap);
     toast.success(`${wrap.name} gift wrap added!`);
+  }
+
+  const handleCouponApply = (couponData) => {
+    if (couponData && couponData.success) {
+        setAppliedCoupon(couponData);
+        setCouponDiscount(couponData.discountAmount);
+    } else {
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+    }
   }
 
   const placeCodOrder = async () => {
@@ -179,12 +192,14 @@ export default function CheckoutPage() {
         amount: total,
         address: addresses[selectedAddress],
         giftWrap: selectedGiftWrap,
+        couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+        couponDiscount: couponDiscount,
     }
     try {
         const response = await axios.post(`${backendUrl}/api/order/place`, orderData, { headers: { token } });
         if (response.data.success) {
             toast.success("Order placed successfully!");
-            const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice };
+            const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice, couponDiscount };
             navigate("/Success", { state: { order: response.data.order, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
         } else {
             toast.error(response.data.message || "Failed to place order.");
@@ -232,6 +247,8 @@ export default function CheckoutPage() {
         amount: total,
         address: addresses[selectedAddress],
         giftWrap: selectedGiftWrap,
+        couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+        couponDiscount: couponDiscount,
         currency: 'INR',
       };
       
@@ -267,7 +284,7 @@ export default function CheckoutPage() {
             if (verifyResponse.data.success) {
               toast.success("Payment successful!");
               const localOrder = { _id: order.receipt, ...orderPayload };
-              const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice };
+              const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice, couponDiscount };
               navigate('/Success', { state: { order: localOrder, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
             } else {
               toast.error("Payment verification failed.");
@@ -589,12 +606,21 @@ export default function CheckoutPage() {
                   )
                 })}
               </div>
+              
+              <CouponCodeInput cartTotal={subtotal} onCouponApply={handleCouponApply} />
 
-              <div className="border-t pt-4 space-y-2 text-sm">
+
+              <div className="border-t pt-4 mt-6 space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
+                {couponDiscount > 0 && (
+                    <div className="flex justify-between text-green-600 font-semibold">
+                        <span>Coupon Discount</span>
+                        <span>- ₹{couponDiscount.toFixed(2)}</span>
+                    </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   {shippingCharge > 0 ? (
