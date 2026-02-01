@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const messageSchema = new mongoose.Schema({
     sender: { type: String, enum: ['user', 'admin'], required: true },
@@ -14,6 +14,5 @@ const ticketSchema = new mongoose.Schema({
     messages: [messageSchema]
 }, { timestamps: true });
 
-const ticketModel = mongoose.models.ticket || mongoose.model('ticket', ticketSchema);
+export const ticketModel = mongoose.models.ticket || mongoose.model('ticket', ticketSchema);
 
-module.exports = ticketModel;

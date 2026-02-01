@@ -1,8 +1,8 @@
-const ticketModel = require('../models/ticketModel');
-const userModel = require('../models/userModel');
+import { ticketModel } from '../models/ticketModel.js';
+import userModel from '../models/userModel.js';
 
 // User: Create a new ticket
-const createTicket = async (req, res) => {
+export const createTicket = async (req, res) => {
     const { subject, description, message } = req.body;
     try {
         if (!subject || !description || !message) {
@@ -32,7 +32,7 @@ const createTicket = async (req, res) => {
 };
 
 // User: Get all tickets for the logged-in user
-const getUserTickets = async (req, res) => {
+export const getUserTickets = async (req, res) => {
     try {
         const tickets = await ticketModel.find({ user: req.body.userId }).sort({ updatedAt: -1 });
         res.json({ success: true, tickets });
@@ -43,7 +43,7 @@ const getUserTickets = async (req, res) => {
 };
 
 // Admin: Get all tickets
-const listTickets = async (req, res) => {
+export const listTickets = async (req, res) => {
     try {
         const tickets = await ticketModel.find({}).populate('user', 'name email').sort({ createdAt: -1 });
         res.json({ success: true, tickets });
@@ -54,7 +54,7 @@ const listTickets = async (req, res) => {
 };
 
 // Admin: Update ticket status
-const updateStatus = async (req, res) => {
+export const updateStatus = async (req, res) => {
     const { ticketId, status } = req.body;
     try {
         const ticket = await ticketModel.findById(ticketId);
@@ -74,7 +74,7 @@ const updateStatus = async (req, res) => {
 };
 
 // User & Admin: Add a reply to a ticket
-const replyToTicket = async (req, res) => {
+export const replyToTicket = async (req, res) => {
     const { ticketId, message } = req.body;
     
     // The adminAuth middleware adds `isAdmin:true` to the body.
@@ -112,7 +112,7 @@ const replyToTicket = async (req, res) => {
 
 
 // User & Admin: Get a single ticket by ID
-const getTicketById = async (req, res) => {
+export const getTicketById = async (req, res) => {
     try {
         const ticket = await ticketModel.findById(req.params.id).populate('user', 'name email');
         if (!ticket) {
@@ -128,6 +128,3 @@ const getTicketById = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error fetching ticket details' });
     }
 };
-
-
-module.exports = { createTicket, getUserTickets, listTickets, updateStatus, replyToTicket, getTicketById };

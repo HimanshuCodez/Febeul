@@ -242,7 +242,7 @@ export default function Header() {
           
           <div className="flex-shrink-0 flex-1 flex justify-center"> {/* Centered Logo */}
             <Link to="/">
-              <img src="/removebgLogo.png" alt="AdiLove" className="h-12 w-auto" />
+              <img src="/removebgLogo.png" alt="Febeul" className="h-12 w-auto" />
             </Link>
           </div>
           
