@@ -1,7 +1,7 @@
-const express = require('express');
-const { createTicket, getUserTickets, listTickets, updateStatus, replyToTicket, getTicketById } = require('../controllers/ticketController');
-const auth = require('../middleware/auth');
-const adminAuth = require('../middleware/adminAuth');
+import express from 'express';
+import { createTicket, getUserTickets, listTickets, updateStatus, replyToTicket, getTicketById } from '../controllers/ticketController.js';
+import auth from '../middleware/auth.js';
+import adminAuth from '../middleware/adminAuth.js';
 
 const ticketRouter = express.Router();
 
@@ -16,4 +16,4 @@ ticketRouter.get('/list', adminAuth, listTickets);
 ticketRouter.post('/update-status', adminAuth, updateStatus);
 ticketRouter.post('/admin-reply', adminAuth, replyToTicket); // Admin reply endpoint distinction
 
-module.exports = ticketRouter;
+export default ticketRouter;

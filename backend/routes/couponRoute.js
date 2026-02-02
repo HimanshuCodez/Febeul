@@ -1,7 +1,7 @@
-const express = require('express');
-const { addCoupon, listCoupons, removeCoupon, applyCoupon } = require('../controllers/couponController');
-const auth = require('../middleware/auth');
-const adminAuth = require('../middleware/adminAuth');
+import express from 'express';
+import { addCoupon, listCoupons, removeCoupon, applyCoupon } from '../controllers/couponController.js';
+import auth from '../middleware/auth.js';
+import adminAuth from '../middleware/adminAuth.js';
 
 const couponRouter = express.Router();
 
@@ -13,4 +13,4 @@ couponRouter.post('/remove', adminAuth, removeCoupon);
 // User Routes
 couponRouter.post('/apply', auth, applyCoupon);
 
-module.exports = couponRouter;
+export default couponRouter;

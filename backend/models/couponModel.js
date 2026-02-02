@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const couponSchema = new mongoose.Schema({
     code: { type: String, required: true, unique: true, uppercase: true },
@@ -18,4 +18,4 @@ const couponSchema = new mongoose.Schema({
 
 const couponModel = mongoose.models.coupon || mongoose.model('coupon', couponSchema);
 
-module.exports = couponModel;
+export default couponModel;

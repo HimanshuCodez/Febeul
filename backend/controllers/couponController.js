@@ -1,7 +1,7 @@
-const couponModel = require('../models/couponModel');
+import couponModel from '../models/couponModel.js';
 
 // Admin: Add a new coupon
-const addCoupon = async (req, res) => {
+export const addCoupon = async (req, res) => {
     try {
         const { code, discountType, discountValue, minOrderAmount, usageLimit, usageLimitPerUser, expiryDate, isActive } = req.body;
 
@@ -35,7 +35,7 @@ const addCoupon = async (req, res) => {
 };
 
 // Admin: List all coupons
-const listCoupons = async (req, res) => {
+export const listCoupons = async (req, res) => {
     try {
         const coupons = await couponModel.find({}).sort({ createdAt: -1 });
         res.json({ success: true, coupons });
@@ -46,7 +46,7 @@ const listCoupons = async (req, res) => {
 };
 
 // Admin: Remove a coupon
-const removeCoupon = async (req, res) => {
+export const removeCoupon = async (req, res) => {
     try {
         const { id } = req.body;
         if (!id) {
@@ -66,7 +66,7 @@ const removeCoupon = async (req, res) => {
 };
 
 // User: Apply a coupon
-const applyCoupon = async (req, res) => {
+export const applyCoupon = async (req, res) => {
     try {
         const { code, cartTotal } = req.body;
         const userId = req.body.userId;
@@ -123,4 +123,3 @@ const applyCoupon = async (req, res) => {
     }
 };
 
-module.exports = { addCoupon, listCoupons, removeCoupon, applyCoupon };
