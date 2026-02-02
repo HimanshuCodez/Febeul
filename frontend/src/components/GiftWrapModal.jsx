@@ -1,7 +1,9 @@
 import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { useEffect, useState } from 'react';
-
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import { FaTimes, FaCheck } from 'react-icons/fa';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
