@@ -91,9 +91,7 @@ export default function OrderSuccess() {
   }
 
   // --- Replace mock data with real data ---
-    const formattedOrderNumber = order && order._id && order.date ? `FEB-WEB-${String(new Date(order.date).getFullYear()).slice(-2)}${String(new Date(order.date).getMonth() + 1).padStart(2, '0')}${String(new Date(order.date).getDate()).padStart(2, '0')}-${order._id.slice(-8).toUpperCase()}` : '';
-  
-    const orderNumber = formattedOrderNumber; // Assign the formatted string to orderNumber
+    const orderNumber = order?.shiprocket?.srOrderId || order?._id;
   
     const estimatedDelivery = order && order.date 
     ? "Jan " + new Date(order.date).getDate() + "-" + new Date(new Date(order.date).setDate(new Date(order.date).getDate() + 5)).getDate() + ", " + new Date(order.date).getFullYear()
