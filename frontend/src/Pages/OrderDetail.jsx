@@ -283,7 +283,7 @@ export default function OrderDetailPage() {
       }
   }
 
-  const formattedOrderNumber = order._id && order.date ? `FEB-WEB-${String(new Date(order.date).getFullYear()).slice(-2)}${String(new Date(order.date).getMonth() + 1).padStart(2, '0')}${String(new Date(order.date).getDate()).padStart(2, '0')}-${order._id.slice(-8).toUpperCase()}` : '';
+  const orderNumberToDisplay = order?._id;
   
   console.log("Debug: order.deliveredAt from backend:", order.deliveredAt);
   const parsedDeliveredDate = new Date(order.deliveredAt);
@@ -406,7 +406,7 @@ export default function OrderDetailPage() {
               className="mt-6 p-4 bg-[#fff5f5] border-2 border-[#e8767a] rounded-lg inline-block"
             >
               <p className="text-sm text-gray-600">Order Number</p>
-              <p className="text-2xl font-bold text-[#e8767a]">{formattedOrderNumber}</p>
+              <p className="text-2xl font-bold text-[#e8767a]">{orderNumberToDisplay}</p>
             </motion.div>
 
             {order.shiprocket?.trackingUrl && (

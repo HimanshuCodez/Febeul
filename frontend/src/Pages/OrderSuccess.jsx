@@ -91,7 +91,7 @@ export default function OrderSuccess() {
   }
 
   // --- Replace mock data with real data ---
-    const orderNumber = order?.shiprocket?.srOrderId || order?._id;
+    const orderNumber = order?._id;
   
     const estimatedDelivery = order && order.date 
     ? "Jan " + new Date(order.date).getDate() + "-" + new Date(new Date(order.date).setDate(new Date(order.date).getDate() + 5)).getDate() + ", " + new Date(order.date).getFullYear()
