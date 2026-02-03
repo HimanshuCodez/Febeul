@@ -123,3 +123,16 @@ export const applyCoupon = async (req, res) => {
     }
 };
 
+// Get all active coupons for users
+export const getActiveCoupons = async (req, res) => {
+    try {
+        const coupons = await couponModel.find({ 
+            isActive: true,
+            expiryDate: { $gt: new Date() } 
+        }).sort({ createdAt: -1 });
+        res.json({ success: true, coupons });
+    } catch (error) {
+        console.error('Error fetching active coupons:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch active coupons.' });
+    }
+};

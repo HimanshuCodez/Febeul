@@ -1,5 +1,5 @@
 import express from 'express';
-import { addCoupon, listCoupons, removeCoupon, applyCoupon } from '../controllers/couponController.js';
+import { addCoupon, listCoupons, removeCoupon, applyCoupon, getActiveCoupons } from '../controllers/couponController.js';
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 
@@ -12,5 +12,7 @@ couponRouter.post('/remove', adminAuth, removeCoupon);
 
 // User Routes
 couponRouter.post('/apply', auth, applyCoupon);
+couponRouter.get('/all', getActiveCoupons);
+
 
 export default couponRouter;
