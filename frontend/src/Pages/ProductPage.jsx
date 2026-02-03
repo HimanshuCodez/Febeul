@@ -18,6 +18,7 @@ import { toast } from "react-hot-toast";
 import SimilarItems from "../components/SimilarItems";
 import Reviews from "../components/Reviews"; // Import the Reviews component
 import AddressModal from "../components/AddressModal";
+import OfferShows from "../components/OfferShows";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -344,6 +345,8 @@ const ProductDetailPage = () => {
               </div>
 
               <hr className="my-4" />
+
+              <OfferShows />
 
               <div>
                 <h2 className="text-base font-bold text-gray-800 mb-2">

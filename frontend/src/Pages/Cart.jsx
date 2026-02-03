@@ -217,7 +217,7 @@ const Cart = () => {
                 </div>
               
                 <div className="border-t pt-4 mt-4 flex justify-between font-bold text-gray-800 text-lg">
-                  <span>Total</span>
+                  <span>Total(including taxes)</span>
                   <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>

@@ -293,13 +293,8 @@ const buildInvoicePDF = (order, res) => {
         // TOTALS SECTION
         // ===================================
         
-        const invoiceItemSubtotal = order.productAmount || order.items.reduce((sum, item) => 
-            sum + ((item.price || 0) * item.quantity), 0);
-        const taxableValue = invoiceItemSubtotal / 1.18;
-        const gst = invoiceItemSubtotal - taxableValue;
-        const cgst = gst / 2;
-        const sgst = gst / 2;
-        const invoiceShippingCost = (order.shippingCharge || 0) + (order.codCharge || 0);
+        const invoiceShippingOnlyCost = order.shippingCharge || 0;
+        const invoiceCodCharge = order.codCharge || 0;
         const invoiceGiftWrapPrice = order.giftWrap ? (order.giftWrap.price || 0) : 0;
 
         const totalsLabelX = 370;
@@ -323,10 +318,16 @@ const buildInvoicePDF = (order, res) => {
         addTotalRow('CGST (9%):', `₹${cgst.toFixed(2)}`);
         addTotalRow('SGST (9%):', `₹${sgst.toFixed(2)}`);
         
-        if (invoiceShippingCost > 0) {
-            addTotalRow('Shipping Charges:', `₹${invoiceShippingCost.toFixed(2)}`);
-        } else {
+        // Display Shipping Charges separately
+        if (invoiceShippingOnlyCost > 0) {
+            addTotalRow('Shipping Charges:', `₹${invoiceShippingOnlyCost.toFixed(2)}`);
+        } else if (invoiceCodCharge === 0) { // Only show 'FREE' if no shipping and no COD charges
             addTotalRow('Shipping:', 'FREE');
+        }
+
+        // Display COD Charges separately
+        if (invoiceCodCharge > 0) {
+            addTotalRow('COD Charges:', `₹${invoiceCodCharge.toFixed(2)}`);
         }
 
         if (invoiceGiftWrapPrice > 0) {

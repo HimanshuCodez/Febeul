@@ -654,7 +654,7 @@ export default function CheckoutPage() {
                 )}
                 
                 <div className="border-t pt-2 flex justify-between text-lg font-bold text-gray-800">
-                  <span>Total</span>
+                  <span>Total(including taxes)</span>
                   <span className="text-[#e8767a]">₹{total.toFixed(2)}</span>
                 </div>
               </div>
