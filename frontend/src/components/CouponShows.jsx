@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Tag } from 'lucide-react';
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 const CouponShows = () => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,7 +12,7 @@ const CouponShows = () => {
   useEffect(() => {
     const fetchCoupons = async () => {
       try {
-        const response = await axios.get('/api/coupon/all');
+        const response = await axios.get(`${backendUrl}/api/coupon/all`);
         if (response.data.success) {
           setCoupons(response.data.coupons);
         } else {
