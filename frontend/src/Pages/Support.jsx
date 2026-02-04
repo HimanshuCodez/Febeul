@@ -12,7 +12,7 @@ const Support = () => {
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
-    const [formData, setFormData] = useState({ subject: "", description: "", message: "" });
+    const [formData, setFormData] = useState({ subject: "", description: "", message: "", images: [] });
     const [replyMessage, setReplyMessage] = useState('');
 
     const fetchUserTickets = async () => {
@@ -42,17 +42,52 @@ const Support = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleImageChange = (e) => {
+        const files = Array.from(e.target.files);
+        setFormData((prev) => {
+            const currentImages = [...prev.images];
+            const newImages = [...currentImages, ...files].slice(0, 2); // Limit to max 2 images
+            return { ...prev, images: newImages };
+        });
+    };
+
+    const handleRemoveImage = (indexToRemove) => {
+        setFormData((prev) => ({
+            ...prev,
+            images: prev.images.filter((_, index) => index !== indexToRemove),
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!token) {
             toast.error("You must be logged in to create a ticket.");
             return;
         }
+
+        const submitFormData = new FormData();
+        submitFormData.append("subject", formData.subject);
+        submitFormData.append("description", formData.description);
+        submitFormData.append("message", formData.message);
+        formData.images.forEach((image) => {
+            submitFormData.append("images", image);
+        });
+
+        // Log FormData contents for debugging
+        for (let pair of submitFormData.entries()) {
+            console.log(pair[0]+ ': '+ pair[1]);
+        }
+
         try {
-            const response = await axios.post(`${url}/api/ticket/create`, formData, { headers: { token } });
+            const response = await axios.post(`${url}/api/ticket/create`, submitFormData, {
+                headers: {
+                    token: token,
+                    "Content-Type": "multipart/form-data",
+                },
+            });
             if (response.data.success) {
                 toast.success("Ticket created successfully!");
-                setFormData({ subject: "", description: "", message: "" });
+                setFormData({ subject: "", description: "", message: "", images: [] });
                 setIsCreating(false);
                 fetchUserTickets();
             } else {
@@ -118,6 +153,31 @@ const Support = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                                     <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Please provide all the details here..." rows="5" required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-pink-500 focus:border-pink-500 sm:text-sm"></textarea>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Attach Photos (Max 2)</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleImageChange}
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100"
+                                        disabled={formData.images.length >= 2}
+                                    />
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {formData.images.map((image, index) => (
+                                            <div key={index} className="relative w-24 h-24 border rounded-md overflow-hidden">
+                                                <img src={URL.createObjectURL(image)} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveImage(index)}
+                                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                                                >
+                                                    &times;
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                                 <button type="submit" className="w-full bg-pink-500 text-white py-3 rounded-md font-semibold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center space-x-2">
                                     <Send size={20} />
                                     <span>Create Ticket</span>
@@ -160,6 +220,7 @@ const Support = () => {
                         </div>
                         <div className="p-6 space-y-4">
                             <div><p><strong>Subject:</strong> {selectedTicket.subject}</p></div>
+                            <div><p><strong>Description:</strong> {selectedTicket.description}</p></div>
                             <div className='space-y-2'>
                                 {selectedTicket.messages.map((msg, index) => (
                                     <div key={index} className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-100 ml-auto' : 'bg-gray-100'} max-w-[80%] flex flex-col`}>

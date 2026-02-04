@@ -1,9 +1,13 @@
 import { ticketModel } from '../models/ticketModel.js';
 import userModel from '../models/userModel.js';
+import { v2 as cloudinary } from 'cloudinary'; // Import cloudinary
 
 // User: Create a new ticket
 export const createTicket = async (req, res) => {
+    // When using multer for multipart/form-data, text fields are in req.body and files in req.files
     const { subject, description, message } = req.body;
+    const files = req.files; // This will contain the uploaded image files
+
     try {
         if (!subject || !description || !message) {
             return res.status(400).json({ success: false, message: 'Please provide subject, description, and a message.' });
@@ -14,11 +18,29 @@ export const createTicket = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
+        const imageUrls = [];
+        if (files && files.length > 0) {
+            for (const file of files) {
+                try {
+                    const result = await cloudinary.uploader.upload(file.path, {
+                        folder: 'AdiLove_Tickets', // Specify your folder
+                    });
+                    imageUrls.push(result.secure_url);
+                } catch (uploadError) {
+                    console.error('Error uploading image to Cloudinary:', uploadError);
+                    // Decide how to handle upload errors: either fail the ticket creation or continue without the image
+                    // For now, we'll log and continue without the image, but a more robust solution might fail
+                    // return res.status(500).json({ success: false, message: 'Failed to upload image.' });
+                }
+            }
+        }
+
         const newTicket = new ticketModel({
             user: req.body.userId,
             subject,
             description,
-            messages: [{ sender: 'user', message }]
+            messages: [{ sender: 'user', message }],
+            images: imageUrls, // Store the uploaded image URLs
         });
 
         await newTicket.save();
