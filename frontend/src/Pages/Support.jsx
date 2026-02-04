@@ -73,11 +73,6 @@ const Support = () => {
             submitFormData.append("images", image);
         });
 
-        // Log FormData contents for debugging
-        for (let pair of submitFormData.entries()) {
-            console.log(pair[0]+ ': '+ pair[1]);
-        }
-
         try {
             const response = await axios.post(`${url}/api/ticket/create`, submitFormData, {
                 headers: {
@@ -234,6 +229,17 @@ const Support = () => {
                                 <textarea value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} placeholder='Type your reply...' rows='3' className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'></textarea>
                                 <button onClick={() => handleReply(selectedTicket._id)} className='mt-2 px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600'>Send Reply</button>
                             </div>
+
+                            {selectedTicket.images && selectedTicket.images.length > 0 && (
+                                <div className='space-y-2 pt-4 border-t border-gray-200'>
+                                    <p className='text-sm font-medium text-gray-700'>Attached Images:</p>
+                                    <div className='flex flex-wrap gap-2'>
+                                        {selectedTicket.images.map((image, index) => (
+                                            <img key={index} src={image} alt={`Ticket attachment ${index + 1}`} className='w-24 h-24 object-cover rounded-md border border-gray-200' />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

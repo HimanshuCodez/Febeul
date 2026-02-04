@@ -11,7 +11,8 @@ const ticketSchema = new mongoose.Schema({
     subject: { type: String, required: true },
     description: { type: String, required: true },
     status: { type: String, enum: ['open', 'pending', 'closed'], default: 'open' },
-    messages: [messageSchema]
+    messages: [messageSchema],
+    images: [{ type: String }], // Array to store Cloudinary image URLs
 }, { timestamps: true });
 
 export const ticketModel = mongoose.models.ticket || mongoose.model('ticket', ticketSchema);

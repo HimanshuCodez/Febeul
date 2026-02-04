@@ -229,6 +229,17 @@ const Tickets = ({ token }) => {
                   Send Reply
                 </button>
               </div>
+
+              {selectedTicket.images && selectedTicket.images.length > 0 && (
+                <div className='space-y-2 pt-4 border-t border-gray-200'>
+                  <p className='text-sm font-medium text-gray-700'>Attached Images:</p>
+                  <div className='flex flex-wrap gap-2'>
+                    {selectedTicket.images.map((image, index) => (
+                      <img key={index} src={image} alt={`Ticket attachment ${index + 1}`} className='w-24 h-24 object-cover rounded-md border border-gray-200' />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
