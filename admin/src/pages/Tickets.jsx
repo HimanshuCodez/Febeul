@@ -8,7 +8,6 @@ const Tickets = ({ token }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [replyMessage, setReplyMessage] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'open', 'closed', 'pending'
 
   const fetchTickets = async () => {
@@ -45,27 +44,6 @@ const Tickets = ({ token }) => {
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Failed to update ticket status.');
-    }
-  };
-
-  const handleReply = async (ticketId) => {
-    if (!token || !replyMessage.trim()) return;
-    try {
-      const response = await axios.post(`${backendUrl}/api/ticket/admin-reply`, { ticketId, message: replyMessage }, { headers: { token } });
-      if (response.data.success) {
-        toast.success('Reply sent!');
-        setReplyMessage('');
-        fetchTickets(); // Refresh tickets to get the most up-to-date state
-        // Update the selected ticket in the modal view
-        if (selectedTicket && selectedTicket._id === ticketId) {
-            setSelectedTicket(response.data.ticket);
-        }
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      console.error('Error sending reply:', error);
-      toast.error('Failed to send reply.');
     }
   };
 
@@ -200,6 +178,7 @@ const Tickets = ({ token }) => {
                 <p className='text-sm font-medium text-gray-700'>Description:</p>
                 <p className='text-base text-gray-900'>{selectedTicket.description}</p>
               </div>
+              </div>
               <div className='space-y-2'>
                 <p className='text-sm font-medium text-gray-700'>Messages:</p>
                 {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
@@ -214,21 +193,6 @@ const Tickets = ({ token }) => {
                   <p className='text-sm text-gray-500'>No messages yet.</p>
                 )}
               </div>
-              <div className='pt-4 border-t border-gray-200'>
-                <textarea
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                  placeholder='Type your reply...'
-                  rows='3'
-                  className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-                ></textarea>
-                <button
-                  onClick={() => handleReply(selectedTicket._id)}
-                  className='mt-2 px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500'
-                >
-                  Send Reply
-                </button>
-              </div>
 
               {selectedTicket.images && selectedTicket.images.length > 0 && (
                 <div className='space-y-2 pt-4 border-t border-gray-200'>
@@ -242,7 +206,7 @@ const Tickets = ({ token }) => {
               )}
             </div>
           </div>
-        </div>
+      
       )}
     </div>
   );

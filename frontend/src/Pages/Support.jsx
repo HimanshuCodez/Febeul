@@ -13,7 +13,6 @@ const Support = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [formData, setFormData] = useState({ subject: "", description: "", message: "", images: [] });
-    const [replyMessage, setReplyMessage] = useState('');
 
     const fetchUserTickets = async () => {
         if (!token) {
@@ -94,24 +93,6 @@ const Support = () => {
         }
     };
     
-    const handleReply = async (ticketId) => {
-        if (!replyMessage.trim()) return;
-        try {
-            const response = await axios.post(`${url}/api/ticket/reply`, { ticketId, message: replyMessage }, { headers: { token } });
-            if (response.data.success) {
-                toast.success('Reply sent!');
-                setReplyMessage('');
-                // Update ticket in modal view
-                setSelectedTicket(response.data.ticket);
-                // Update ticket in the main list
-                setTickets(prev => prev.map(t => t._id === ticketId ? response.data.ticket : t));
-            } else {
-                toast.error(response.data.message);
-            }
-        } catch (error) {
-            toast.error('Failed to send reply.');
-        }
-    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -224,10 +205,6 @@ const Support = () => {
                                         <span className='text-xs text-gray-500 self-end'>{new Date(msg.createdAt).toLocaleString()}</span>
                                     </div>
                                 ))}
-                            </div>
-                            <div className='pt-4 border-t border-gray-200'>
-                                <textarea value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} placeholder='Type your reply...' rows='3' className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'></textarea>
-                                <button onClick={() => handleReply(selectedTicket._id)} className='mt-2 px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600'>Send Reply</button>
                             </div>
 
                             {selectedTicket.images && selectedTicket.images.length > 0 && (
