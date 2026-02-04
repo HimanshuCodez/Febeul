@@ -17,7 +17,7 @@ const PromoBanner = () => {
             <input
               type="email"
               placeholder="Email Address"
-              className="px-4 py-3 rounded-l-lg text-gray-800 w-64 focus:outline-none"
+              className="px-4 py-3 rounded-l-lg text-gray-800 w-full sm:w-64 focus:outline-none"
             />
             <button className="bg-[#f9aeaf] hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-r-lg uppercase">
               Let me in!

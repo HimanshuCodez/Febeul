@@ -8,8 +8,8 @@ const ticketRouter = express.Router();
 
 // Admin routes
 ticketRouter.get('/list', auth, listTickets); // This should be before /:id
-ticketRouter.post('/update-status', auth, updateStatus);
-ticketRouter.post('/admin-reply', auth, adminPanelReplyToTicket); // Admin panel reply
+ticketRouter.post('/update-status', adminAuth, updateStatus);
+ticketRouter.post('/admin-reply', adminAuth, adminPanelReplyToTicket); // Admin panel reply
 
 // User routes
 ticketRouter.post('/create', auth, upload.array('images', 2), createTicket);
