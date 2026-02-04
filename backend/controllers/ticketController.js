@@ -8,6 +8,8 @@ export const createTicket = async (req, res) => {
     const { subject, description, message } = req.body;
     const files = req.files; // This will contain the uploaded image files
 
+    console.log("req.userId in createTicket:", req.userId); // Debugging line
+
     try {
         if (!subject || !description || !message) {
             return res.status(400).json({ success: false, message: 'Please provide subject, description, and a message.' });
