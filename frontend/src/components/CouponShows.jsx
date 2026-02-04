@@ -61,6 +61,7 @@ const CouponShows = () => {
                   <p>Discount: ₹{coupon.discountValue} off</p>
                 )}
                 {coupon.expiryDate && <p>Expires: {new Date(coupon.expiryDate).toLocaleDateString()}</p>}
+                {coupon.userType === 'luxe' && <p className="font-semibold text-blue-700">For Luxe Members Only</p>}
               </div>
             </div>
           </div>

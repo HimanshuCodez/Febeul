@@ -6,6 +6,7 @@ import { backendUrl } from '../App'; // Assuming backendUrl is available from Ap
 const Coupons = ({ token }) => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [newCoupon, setNewCoupon] = useState({
     code: '',
     description: '',
     discountType: 'percentage', // 'percentage' or 'fixed'
@@ -15,6 +16,7 @@ const Coupons = ({ token }) => {
     usageLimitPerUser: '',
     expiryDate: '',
     isActive: true,
+    userType: 'normal', // 'normal' or 'luxe'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -107,6 +109,7 @@ const Coupons = ({ token }) => {
           usageLimitPerUser: '',
           expiryDate: '',
           isActive: true,
+          userType: 'normal',
         });
         fetchCoupons(); // Refresh the list
       } else {
@@ -199,6 +202,20 @@ const Coupons = ({ token }) => {
             >
               <option value='percentage'>Percentage (%)</option>
               <option value='fixed'>Fixed Amount</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor='userType' className='block text-sm font-medium text-gray-700 mb-1'>User Type</label>
+            <select
+              id='userType'
+              name='userType'
+              value={newCoupon.userType}
+              onChange={handleInputChange}
+              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
+            >
+              <option value='normal'>Normal Users</option>
+              <option value='luxe'>Luxe Members</option>
             </select>
           </div>
 
@@ -313,12 +330,14 @@ const Coupons = ({ token }) => {
               <thead className='bg-gray-50'>
                 <tr>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Code</th>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Description</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Discount</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Min Order</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Usage Limit</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Per User</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Expires On</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>User Type</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
                 </tr>
               </thead>
@@ -326,6 +345,7 @@ const Coupons = ({ token }) => {
                 {coupons.map((coupon) => (
                   <tr key={coupon._id}>
                     <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{coupon.code}</td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.description || 'N/A'}</td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                       {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue.toFixed(2)}`}
                     </td>
@@ -350,6 +370,7 @@ const Coupons = ({ token }) => {
                         {new Date(coupon.expiryDate) < new Date() ? 'Expired' : coupon.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.userType ? coupon.userType.charAt(0).toUpperCase() + coupon.userType.slice(1) : 'N/A'}</td>
                     <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                       <button
                         onClick={() => handleDeleteCoupon(coupon._id)}
