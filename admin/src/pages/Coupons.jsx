@@ -6,8 +6,8 @@ import { backendUrl } from '../App'; // Assuming backendUrl is available from Ap
 const Coupons = ({ token }) => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newCoupon, setNewCoupon] = useState({
     code: '',
+    description: '',
     discountType: 'percentage', // 'percentage' or 'fixed'
     discountValue: '',
     minOrderAmount: '',
@@ -88,6 +88,7 @@ const Coupons = ({ token }) => {
     try {
       const payload = {
         ...newCoupon,
+        description: newCoupon.description || undefined,
         discountValue: parseFloat(newCoupon.discountValue),
         minOrderAmount: newCoupon.minOrderAmount ? parseFloat(newCoupon.minOrderAmount) : undefined,
         usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : undefined,
@@ -98,6 +99,7 @@ const Coupons = ({ token }) => {
         toast.success('Coupon added successfully!');
         setNewCoupon({
           code: '',
+          description: '',
           discountType: 'percentage',
           discountValue: '',
           minOrderAmount: '',
@@ -171,6 +173,19 @@ const Coupons = ({ token }) => {
                 Generate
               </button>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor='description' className='block text-sm font-medium text-gray-700 mb-1'>Description (Optional)</label>
+            <textarea
+              id='description'
+              name='description'
+              rows='3'
+              value={newCoupon.description}
+              onChange={handleInputChange}
+              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
+              placeholder='e.g., Get flat 10% off on all orders'
+            ></textarea>
           </div>
 
           <div>

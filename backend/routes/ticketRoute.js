@@ -12,7 +12,7 @@ ticketRouter.post('/reply', auth, replyToTicket); // User reply
 ticketRouter.get('/:id', auth, getTicketById);
 
 // Admin routes
-ticketRouter.get('/list', adminAuth, listTickets);
+ticketRouter.get('/list', auth, listTickets);
 ticketRouter.post('/update-status', adminAuth, updateStatus);
 ticketRouter.post('/admin-reply', adminAuth, replyToTicket); // Admin reply endpoint distinction
 
