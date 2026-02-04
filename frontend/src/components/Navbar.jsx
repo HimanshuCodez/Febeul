@@ -452,7 +452,7 @@ export default function Header() {
           </div>
         </div>
       </div>
-      </nav>
+      
       {/* Mobile Search Overlay */}
       {isSearchOpen && (
         <div className="md:hidden fixed inset-0 bg-white z-50 p-4">
