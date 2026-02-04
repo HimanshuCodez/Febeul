@@ -13,7 +13,7 @@ export const createTicket = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please provide subject, description, and a message.' });
         }
 
-        const user = await userModel.findById(req.body.userId);
+        const user = await userModel.findById(req.userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
@@ -36,7 +36,7 @@ export const createTicket = async (req, res) => {
         }
 
         const newTicket = new ticketModel({
-            user: req.body.userId,
+            user: req.userId,
             subject,
             description,
             messages: [{ sender: 'user', message }],
@@ -56,7 +56,7 @@ export const createTicket = async (req, res) => {
 // User: Get all tickets for the logged-in user
 export const getUserTickets = async (req, res) => {
     try {
-        const tickets = await ticketModel.find({ user: req.body.userId }).sort({ updatedAt: -1 });
+        const tickets = await ticketModel.find({ user: req.userId }).sort({ updatedAt: -1 });
         res.json({ success: true, tickets });
     } catch (error) {
         console.error('Error fetching user tickets:', error);
@@ -109,7 +109,7 @@ export const replyToTicket = async (req, res) => {
         }
         
         // Security check: if user, ensure they own the ticket
-        if (senderType === 'user' && ticket.user.toString() !== req.body.userId) {
+        if (senderType === 'user' && ticket.user.toString() !== req.userId) {
             return res.status(403).json({ success: false, message: 'Unauthorized.' });
         }
 
@@ -141,7 +141,7 @@ export const getTicketById = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Ticket not found' });
         }
         // Security check for users
-        if (!req.body.isAdmin && ticket.user._id.toString() !== req.body.userId) {
+        if (!req.body.isAdmin && ticket.user._id.toString() !== req.userId) {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
         res.json({ success: true, ticket });
