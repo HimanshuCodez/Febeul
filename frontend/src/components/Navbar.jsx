@@ -230,152 +230,155 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Main Header */}
-      <div className="bg-[#f9aeaf] border-b">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
-          {/* Mobile Menu Button & Search (hidden on mobile) */}
-          <div className="flex-1 flex justify-start">
-            <div className="hidden md:block"> {/* SearchBar desktop only */}
-              <SearchBar />
+      {/* Sticky Navbar Wrapper */}
+      <div className="sticky top-0 z-40 bg-white shadow-md">
+        {/* Main Header */}
+        <div className="bg-[#f9aeaf] border-b">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+            {/* Mobile Menu Button & Search (hidden on mobile) */}
+            <div className="flex-1 flex justify-start">
+              <div className="hidden md:block"> {/* SearchBar desktop only */}
+                <SearchBar />
+              </div>
             </div>
-          </div>
-          
-          <div className="flex-shrink-0 flex-1 flex justify-center"> {/* Centered Logo */}
-            <Link to="/">
-              <img src="/removebgLogo.png" alt="Febeul" className="h-12 w-auto" />
-            </Link>
-          </div>
-          
-          <div className="flex-1 flex items-center justify-end gap-3 md:gap-5">
-                      <button onClick={() => setIsSearchOpen(true)} className="md:hidden p-2 text-gray-700"> {/* Mobile search icon */}
-                        <Search className="h-6 w-6" />
-                      </button>
-                      {isAuthenticated && (
-                        <Link to={"/wishlist"} className="relative">
-                          <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
-                          {wishlistCount > 0 && (
+            
+            <div className="flex-shrink-0 flex-1 flex justify-center"> {/* Centered Logo */}
+              <Link to="/">
+                <img src="/removebgLogo.png" alt="Febeul" className="h-12 w-auto" />
+              </Link>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-end gap-3 md:gap-5">
+                        <button onClick={() => setIsSearchOpen(true)} className="md:hidden p-2 text-gray-700"> {/* Mobile search icon */}
+                          <Search className="h-6 w-6" />
+                        </button>
+                        {isAuthenticated && (
+                          <Link to={"/wishlist"} className="relative">
+                            <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+                            {wishlistCount > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-pink-500 text-white rounded-full text-xs w-4 h-4 flex items-center justify-center">
+                                {wishlistCount}
+                              </span>
+                            )}
+                          </Link>
+                        )}
+                        <UserMenu isAuthenticated={isAuthenticated} />
+                        <Link to={"/cart"} className="relative">
+                          <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
+                          {cartCount > 0 && (
                             <span className="absolute -top-1 -right-1 bg-pink-500 text-white rounded-full text-xs w-4 h-4 flex items-center justify-center">
-                              {wishlistCount}
+                              {cartCount}
                             </span>
                           )}
                         </Link>
+                      </div>        </div>
+        </div>
+        {/* Navigation */}
+        <nav className="bg-black border-b">
+          {/* Desktop Menu */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-5 hidden md:block"> {/* Only show on desktop */}
+            <div className="flex items-center justify-center md:justify-between h-14">
+              <div className="pl-2 gap-10 flex items-center space-x-12">
+                {navigation.map((item, index) => (
+                  <div key={index} className="relative group">
+                    <Link
+                      to={item.megaMenu ? "#" : (
+                        item.title === "GIFT WRAP 🎁"
+                          ? "/GiftWrap"
+                          : item.title === "LUXE PRIVE SALE"
+                          ? "/luxe"
+                          : item.title === "NEW & NOW"
+                          ? "/new-and-now"
+                          : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
                       )}
-                      <UserMenu isAuthenticated={isAuthenticated} />
-                      <Link to={"/cart"} className="relative">
-                        <ShoppingBag className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
-                        {cartCount > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-pink-500 text-white rounded-full text-xs w-4 h-4 flex items-center justify-center">
-                            {cartCount}
-                          </span>
-                        )}
-                      </Link>
-                    </div>        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="bg-black border-b">
-        {/* Desktop Menu */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-5 hidden md:block"> {/* Only show on desktop */}
-          <div className="flex items-center justify-center md:justify-between h-14">
-            <div className="pl-2 gap-10 flex items-center space-x-12">
-              {navigation.map((item, index) => (
-                <div key={index} className="relative group">
-                  <Link
-                    to={item.megaMenu ? "#" : (
-                      item.title === "GIFT WRAP 🎁"
-                        ? "/GiftWrap"
-                        : item.title === "LUXE PRIVE SALE"
-                        ? "/luxe"
-                        : item.title === "NEW & NOW"
-                        ? "/new-and-now"
-                        : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
-                    )}
-                    onClick={(e) => item.megaMenu && e.preventDefault()}
-                    className="py-4 text-sm font-medium text-white hover:bg-[#f9aeaf] rounded-md hover:text-black flex items-center transition-colors"
-                  >
-                    {item.title}
-                    {(item.dropdown || item.megaMenu) && (
-                      <svg
-                        className="ml-1 h-5 w-5"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </Link>
-
-                  {/* Mega Menu */}
-                  {item.megaMenu && (
-                    <div
-                      className={`absolute z-10 mt-0 w-[750px] bg-white border border-[#f9aeaf] rounded-md shadow-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 p-6 ${
-                        index <= 1
-                          ? "left-0"
-                          : "left-1/2 transform -translate-x-1/2"
-                      }`}
+                      onClick={(e) => item.megaMenu && e.preventDefault()}
+                      className="py-4 text-sm font-medium text-white hover:bg-[#f9aeaf] rounded-md hover:text-black flex items-center transition-colors"
                     >
-                      <div className="grid grid-cols-4 gap-6">
-                        {Object.entries(item.megaMenu).map(
-                          ([category, links], catIndex) => (
-                            <div key={catIndex}>
-                              <h3 className="border border-[#f9aeaf] text-center text-sm font-semibold text-gray-800 px-2 py-1 mb-2 rounded relative">
-                                {category}
-                              </h3>
-                              <ul className="space-y-1">
-                                {links.map((link, linkIndex) => (
-                                  <li key={linkIndex}>
-                                    <Link
-                                      to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/ /g, "-")}`}
-                                      className="text-sm text-gray-700 hover:text-[#f9aeaf] hover:underline"
-                                    >
-                                      {link.includes("New") ? (
-                                        <>
-                                          {link.replace("New", "")}
-                                          <span className="ml-2 text-xs bg-[#f9aeaf] text-white px-1 rounded">
-                                            New
-                                          </span>
-                                        </>
-                                      ) : (
-                                        link
-                                      )}
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
+                      {item.title}
+                      {(item.dropdown || item.megaMenu) && (
+                        <svg
+                          className="ml-1 h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </Link>
 
-                  {/* Normal Dropdown */}
-                  {item.dropdown && !item.megaMenu && (
-                    <div className="absolute z-10 left-1/2 transform -translate-x-1/2 mt-0 w-48 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 border">
-                      <ul>
-                        {item.dropdown.map((subItem, subIndex) => (
-                          <li key={subIndex}>
-                            <a
-                              href="#"
-                              className="block px-4 py-2 text-sm text-black hover:bg-[#f9aeaf] hover:text-black"
-                            >
-                              {subItem}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    {/* Mega Menu */}
+                    {item.megaMenu && (
+                      <div
+                        className={`absolute z-10 mt-0 w-[750px] bg-white border border-[#f9aeaf] rounded-md shadow-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 p-6 ${
+                          index <= 1
+                            ? "left-0"
+                            : "left-1/2 transform -translate-x-1/2"
+                        }`}
+                      >
+                        <div className="grid grid-cols-4 gap-6">
+                          {Object.entries(item.megaMenu).map(
+                            ([category, links], catIndex) => (
+                              <div key={catIndex}>
+                                <h3 className="border border-[#f9aeaf] text-center text-sm font-semibold text-gray-800 px-2 py-1 mb-2 rounded relative">
+                                  {category}
+                                </h3>
+                                <ul className="space-y-1">
+                                  {links.map((link, linkIndex) => (
+                                    <li key={linkIndex}>
+                                      <Link
+                                        to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/ /g, "-")}`}
+                                        className="text-sm text-gray-700 hover:text-[#f9aeaf] hover:underline"
+                                      >
+                                        {link.includes("New") ? (
+                                          <>
+                                            {link.replace("New", "")}
+                                            <span className="ml-2 text-xs bg-[#f9aeaf] text-white px-1 rounded">
+                                              New
+                                            </span>
+                                          </>
+                                        ) : (
+                                          link
+                                        )}
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Normal Dropdown */}
+                    {item.dropdown && !item.megaMenu && (
+                      <div className="absolute z-10 left-1/2 transform -translate-x-1/2 mt-0 w-48 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 border">
+                        <ul>
+                          {item.dropdown.map((subItem, subIndex) => (
+                            <li key={subIndex}>
+                              <a
+                                href="#"
+                                className="block px-4 py-2 text-sm text-black hover:bg-[#f9aeaf] hover:text-black"
+                              >
+                                {subItem}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </nav>
+      </div>
 
       {/* Mobile Menu Overlay and Content */}
       <div

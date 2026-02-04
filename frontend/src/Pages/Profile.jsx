@@ -187,6 +187,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
     { id: "profile", icon: User, label: "My Profile" },
     { id: "orders", icon: ShoppingBag, label: "My Orders" },
     { id: "luxeMembership", icon: Gift, label: "Luxe Membership" },
+    { id: "offers", icon: Gift, label: "Coupons & Offers" },
     { id: "addresses", icon: MapPin, label: "Manage Addresses" },
     { id: "wishlist", icon: Heart, label: "My Wishlist" },
   ];
