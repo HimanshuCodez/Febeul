@@ -20,7 +20,7 @@ const Home = () => {
 
     <div>
 
-{/* 
+
   <Hero />
     <OfferBar/> 
      <div className='mt-5'><Spotlight/></div>
@@ -33,9 +33,9 @@ const Home = () => {
     <div className='mt-5'><StylesSection/></div>
     
     
-    <AboutUs/>  */}
+    <AboutUs/> 
     {/* <div className='mt-5'><PurpleBanner/></div> */}
-    {/* <div><Aboutt/></div>  */}
+    <div><Aboutt/></div> 
     
     
     </div>
