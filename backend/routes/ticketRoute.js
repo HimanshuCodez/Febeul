@@ -6,15 +6,15 @@ import upload from '../middleware/multer.js'; // Import multer middleware
 
 const ticketRouter = express.Router();
 
+// Admin routes
+ticketRouter.get('/list', auth, listTickets); // This should be before /:id
+ticketRouter.post('/update-status', adminAuth, updateStatus);
+ticketRouter.post('/admin-reply', adminAuth, replyToTicket); // Admin reply endpoint distinction
+
 // User routes
-ticketRouter.post('/create', auth, upload.array('images', 2), createTicket); // Add multer middleware here
+ticketRouter.post('/create', auth, upload.array('images', 2), createTicket);
 ticketRouter.get('/user', auth, getUserTickets);
 ticketRouter.post('/reply', auth, replyToTicket); // User reply
 ticketRouter.get('/:id', auth, getTicketById);
-
-// Admin routes
-ticketRouter.get('/list', auth, listTickets);
-ticketRouter.post('/update-status', adminAuth, updateStatus);
-ticketRouter.post('/admin-reply', adminAuth, replyToTicket); // Admin reply endpoint distinction
 
 export default ticketRouter;

@@ -137,8 +137,6 @@ export const replyToTicket = async (req, res) => {
 
 // User & Admin: Get a single ticket by ID
 export const getTicketById = async (req, res) => {
-    console.log("req.params.id in getTicketById:", req.params.id);
-    console.log("req.userId in getTicketById:", req.userId);
     try {
         const ticket = await ticketModel.findById(req.params.id).populate('user', 'name email');
         if (!ticket) {
