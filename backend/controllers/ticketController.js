@@ -97,12 +97,12 @@ export const updateStatus = async (req, res) => {
     }
 };
 
-// User & Admin: Add a reply to a ticket
-export const replyToTicket = async (req, res) => {
+// User: Add a reply to a ticket (This is for user's own replies)
+export const userReplyToTicket = async (req, res) => {
     const { ticketId, message } = req.body;
     
-    // The adminAuth middleware adds `isAdmin:true` to the body.
-    const senderType = req.body.isAdmin ? 'admin' : 'user';
+    // Always senderType 'user' for user-initiated replies from their panel
+    const senderType = 'user';
 
     try {
         const ticket = await ticketModel.findById(ticketId);
@@ -110,8 +110,8 @@ export const replyToTicket = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Ticket not found.' });
         }
         
-        // Security check: if user, ensure they own the ticket
-        if (senderType === 'user' && ticket.user.toString() !== req.userId) {
+        // Security check: user can only reply to their own ticket
+        if (ticket.user.toString() !== req.userId) {
             return res.status(403).json({ success: false, message: 'Unauthorized.' });
         }
 
@@ -131,6 +131,41 @@ export const replyToTicket = async (req, res) => {
     } catch (error) {
         console.error('Error sending reply:', error);
         res.status(500).json({ success: false, message: 'Error sending reply.' });
+    }
+};
+
+// Admin Panel: Reply to a ticket (This is for replies originating from the dedicated admin panel)
+export const adminPanelReplyToTicket = async (req, res) => {
+    const { ticketId, message } = req.body;
+    
+    // As per user's request: "just a normal user can reply from admin panel" to ANY ticket.
+    // So, sender is 'user', and no ownership check is performed.
+    const senderType = 'user'; // Still recorded as a user's message
+
+    try {
+        const ticket = await ticketModel.findById(ticketId);
+        if (!ticket) {
+            return res.status(404).json({ success: false, message: 'Ticket not found.' });
+        }
+        
+        // NO ownership security check for admin panel replies (as per user's request)
+
+        const newMessage = {
+            sender: senderType,
+            message,
+            createdAt: new Date()
+        };
+
+        ticket.messages.push(newMessage);
+        await ticket.save();
+
+        const populatedTicket = await ticketModel.findById(ticketId).populate('user', 'name email');
+
+        res.json({ success: true, message: 'Reply sent.', newMessage, ticket: populatedTicket });
+
+    } catch (error) {
+        console.error('Error sending admin panel reply:', error);
+        res.status(500).json({ success: false, message: 'Error sending admin panel reply.' });
     }
 };
 

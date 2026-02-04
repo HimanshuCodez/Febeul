@@ -8,11 +8,7 @@ const adminAuth = async (req, res, next) => {
     }
     try {
         const token_decode = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await userModel.findById(token_decode.id);
-        if (!user) {
-            return res.status(403).json({ success: false, message: 'Not authorized for this action.' });
-        }
-        req.body.userId = token_decode.id;
+        req.userId = token_decode.id; // Set userId on the request object
         next();
     } catch (error) {
         console.log(error);
