@@ -73,4 +73,63 @@ const getProductReviews = async (req, res) => {
     }
 };
 
-export { addReview, getProductReviews };
+// Get all reviews by a specific user
+const getUserReviews = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const reviews = await reviewModel.find({ userId })
+                                        .populate('productId', 'name image') // Populate product details
+                                        .populate('userId', 'name profilePicture'); // Populate user details
+
+        res.json({ success: true, reviews });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Failed to fetch user reviews" });
+    }
+};
+
+// Get all reviews
+const getAllReviews = async (req, res) => {
+    try {
+        const reviews = await reviewModel.find({})
+                                        .populate('productId', 'name image') // Populate product details
+                                        .populate('userId', 'name profilePicture'); // Populate user details
+
+        res.json({ success: true, reviews });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Failed to fetch all reviews" });
+    }
+};
+
+// Remove a review
+const removeReview = async (req, res) => {
+    try {
+        const { reviewId } = req.params;
+        const review = await reviewModel.findByIdAndDelete(reviewId);
+
+        if (!review) {
+            return res.json({ success: false, message: "Review not found" });
+        }
+
+        // Optionally, update product's average rating and number of reviews after deletion
+        const product = await productModel.findById(review.productId);
+        if (product) {
+            const reviews = await reviewModel.find({ productId: review.productId });
+            const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+            product.averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+            product.numOfReviews = reviews.length;
+            await product.save();
+        }
+
+        res.json({ success: true, message: "Review removed successfully" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Failed to remove review" });
+    }
+};
+
+export { addReview, getProductReviews, getUserReviews, getAllReviews, removeReview };
