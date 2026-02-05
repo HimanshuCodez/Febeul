@@ -12,6 +12,7 @@ const Reviews = ({ productId }) => {
   const [newReview, setNewReview] = useState({ rating: 0, comment: '', images: [] });
   const [imagePreviews, setImagePreviews] = useState([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
   useEffect(() => {
     fetchReviews();
@@ -22,6 +23,12 @@ const Reviews = ({ productId }) => {
       const response = await axios.get(`${backendUrl}/api/review/list/${productId}`);
       if (response.data.success) {
         setReviews(response.data.reviews);
+        if (isAuthenticated && user) {
+          const userHasReviewed = response.data.reviews.some(
+            (review) => review.userId && review.userId._id === user._id
+          );
+          setHasUserReviewed(userHasReviewed);
+        }
       } else {
         toast.error(response.data.message);
       }
@@ -105,85 +112,95 @@ const Reviews = ({ productId }) => {
     <div className="mt-8">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Customer Reviews</h2>
 
-      {isAuthenticated && (
+      {isAuthenticated ? (
         <div className="mb-8 p-6 bg-gray-50 rounded-lg shadow-sm">
-          <button
-            onClick={() => setShowReviewForm(!showReviewForm)}
-            className="w-full bg-[#f9aeaf] hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            {showReviewForm ? 'Cancel Review' : 'Write a Customer Review'}
-          </button>
-
-          {showReviewForm && (
-            <form onSubmit={handleSubmitReview} className="mt-6 space-y-4">
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">Your Rating</label>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star
-                      key={star}
-                      size={28}
-                      className={`cursor-pointer transition-colors ${
-                        newReview.rating >= star ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                      }`}
-                      onClick={() => handleRatingChange(star)}
-                    />
-                  ))}
-                </div>
-                {newReview.rating === 0 && <p className="text-red-500 text-sm mt-1">Please select a rating</p>}
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">Your Comment</label>
-                <textarea
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  rows="4"
-                  placeholder="Tell us about your experience..."
-                  value={newReview.comment}
-                  onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
-                  required
-                ></textarea>
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">Add Photos (Max 5)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                <div className="mt-3 flex flex-wrap gap-3">
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
-                      <img src={preview} alt="Review preview" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                      >
-                        X
-                      </button>
-                    </div>
-                  ))}
-                  {newReview.images.length < 5 && (
-                    <label className="w-24 h-24 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-                      <Camera size={32} className="text-gray-400" />
-                      <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
-                    </label>
-                  )}
-                </div>
-              </div>
-
+          {hasUserReviewed ? (
+            <p className="text-center text-lg font-semibold text-gray-700">You have already reviewed this product.</p>
+          ) : (
+            <>
               <button
-                type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                onClick={() => setShowReviewForm(!showReviewForm)}
+                className="w-full bg-[#f9aeaf] hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
-                Submit Review
+                {showReviewForm ? 'Cancel Review' : 'Write a Customer Review'}
               </button>
-            </form>
+
+              {showReviewForm && (
+                <form onSubmit={handleSubmitReview} className="mt-6 space-y-4">
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-2">Your Rating</label>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <Star
+                          key={star}
+                          size={28}
+                          className={`cursor-pointer transition-colors ${
+                            newReview.rating >= star ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                          }`}
+                          onClick={() => handleRatingChange(star)}
+                        />
+                      ))}
+                    </div>
+                    {newReview.rating === 0 && <p className="text-red-500 text-sm mt-1">Please select a rating</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-2">Your Comment</label>
+                    <textarea
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      rows="4"
+                      placeholder="Tell us about your experience..."
+                      value={newReview.comment}
+                      onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
+                      required
+                    ></textarea>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-2">Add Photos (Max 5)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+                          <img src={preview} alt="Review preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                          >
+                            X
+                          </button>
+                        </div>
+                      ))}
+                      {newReview.images.length < 5 && (
+                        <label className="w-24 h-24 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                          <Camera size={32} className="text-gray-400" />
+                          <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                  >
+                    Submit Review
+                  </button>
+                </form>
+              )}
+            </>
           )}
+        </div>
+      ) : (
+        <div className="mb-8 p-6 bg-gray-50 rounded-lg shadow-sm">
+          <p className="text-center text-lg font-semibold text-gray-700">Please log in to write a review.</p>
         </div>
       )}
 

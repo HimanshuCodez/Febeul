@@ -8,6 +8,12 @@ const addReview = async (req, res) => {
         const { productId, userId, rating, comment } = req.body;
         const files = req.files; // Images uploaded via multer
 
+        // Check if user has already reviewed this product
+        const existingReview = await reviewModel.findOne({ productId, userId });
+        if (existingReview) {
+            return res.json({ success: false, message: "You have already reviewed this product." });
+        }
+
         if (!productId || !userId || !rating || !comment) {
             return res.json({ success: false, message: "Missing required fields" });
         }
