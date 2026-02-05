@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
@@ -6,6 +6,39 @@ import { toast } from 'react-hot-toast';
 import { Save, ArrowLeft } from 'lucide-react';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+// Hardcoded data for Indian states and cities (for demonstration)
+const statesAndCities = {
+    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore"],
+    "Arunachal Pradesh": ["Itanagar", "Naharlagun"],
+    "Assam": ["Guwahati", "Jorhat", "Silchar"],
+    "Bihar": ["Patna", "Gaya", "Bhagalpur"],
+    "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur"],
+    "Delhi": ["New Delhi", "North Delhi", "South Delhi", "West Delhi", "East Delhi"],
+    "Goa": ["Panaji", "Margao"],
+    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
+    "Haryana": ["Faridabad", "Gurugram", "Panipat"],
+    "Himachal Pradesh": ["Shimla", "Mandi", "Dharamshala"],
+    "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad"],
+    "Karnataka": ["Bengaluru", "Mysuru", "Hubballi"],
+    "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode"],
+    "Madhya Pradesh": ["Bhopal", "Indore", "Jabalpur"],
+    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik"],
+    "Manipur": ["Imphal"],
+    "Meghalaya": ["Shillong"],
+    "Mizoram": ["Aizawl"],
+    "Nagaland": ["Kohima", "Dimapur"],
+    "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela"],
+    "Punjab": ["Ludhiana", "Amritsar", "Jalandhar"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur"],
+    "Sikkim": ["Gangtok"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"],
+    "Telangana": ["Hyderabad", "Warangal"],
+    "Tripura": ["Agartala"],
+    "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Noida"],
+    "Uttarakhand": ["Dehradun", "Haridwar", "Rishikesh"],
+    "West Bengal": ["Kolkata", "Howrah", "Durgapur"]
+};
 
 const Address = () => {
     const navigate = useNavigate();
@@ -18,13 +51,19 @@ const Address = () => {
         city: '',
         state: '',
         zip: '',
-        country: '',
+        country: 'India', // Default to India
     });
     const [isSaving, setIsSaving] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setAddress((prev) => ({ ...prev, [name]: value }));
+        setAddress((prev) => {
+            if (name === 'state') {
+                // Reset city when state changes
+                return { ...prev, state: value, city: '' };
+            }
+            return { ...prev, [name]: value };
+        });
     };
 
     const handleSave = async (e) => {
@@ -81,12 +120,27 @@ const Address = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                         <input type="text" name="address" placeholder="Street Address, House No." value={address.address} onChange={handleChange} required className="form-input" />
                         <div className="grid grid-cols-2 gap-4 mt-2">
-                            <input type="text" name="city" placeholder="City" value={address.city} onChange={handleChange} required className="form-input" />
-                            <input type="text" name="state" placeholder="State" value={address.state} onChange={handleChange} required className="form-input" />
+                            {/* State Dropdown */}
+                            <select name="state" value={address.state} onChange={handleChange} required className="form-input">
+                                <option value="">Select State</option>
+                                {Object.keys(statesAndCities).map((stateName) => (
+                                    <option key={stateName} value={stateName}>{stateName}</option>
+                                ))}
+                            </select>
+                            {/* City Dropdown (dynamic based on selected state) */}
+                            <select name="city" value={address.city} onChange={handleChange} required className="form-input" disabled={!address.state}>
+                                <option value="">Select City</option>
+                                {address.state && statesAndCities[address.state].map((cityName) => (
+                                    <option key={cityName} value={cityName}>{cityName}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="grid grid-cols-2 gap-4 mt-2">
                             <input type="text" name="zip" placeholder="ZIP Code" value={address.zip} onChange={handleChange} required className="form-input" pattern="[0-9]{6}" title="ZIP Code must be 6 digits." />
-                            <input type="text" name="country" placeholder="Country" value={address.country} onChange={handleChange} required className="form-input" />
+                            {/* Country Dropdown (fixed to India) */}
+                            <select name="country" value={address.country} onChange={handleChange} required className="form-input">
+                                <option value="India">India</option>
+                            </select>
                         </div>
                     </div>
                     

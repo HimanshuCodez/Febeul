@@ -9,6 +9,7 @@ import axios from 'axios';
 import { toast } from "react-hot-toast";
 import MembershipStatus from "../components/MembershipStatus";
 import MyOrders from "./MyOrders"; // Import MyOrders component
+import CouponShows from "../components/CouponShows"; // Import CouponShows component
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -152,6 +153,13 @@ export default function Profile() {
         return <ManageAddresses addresses={addresses} />;
       case "wishlist":
         return <WishlistItems wishlist={wishlistItems} onRemove={handleRemoveFromWishlist} />;
+      case "offers": // New case for Coupons & Offers
+        return (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-6">Coupons & Offers</h2>
+            <CouponShows />
+          </div>
+        );
       default:
         return <ProfileInfo user={user} editedUser={editedUser} isEditing={isEditing} setIsEditing={setIsEditing} handleInputChange={handleInputChange} handleSave={handleSave} />;
     }
