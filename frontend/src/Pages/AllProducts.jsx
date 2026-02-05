@@ -325,7 +325,7 @@ const AllProducts = () => {
                 </button>
               </div>
             ) : (
-              <div className={`grid grid-cols-2 lg:grid-cols-${gridCols} gap-4 md:gap-6`}>
+              <div className={`grid grid-cols-2 lg:grid-cols-${gridCols} gap-2 md:gap-6`}>
                 {filteredProducts.map((product) => (
                   <ProductCard key={product._id} product={product} />
                 ))}
