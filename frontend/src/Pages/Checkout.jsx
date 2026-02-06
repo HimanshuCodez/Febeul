@@ -183,7 +183,8 @@ export default function CheckoutPage() {
             name: item.name,
             image: actualImage, // Use item.image directly
             price: actualPrice, // Use item.price directly
-            color: item.color
+            color: item.color,
+            sku: selectedVariation?.sku // Add SKU here
         }
     });
     const orderData = {
@@ -238,10 +239,10 @@ export default function CheckoutPage() {
             name: item.name,
             image: actualImage, // Use item.image directly
             price: actualPrice, // Use item.price directly
-            color: item.color
+            color: item.color,
+            sku: selectedVariation?.sku // Add SKU here
         }
-      });
-      const orderPayload = {
+      });      const orderPayload = {
         userId: user._id,
         items: orderItems,
         amount: total,

@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { assets } from '../assets/assets';
+import Loading from '../components/Loading'; // Added Loading import
 
 const availableSizes = ["S", "M", "L", "XL", "XXL", "Free Size"];
 
@@ -20,8 +21,8 @@ const Update = ({ token }) => {
     const [subCategory, setSubCategory] = useState("Topwear");
     const [bestseller, setBestseller] = useState(false);
     const [isLuxePrive, setIsLuxePrive] = useState(false);
-    // const [sizes, setSizes] = useState([]); // Removed top-level sizes state
-    const [styleCode, setStyleCode] = useState("");
+    const [loading, setLoading] = useState(false); // Added loading state
+    const [uploadProgress, setUploadProgress] = useState(0); // Added uploadProgress state
     const [countryOfOrigin, setCountryOfOrigin] = useState("");
     const [manufacturer, setManufacturer] = useState("");
     const [packer, setPacker] = useState("");
@@ -56,7 +57,6 @@ const Update = ({ token }) => {
                     setBestseller(product.bestseller);
                     // setSizes(product.sizes); // Removed top-level sizes
                     setIsLuxePrive(product.isLuxePrive || false);
-                    setStyleCode(product.styleCode || "");
                     setCountryOfOrigin(product.countryOfOrigin || "");
                     setManufacturer(product.manufacturer || "");
                     setPacker(product.packer || "");
@@ -76,7 +76,7 @@ const Update = ({ token }) => {
                     setItemDimensionsLxWxH(product.itemDimensionsLxWxH || "");
                     setNetQuantity(product.netQuantity || "");
                     setGenericName(product.genericName || "");
-                    setVariations(product.variations || []); // Updated to new structure
+                    setVariations(product.variations.map(v => ({...v, sku: v.sku || ''})) || []); // Updated to new structure
                     setKeywords(product.keywords ? product.keywords.join(", ") : "");
                 } else {
                     toast.error(response.data.message);
@@ -107,7 +107,7 @@ const Update = ({ token }) => {
     }
     
     const addVariation = () => {
-        setVariations([...variations, { color: '', images: [], sizes: [] }]); // Updated initialization
+        setVariations([...variations, { color: '', images: [], sizes: [], sku: '' }]);
     }
     
     const removeVariation = (index) => {
@@ -136,6 +136,18 @@ const Update = ({ token }) => {
 
     const onSubmitHandler = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setUploadProgress(0);
+
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 5; // Increment by 5%
+            if (progress >= 95) {
+                clearInterval(interval); // Stop at 95%
+            }
+            setUploadProgress(progress);
+        }, 500); // Update every 500ms (adjust as needed)
+
         try {
             const formData = new FormData();
             formData.append("productId", productId);
@@ -145,8 +157,6 @@ const Update = ({ token }) => {
             formData.append("subCategory", subCategory);
             formData.append("bestseller", bestseller);
             formData.append("isLuxePrive", isLuxePrive);
-            // formData.append("sizes", JSON.stringify(sizes)); // Removed top-level sizes
-            formData.append("styleCode", styleCode);
             formData.append("countryOfOrigin", countryOfOrigin);
             formData.append("manufacturer", manufacturer);
             formData.append("packer", packer);
@@ -170,6 +180,7 @@ const Update = ({ token }) => {
 
             const variationsData = variations.map(v => ({
                 color: v.color,
+                sku: v.sku,
                 images: v.images.filter(img => typeof img === 'string'), // only existing images (URLs)
                 sizes: v.sizes.map(s => ({
                     size: s.size, 
@@ -187,16 +198,30 @@ const Update = ({ token }) => {
                 });
             });
 
-            const response = await axios.post(backendUrl + '/api/product/update', formData, { headers: { token } });
+            const response = await axios.post(
+                backendUrl + '/api/product/update', 
+                formData, 
+                { 
+                    headers: { token },
+                }
+            );
+
+            clearInterval(interval); // Clear interval on response
+            setUploadProgress(100); // Set to 100% immediately on response
 
             if (response.data.success) {
                 toast.success(response.data.message);
                 navigate('/list');
+                setLoading(false);
             } else {
                 toast.error(response.data.message);
+                setLoading(false);
             }
         } catch (error) {
             toast.error(error.message);
+            clearInterval(interval); // Clear interval on error
+            setUploadProgress(0); // Reset progress on error
+            setLoading(false);
         }
     };
 
@@ -204,60 +229,69 @@ const Update = ({ token }) => {
         <form onSubmit={onSubmitHandler} className='flex flex-col w-full items-start gap-3'>
             
             {variations.map((variation, v_index) => (
-                <div key={v_index} className='flex flex-col gap-4 border p-4 rounded-md w-full relative'>
+                <div key={v_index} className='flex flex-wrap md:flex-row gap-4 border p-4 rounded-md w-full relative'>
                     <p className='font-semibold'>Variation {v_index + 1}</p>
                     
-                    <div className='w-full'>
-                        <p className='mb-2'>Color</p>
-                        <input name='color' onChange={(e)=>handleVariationChange(v_index,e)} value={variation.color} className='w-full max-w-[500px] px-3 py-2 border rounded-md' type="text" placeholder='e.g. Red' required/>
-                    </div>
+                    <div className="flex flex-wrap gap-4 w-full">
+                        <div className="flex-1 min-w-[200px]">
+                            <p className='mb-2'>Color</p>
+                            <input name='color' onChange={(e)=>handleVariationChange(v_index,e)} value={variation.color} className='w-full px-3 py-2 border rounded-md' type="text" placeholder='e.g. Red' required/>
+                        </div>
 
-                    <div>
-                        <p className='mb-2'>Sizes & Pricing</p>
-                        {variation.sizes.map((sizeData, s_index) => (
-                            <div key={s_index} className='flex gap-2 items-end mb-2'>
-                                <div className='w-24'>
-                                    <p className='text-sm mb-1'>Size</p>
-                                    <input name='size' value={sizeData.size} readOnly className='w-full px-2 py-1 border rounded-md bg-gray-100' />
-                                </div>
-                                <div>
-                                    <p className='text-sm mb-1'>MRP</p>
-                                    <input name='mrp' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.mrp} className='w-full max-w-[100px] px-2 py-1 border rounded-md' type="number" placeholder='MRP' required/>
-                                </div>
-                                <div>
-                                    <p className='text-sm mb-1'>Price</p>
-                                    <input name='price' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.price} className='w-full max-w-[100px] px-2 py-1 border rounded-md' type="number" placeholder='Price' required/>
-                                </div>
-                                <button type='button' onClick={()=>removeSize(v_index, s_index)} className='bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit'>-</button>
-                            </div>
-                        ))}
-                        <div className='flex gap-2 mt-3 flex-wrap'>
-                            {availableSizes.filter(size => !variation.sizes.some(s => s.size === size)).map(size => (
-                                <button 
-                                    key={size} 
-                                    type='button' 
-                                    onClick={() => addSize(v_index, size)} 
-                                    className='bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-300'
-                                >
-                                    Add {size}
-                                </button>
-                            ))}
+                        <div className="flex-1 min-w-[200px]">
+                            <p className='mb-2'>SKU</p>
+                            <input name='sku' onChange={(e)=>handleVariationChange(v_index,e)} value={variation.sku} className='w-full px-3 py-2 border rounded-md' type="text" placeholder='e.g. S-110'/>
                         </div>
                     </div>
 
-                    <div>
-                        <p className='mb-2'>Images</p>
-                        <div className='flex gap-2 flex-wrap'>
-                            {variation.images.map((image, i_index)=>(
-                                <div key={i_index} className='relative'>
-                                    <img className='w-20 object-cover' src={typeof image === 'string' ? image : URL.createObjectURL(image)} alt="" />
-                                    <p onClick={()=>removeImage(v_index,i_index)} className='absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs'>x</p>
+                    <div className="flex flex-wrap md:flex-row gap-4 w-full">
+                        <div className="flex-1 min-w-[300px]">
+                            <p className='mb-2'>Sizes & Pricing</p>
+                            {variation.sizes.map((sizeData, s_index) => (
+                                <div key={s_index} className='flex gap-2 items-end mb-2'>
+                                    <div className='w-24'>
+                                        <p className='text-sm mb-1'>Size</p>
+                                        <input name='size' value={sizeData.size} readOnly className='w-full px-2 py-1 border rounded-md bg-gray-100' />
+                                    </div>
+                                    <div>
+                                        <p className='text-sm mb-1'>MRP</p>
+                                        <input name='mrp' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.mrp} className='w-full max-w-[100px] px-2 py-1 border rounded-md' type="number" placeholder='MRP' required/>
+                                    </div>
+                                    <div>
+                                        <p className='text-sm mb-1'>Price</p>
+                                        <input name='price' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.price} className='w-full max-w-[100px] px-2 py-1 border rounded-md' type="number" placeholder='Price' required/>
+                                    </div>
+                                    <button type='button' onClick={()=>removeSize(v_index, s_index)} className='bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit'>-</button>
                                 </div>
                             ))}
-                            <label className='cursor-pointer'>
-                                <img className='w-20 object-cover' src={assets.upload_area} alt="" />
-                                <input onChange={(e)=>handleImageChange(v_index,e)} type="file" multiple hidden/>
-                            </label>
+                            <div className='flex gap-2 mt-3 flex-wrap'>
+                                {availableSizes.filter(size => !variation.sizes.some(s => s.size === size)).map(size => (
+                                    <button 
+                                        key={size} 
+                                        type='button' 
+                                        onClick={() => addSize(v_index, size)} 
+                                        className='bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-300'
+                                    >
+                                        Add {size}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex-1 min-w-[200px]">
+                            <p className='mb-2'>Images</p>
+                            <div className='flex gap-2 flex-wrap'>
+                                {variation.images.map((image, i_index)=>(
+                                    <div key={i_index} className='relative'>
+                                        <img className='w-20 object-cover' src={typeof image === 'string' ? image : URL.createObjectURL(image)} alt="" />
+                                        <p onClick={()=>removeImage(v_index,i_index)} className='absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs'>x</p>
+                                    </div>
+                                ))}
+                                <label className='cursor-pointer'>
+                                    <img className='w-20 object-cover' src={assets.upload_area} alt="" />
+                                    <input onChange={(e)=>handleImageChange(v_index,e)} type="file" multiple hidden/>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     {variations.length > 1 && (
@@ -312,10 +346,7 @@ const Update = ({ token }) => {
             </div>
 
             <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl'>
-                <div className='w-full'>
-                    <p className='mb-2'>Style Code</p>
-                    <input onChange={(e) => setStyleCode(e.target.value)} value={styleCode} className='w-full px-3 py-2 border rounded-md' type="text" placeholder='s-110' />
-                </div>
+
                 <div className='w-full'>
                     <p className='mb-2'>Country of Origin</p>
                     <input onChange={(e) => setCountryOfOrigin(e.target.value)} value={countryOfOrigin} className='w-full px-3 py-2 border rounded-md' type="text" placeholder='India' />
@@ -418,6 +449,7 @@ const Update = ({ token }) => {
             </div>
 
             <button type="submit" className='w-28 py-3 mt-4 bg-black text-white rounded-md'>UPDATE</button>
+            {loading && <Loading progress={uploadProgress} />}
         </form>
     );
 };

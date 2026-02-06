@@ -554,6 +554,7 @@ export default function OrderDetailPage() {
                     <img src={item.image} className="w-12 h-12 object-cover mr-3 rounded" />
                     <div>
                       <p className="font-medium text-gray-800">{item.name}</p>
+                      {item.sku && <p className="text-xs text-gray-500">SKU: {item.sku}</p>}
                       <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
                     </div>
                   </div>

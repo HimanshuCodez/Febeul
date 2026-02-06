@@ -5,11 +5,12 @@ import { backendUrl } from "../App";
 import { toast } from "react-toastify";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import Loading from "../components/Loading";
 
 const Add = ({ token }) => {
   const [type, setType] = useState("");
   const [variations, setVariations] = useState([
-    { color: "", images: [], sizes: [] },
+    { color: "", images: [], sizes: [], sku: "" },
   ]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -17,8 +18,8 @@ const Add = ({ token }) => {
   const [subCategory, setSubCategory] = useState("Topwear");
   const [bestseller, setBestseller] = useState(false);
   const [isLuxePrive, setIsLuxePrive] = useState(false);
-
-  const [sku, setSku] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [countryOfOrigin, setCountryOfOrigin] = useState("");
   const [manufacturer, setManufacturer] = useState("");
   const [packer, setPacker] = useState("");
@@ -61,7 +62,7 @@ const Add = ({ token }) => {
   };
 
   const addVariation = () => {
-    setVariations([...variations, { color: "", images: [], sizes: [] }]);
+    setVariations([...variations, { color: "", images: [], sizes: [], sku: "" }]);
   };
 
   const removeVariation = (index) => {
@@ -90,6 +91,17 @@ const Add = ({ token }) => {
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setUploadProgress(0);
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 5; // Increment by 5%
+      if (progress >= 95) {
+        clearInterval(interval); // Stop at 95%
+      }
+      setUploadProgress(progress);
+    }, 500); // Update every 500ms (adjust as needed)
 
     try {
       const formData = new FormData();
@@ -100,8 +112,6 @@ const Add = ({ token }) => {
       formData.append("subCategory", subCategory);
       formData.append("bestseller", bestseller);
       formData.append("isLuxePrive", isLuxePrive);
-
-      formData.append("sku", sku);
       formData.append("countryOfOrigin", countryOfOrigin);
       formData.append("manufacturer", manufacturer);
       formData.append("packer", packer);
@@ -125,6 +135,7 @@ const Add = ({ token }) => {
 
       const variationsData = variations.map((v) => ({
         color: v.color,
+        sku: v.sku,
         sizes: v.sizes.map((s) => ({
           size: s.size,
           price: s.price,
@@ -142,15 +153,19 @@ const Add = ({ token }) => {
       const response = await axios.post(
         backendUrl + "/api/product/add",
         formData,
-        { headers: { token } },
+        {
+          headers: { token },
+        },
       );
+
+      clearInterval(interval); // Clear interval on response
+      setUploadProgress(100); // Set to 100% immediately on response
 
       if (response.data.success) {
         toast.success(response.data.message);
         setName("");
         setDescription("");
         setVariations([{ color: "", images: [], sizes: [] }]);
-        setSku("");
         setBestseller(false);
         setIsLuxePrive(false);
         setCountryOfOrigin("");
@@ -173,12 +188,17 @@ const Add = ({ token }) => {
         setNetQuantity("");
         setGenericName("");
         setKeywords("");
+        setLoading(false);
       } else {
         toast.error(response.data.message);
+        setLoading(false);
       }
     } catch (error) {
       console.log(error);
       toast.error(error.message);
+      clearInterval(interval); // Clear interval on error
+      setUploadProgress(0); // Reset progress on error
+      setLoading(false);
     }
   };
 
@@ -190,116 +210,132 @@ const Add = ({ token }) => {
       {variations.map((variation, v_index) => (
         <div
           key={v_index}
-          className="flex flex-col gap-4 border p-4 rounded-md w-full relative"
+          className="flex flex-wrap md:flex-row gap-4 border p-4 rounded-md w-full relative"
         >
           <p className="font-semibold">Variation {v_index + 1}</p>
 
-          <div className="w-full">
-            <p className="mb-2">Color</p>
-            <input
-              name="color"
-              onChange={(e) => handleVariationChange(v_index, e)}
-              value={variation.color}
-              className="w-full max-w-[500px] px-3 py-2 border rounded-md"
-              type="text"
-              placeholder="e.g. Red"
-              required
-            />
-          </div>
+          <div className="flex flex-wrap gap-4 w-full">
+            <div className="flex-1 min-w-[200px]">
+              <p className="mb-2">Color</p>
+              <input
+                name="color"
+                onChange={(e) => handleVariationChange(v_index, e)}
+                value={variation.color}
+                className="w-full px-3 py-2 border rounded-md"
+                type="text"
+                placeholder="e.g. Red"
+                required
+              />
+            </div>
 
-          <div>
-            <p className="mb-2">Sizes & Pricing</p>
-            {variation.sizes.map((sizeData, s_index) => (
-              <div key={s_index} className="flex gap-2 items-end mb-2">
-                <div className="w-24">
-                  <p className="text-sm mb-1">Size</p>
-                  <input
-                    name="size"
-                    value={sizeData.size}
-                    readOnly
-                    className="w-full px-2 py-1 border rounded-md bg-gray-100"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm mb-1">MRP</p>
-                  <input
-                    name="mrp"
-                    onChange={(e) => handleSizeChange(v_index, s_index, e)}
-                    value={sizeData.mrp}
-                    className="w-full max-w-[100px] px-2 py-1 border rounded-md"
-                    type="number"
-                    placeholder="MRP"
-                    required
-                  />
-                </div>
-                <div>
-                  <p className="text-sm mb-1">Price</p>
-                  <input
-                    name="price"
-                    onChange={(e) => handleSizeChange(v_index, s_index, e)}
-                    value={sizeData.price}
-                    className="w-full max-w-[100px] px-2 py-1 border rounded-md"
-                    type="number"
-                    placeholder="Price"
-                    required
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeSize(v_index, s_index)}
-                  className="bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit"
-                >
-                  -
-                </button>
-              </div>
-            ))}
-            <div className="flex gap-2 mt-3 flex-wrap">
-              {availableSizes
-                .filter((size) => !variation.sizes.some((s) => s.size === size))
-                .map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => addSize(v_index, size)}
-                    className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-300"
-                  >
-                    Add {size}
-                  </button>
-                ))}
+            <div className="flex-1 min-w-[200px]">
+              <p className="mb-2">SKU</p>
+              <input
+                name="sku"
+                onChange={(e) => handleVariationChange(v_index, e)}
+                value={variation.sku}
+                className="w-full px-3 py-2 border rounded-md"
+                type="text"
+                placeholder="e.g. S-110"
+              />
             </div>
           </div>
 
-          <div>
-            <p className="mb-2">Images</p>
-            <div className="flex gap-2 flex-wrap">
-              {variation.images.map((image, i_index) => (
-                <div key={i_index} className="relative">
-                  <img
-                    className="w-20 object-cover"
-                    src={URL.createObjectURL(image)}
-                    alt=""
-                  />
-                  <p
-                    onClick={() => removeImage(v_index, i_index)}
-                    className="absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+          <div className="flex flex-wrap md:flex-row gap-4 w-full">
+            <div className="flex-1 min-w-[300px]">
+              <p className="mb-2">Sizes & Pricing</p>
+              {variation.sizes.map((sizeData, s_index) => (
+                <div key={s_index} className="flex gap-2 items-end mb-2">
+                  <div className="w-24">
+                    <p className="text-sm mb-1">Size</p>
+                    <input
+                      name="size"
+                      value={sizeData.size}
+                      readOnly
+                      className="w-full px-2 py-1 border rounded-md bg-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm mb-1">MRP</p>
+                    <input
+                      name="mrp"
+                      onChange={(e) => handleSizeChange(v_index, s_index, e)}
+                      value={sizeData.mrp}
+                      className="w-full max-w-[100px] px-2 py-1 border rounded-md"
+                      type="number"
+                      placeholder="MRP"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm mb-1">Price</p>
+                    <input
+                      name="price"
+                      onChange={(e) => handleSizeChange(v_index, s_index, e)}
+                      value={sizeData.price}
+                      className="w-full max-w-[100px] px-2 py-1 border rounded-md"
+                      type="number"
+                      placeholder="Price"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeSize(v_index, s_index)}
+                    className="bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit"
                   >
-                    x
-                  </p>
+                    -
+                  </button>
                 </div>
               ))}
-              <label className="cursor-pointer">
-                <img
-                  className="w-20 object-cover"
-                  src={assets.upload_area}
-                  alt=""
-                />
-                <input
-                  onChange={(e) => handleImageChange(v_index, e)}
-                  type="file"
-                  multiple
-                  hidden
-                />
-              </label>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                {availableSizes
+                  .filter((size) => !variation.sizes.some((s) => s.size === size))
+                  .map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => addSize(v_index, size)}
+                      className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-300"
+                    >
+                      Add {size}
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-[200px]">
+              <p className="mb-2">Images</p>
+              <div className="flex gap-2 flex-wrap">
+                {variation.images.map((image, i_index) => (
+                  <div key={i_index} className="relative">
+                    <img
+                      className="w-20 object-cover"
+                      src={URL.createObjectURL(image)}
+                      alt=""
+                    />
+                    <p
+                      onClick={() => removeImage(v_index, i_index)}
+                      className="absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                    >
+                      x
+                    </p>
+                  </div>
+                ))}
+                <label className="cursor-pointer">
+                  <img
+                    className="w-20 object-cover"
+                    src={assets.upload_area}
+                    alt=""
+                  />
+                  <input
+                    onChange={(e) => handleImageChange(v_index, e)}
+                    type="file"
+                    multiple
+                    hidden
+                  />
+                </label>
+              </div>
             </div>
           </div>
           {variations.length > 1 && (
@@ -375,16 +411,7 @@ const Add = ({ token }) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl">
-        <div className="w-full">
-          <p className="mb-2">SKU</p>
-          <input
-            onChange={(e) => setSku(e.target.value)}
-            value={sku}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="s-110"
-          />
-        </div>
+
         <div className="w-full">
           <p className="mb-2">Country of Origin</p>
           <input
@@ -605,6 +632,7 @@ const Add = ({ token }) => {
       <button type="submit" className="w-28 py-3 mt-4 bg-black text-white">
         ADD
       </button>
+      {loading && <Loading progress={uploadProgress} />}
     </form>
   );
 };

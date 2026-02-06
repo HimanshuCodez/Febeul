@@ -182,7 +182,7 @@ const ProductDetailPage = () => {
       : 0;
 
   const productDetailRows = [
-    { label: "Style Code", value: product.styleCode },
+    { label: "SKU", value: selectedVariation.sku },
     { label: "Material Type", value: product.materialType },
     { label: "Care Instructions", value: product.careInstructions },
     { label: "Country of Origin", value: product.countryOfOrigin },
