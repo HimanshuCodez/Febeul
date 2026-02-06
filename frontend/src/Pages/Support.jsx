@@ -13,6 +13,7 @@ const Support = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [formData, setFormData] = useState({ subject: "", description: "", message: "", images: [] });
+    const [currentMessage, setCurrentMessage] = useState(''); // New state for message input
 
     const fetchUserTickets = async () => {
         if (!token) {
@@ -39,6 +40,36 @@ const Support = () => {
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSendMessage = async (ticketId) => {
+        if (!currentMessage.trim()) return;
+        if (!token) {
+            toast.error("You must be logged in to send a message.");
+            return;
+        }
+
+        try {
+            const response = await axios.post(`${url}/api/ticket/add-message`,
+                { ticketId, message: currentMessage, sender: 'user' },
+                { headers: { token } }
+            );
+
+            if (response.data.success) {
+                toast.success("Message sent!");
+                // Update the messages in the selected ticket locally
+                setSelectedTicket(prev => ({
+                    ...prev,
+                    messages: [...prev.messages, response.data.message] // Assuming backend returns the new message object
+                }));
+                setCurrentMessage(''); // Clear the input field
+            } else {
+                toast.error(response.data.message);
+            }
+        } catch (error) {
+            toast.error("Failed to send message.");
+            console.error(error);
+        }
     };
 
     const handleImageChange = (e) => {
@@ -205,6 +236,27 @@ const Support = () => {
                                         <span className='text-xs text-gray-500 self-end'>{new Date(msg.createdAt).toLocaleString()}</span>
                                     </div>
                                 ))}
+                            </div>
+                            {/* Message input and send button */}
+                            <div className='flex items-center gap-2 mt-4 pt-4 border-t border-gray-200'>
+                                <input
+                                    type="text"
+                                    value={currentMessage}
+                                    onChange={(e) => setCurrentMessage(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            handleSendMessage(selectedTicket._id);
+                                        }
+                                    }}
+                                    placeholder="Type your message..."
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                                />
+                                <button
+                                    onClick={() => handleSendMessage(selectedTicket._id)}
+                                    className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600 transition-colors"
+                                >
+                                    <Send size={20} />
+                                </button>
                             </div>
 
                             {selectedTicket.images && selectedTicket.images.length > 0 && (

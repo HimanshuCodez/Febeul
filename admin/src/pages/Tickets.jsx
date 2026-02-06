@@ -9,6 +9,7 @@ const Tickets = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'open', 'closed', 'pending'
+  const [adminMessage, setAdminMessage] = useState(''); // New state for admin message
 
   const fetchTickets = async () => {
     if (!token) return;
@@ -44,6 +45,36 @@ const Tickets = ({ token }) => {
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Failed to update ticket status.');
+    }
+  };
+
+  const sendAdminReply = async (ticketId) => {
+    if (!adminMessage.trim()) return;
+    if (!token) {
+      toast.error("Authentication token missing.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${backendUrl}/api/ticket/add-message`,
+        { ticketId, message: adminMessage, sender: 'admin' },
+        { headers: { token } }
+      );
+
+      if (response.data.success) {
+        toast.success("Reply sent!");
+        // Update the messages in the selected ticket locally
+        setSelectedTicket(prev => ({
+          ...prev,
+          messages: [...prev.messages, response.data.message] // Assuming backend returns the new message object
+        }));
+        setAdminMessage(''); // Clear the input field
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error("Failed to send reply.");
+      console.error(error);
     }
   };
 
@@ -192,6 +223,27 @@ const Tickets = ({ token }) => {
                 ) : (
                   <p className='text-sm text-gray-500'>No messages yet.</p>
                 )}
+              </div>
+              {/* Message input and send button for admin */}
+              <div className='flex items-center gap-2 mt-4 pt-4 border-t border-gray-200'>
+                <input
+                  type="text"
+                  value={adminMessage}
+                  onChange={(e) => setAdminMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      sendAdminReply(selectedTicket._id);
+                    }
+                  }}
+                  placeholder="Type your reply..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                />
+                <button
+                  onClick={() => sendAdminReply(selectedTicket._id)}
+                  className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors"
+                >
+                  Send
+                </button>
               </div>
 
               {selectedTicket.images && selectedTicket.images.length > 0 && (

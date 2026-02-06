@@ -474,15 +474,15 @@ const Add = ({ token }) => {
             className="w-full px-3 py-2"
           >
             <option value="">Select Type</option>
-            <option value="Above knee B'doll">Above knee B'doll</option>
-            <option value="Knee Length B'doll">Knee Length B'doll</option>
-            <option value="One piece B'doll">One piece B'doll</option>
-            <option value="Two Piece B'doll">Two Piece B'doll</option>
-            <option value="Teddy Choker Lingz">Teddy Choker Lingz</option>
-            <option value="Bra Panty Lingz Slik Satin">
+            <option value="above-knee-b-doll">Above knee B'doll</option>
+            <option value="knee-length-b-doll">Knee Length B'doll</option>
+            <option value="one-piece-b-doll">One piece B'doll</option>
+            <option value="two-piece-b-doll">Two Piece B'doll</option>
+            <option value="teddy-choker-lingz">Teddy Choker Lingz</option>
+            <option value="bra-panty-lingz-silk-satin">
               Bra Panty Lingz Slik Satin
             </option>
-            <option value="Sheer Mesh">Sheer Mesh</option>
+            <option value="sheer-mesh">Sheer Mesh</option>
           </select>
         </div>
         <div className="w-full">
