@@ -11,6 +11,8 @@ const PolicyUpdate = ({ token }) => {
     const [pageTitle, setPageTitle] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [isAddingNewPolicy, setIsAddingNewPolicy] = useState(false); // New state for add mode
+    const [newPolicyName, setNewPolicyName] = useState(''); // New state for new policy name
 
     const API_BASE_URL = `${backendUrl}/api/policy`;
 
@@ -53,6 +55,7 @@ const PolicyUpdate = ({ token }) => {
     const handlePolicySelect = (e) => {
         const name = e.target.value;
         setSelectedPolicyName(name);
+        setIsAddingNewPolicy(false); // Exit add mode when selecting an existing policy
         if (name) {
             fetchPolicyContent(name);
         } else {
@@ -70,12 +73,27 @@ const PolicyUpdate = ({ token }) => {
         setPageTitle(e.target.value);
     };
 
+    const handleAddNewPolicyClick = () => {
+        setIsAddingNewPolicy(true);
+        setSelectedPolicyName('');
+        setPolicyContent(null);
+        setEditedContent('');
+        setPageTitle('');
+        setNewPolicyName(''); // Clear new policy name input
+    };
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        if (!selectedPolicyName || !pageTitle || !editedContent) {
+        let currentPolicyName = selectedPolicyName;
+        if (isAddingNewPolicy) {
+            currentPolicyName = newPolicyName;
+        }
+
+        if (!currentPolicyName || !pageTitle || !editedContent) {
             setError('All fields are required.');
             toast.error('All fields are required.');
             setLoading(false);
@@ -85,7 +103,7 @@ const PolicyUpdate = ({ token }) => {
         try {
             const contentArray = JSON.parse(editedContent); // Attempt to parse the JSON string
             const payload = {
-                policyName: selectedPolicyName,
+                policyName: currentPolicyName,
                 pageTitle: pageTitle,
                 content: contentArray
             };
@@ -98,7 +116,16 @@ const PolicyUpdate = ({ token }) => {
             };
 
             await axios.post(API_BASE_URL, payload, axiosConfig);
-            toast.success(`${selectedPolicyName} policy updated successfully!`);
+            toast.success(`${currentPolicyName} policy ${isAddingNewPolicy ? 'added' : 'updated'} successfully!`);
+            
+            // After successful submission, refresh the list of policy names
+            await fetchPolicyNames(); 
+            // Optionally, switch back to editing mode and select the newly added policy
+            if (isAddingNewPolicy) {
+                setIsAddingNewPolicy(false);
+                setSelectedPolicyName(currentPolicyName);
+                fetchPolicyContent(currentPolicyName); // Load the content of the newly added policy
+            }
         } catch (err) {
             console.error('Error updating policy:', err);
             if (err instanceof SyntaxError) {
@@ -119,25 +146,54 @@ const PolicyUpdate = ({ token }) => {
 
             {error && <div className="text-red-500 mb-4">{error}</div>}
 
+            {isAddingNewPolicy ? (
+                <div className="mb-4">
+                    <label htmlFor="new-policy-name" className="block text-gray-700 text-sm font-bold mb-2">
+                        New Policy Name:
+                    </label>
+                    <input
+                        type="text"
+                        id="new-policy-name"
+                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        value={newPolicyName}
+                        onChange={(e) => setNewPolicyName(e.target.value)}
+                        placeholder="e.g., DataPrivacy, GiftWrapPolicy"
+                        disabled={loading}
+                    />
+                </div>
+            ) : (
+                <div className="mb-4">
+                    <label htmlFor="policy-select" className="block text-gray-700 text-sm font-bold mb-2">
+                        Select Policy:
+                    </label>
+                    <select
+                        id="policy-select"
+                        className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        value={selectedPolicyName}
+                        onChange={handlePolicySelect}
+                        disabled={loading}
+                    >
+                        <option value="">-- Choose a Policy --</option>
+                        {policyNames.map((policy) => (
+                            <option key={policy.policyName} value={policy.policyName}>
+                                {policy.pageTitle || policy.policyName}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
             <div className="mb-4">
-                <label htmlFor="policy-select" className="block text-gray-700 text-sm font-bold mb-2">
-                    Select Policy:
-                </label>
-                <select
-                    id="policy-select"
-                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    value={selectedPolicyName}
-                    onChange={handlePolicySelect}
+                <button
+                    type="button"
+                    onClick={handleAddNewPolicyClick}
+                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                     disabled={loading}
                 >
-                    <option value="">-- Choose a Policy --</option>
-                    {policyNames.map((policy) => (
-                        <option key={policy.policyName} value={policy.policyName}>
-                            {policy.pageTitle || policy.policyName}
-                        </option>
-                    ))}
-                </select>
+                    Add New Policy
+                </button>
             </div>
+
 
             {selectedPolicyName && (
                 <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
