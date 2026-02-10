@@ -51,7 +51,7 @@ const AppContent = () => {
   return (
     <div>
       <Toaster />
-      <SwipingMessages/>
+      <SwipingMessages className="mobile-only"/>
       {showHeaderFooter && <Header />}
       <Routes>
         {/* Default route - Home */}

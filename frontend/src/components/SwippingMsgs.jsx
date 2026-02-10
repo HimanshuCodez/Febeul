@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const SwipingMessages = () => {
+const SwipingMessages = ({ className }) => {
   const messages = [
     "Free Shipping on Orders Over Rs 499",
     "Register To Get 10% Off: CODE: FNEW10",
@@ -17,7 +17,7 @@ const SwipingMessages = () => {
   }, []);
 
   return (
-    <div className="h-6 overflow-hidden relative max-w-full sm:max-w-xs md:w-80 text-center">
+    <div className={`h-6 overflow-hidden relative max-w-full sm:max-w-xs md:w-80 text-center ${className || ''}`}>
       {messages.map((message, index) => (
         <div
           key={index}

@@ -15,3 +15,10 @@
 .product-description li {
   margin-bottom: 0.5em; /* Space between list items */
 }
+
+/* mobile-only class */
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
