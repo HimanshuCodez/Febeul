@@ -56,7 +56,7 @@ const Tickets = ({ token }) => {
     }
 
     try {
-      const response = await axios.post(`${backendUrl}/api/ticket/add-message`,
+      const response = await axios.post(`${backendUrl}/api/ticket/admin-reply`,
         { ticketId, message: adminMessage, sender: 'admin' },
         { headers: { token } }
       );
@@ -64,10 +64,17 @@ const Tickets = ({ token }) => {
       if (response.data.success) {
         toast.success("Reply sent!");
         // Update the messages in the selected ticket locally
-        setSelectedTicket(prev => ({
-          ...prev,
-          messages: [...prev.messages, response.data.message] // Assuming backend returns the new message object
-        }));
+        setSelectedTicket(prev => {
+          const newMessage = {
+            message: adminMessage,
+            sender: 'admin',
+            createdAt: new Date().toISOString(), // Ensure a valid date for immediate display
+          };
+          return {
+            ...prev,
+            messages: [...prev.messages, newMessage]
+          };
+        });
         setAdminMessage(''); // Clear the input field
       } else {
         toast.error(response.data.message);
@@ -214,7 +221,7 @@ const Tickets = ({ token }) => {
                 <p className='text-sm font-medium text-gray-700'>Messages:</p>
                 {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
                   selectedTicket.messages.map((msg, index) => (
-                    <div key={index} className={`p-3 rounded-lg ${msg.sender === 'admin' ? 'bg-blue-100 ml-auto' : 'bg-gray-100'} max-w-[80%] flex flex-col`}>
+                    <div key={index} className={`p-3 rounded-lg ${msg.sender === 'admin' ? 'bg-gray-100' : 'bg-blue-100 ml-auto'} max-w-[80%] flex flex-col`}>
                       <span className='font-bold text-xs'>{msg.sender === 'admin' ? 'Admin' : selectedTicket.user?.name || 'Customer'}</span>
                       <p className='text-sm'>{msg.message}</p>
                       <span className='text-xs text-gray-500 self-end'>{new Date(msg.createdAt).toLocaleString()}</span>

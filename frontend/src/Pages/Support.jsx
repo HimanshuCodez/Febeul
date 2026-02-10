@@ -50,7 +50,7 @@ const Support = () => {
         }
 
         try {
-            const response = await axios.post(`${url}/api/ticket/add-message`,
+            const response = await axios.post(`${url}/api/ticket/reply`,
                 { ticketId, message: currentMessage, sender: 'user' },
                 { headers: { token } }
             );
@@ -58,10 +58,17 @@ const Support = () => {
             if (response.data.success) {
                 toast.success("Message sent!");
                 // Update the messages in the selected ticket locally
-                setSelectedTicket(prev => ({
-                    ...prev,
-                    messages: [...prev.messages, response.data.message] // Assuming backend returns the new message object
-                }));
+                setSelectedTicket(prev => {
+                    const newMessage = {
+                        message: currentMessage,
+                        sender: 'user',
+                        createdAt: new Date().toISOString(), // Ensure a valid date for immediate display
+                    };
+                    return {
+                        ...prev,
+                        messages: [...prev.messages, newMessage]
+                    };
+                });
                 setCurrentMessage(''); // Clear the input field
             } else {
                 toast.error(response.data.message);

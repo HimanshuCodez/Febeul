@@ -136,11 +136,10 @@ export const userReplyToTicket = async (req, res) => {
 
 // Admin Panel: Reply to a ticket (This is for replies originating from the dedicated admin panel)
 export const adminPanelReplyToTicket = async (req, res) => {
-    const { ticketId, message } = req.body;
+    const { ticketId, message, sender } = req.body;
     
-    // As per user's request: "just a normal user can reply from admin panel" to ANY ticket.
-    // So, sender is 'user', and no ownership check is performed.
-    const senderType = 'user'; // Still recorded as a user's message
+    // Use the sender provided in the request body (should be 'admin' from the admin panel)
+    const senderType = sender;
 
     try {
         const ticket = await ticketModel.findById(ticketId);
