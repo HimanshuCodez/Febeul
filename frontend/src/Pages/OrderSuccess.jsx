@@ -421,7 +421,7 @@ export default function OrderSuccess() {
           transition={{ delay: 1 }}
           className="mt-6 text-center text-gray-600 text-sm"
         >
-          <p>Need help with your order? <a href="#" className="text-[#e8767a] hover:underline font-semibold">Contact Support</a></p>
+          <p>Need help with your order? <Link to="/support" className="text-[#e8767a] hover:underline font-semibold">Contact Support</Link></p>
         </motion.div>
       </div>
     </div>

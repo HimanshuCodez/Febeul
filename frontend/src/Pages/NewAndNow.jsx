@@ -3,6 +3,8 @@ import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL; // Declare backendUrl here
+
 const NewAndNow = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,12 +13,10 @@ const NewAndNow = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get("https://febeul.onrender.com/api/product/list");
+        const response = await axios.get(`${backendUrl}/api/product/list?category=NEW%20%26%20NOW`);
         if (response.data.success) {
-          const newArrivals = response.data.products.filter(
-            (product) => product.category === 'NEW & NOW'
-          );
-          setProducts(newArrivals);
+          // No need for frontend filtering, backend already handled it
+          setProducts(response.data.products);
         }
       } catch (error) {
         console.error("Error fetching products:", error);
