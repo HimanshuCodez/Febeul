@@ -21,7 +21,7 @@ const SwipingMessages = () => {
       {messages.map((message, index) => (
         <div
           key={index}
-          className="absolute w-full transition-transform duration-1000 ease-in-out"
+          className="absolute bg-black text-white border-none w-full transition-transform duration-1000 ease-in-out"
           style={{ transform: `translateY(${(index - currentIndex) * 100}%)` }}
         >
           {message}

@@ -40,6 +40,7 @@ import OrderDetailPage from "./Pages/OrderDetail"; // Import OrderDetailPage
 import { Toaster } from "react-hot-toast";
 import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
 import MaintenancePage from "./Pages/Maintenance";
+import SwipingMessages from "./components/SwippingMsgs";
 
 const AppContent = () => {
   const location = useLocation();
@@ -50,6 +51,7 @@ const AppContent = () => {
   return (
     <div>
       <Toaster />
+      <SwipingMessages/>
       {showHeaderFooter && <Header />}
       <Routes>
         {/* Default route - Home */}

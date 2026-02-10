@@ -10,6 +10,7 @@ import AboutUs from '../components/AboutUs'
 import LingerieRobeSection from '../components/Pose'
 import DiscountBanner from '../components/JoinNow'
 import Aboutt from '../components/Aboutt'
+import SwipingMessages from '../components/SwippingMsgs'
 
 
 const Home = () => {
