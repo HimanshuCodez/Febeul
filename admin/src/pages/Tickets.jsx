@@ -135,6 +135,12 @@ const Tickets = ({ token }) => {
             Closed
           </button>
         </div>
+        <button
+          onClick={fetchTickets}
+          className="px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+        >
+          Refresh
+        </button>
       </div>
 
       {/* Tickets List */}
@@ -231,27 +237,33 @@ const Tickets = ({ token }) => {
                   <p className='text-sm text-gray-500'>No messages yet.</p>
                 )}
               </div>
-              {/* Message input and send button for admin */}
-              <div className='flex items-center gap-2 mt-4 pt-4 border-t border-gray-200'>
-                <input
-                  type="text"
-                  value={adminMessage}
-                  onChange={(e) => setAdminMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      sendAdminReply(selectedTicket._id);
-                    }
-                  }}
-                  placeholder="Type your reply..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                />
-                <button
-                  onClick={() => sendAdminReply(selectedTicket._id)}
-                  className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors"
-                >
-                  Send
-                </button>
-              </div>
+              {selectedTicket.status === 'closed' ? (
+                <div className='mt-4 p-4 bg-gray-100 text-gray-700 rounded-md text-center'>
+                  <p className='font-semibold'>Conversation is ended.</p>
+                  <p>Please create a new ticket for further issues.</p>
+                </div>
+              ) : (
+                <div className='flex items-center gap-2 mt-4 pt-4 border-t border-gray-200'>
+                  <input
+                    type="text"
+                    value={adminMessage}
+                    onChange={(e) => setAdminMessage(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        sendAdminReply(selectedTicket._id);
+                      }
+                    }}
+                    placeholder="Type your reply..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                  />
+                  <button
+                    onClick={() => sendAdminReply(selectedTicket._id)}
+                    className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
+              )}
 
               {selectedTicket.images && selectedTicket.images.length > 0 && (
                 <div className='space-y-2 pt-4 border-t border-gray-200'>

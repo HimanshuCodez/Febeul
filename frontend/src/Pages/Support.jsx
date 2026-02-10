@@ -152,10 +152,18 @@ const Support = () => {
                 <div className="bg-white rounded-lg shadow-md p-8">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-semibold text-gray-800">My Tickets</h2>
-                        <button onClick={() => setIsCreating(!isCreating)} className="bg-pink-500 text-white py-2 px-4 rounded-md font-semibold hover:bg-pink-600 transition-colors flex items-center space-x-2">
-                            <Plus size={20} />
-                            <span>{isCreating ? 'Cancel' : 'New Ticket'}</span>
-                        </button>
+                        <div className="flex items-center space-x-4">
+                            <button
+                                onClick={fetchUserTickets}
+                                className="bg-blue-500 text-white py-2 px-4 rounded-md font-semibold hover:bg-blue-600 transition-colors"
+                            >
+                                Refresh
+                            </button>
+                            <button onClick={() => setIsCreating(!isCreating)} className="bg-pink-500 text-white py-2 px-4 rounded-md font-semibold hover:bg-pink-600 transition-colors flex items-center space-x-2">
+                                <Plus size={20} />
+                                <span>{isCreating ? 'Cancel' : 'New Ticket'}</span>
+                            </button>
+                        </div>
                     </div>
 
                     {isCreating && (
@@ -244,27 +252,33 @@ const Support = () => {
                                     </div>
                                 ))}
                             </div>
-                            {/* Message input and send button */}
-                            <div className='flex items-center gap-2 mt-4 pt-4 border-t border-gray-200'>
-                                <input
-                                    type="text"
-                                    value={currentMessage}
-                                    onChange={(e) => setCurrentMessage(e.target.value)}
-                                    onKeyPress={(e) => {
-                                        if (e.key === 'Enter') {
-                                            handleSendMessage(selectedTicket._id);
-                                        }
-                                    }}
-                                    placeholder="Type your message..."
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                                />
-                                <button
-                                    onClick={() => handleSendMessage(selectedTicket._id)}
-                                    className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600 transition-colors"
-                                >
-                                    <Send size={20} />
-                                </button>
-                            </div>
+                            {selectedTicket.status === 'closed' ? (
+                                <div className='mt-4 p-4 bg-gray-100 text-gray-700 rounded-md text-center'>
+                                    <p className='font-semibold'>Conversation is ended.</p>
+                                    <p>Please create a new ticket for further issues.</p>
+                                </div>
+                            ) : (
+                                <div className='flex items-center gap-2 mt-4 pt-4 border-t border-gray-200'>
+                                    <input
+                                        type="text"
+                                        value={currentMessage}
+                                        onChange={(e) => setCurrentMessage(e.target.value)}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                handleSendMessage(selectedTicket._id);
+                                            }
+                                        }}
+                                        placeholder="Type your message..."
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                                    />
+                                    <button
+                                        onClick={() => handleSendMessage(selectedTicket._id)}
+                                        className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600 transition-colors"
+                                    >
+                                        <Send size={20} />
+                                    </button>
+                                </div>
+                            )}
 
                             {selectedTicket.images && selectedTicket.images.length > 0 && (
                                 <div className='space-y-2 pt-4 border-t border-gray-200'>
