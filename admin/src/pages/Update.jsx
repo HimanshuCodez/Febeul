@@ -162,7 +162,7 @@ const Update = ({ token }) => {
             formData.append("packer", packer);
             formData.append("includedComponents", includedComponents);
             formData.append("fabric", fabric);
-            formData.append("type", type);
+            formData.append("type", type); // Modified line
             formData.append("pattern", pattern);
             formData.append("sleeveStyle", sleeveStyle);
             formData.append("sleeveLength", sleeveLength);
@@ -444,8 +444,8 @@ const Update = ({ token }) => {
            
 
             <div className='flex gap-2 mt-2'>
-                <input onChange={() => setIsLuxePrive(prev => !prev)} checked={isLuxePrive} type="checkbox" id='isLuxePrive' />
-                <label className='cursor-pointer' htmlFor="isLuxePrive">Add to Luxe Prive Sale</label>
+                <input onChange={() => setIsLuxePrive(prev => !prev)}
+                          checked={isLuxePrive} type="checkbox" id='isLuxePrive' />                <label className='cursor-pointer' htmlFor="isLuxePrive">Add to Luxe Prive Sale</label>
             </div>
 
             <button type="submit" className='w-28 py-3 mt-4 bg-black text-white rounded-md'>UPDATE</button>

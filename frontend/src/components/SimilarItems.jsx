@@ -67,11 +67,11 @@ const SimilarItems = ({ productId, token }) => {
               </p>
               <div className="flex items-center mt-2">
                 <span className="text-md font-bold text-gray-900">
-                  ₹{product.price}
+                  ₹{product.variations?.[0]?.sizes?.[0]?.price || 'N/A'}
                 </span>
-                {product.mrp > product.price && (
+                {product.variations?.[0]?.sizes?.[0]?.mrp > product.variations?.[0]?.sizes?.[0]?.price && (
                   <span className="text-xs text-gray-500 line-through ml-2">
-                    ₹{product.mrp}
+                    ₹{product.variations?.[0]?.sizes?.[0]?.mrp}
                   </span>
                 )}
               </div>

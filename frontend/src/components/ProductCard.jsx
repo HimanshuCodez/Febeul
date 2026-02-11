@@ -16,6 +16,17 @@ const ProductCard = ({ product }) => {
   const { user, token, isAuthenticated, fetchWishlistCount } = useAuthStore();
   const navigate = useNavigate();
 
+  const isLuxeMember = user?.isLuxeMember;
+
+  const handleProductClick = (e) => {
+    if (product.isLuxePrive && !isLuxeMember) {
+      e.preventDefault(); // Prevent default Link navigation
+      navigate('/luxe');
+      toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
+    }
+    // If not Luxe Prive or if user is a Luxe Member, allow default navigation
+  };
+
   useEffect(() => {
     const checkWishlist = async () => {
       if (isAuthenticated && user) {
@@ -87,7 +98,11 @@ const ProductCard = ({ product }) => {
         setActiveVariationIndex(0); // Reset to first variation when not hovering
       }}
     >
-      <Link to={`/product/${product._id}`} className="block">
+      <Link
+        to={product.isLuxePrive && !isLuxeMember ? '#' : `/product/${product._id}`}
+        onClick={handleProductClick}
+        className={`block ${product.isLuxePrive && !isLuxeMember ? 'cursor-not-allowed' : ''}`}
+      >
         {/* Image Container */}
         <div className="relative overflow-hidden bg-gray-50 rounded-xl mb-4 aspect-[3/4]">
           <motion.img
@@ -119,8 +134,13 @@ const ProductCard = ({ product }) => {
             <button
               title="View Product"
               onClick={(e) => {
-                e.preventDefault();
-                navigate(`/product/${product._id}`);
+                e.preventDefault(); // Prevent default button action
+                if (product.isLuxePrive && !isLuxeMember) {
+                  navigate('/luxe');
+                  toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
+                } else {
+                  navigate(`/product/${product._id}`);
+                }
               }}
               className="bg-white p-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-pink-50"
             >
