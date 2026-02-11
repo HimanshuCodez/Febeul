@@ -78,7 +78,9 @@ const listProducts = async (req, res) => {
             filter.category = { $regex: new RegExp(category.replace(/-/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case
         }
         if (type) {
-            filter.type = { $regex: new RegExp(type.replace(/'/g, ''), 'i') }; // Case-insensitive match, handle apostrophes only
+            // Convert incoming "above knee b doll" to "above-knee-b-doll" for matching
+            const normalizedType = type.replace(/\s/g, '-').replace(/'/g, '').toLowerCase();
+            filter.type = { $regex: new RegExp(normalizedType, 'i') };
         }
 
         if (search) {
