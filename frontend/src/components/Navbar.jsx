@@ -317,7 +317,7 @@ export default function Header() {
                                         {links.map((link, linkIndex) => (
                                           <li key={linkIndex}>
                                             <Link
-                                              to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/ /g, "-")}`}
+                                              to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/'/g, '').replace(/ /g, "-")}`}
                                               className="text-sm text-gray-700 hover:text-[#f9aeaf] hover:underline"
                                             >
                                               {link.includes("New") ? (
@@ -425,7 +425,7 @@ export default function Header() {
                             {links.map((link, linkIndex) => (
                               <Link
                                 key={linkIndex}
-                                to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/ /g, "-")}`}
+                                to={`/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}/${category.toLowerCase()}/${link.toLowerCase().replace(/'/g, '').replace(/ /g, "-")}`}
                                 className="block px-3 py-2 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                                 onClick={() => setIsMenuOpen(false)} // Close menu when navigating
                               >
