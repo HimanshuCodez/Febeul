@@ -64,7 +64,7 @@ const AllProducts = () => {
           
           // Set price range based on products
           if (fetchedProducts.length > 0) {
-            const allVariationPrices = fetchedProducts.flatMap(p => p.variations.map(v => v.price)).filter(Boolean);
+            const allVariationPrices = fetchedProducts.flatMap(p => p.variations.flatMap(v => v.sizes.map(s => s.price))).filter(Boolean);
             if (allVariationPrices.length > 0) {
                 setPriceRange([0, Math.max(...allVariationPrices)]);
             } else {
@@ -89,7 +89,13 @@ const AllProducts = () => {
     let result = [...products];
 
     // Price filter
-    result = result.filter(p => p.variations.some(v => v.price >= priceRange[0] && v.price <= priceRange[1]));
+    result = result.filter(p => p.variations.some(v => 
+        v.sizes && v.sizes.length > 0 && 
+        v.sizes[0].price !== undefined && 
+        !isNaN(v.sizes[0].price) &&
+        v.sizes[0].price >= priceRange[0] && 
+        v.sizes[0].price <= priceRange[1]
+    ));
 
     // Color filter
     if (selectedColors.length > 0) {

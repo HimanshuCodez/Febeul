@@ -4,7 +4,7 @@ import productModel from "../models/productModel.js"
 // function for add product
 const addProduct = async (req, res) => {
     try {
-        const { name, description, category, subCategory, sizes, bestseller, isLuxePrive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
+        const { name, description, category, sizes, bestseller, isLuxePrive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
         const variations = JSON.parse(variationsJSON);
         const files = req.files;
 
@@ -31,7 +31,6 @@ const addProduct = async (req, res) => {
                         name,
                         description,
                         category,
-                        subCategory,
                         bestseller: bestseller === "true" ? true : false,
                         isLuxePrive: isLuxePrive === "true" ? true : false,
                         variations: processedVariations,
@@ -72,24 +71,21 @@ const addProduct = async (req, res) => {
 // function for list product
 const listProducts = async (req, res) => {
     try {
-        const { category, type, subCategory, search, isLuxePrive } = req.query; // Extract query parameters
+        const { category, type, search, isLuxePrive } = req.query; // Extract query parameters
         let filter = {};
 
         if (category) {
             filter.category = { $regex: new RegExp(category.replace(/-/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case
         }
         if (type) {
-            filter.type = { $regex: new RegExp(type.replace(/[-']/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case and apostrophes
+            filter.type = { $regex: new RegExp(type.replace(/'/g, ''), 'i') }; // Case-insensitive match, handle apostrophes only
         }
-        if (subCategory) {
-            filter.subCategory = { $regex: new RegExp(subCategory.replace(/-/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case
-        }
+
         if (search) {
             filter.$or = [
                 { name: { $regex: search, $options: 'i' } },
                 { description: { $regex: search, $options: 'i' } },
                 { category: { $regex: search, $options: 'i' } },
-                { subCategory: { $regex: search, $options: 'i' } },
                 { fabric: { $regex: search, $options: 'i' } },
                 { type: { $regex: search, $options: 'i' } },
                 { pattern: { $regex: search, $options: 'i' } },
@@ -147,7 +143,7 @@ const singleProduct = async (req, res) => {
 // function for updating product
 const updateProduct = async (req, res) => {
     try {
-        const { productId, name, description, category, subCategory, bestseller, isLuxePrive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
+        const { productId, name, description, category, bestseller, isLuxePrive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
         
         const product = await productModel.findById(productId);
         if (!product) {
@@ -194,7 +190,7 @@ const updateProduct = async (req, res) => {
         product.name = name;
         product.description = description;
         product.category = category;
-        product.subCategory = subCategory;
+
         product.bestseller = bestseller === "true" ? true : false;
         product.isLuxePrive = isLuxePrive === "true" ? true : false;
         product.styleCode = styleCode;

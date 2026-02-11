@@ -18,7 +18,7 @@ const Update = ({ token }) => {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [category, setCategory] = useState("BABYDOLL");
-    const [subCategory, setSubCategory] = useState("Topwear");
+
     const [bestseller, setBestseller] = useState(false);
     const [isLuxePrive, setIsLuxePrive] = useState(false);
     const [loading, setLoading] = useState(false); // Added loading state
@@ -53,7 +53,7 @@ const Update = ({ token }) => {
                     setName(product.name);
                     setDescription(product.description);
                     setCategory(product.category);
-                    setSubCategory(product.subCategory);
+
                     setBestseller(product.bestseller);
                     // setSizes(product.sizes); // Removed top-level sizes
                     setIsLuxePrive(product.isLuxePrive || false);
@@ -154,7 +154,7 @@ const Update = ({ token }) => {
             formData.append("name", name);
             formData.append("description", description);
             formData.append("category", category);
-            formData.append("subCategory", subCategory);
+
             formData.append("bestseller", bestseller);
             formData.append("isLuxePrive", isLuxePrive);
             formData.append("countryOfOrigin", countryOfOrigin);
@@ -334,14 +334,7 @@ const Update = ({ token }) => {
                         <option value="GIFT WRAP">GIFT WRAP</option>
                     </select>
                 </div>
-                <div>
-                    <p className='mb-2'>Sub category</p>
-                    <select onChange={(e) => setSubCategory(e.target.value)} value={subCategory} className='w-full px-3 py-2 border rounded-md'>
-                        <option value="Topwear">Topwear</option>
-                        <option value="Bottomwear">Bottomwear</option>
-                        <option value="Winterwear">Winterwear</option>
-                    </select>
-                </div>
+
                 
             </div>
 

@@ -15,7 +15,7 @@ const Add = ({ token }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("BABYDOLL");
-  const [subCategory, setSubCategory] = useState("Topwear");
+  
   const [bestseller, setBestseller] = useState(false);
   const [isLuxePrive, setIsLuxePrive] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -104,12 +104,31 @@ const Add = ({ token }) => {
     }, 500); // Update every 500ms (adjust as needed)
 
     try {
+      // Validate variations: must have at least one size with price and mrp
+      for (const variation of variations) {
+        if (!variation.sizes || variation.sizes.length === 0) {
+          toast.error(`Variation with color '${variation.color || "N/A"}' must have at least one size.`);
+          setLoading(false);
+          clearInterval(interval);
+          setUploadProgress(0);
+          return;
+        }
+        for (const size of variation.sizes) {
+          if (!size.price || !size.mrp || parseFloat(size.price) <= 0 || parseFloat(size.mrp) <= 0) {
+            toast.error(`Size '${size.size}' in variation with color '${variation.color || "N/A"}' must have valid positive Price and MRP.`);
+            setLoading(false);
+            clearInterval(interval);
+            setUploadProgress(0);
+            return;
+          }
+        }
+      }
+
       const formData = new FormData();
 
       formData.append("name", name);
       formData.append("description", description);
       formData.append("category", category);
-      formData.append("subCategory", subCategory);
       formData.append("bestseller", bestseller);
       formData.append("isLuxePrive", isLuxePrive);
       formData.append("countryOfOrigin", countryOfOrigin);
