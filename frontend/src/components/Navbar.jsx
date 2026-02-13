@@ -116,7 +116,7 @@ export default function Header() {
     {
       title: "BABYDOLL",
       megaMenu: {
-                    Type: ["Above knee B-doll", "Knee Length B'doll","One piece B'doll","Two Piece B'doll"],            Fabric: ["Satin", "Lace", "Net", "Silk Satin"],
+                    Type: ["Above knee B-doll", "Knee Length B-doll","One piece B-doll","Two Piece B-doll"],            Fabric: ["Satin", "Lace", "Net", "Silk Satin"],
       },
     },
     {
@@ -125,7 +125,7 @@ export default function Header() {
         Type: [
           "Teddy Choker Lingz",
           "Bra Panty Lingz",
-         
+          
         ],
         // Waist: ["High waist", "Low waist", "Mid waist"],
         // Fabric: ["Cotton", "Lace", "Polyamide", "Modal"],

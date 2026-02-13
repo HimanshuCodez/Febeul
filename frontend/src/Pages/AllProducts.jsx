@@ -216,7 +216,7 @@ const AllProducts = () => {
         <div className="flex gap-6">
           {/* Sidebar Filters */}
           <aside className={`
-            fixed md:sticky top-0 left-0 z-50 h-screen md:h-auto
+            fixed md:sticky md:top-[120px] left-0 h-screen md:h-auto
             w-72 md:w-64 bg-white md:bg-transparent
             transform transition-transform duration-300 ease-in-out
             ${showFilters ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}

@@ -498,9 +498,8 @@ const Add = ({ token }) => {
             <option value="one-piece-b-doll">One piece B'doll</option>
             <option value="two-piece-b-doll">Two Piece B'doll</option>
             <option value="teddy-choker-lingz">Teddy Choker Lingz</option>
-            <option value="bra-panty-lingz-silk-satin">
-              Bra Panty Lingz Slik Satin
-            </option>
+            <option value="bra-panty-lingz">Bra Panty Lingz</option>
+            <option value="silk-satin">Slik Satin</option>
             <option value="sheer-mesh">Sheer Mesh</option>
           </select>
         </div>
