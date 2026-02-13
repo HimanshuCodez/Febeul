@@ -39,6 +39,7 @@ const ProductDetailPage = () => {
   const [numOfReviews, setNumOfReviews] = useState(0); // New state for number of reviews
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // New state for applied coupon
 
   useEffect(() => {
     if (isAuthenticated && user && user.addresses && user.addresses.length > 0) {
@@ -51,6 +52,53 @@ const ProductDetailPage = () => {
     setIsAddressModalOpen(false);
   };
 
+  // Extract all unique SKUs from product variations
+  const productSKUs = product ? [...new Set(product.variations.map(v => v.sku).filter(Boolean))] : [];
+
+  const onRedeemCoupon = async (couponCode) => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to apply coupons.");
+      navigate("/auth");
+      return;
+    }
+    if (!selectedSizeValue) {
+      toast.error("Please select a size first.");
+      return;
+    }
+    if (!selectedVariation || !selectedVariation.sku) {
+      toast.error("Product SKU not found for selected variation.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${backendUrl}/api/coupon/apply-product-coupon`, {
+        code: couponCode,
+        productItem: {
+          sku: selectedVariation.sku,
+          price: displayPrice,
+          quantity: 1,
+        },
+        userId: user._id, // Pass userId for usage limits
+      }, { headers: { token } });
+
+      if (response.data.success) {
+        toast.success(`Coupon '${couponCode}' applied! You save ₹${response.data.discountAmount.toFixed(2)}.`);
+        setAppliedCoupon({
+          code: couponCode,
+          discountAmount: response.data.discountAmount,
+          discountType: response.data.discountType,
+          discountValue: response.data.discountValue,
+        });
+      } else {
+        toast.error(response.data.message);
+        setAppliedCoupon(null);
+      }
+    } catch (error) {
+      console.error('Error applying product coupon:', error);
+      toast.error(error.response?.data?.message || 'Failed to apply coupon.');
+      setAppliedCoupon(null);
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -175,6 +223,10 @@ const ProductDetailPage = () => {
   const currentSizeData = selectedVariation.sizes?.find(s => s.size === selectedSizeValue);
   const displayPrice = currentSizeData?.price;
   const displayMrp = currentSizeData?.mrp;
+
+  const finalDisplayPrice = appliedCoupon 
+    ? Math.max(0, displayPrice - appliedCoupon.discountAmount) 
+    : displayPrice;
 
   const discount =
     displayMrp > displayPrice
@@ -346,7 +398,20 @@ const ProductDetailPage = () => {
 
               <hr className="my-4" />
 
-              <CouponShows />
+              <CouponShows productSKUs={productSKUs} onRedeem={onRedeemCoupon} />
+
+              {appliedCoupon && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mt-4">
+                  <strong className="font-bold">Coupon Applied: </strong>
+                  <span className="block sm:inline">{appliedCoupon.code} - You save ₹{appliedCoupon.discountAmount.toFixed(2)}</span>
+                  <button
+                    onClick={() => setAppliedCoupon(null)}
+                    className="ml-4 text-sm underline hover:text-green-900"
+                  >
+                    Remove Coupon
+                  </button>
+                </div>
+              )}
 
               <div>
                 <h2 className="text-base font-bold text-gray-800 mb-2">
@@ -364,7 +429,7 @@ const ProductDetailPage = () => {
               <div className="border border-gray-300 rounded-lg p-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-gray-900">
-                    ₹{displayPrice?.toLocaleString('en-IN')} {/* Use displayPrice */}
+                    ₹{finalDisplayPrice?.toLocaleString('en-IN')} {/* Use finalDisplayPrice */}
                   </span>
                   {displayMrp > displayPrice && ( // Use displayMrp and displayPrice
                     <span className="text-base text-gray-500 line-through">
