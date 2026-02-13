@@ -11,6 +11,8 @@ const couponSchema = new mongoose.Schema({
     usageLimitPerUser: { type: Number, default: 1 }, // How many times a single user can use it
     expiryDate: { type: Date, required: true },
     isActive: { type: Boolean, default: true },
+    userType: { type: String, enum: ['normal', 'luxe'], default: 'normal' }, // For specific user groups
+    applicableSKUs: { type: [String], default: [] }, // For specific products by SKU
     usersWhoUsed: [{ 
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     }]

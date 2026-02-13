@@ -17,6 +17,7 @@ const Coupons = ({ token }) => {
     expiryDate: '',
     isActive: true,
     userType: 'normal', // 'normal' or 'luxe'
+    applicableSKUs: '', // Comma-separated SKUs
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -88,15 +89,15 @@ const Coupons = ({ token }) => {
 
     setIsSubmitting(true);
     try {
-      const payload = {
-        ...newCoupon,
-        description: newCoupon.description || undefined,
-        discountValue: parseFloat(newCoupon.discountValue),
-        minOrderAmount: newCoupon.minOrderAmount ? parseFloat(newCoupon.minOrderAmount) : undefined,
-        usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : undefined,
-        usageLimitPerUser: newCoupon.usageLimitPerUser ? parseInt(newCoupon.usageLimitPerUser) : undefined,
-      };
-      const response = await axios.post(`${backendUrl}/api/coupon/add`, payload, { headers: { token } });
+              const payload = {
+              ...newCoupon,
+              description: newCoupon.description || undefined,
+              discountValue: parseFloat(newCoupon.discountValue),
+              minOrderAmount: newCoupon.minOrderAmount ? parseFloat(newCoupon.minOrderAmount) : undefined,
+              usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : undefined,
+              usageLimitPerUser: newCoupon.usageLimitPerUser ? parseInt(newCoupon.usageLimitPerUser) : undefined,
+              applicableSKUs: newCoupon.applicableSKUs ? newCoupon.applicableSKUs.split(',').map(s => s.trim()).filter(s => s) : [],
+            };      const response = await axios.post(`${backendUrl}/api/coupon/add`, payload, { headers: { token } });
       if (response.data.success) {
         toast.success('Coupon added successfully!');
         setNewCoupon({
@@ -110,6 +111,7 @@ const Coupons = ({ token }) => {
           expiryDate: '',
           isActive: true,
           userType: 'normal',
+          applicableSKUs: '',
         });
         fetchCoupons(); // Refresh the list
       } else {
@@ -293,6 +295,20 @@ const Coupons = ({ token }) => {
             />
           </div>
 
+          <div className='md:col-span-2'>
+            <label htmlFor='applicableSKUs' className='block text-sm font-medium text-gray-700 mb-1'>Applicable SKUs (Optional)</label>
+            <input
+              type='text'
+              id='applicableSKUs'
+              name='applicableSKUs'
+              value={newCoupon.applicableSKUs}
+              onChange={handleInputChange}
+              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
+              placeholder='e.g., SKU1,SKU2,SKU3 (comma-separated)'
+            />
+            <p className='text-xs text-gray-500 mt-1'>Leave blank to apply to all products.</p>
+          </div>
+
           <div className='col-span-1 md:col-span-2 flex items-center'>
             <input
               type='checkbox'
@@ -333,6 +349,7 @@ const Coupons = ({ token }) => {
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Description</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Discount</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Min Order</th>
+                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Applicable SKUs</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Usage Limit</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Per User</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Expires On</th>
@@ -351,6 +368,9 @@ const Coupons = ({ token }) => {
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                       {coupon.minOrderAmount ? `₹${coupon.minOrderAmount.toFixed(2)}` : 'N/A'}
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                      {coupon.applicableSKUs && coupon.applicableSKUs.length > 0 ? coupon.applicableSKUs.join(', ') : 'All'}
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                       {coupon.usageLimit ? coupon.usageLimit : 'Unlimited'}

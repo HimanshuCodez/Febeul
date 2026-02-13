@@ -18,6 +18,7 @@ const addProduct = async (req, res) => {
             );
             return {
                 color: variation.color,
+                            sku: variation.sku,
                             images: imagesUrl,
                             sizes: variation.sizes.map(s => ({ // Process sizes array
                                 size: s.size,
@@ -180,6 +181,7 @@ const updateProduct = async (req, res) => {
 
             return {
                 color: variation.color,
+                sku: variation.sku,
                 images: [...existingImages, ...newImagesUrl],
                 sizes: variation.sizes.map(s => ({ // Process sizes array
                     size: s.size,
