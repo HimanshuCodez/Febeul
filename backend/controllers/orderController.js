@@ -81,7 +81,15 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
         giftWrapPrice = 0; // Luxe members get gift wrap for free
     }
     
-    const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice - couponDiscount;
+    // Calculate subtotal for GST (productAmount - couponDiscount)
+    const subtotalForGST = productAmount - couponDiscount;
+    const gstRate = 0.09; // 9% for CGST and SGST
+    const cgstAmount = subtotalForGST * gstRate;
+    const sgstAmount = subtotalForGST * gstRate;
+    const totalGst = cgstAmount + sgstAmount;
+
+    // Recalculate orderTotal to include GST
+    const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice + totalGst - couponDiscount;
 
     return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember };
 };

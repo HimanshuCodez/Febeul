@@ -175,10 +175,10 @@ const buildInvoicePDF = (order, res) => {
         doc.text(order.address.address, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
         currentYLeft = doc.y; // Update Y after multi-line text
 
-        doc.text(`${order.address.city}, ${order.address.zip}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
+        doc.text(`${order.address.city}, ${order.address.state}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
         currentYLeft = doc.y;
 
-        doc.text(order.address.country, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
+        doc.text(`${order.address.zip}, ${order.address.country}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
         currentYLeft = doc.y;
 
         doc.text(`Phone: ${order.address.phone}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
@@ -210,10 +210,10 @@ const buildInvoicePDF = (order, res) => {
         doc.text(order.address.address, rightColumnX, currentYRight, { width: addressBlockWidth });
         currentYRight = doc.y;
 
-        doc.text(`${order.address.city}, ${order.address.zip}`, rightColumnX, currentYRight, { width: addressBlockWidth });
+        doc.text(`${order.address.city}, ${order.address.state}`, rightColumnX, currentYRight, { width: addressBlockWidth });
         currentYRight = doc.y;
 
-        doc.text(order.address.country, rightColumnX, currentYRight, { width: addressBlockWidth });
+        doc.text(`${order.address.zip}, ${order.address.country}`, rightColumnX, currentYRight, { width: addressBlockWidth });
         currentYRight = doc.y;
 
         doc.text(`Phone: ${order.address.phone}`, rightColumnX, currentYRight, { width: addressBlockWidth });
@@ -301,11 +301,11 @@ const buildInvoicePDF = (order, res) => {
                 doc.fillColor(mediumGray)
                    .font('Helvetica')
                    .text(item.quantity, qtyColX + 5, itemY, { width: 50, align: 'center' })
-                   .text(`₹${itemPrice.toFixed(2)}`, priceColX + 5, itemY, { width: 70, align: 'right' });
+                   .text(`INR ${itemPrice.toFixed(2)}`, priceColX + 5, itemY, { width: 70, align: 'right' });
                 
                 doc.fillColor(darkGray)
                    .font('Helvetica-Bold')
-                   .text(`₹${itemTotal.toFixed(2)}`, totalColX, itemY, { width: 55, align: 'right' });
+                   .text(`INR ${itemTotal.toFixed(2)}`, totalColX, itemY, { width: 55, align: 'right' });
                 
                 doc.y = itemY + 16;
             } catch (itemError) {
@@ -355,24 +355,24 @@ const buildInvoicePDF = (order, res) => {
             doc.moveDown(0.6);
         };
         
-        addTotalRow('Subtotal:', `₹${invoiceItemSubtotal.toFixed(2)}`);
-        addTotalRow('CGST (9%):', `₹${cgst.toFixed(2)}`);
-        addTotalRow('SGST (9%):', `₹${sgst.toFixed(2)}`);
+        addTotalRow('Subtotal:', `INR ${invoiceItemSubtotal.toFixed(2)}`);
+        addTotalRow('CGST (9%):', `INR ${cgst.toFixed(2)}`);
+        addTotalRow('SGST (9%):', `INR ${sgst.toFixed(2)}`);
         
         // Display Shipping Charges separately
         if (invoiceShippingOnlyCost > 0) {
-            addTotalRow('Shipping Charges:', `₹${invoiceShippingOnlyCost.toFixed(2)}`);
+            addTotalRow('Shipping Charges:', `INR ${invoiceShippingOnlyCost.toFixed(2)}`);
         } else if (invoiceCodCharge === 0) { // Only show 'FREE' if no shipping and no COD charges
             addTotalRow('Shipping:', 'FREE');
         }
 
         // Display COD Charges separately
         if (invoiceCodCharge > 0) {
-            addTotalRow('COD Charges:', `₹${invoiceCodCharge.toFixed(2)}`);
+            addTotalRow('COD Charges:', `INR ${invoiceCodCharge.toFixed(2)}`);
         }
 
         if (invoiceGiftWrapPrice > 0) {
-            addTotalRow('Gift Wrap:', `₹${invoiceGiftWrapPrice.toFixed(2)}`);
+            addTotalRow('Gift Wrap:', `INR ${invoiceGiftWrapPrice.toFixed(2)}`);
         }
 
         doc.moveDown(0.3);
@@ -389,7 +389,7 @@ const buildInvoicePDF = (order, res) => {
            .fontSize(12)
            .font('Helvetica-Bold')
            .text('GRAND TOTAL:', totalsLabelX, grandTotalY + 5, { width: 110, align: 'right' })
-           .text(`₹${(order.orderTotal || 0).toFixed(2)}`, totalsValueX, grandTotalY + 5, { width: 55, align: 'right' });
+           .text(`INR ${(order.orderTotal || 0).toFixed(2)}`, totalsValueX, grandTotalY + 5, { width: 55, align: 'right' });
 
         // ===================================
         // PAYMENT INFO BOX
