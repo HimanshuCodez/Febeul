@@ -11,13 +11,14 @@ import ManageGiftWraps from './pages/ManageGiftWraps'
 import PolicyUpdate from './pages/PolicyUpdate' // Import the PolicyUpdate component
 import Coupons from './pages/Coupons' // Import the Coupons component
 import Tickets from './pages/Tickets' // Import the Tickets component
+import ReviewsAdmin from './pages/ReviewsAdmin' // Import the ReviewsAdmin component
 import FebeulDashboard from './pages/Dashboard' // Import the Dashboard component
 import Login from './components/Login'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL
-export const currency = '$'
+export const currency = '₹'
 
 const App = () => {
 
@@ -49,6 +50,7 @@ const App = () => {
                 <Route path='/policy-update' element={<PolicyUpdate token={token} />} />
                 <Route path='/coupons' element={<Coupons token={token} />} />
                 <Route path='/tickets' element={<Tickets token={token} />} />
+                <Route path='/reviews' element={<ReviewsAdmin token={token} />} />
               </Routes>
             </div>
           </div>

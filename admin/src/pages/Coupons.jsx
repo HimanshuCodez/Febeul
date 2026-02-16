@@ -230,7 +230,7 @@ const Coupons = ({ token }) => {
               value={newCoupon.discountValue}
               onChange={handleInputChange}
               className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-              placeholder='e.g., 10 (for 10% or $10)'
+              placeholder='e.g., 10 (for 10% or ₹10)'
               min='0.01'
               step='0.01'
               required

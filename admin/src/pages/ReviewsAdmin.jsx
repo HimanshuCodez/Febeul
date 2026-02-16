@@ -2,27 +2,20 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 // Assuming an admin auth context exists to get the token
 // import useAdminAuth from '../hooks/useAdminAuth'; 
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const ReviewsAdmin = () => {
-    // const { token } = useAdminAuth(); // Assuming this hook provides the admin token
-    // For now, using a placeholder token. Replace with actual admin token retrieval.
-    const token = "ADMIN_PLACEHOLDER_TOKEN"; 
+const ReviewsAdmin = ({ token }) => {
 
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (token && token !== "ADMIN_PLACEHOLDER_TOKEN") { // Only fetch if a valid token exists
+        if (token) { // Only fetch if a valid token is provided
             fetchAllReviews();
-        } else if (token === "ADMIN_PLACEHOLDER_TOKEN") {
-             // If using placeholder, mock data or show a message to replace token
-            console.warn("Using placeholder admin token. Please implement actual token retrieval.");
-            setLoading(false);
-            // Optionally, fetch some mock data for development if needed
         } else {
             toast.error("Admin not authenticated.");
             setLoading(false);
@@ -118,7 +111,9 @@ const ReviewsAdmin = () => {
                                             className="w-16 h-16 object-cover rounded mr-3"
                                         />
                                     )}
-                                    <p className="font-medium text-blue-600">{review.productId?.name || 'Unknown Product'}</p>
+                                    <Link to={`/product/${review.productId?._id}`} target="_blank" className="font-medium text-blue-600 hover:underline">
+                                        {review.productId?.name || 'Unknown Product'}
+                                    </Link>
                                 </div>
                             </div>
 
