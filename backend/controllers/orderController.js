@@ -68,7 +68,12 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     let giftWrapPrice = giftWrapData ? parseFloat(giftWrapData.price || 0) : 0;
 
     let shippingCharge = 0;
-    let codCharge = 0;
+    let codCharge = 0; 
+    
+    // Determine COD charge based on paymentMethod
+    if (paymentMethod === 'COD') {
+        codCharge = COD_CHARGE_AMOUNT;
+    }
     const user = await userModel.findById(userId); // Fetch user to check luxe status
     const isLuxeMember = user?.isLuxeMember || false;
 

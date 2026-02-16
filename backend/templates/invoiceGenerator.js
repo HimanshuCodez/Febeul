@@ -148,51 +148,79 @@ const buildInvoicePDF = (order, res) => {
         // ADDRESSES SECTION
         // ===================================
         
-        const addressY = doc.y;
-        
-        // Billing Address (Left)
+        const addressBlockStartX = 50;
+        const addressBlockStartY = doc.y;
+        const addressBlockWidth = 230; // Max width for address text
+        const columnGap = 20; // Gap between left and right columns
+        const rightColumnX = addressBlockStartX + addressBlockWidth + columnGap;
+
+        // --- Billing Address (Left Column) ---
+        let currentYLeft = addressBlockStartY;
         doc.fillColor(primaryColor)
            .fontSize(11)
            .font('Helvetica-Bold')
-           .text('BILLING ADDRESS', 50, addressY);
+           .text('BILLING ADDRESS', addressBlockStartX, currentYLeft);
         
+        currentYLeft = doc.y + 18; // Space after title
         doc.fillColor(darkGray)
            .fontSize(10)
            .font('Helvetica-Bold')
-           .text(order.address.name, 50, addressY + 18);
-        
+           .text(order.address.name, addressBlockStartX, currentYLeft);
+        currentYLeft = doc.y + 5; // Move down after name
+
         doc.fillColor(mediumGray)
            .font('Helvetica')
-           .fontSize(9)
-           .text(order.address.address, 50, addressY + 33, { width: 230 })
-           .text(`${order.address.city}, ${order.address.zip}`, 50, addressY + 48, { width: 230 })
-           .text(order.address.country, 50, addressY + 63, { width: 230 })
-           .text(`Phone: ${order.address.phone}`, 50, addressY + 78, { width: 230 });
+           .fontSize(9);
+
+        doc.text(order.address.address, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
+        currentYLeft = doc.y; // Update Y after multi-line text
+
+        doc.text(`${order.address.city}, ${order.address.zip}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
+        currentYLeft = doc.y;
+
+        doc.text(order.address.country, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
+        currentYLeft = doc.y;
+
+        doc.text(`Phone: ${order.address.phone}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
+        currentYLeft = doc.y;
 
         if (order.userId && order.userId.email) {
-            doc.text(`Email: ${order.userId.email}`, 50, addressY + 93, { width: 230 });
+            doc.text(`Email: ${order.userId.email}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
+            currentYLeft = doc.y;
         }
 
-        // Shipping Address (Right)
+        // --- Shipping Address (Right Column) ---
+        let currentYRight = addressBlockStartY;
         doc.fillColor(primaryColor)
            .fontSize(11)
            .font('Helvetica-Bold')
-           .text('SHIPPING ADDRESS', 320, addressY);
+           .text('SHIPPING ADDRESS', rightColumnX, currentYRight);
         
+        currentYRight = doc.y + 18; // Space after title (using doc.y after previous text block for correct alignment)
         doc.fillColor(darkGray)
            .fontSize(10)
            .font('Helvetica-Bold')
-           .text(order.address.name, 320, addressY + 18);
-        
+           .text(order.address.name, rightColumnX, currentYRight);
+        currentYRight = doc.y + 5; // Move down after name
+
         doc.fillColor(mediumGray)
            .font('Helvetica')
-           .fontSize(9)
-           .text(order.address.address, 320, addressY + 33, { width: 230 })
-           .text(`${order.address.city}, ${order.address.zip}`, 320, addressY + 48, { width: 230 })
-           .text(order.address.country, 320, addressY + 63, { width: 230 })
-           .text(`Phone: ${order.address.phone}`, 320, addressY + 78, { width: 230 });
+           .fontSize(9);
+        
+        doc.text(order.address.address, rightColumnX, currentYRight, { width: addressBlockWidth });
+        currentYRight = doc.y;
 
-        doc.y = addressY + 105;
+        doc.text(`${order.address.city}, ${order.address.zip}`, rightColumnX, currentYRight, { width: addressBlockWidth });
+        currentYRight = doc.y;
+
+        doc.text(order.address.country, rightColumnX, currentYRight, { width: addressBlockWidth });
+        currentYRight = doc.y;
+
+        doc.text(`Phone: ${order.address.phone}`, rightColumnX, currentYRight, { width: addressBlockWidth });
+        currentYRight = doc.y;
+
+        // Set doc.y to the maximum height of the two columns for the next section
+        doc.y = Math.max(currentYLeft, currentYRight) + 15; // Add some padding
 
         // ===================================
         // ITEMS TABLE
@@ -299,6 +327,12 @@ const buildInvoicePDF = (order, res) => {
         // ===================================
         // TOTALS SECTION
         // ===================================
+        
+        // Calculate dynamic totals
+        const invoiceItemSubtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const gstRate = 0.09; // 9% for CGST and SGST
+        const cgst = invoiceItemSubtotal * gstRate;
+        const sgst = invoiceItemSubtotal * gstRate;
         
         const invoiceShippingOnlyCost = order.shippingCharge || 0;
         const invoiceCodCharge = order.codCharge || 0;
@@ -441,7 +475,11 @@ const buildInvoicePDF = (order, res) => {
            });
 
         doc.fontSize(7)
-           .text('For queries: support@febeul.com | +91-XXXXXXXXXX', 50, footerY + 32, { 
+           .text('For queries: support@febeul.com', 50, footerY + 32, { 
+               align: 'center', 
+               width: doc.page.width - 100 
+           })
+           .text('+91-XXXXXXXXXX', 50, footerY + 42, { // New line, increased Y
                align: 'center', 
                width: doc.page.width - 100 
            });
