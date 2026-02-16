@@ -80,6 +80,12 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     if (isLuxeMember && giftWrapData) { // If user is luxe and gift wrap is requested
         giftWrapPrice = 0; // Luxe members get gift wrap for free
     }
+
+    // Calculate shipping charge based on frontend logic
+    // This logic should be applied *after* determining isLuxeMember
+    if (paymentMethod !== 'COD' && !isLuxeMember && productAmount < SHIPPING_CHARGE_THRESHOLD) {
+        shippingCharge = DEFAULT_SHIPPING_CHARGE;
+    }
     
     // Calculate subtotal for GST (productAmount - couponDiscount)
     const subtotalForGST = productAmount - couponDiscount;

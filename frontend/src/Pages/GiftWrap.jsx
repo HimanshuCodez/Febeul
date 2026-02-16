@@ -59,25 +59,6 @@ export default function GiftWrapPage() {
   const handleAddToCart = async () => {
     toast.success(`${quantity} x ${selectedWrap.name} added to cart!`);
     fetchCartCount(); // Update cart count in store
-
-    if (isLuxeMember && giftWrapsLeft > 0) {
-      try {
-        const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
-        const response = await axios.post(
-          `${backendUrl}/api/user/giftwrap/decrement`,
-          {},
-          { headers: { token } }
-        );
-        if (response.data.success) {
-          getProfile(); // Refresh user profile to get updated giftWrapsLeft
-        } else {
-          toast.error(response.data.message);
-        }
-      } catch (error) {
-        console.error("Error decrementing gift wraps:", error);
-        toast.error("Failed to update gift wrap count.");
-      }
-    }
   }
   
     if (loading) {
@@ -103,7 +84,7 @@ export default function GiftWrapPage() {
                     {isLuxeMember ? (
                       <>
                         <p className="font-semibold text-sm">Welcome Luxe Member!</p>
-                        <p className="text-xs opacity-90">You have {giftWrapsLeft} free gift wraps left this month.</p>
+                        <p className="text-xs opacity-90">You have {giftWrapsLeft} out of 15 free gift wraps left this month.</p>
                       </>
                     ) : (
                       <>

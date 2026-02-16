@@ -287,10 +287,20 @@ const adminLogin = async (req, res) => {
 // get user profile
 const getProfile = async (req,res) => {
     try {
-        const user = await userModel.findById(req.userId).select("-password -otp -otp_expiry");
+        let user = await userModel.findById(req.userId).select("-password -otp -otp_expiry"); // Use 'let' for reassignment
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
+
+        // --- Membership Expiration Check ---
+        if (user.isLuxeMember && user.luxeMembershipExpires && user.luxeMembershipExpires < new Date()) {
+            user.isLuxeMember = false;
+            user.luxeMembershipExpires = null;
+            user.giftWrapsLeft = 0;
+            await user.save(); // Save the updated user status
+        }
+        // --- End Membership Expiration Check ---
+
         res.json({ success: true, user: user });
     } catch (error) {
         console.log(error);

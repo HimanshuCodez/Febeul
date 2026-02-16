@@ -26,7 +26,7 @@ const MembershipStatus = ({ user }) => {
             </p>
             <p className="text-sm opacity-90 flex items-center mt-1">
               <Gift size={14} className="mr-2" />
-              You have <strong>{user.giftWrapsLeft !== undefined ? user.giftWrapsLeft : 15}</strong> free gift wraps left this month.
+              You have <strong>{user.giftWrapsLeft !== undefined ? user.giftWrapsLeft : 15}</strong> out of 15 free gift wraps left this month.
             </p>
           </div>
         </div>
