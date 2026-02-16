@@ -72,8 +72,8 @@ const List = ({ token }) => {
               <img className='w-12' src={item.variations?.[0]?.images?.[0]} alt="" />
               <p>{item.name}</p>
               <p>{item.category}</p>
-              <p>{currency}{item.price}</p>
-              <p>{currency}{item.mrp}</p>
+              <p>{currency}{item.variations?.[0]?.sizes?.[0]?.price}</p>
+              <p>{currency}{item.variations?.[0]?.sizes?.[0]?.mrp}</p>
               <Link to={`/update/${item._id}`} className='text-center cursor-pointer text-lg'>Edit</Link>
               <p onClick={()=>removeProduct(item._id)} className='text-right md:text-center cursor-pointer text-lg'>X</p>
             </div>
