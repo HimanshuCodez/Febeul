@@ -263,6 +263,13 @@ const buildInvoicePDF = (order, res) => {
                    .font('Helvetica-Bold')
                    .text(item.name, itemColX + 5, itemY, { width: qtyColX - itemColX - 15 });
                 
+                if (item.sku) { // Conditionally add SKU
+                    doc.font('Helvetica')
+                       .fontSize(7) // Smaller font for SKU
+                       .fillColor(mediumGray)
+                       .text(`SKU: ${item.sku}`, itemColX + 5, itemY + 10, { width: qtyColX - itemColX - 15 });
+                }
+                
                 doc.fillColor(mediumGray)
                    .font('Helvetica')
                    .text(item.quantity, qtyColX + 5, itemY, { width: 50, align: 'center' })

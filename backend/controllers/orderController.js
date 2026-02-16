@@ -60,7 +60,8 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
             name: product.name,
             image: product.variations.find(v => v.color === item.color)?.images[0] || '',
             price: itemPrice,
-            color: item.color
+            color: item.color,
+            sku: product.variations.find(v => v.color === item.color)?.sku || ''
         };
     }));
 
@@ -90,7 +91,10 @@ const constructEmailHtml = (order, templateHtml) => {
 
         itemRowsHtml += `
             <tr>
-                <td>${item.name}</td>
+                <td>
+                    ${item.name}
+                    ${item.sku ? `<br><small>SKU: ${item.sku}</small>` : ''}
+                </td>
                 <td>${itemQuantity}</td>
                 <td>₹${itemPrice.toFixed(2)}</td>
                 <td>₹${itemTotal.toFixed(2)}</td>
