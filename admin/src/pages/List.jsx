@@ -9,6 +9,7 @@ const List = ({ token }) => {
 
   const [list, setList] = useState([])
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
   const fetchList = async () => {
     try {
@@ -53,6 +54,25 @@ const List = ({ token }) => {
     item.variations?.[0]?.sku?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleProductSelect = (productId) => {
+    setSelectedProducts(prevSelected => {
+      if (prevSelected.includes(productId)) {
+        return prevSelected.filter(id => id !== productId);
+      } else {
+        return [...prevSelected, productId];
+      }
+    });
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allProductIds = filteredList.map(item => item._id);
+      setSelectedProducts(allProductIds);
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
   const headers = [
     { label: "Name", key: "name" },
     { label: "Category", key: "category" },
@@ -61,13 +81,15 @@ const List = ({ token }) => {
     { label: "MRP", key: "mrp" }
   ];
 
-  const csvData = filteredList.map(item => ({
-    name: item.name,
-    category: item.category,
-    sku: item.variations?.[0]?.sku,
-    price: item.variations?.[0]?.sizes?.[0]?.price,
-    mrp: item.variations?.[0]?.sizes?.[0]?.mrp
-  }));
+  const csvData = list
+    .filter(item => selectedProducts.includes(item._id))
+    .map(item => ({
+      name: item.name,
+      category: item.category,
+      sku: item.variations?.[0]?.sku,
+      price: item.variations?.[0]?.sizes?.[0]?.price,
+      mrp: item.variations?.[0]?.sizes?.[0]?.mrp
+    }));
 
   return (
     <>
@@ -79,13 +101,19 @@ const List = ({ token }) => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <CSVLink 
-          data={csvData} 
+        <CSVLink
+          data={csvData}
           headers={headers}
           filename={"products.csv"}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ${selectedProducts.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onClick={() => {
+            if (selectedProducts.length === 0) {
+              toast.info("Please select products to export");
+              return false;
+            }
+          }}
         >
-          Export
+          Export Selected
         </CSVLink>
       </div>
       <p className='mb-2'>All Products List</p>
@@ -93,7 +121,12 @@ const List = ({ token }) => {
 
         {/* ------- List Table Title ---------- */}
 
-        <div className='hidden md:grid grid-cols-[1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center py-1 px-2 border bg-gray-100 text-sm'>
+        <div className='hidden md:grid grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center py-1 px-2 border bg-gray-100 text-sm'>
+          <input
+            type="checkbox"
+            onChange={handleSelectAll}
+            checked={filteredList.length > 0 && selectedProducts.length === filteredList.length}
+          />
           <b>Image</b>
           <b>Name</b>
           <b>Category</b>
@@ -108,7 +141,12 @@ const List = ({ token }) => {
 
         {
           filteredList.map((item, index) => (
-            <div className='grid grid-cols-[1fr_3fr_1fr] md:grid-cols-[1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border text-sm' key={index}>
+            <div className='grid grid-cols-[auto_1fr_3fr_1fr] md:grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border text-sm' key={index}>
+              <input
+                type="checkbox"
+                checked={selectedProducts.includes(item._id)}
+                onChange={() => handleProductSelect(item._id)}
+              />
               <img className='w-12' src={item.variations?.[0]?.images?.[0]} alt="" />
               <p>{item.name}</p>
               <p>{item.category}</p>
@@ -116,7 +154,7 @@ const List = ({ token }) => {
               <p>{currency}{item.variations?.[0]?.sizes?.[0]?.price}</p>
               <p>{currency}{item.variations?.[0]?.sizes?.[0]?.mrp}</p>
               <Link to={`/update/${item._id}`} className='text-center cursor-pointer text-lg'>Edit</Link>
-              <p onClick={()=>removeProduct(item._id)} className='text-right md:text-center cursor-pointer text-lg'>X</p>
+              <p onClick={() => removeProduct(item._id)} className='text-right md:text-center cursor-pointer text-lg'>X</p>
             </div>
           ))
         }

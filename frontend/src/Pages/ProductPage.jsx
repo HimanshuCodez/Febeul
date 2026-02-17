@@ -445,8 +445,8 @@ const ProductDetailPage = () => {
 
                 <div className="text-sm text-gray-600 mt-4">
                   <p>
-                    <span className="font-semibold">FREE delivery</span>{" "}
-                    Thursday, 2 January.
+                    <span className="font-semibold">Expected Delivery in</span>{" "}
+                   5 to 7 Days
                   </p>
                   <p className="flex items-center gap-1 mt-2">
                     <MapPin size={14} />
