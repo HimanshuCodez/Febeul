@@ -77,75 +77,92 @@ const ReviewsAdmin = ({ token }) => {
             ) : reviews.length === 0 ? (
                 <div className="text-center text-gray-600 py-10 border rounded-lg bg-white">No reviews found.</div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {reviews.map(review => (
-                        <div key={review._id} className="p-6 bg-white rounded-lg shadow-md border border-gray-200 relative">
-                            <button
-                                onClick={() => handleDeleteReview(review._id)}
-                                className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full text-xs font-semibold"
-                                title="Delete Review"
-                            >
-                                X
-                            </button>
-                            <div className="flex items-center mb-4">
-                                {review.userId?.profilePicture && (
-                                    <img 
-                                        src={review.userId.profilePicture} 
-                                        alt={review.userId.name} 
-                                        className="w-12 h-12 rounded-full mr-4 object-cover" 
-                                    />
-                                )}
-                                <div>
-                                    <p className="font-semibold text-lg text-gray-800">{review.userId?.name || 'Anonymous User'}</p>
-                                    <p className="text-sm text-gray-500">on {new Date(review.date).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                            
-                            <div className="mb-4">
-                                <p className="text-gray-700 text-sm font-medium mb-2">Product:</p>
-                                <div className="flex items-center">
-                                    {review.productId?.image && (
-                                        <img 
-                                            src={review.productId.image} 
-                                            alt={review.productId.name} 
-                                            className="w-16 h-16 object-cover rounded mr-3"
-                                        />
-                                    )}
-                                    <Link to={`/product/${review.productId?._id}`} target="_blank" className="font-medium text-blue-600 hover:underline">
-                                        {review.productId?.name || 'Unknown Product'}
-                                    </Link>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-1 mb-4">
-                                {[1, 2, 3, 4, 5].map(star => (
-                                    <Star
-                                        key={star}
-                                        size={20}
-                                        className={`${
-                                            review.rating >= star ? 'text-yellow-500 fill-current' : 'text-gray-300'
-                                        }`}
-                                    />
+                <div className="bg-white rounded-lg shadow-md p-8">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comment</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {reviews.map(review => (
+                                    <tr key={review._id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                {review.userId?.profilePicture && (
+                                                    <img
+                                                        src={review.userId.profilePicture}
+                                                        alt={review.userId.name}
+                                                        className="w-8 h-8 rounded-full mr-2 object-cover"
+                                                    />
+                                                )}
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">{review.userId?.name || 'Anonymous'}</p>
+                                                    <p className="text-xs text-gray-500">{review.userId?.email || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <Link to={`/admin-product-details/${review.productId?._id}`} className="text-blue-600 hover:underline">
+                                                {review.productId?.name || 'Unknown Product'}
+                                            </Link>
+                                            {review.productId?.image && (
+                                                <img
+                                                    src={review.productId.image}
+                                                    alt={review.productId.name}
+                                                    className="w-12 h-12 object-cover rounded mt-2"
+                                                />
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                {[1, 2, 3, 4, 5].map(star => (
+                                                    <Star
+                                                        key={star}
+                                                        size={16}
+                                                        className={`${review.rating >= star ? 'text-yellow-500 fill-current' : 'text-gray-300'}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <p className="text-sm text-gray-700">{review.rating} Stars</p>
+                                        </td>
+                                        <td className="px-6 py-4 max-w-xs overflow-hidden text-ellipsis text-sm text-gray-700">
+                                            {review.comment}
+                                            {review.images && review.images.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-2">
+                                                    {review.images.map((image, index) => (
+                                                        <img
+                                                            key={index}
+                                                            src={image}
+                                                            alt={`Review image ${index + 1}`}
+                                                            className="w-10 h-10 object-cover rounded"
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(review.date).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                            <button
+                                                onClick={() => handleDeleteReview(review._id)}
+                                                className="text-red-600 hover:text-red-900"
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
                                 ))}
-                            </div>
-
-                            <p className="text-gray-700 mb-4 italic">"{review.comment}"</p>
-
-                            {review.images && review.images.length > 0 && (
-                                <div className="flex flex-wrap gap-3 mt-4 border-t pt-4">
-                                    <p className="w-full text-sm font-medium text-gray-600">Review Images:</p>
-                                    {review.images.map((image, index) => (
-                                        <img 
-                                            key={index} 
-                                            src={image} 
-                                            alt={`Review image ${index + 1}`} 
-                                            className="w-24 h-24 object-cover rounded-lg border border-gray-200" 
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

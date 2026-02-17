@@ -353,7 +353,9 @@ const Tickets = ({ token }) => {
                   <p className='text-sm font-medium text-gray-700'>Attached Images:</p>
                   <div className='flex flex-wrap gap-2'>
                     {selectedTicket.images.map((image, index) => (
-                      <img key={index} src={image} alt={`Ticket attachment ${index + 1}`} className='w-24 h-24 object-cover rounded-md border border-gray-200' />
+                      <a key={index} href={image} target="_blank" rel="noopener noreferrer">
+                        <img src={image} alt={`Ticket attachment ${index + 1}`} className='w-24 h-24 object-cover rounded-md border border-gray-200 cursor-pointer' />
+                      </a>
                     ))}
                   </div>
                 </div>
