@@ -217,10 +217,13 @@ export default function Header() {
               {/* Main Header */}
               <div className="bg-[#f9aeaf] border-b">
                 <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
-                  {/* Mobile Menu Button & Search (hidden on mobile) */}
-                  <div className="flex-1 flex justify-start">
+                  {/* Mobile Menu Button & Search */}
+                  <div className="flex-1 flex justify-start items-center"> {/* Added items-center for alignment */}
                     <button onClick={() => setIsMenuOpen(true)} className="md:hidden p-2 text-gray-700">
                       <Menu className="h-6 w-6" />
+                    </button>
+                    <button onClick={() => setIsSearchOpen(true)} className="md:hidden p-2 text-gray-700"> {/* Mobile search icon */}
+                      <Search className="h-6 w-6" />
                     </button>
                     <div className="hidden md:block"> {/* SearchBar desktop only */}
                       <SearchBar />
@@ -234,9 +237,6 @@ export default function Header() {
                   </div>
                   
                   <div className="flex-1 flex items-center justify-end gap-3 md:gap-5">
-                              <button onClick={() => setIsSearchOpen(true)} className="md:hidden p-2 text-gray-700"> {/* Mobile search icon */}
-                                <Search className="h-6 w-6" />
-                              </button>
                               {isAuthenticated && (
                                 <Link to={"/wishlist"} className="relative">
                                   <Heart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-white" />
