@@ -100,6 +100,7 @@ export const updateStatus = async (req, res) => {
 // User: Add a reply to a ticket (This is for user's own replies)
 export const userReplyToTicket = async (req, res) => {
     const { ticketId, message } = req.body;
+    const files = req.files; // Get uploaded files from multer
     
     // Always senderType 'user' for user-initiated replies from their panel
     const senderType = 'user';
@@ -115,18 +116,32 @@ export const userReplyToTicket = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Unauthorized.' });
         }
 
+        const imageUrls = [];
+        if (files && files.length > 0) {
+            for (const file of files) {
+                try {
+                    const result = await cloudinary.uploader.upload(file.path, {
+                        folder: 'AdiLove_Ticket_Replies', // Specify a different folder for replies if needed
+                    });
+                    imageUrls.push(result.secure_url);
+                } catch (uploadError) {
+                    console.error('Error uploading image to Cloudinary:', uploadError);
+                    // Handle error, e.g., return res.status(500).json({ success: false, message: 'Failed to upload image.' });
+                }
+            }
+        }
+
         const newMessage = {
             sender: senderType,
             message,
+            images: imageUrls, // Add image URLs to the message
             createdAt: new Date()
         };
 
         ticket.messages.push(newMessage);
         await ticket.save();
 
-        const populatedTicket = await ticketModel.findById(ticketId).populate('user', 'name email');
-
-        res.json({ success: true, message: 'Reply sent.', newMessage, ticket: populatedTicket });
+        res.json({ success: true, message: 'Reply sent.', newImages: imageUrls, newMessage });
 
     } catch (error) {
         console.error('Error sending reply:', error);
@@ -137,6 +152,7 @@ export const userReplyToTicket = async (req, res) => {
 // Admin Panel: Reply to a ticket (This is for replies originating from the dedicated admin panel)
 export const adminPanelReplyToTicket = async (req, res) => {
     const { ticketId, message, sender } = req.body;
+    const files = req.files; // Get uploaded files from multer
     
     // Use the sender provided in the request body (should be 'admin' from the admin panel)
     const senderType = sender;
@@ -149,18 +165,32 @@ export const adminPanelReplyToTicket = async (req, res) => {
         
         // NO ownership security check for admin panel replies (as per user's request)
 
+        const imageUrls = [];
+        if (files && files.length > 0) {
+            for (const file of files) {
+                try {
+                    const result = await cloudinary.uploader.upload(file.path, {
+                        folder: 'AdiLove_Ticket_Replies', // Specify a different folder for replies if needed
+                    });
+                    imageUrls.push(result.secure_url);
+                } catch (uploadError) {
+                    console.error('Error uploading image to Cloudinary:', uploadError);
+                    // Handle error, e.g., return res.status(500).json({ success: false, message: 'Failed to upload image.' });
+                }
+            }
+        }
+
         const newMessage = {
             sender: senderType,
             message,
+            images: imageUrls, // Add image URLs to the message
             createdAt: new Date()
         };
 
         ticket.messages.push(newMessage);
         await ticket.save();
 
-        const populatedTicket = await ticketModel.findById(ticketId).populate('user', 'name email');
-
-        res.json({ success: true, message: 'Reply sent.', newMessage, ticket: populatedTicket });
+        res.json({ success: true, message: 'Reply sent.', newImages: imageUrls, newMessage });
 
     } catch (error) {
         console.error('Error sending admin panel reply:', error);

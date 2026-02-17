@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const messageSchema = new mongoose.Schema({
     sender: { type: String, enum: ['user', 'admin'], required: true },
     message: { type: String, required: true },
+    images: [{ type: String }], // Array to store Cloudinary image URLs for this specific message
     createdAt: { type: Date, default: Date.now }
 });
 

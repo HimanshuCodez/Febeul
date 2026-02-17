@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { assets } from '../assets/assets'; // Assuming icons like parcel_icon, order_icon are useful
+import { Paperclip, X } from 'lucide-react'; // Import Paperclip and X
 
 const Tickets = ({ token }) => {
   const [tickets, setTickets] = useState([]);
@@ -10,6 +11,8 @@ const Tickets = ({ token }) => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'open', 'closed', 'pending'
   const [adminMessage, setAdminMessage] = useState(''); // New state for admin message
+  const [adminAttachments, setAdminAttachments] = useState([]); // New state for admin chat attachments
+  const adminFileInputRef = useRef(null); // Ref for admin file input
 
   const fetchTickets = async () => {
     if (!token) return;
@@ -49,26 +52,41 @@ const Tickets = ({ token }) => {
   };
 
   const sendAdminReply = async (ticketId) => {
-    if (!adminMessage.trim()) return;
+    if (!adminMessage.trim() && adminAttachments.length === 0) return; // Allow sending only attachments
     if (!token) {
       toast.error("Authentication token missing.");
       return;
     }
 
+    const replyFormData = new FormData();
+    replyFormData.append("ticketId", ticketId);
+    replyFormData.append("message", adminMessage);
+    replyFormData.append("sender", 'admin');
+    adminAttachments.forEach((file) => {
+        replyFormData.append("images", file);
+    });
+
     try {
       const response = await axios.post(`${backendUrl}/api/ticket/admin-reply`,
-        { ticketId, message: adminMessage, sender: 'admin' },
-        { headers: { token } }
+        replyFormData,
+        {
+          headers: {
+            token: token,
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       if (response.data.success) {
         toast.success("Reply sent!");
         // Update the messages in the selected ticket locally
         setSelectedTicket(prev => {
+          const newMsgImages = response.data.newImages || []; // Assuming backend returns URLs of uploaded images
           const newMessage = {
             message: adminMessage,
             sender: 'admin',
-            createdAt: new Date().toISOString(), // Ensure a valid date for immediate display
+            createdAt: new Date().toISOString(),
+            images: newMsgImages, // Store image URLs
           };
           return {
             ...prev,
@@ -76,6 +94,10 @@ const Tickets = ({ token }) => {
           };
         });
         setAdminMessage(''); // Clear the input field
+        setAdminAttachments([]); // Clear attachments
+        if (adminFileInputRef.current) {
+            adminFileInputRef.current.value = ""; // Clear file input
+        }
       } else {
         toast.error(response.data.message);
       }
@@ -83,6 +105,21 @@ const Tickets = ({ token }) => {
       toast.error("Failed to send reply.");
       console.error(error);
     }
+  };
+
+  const handleAdminAttachmentsChange = (e) => {
+    const files = Array.from(e.target.files);
+    setAdminAttachments((prev) => {
+        const newAttachments = [...prev, ...files].slice(0, 2); // Limit to max 2 attachments for chat replies
+        return newAttachments;
+    });
+    e.target.value = ''; // Clear file input after selection
+  };
+
+  const handleRemoveAdminAttachment = (indexToRemove) => {
+      setAdminAttachments((prev) =>
+          prev.filter((_, index) => index !== indexToRemove)
+      );
   };
 
   useEffect(() => {
@@ -230,6 +267,15 @@ const Tickets = ({ token }) => {
                     <div key={index} className={`p-3 rounded-lg ${msg.sender === 'admin' ? 'bg-gray-100' : 'bg-blue-100 ml-auto'} max-w-[80%] flex flex-col`}>
                       <span className='font-bold text-xs'>{msg.sender === 'admin' ? 'Admin' : selectedTicket.user?.name || 'Customer'}</span>
                       <p className='text-sm'>{msg.message}</p>
+                      {msg.images && msg.images.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                              {msg.images.map((imgSrc, imgIndex) => (
+                                  <a key={imgIndex} href={imgSrc} target="_blank" rel="noopener noreferrer">
+                                      <img src={imgSrc} alt={`Attachment ${imgIndex + 1}`} className="w-16 h-16 object-cover rounded-md cursor-pointer" />
+                                  </a>
+                              ))}
+                          </div>
+                      )}
                       <span className='text-xs text-gray-500 self-end'>{new Date(msg.createdAt).toLocaleString()}</span>
                     </div>
                   ))
@@ -243,25 +289,62 @@ const Tickets = ({ token }) => {
                   <p>Please create a new ticket for further issues.</p>
                 </div>
               ) : (
-                <div className='flex items-center gap-2 mt-4 pt-4 border-t border-gray-200'>
-                  <input
-                    type="text"
-                    value={adminMessage}
-                    onChange={(e) => setAdminMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        sendAdminReply(selectedTicket._id);
-                      }
-                    }}
-                    placeholder="Type your reply..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                  />
-                  <button
-                    onClick={() => sendAdminReply(selectedTicket._id)}
-                    className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors"
-                  >
-                    Send
-                  </button>
+                <div className='flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200'>
+                    {/* Attachment previews for current message */}
+                    {adminAttachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {adminAttachments.map((file, index) => (
+                                <div key={index} className="relative w-20 h-20 border rounded-md overflow-hidden">
+                                    <img src={URL.createObjectURL(file)} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveAdminAttachment(index)}
+                                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <div className='flex items-center gap-2'>
+                        <input
+                            type="file"
+                            ref={adminFileInputRef}
+                            accept="image/*"
+                            multiple
+                            onChange={handleAdminAttachmentsChange}
+                            className="hidden" // Hide the actual file input
+                            disabled={adminAttachments.length >= 2}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => adminFileInputRef.current.click()}
+                            className="bg-gray-200 text-gray-700 p-2 rounded-md hover:bg-gray-300 transition-colors"
+                            title="Attach files"
+                            disabled={adminAttachments.length >= 2}
+                        >
+                            <Paperclip size={20} />
+                        </button>
+                        <input
+                            type="text"
+                            value={adminMessage}
+                            onChange={(e) => setAdminMessage(e.target.value)}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                    sendAdminReply(selectedTicket._id);
+                                }
+                            }}
+                            placeholder="Type your reply..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                        />
+                        <button
+                            onClick={() => sendAdminReply(selectedTicket._id)}
+                            className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors"
+                        >
+                            Send
+                        </button>
+                    </div>
                 </div>
               )}
 

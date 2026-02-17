@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Mail, Phone, HelpCircle, Send, Plus } from "lucide-react";
+import { Mail, Phone, HelpCircle, Send, Plus, Paperclip, X } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from 'axios';
 import useAuthStore from "../store/authStore";
@@ -14,6 +14,8 @@ const Support = () => {
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [formData, setFormData] = useState({ subject: "", description: "", message: "", images: [] });
     const [currentMessage, setCurrentMessage] = useState(''); // New state for message input
+    const [currentAttachments, setCurrentAttachments] = useState([]); // New state for chat attachments
+    const fileInputRef = useRef(null); // Ref for file input
 
     const fetchUserTickets = async () => {
         if (!token) {
@@ -43,26 +45,41 @@ const Support = () => {
     };
 
     const handleSendMessage = async (ticketId) => {
-        if (!currentMessage.trim()) return;
+        if (!currentMessage.trim() && currentAttachments.length === 0) return; // Allow sending only attachments
         if (!token) {
             toast.error("You must be logged in to send a message.");
             return;
         }
 
+        const messageFormData = new FormData();
+        messageFormData.append("ticketId", ticketId);
+        messageFormData.append("message", currentMessage);
+        messageFormData.append("sender", 'user');
+        currentAttachments.forEach((file) => {
+            messageFormData.append("images", file);
+        });
+
         try {
             const response = await axios.post(`${url}/api/ticket/reply`,
-                { ticketId, message: currentMessage, sender: 'user' },
-                { headers: { token } }
+                messageFormData,
+                {
+                    headers: {
+                        token: token,
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
             );
 
             if (response.data.success) {
                 toast.success("Message sent!");
                 // Update the messages in the selected ticket locally
                 setSelectedTicket(prev => {
+                    const newMsgImages = response.data.newImages || []; // Assuming backend returns URLs of uploaded images
                     const newMessage = {
                         message: currentMessage,
                         sender: 'user',
-                        createdAt: new Date().toISOString(), // Ensure a valid date for immediate display
+                        createdAt: new Date().toISOString(),
+                        images: newMsgImages, // Store image URLs
                     };
                     return {
                         ...prev,
@@ -70,6 +87,10 @@ const Support = () => {
                     };
                 });
                 setCurrentMessage(''); // Clear the input field
+                setCurrentAttachments([]); // Clear attachments
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = ""; // Clear file input
+                }
             } else {
                 toast.error(response.data.message);
             }
@@ -93,6 +114,21 @@ const Support = () => {
             ...prev,
             images: prev.images.filter((_, index) => index !== indexToRemove),
         }));
+    };
+
+    const handleCurrentAttachmentsChange = (e) => {
+        const files = Array.from(e.target.files);
+        setCurrentAttachments((prev) => {
+            const newAttachments = [...prev, ...files].slice(0, 2); // Limit to max 2 attachments for chat replies
+            return newAttachments;
+        });
+        e.target.value = ''; // Clear file input after selection
+    };
+
+    const handleRemoveCurrentAttachment = (indexToRemove) => {
+        setCurrentAttachments((prev) =>
+            prev.filter((_, index) => index !== indexToRemove)
+        );
     };
 
     const handleSubmit = async (e) => {
@@ -248,6 +284,15 @@ const Support = () => {
                                     <div key={index} className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-100 ml-auto' : 'bg-gray-100'} max-w-[80%] flex flex-col`}>
                                         <span className='font-bold text-xs capitalize'>{msg.sender}</span>
                                         <p className='text-sm'>{msg.message}</p>
+                                        {msg.images && msg.images.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {msg.images.map((imgSrc, imgIndex) => (
+                                                    <a key={imgIndex} href={imgSrc} target="_blank" rel="noopener noreferrer">
+                                                        <img src={imgSrc} alt={`Attachment ${imgIndex + 1}`} className="w-16 h-16 object-cover rounded-md cursor-pointer" />
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        )}
                                         <span className='text-xs text-gray-500 self-end'>{new Date(msg.createdAt).toLocaleString()}</span>
                                     </div>
                                 ))}
@@ -258,25 +303,62 @@ const Support = () => {
                                     <p>Please create a new ticket for further issues.</p>
                                 </div>
                             ) : (
-                                <div className='flex items-center gap-2 mt-4 pt-4 border-t border-gray-200'>
-                                    <input
-                                        type="text"
-                                        value={currentMessage}
-                                        onChange={(e) => setCurrentMessage(e.target.value)}
-                                        onKeyPress={(e) => {
-                                            if (e.key === 'Enter') {
-                                                handleSendMessage(selectedTicket._id);
-                                            }
-                                        }}
-                                        placeholder="Type your message..."
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                                    />
-                                    <button
-                                        onClick={() => handleSendMessage(selectedTicket._id)}
-                                        className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600 transition-colors"
-                                    >
-                                        <Send size={20} />
-                                    </button>
+                                <div className='flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200'>
+                                    {/* Attachment previews for current message */}
+                                    {currentAttachments.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {currentAttachments.map((file, index) => (
+                                                <div key={index} className="relative w-20 h-20 border rounded-md overflow-hidden">
+                                                    <img src={URL.createObjectURL(file)} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveCurrentAttachment(index)}
+                                                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div className='flex items-center gap-2'>
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            accept="image/*"
+                                            multiple
+                                            onChange={handleCurrentAttachmentsChange}
+                                            className="hidden" // Hide the actual file input
+                                            disabled={currentAttachments.length >= 2}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current.click()}
+                                            className="bg-gray-200 text-gray-700 p-2 rounded-md hover:bg-gray-300 transition-colors"
+                                            title="Attach files"
+                                            disabled={currentAttachments.length >= 2}
+                                        >
+                                            <Paperclip size={20} />
+                                        </button>
+                                        <input
+                                            type="text"
+                                            value={currentMessage}
+                                            onChange={(e) => setCurrentMessage(e.target.value)}
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleSendMessage(selectedTicket._id);
+                                                }
+                                            }}
+                                            placeholder="Type your message..."
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                                        />
+                                        <button
+                                            onClick={() => handleSendMessage(selectedTicket._id)}
+                                            className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600 transition-colors"
+                                        >
+                                            <Send size={20} />
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
