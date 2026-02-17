@@ -99,8 +99,18 @@ export const updateStatus = async (req, res) => {
 
 // User: Add a reply to a ticket (This is for user's own replies)
 export const userReplyToTicket = async (req, res) => {
-    const { ticketId, message } = req.body;
+    // console.log("userReplyToTicket req.body:", req.body); // Debug logs removed
+    // console.log("userReplyToTicket req.files:", req.files); // Debug logs removed
+    const ticketId = String(req.body.ticketId || '').trim(); // Ensure ticketId is a trimmed string
+    const { message } = req.body;
     const files = req.files; // Get uploaded files from multer
+
+    if (!ticketId || ticketId.length !== 24) { // Basic validation for ObjectId string length
+        console.error("Validation Error: Invalid or missing ticketId in userReplyToTicket:", ticketId);
+        return res.status(400).json({ success: false, message: 'Invalid ticket ID provided.' });
+    }
+    
+    
     
     // Always senderType 'user' for user-initiated replies from their panel
     const senderType = 'user';
@@ -151,8 +161,17 @@ export const userReplyToTicket = async (req, res) => {
 
 // Admin Panel: Reply to a ticket (This is for replies originating from the dedicated admin panel)
 export const adminPanelReplyToTicket = async (req, res) => {
-    const { ticketId, message, sender } = req.body;
+    // console.log("adminPanelReplyToTicket req.body:", req.body); // Debug logs removed
+    // console.log("adminPanelReplyToTicket req.files:", req.files); // Debug logs removed
+    const ticketId = String(req.body.ticketId || '').trim(); // Ensure ticketId is a trimmed string
+    const { message, sender } = req.body;
     const files = req.files; // Get uploaded files from multer
+
+    if (!ticketId || ticketId.length !== 24) { // Basic validation for ObjectId string length
+        console.error("Validation Error: Invalid or missing ticketId in adminPanelReplyToTicket:", ticketId);
+        return res.status(400).json({ success: false, message: 'Invalid ticket ID provided.' });
+    }
+    
     
     // Use the sender provided in the request body (should be 'admin' from the admin panel)
     const senderType = sender;
