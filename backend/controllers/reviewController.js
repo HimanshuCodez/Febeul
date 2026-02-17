@@ -93,13 +93,12 @@ const getUserReviews = async (req, res) => {
 // Get all reviews
 const getAllReviews = async (req, res) => {
     try {
-        let reviews = await reviewModel.find({});
-        console.log("Reviews before population:", reviews); // Debug log
-
-        reviews = await reviewModel.find({})
+        let reviews = await reviewModel.find({})
                                         .populate('productId', 'name image') // Populate product details
                                         .populate('userId', 'name profilePicture email'); // Populate user details and email
-        console.log("Reviews after population:", reviews); // Debug log
+        
+        // Filter out reviews where productId could not be populated (i.e., product no longer exists)
+        reviews = reviews.filter(review => review.productId !== null);
 
         res.json({ success: true, reviews });
 

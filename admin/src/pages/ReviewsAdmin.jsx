@@ -109,9 +109,9 @@ const ReviewsAdmin = ({ token }) => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <Link to={`/admin-product-details/${review.productId?._id}`} className="text-blue-600 hover:underline">
-                                                {review.productId?.name || 'Unknown Product'}
-                                            </Link>
+                                            <a href={`https://febeul.com/product/${review.productId?._id}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                {review.productId?.name ? (review.productId.name.length > 8 ? review.productId.name.substring(0, 8) + '...' : review.productId.name) : 'Unknown Product'}
+                                            </a>
                                             {review.productId?.image && (
                                                 <img
                                                     src={review.productId.image}

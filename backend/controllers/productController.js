@@ -8,8 +8,21 @@ const addProduct = async (req, res) => {
         const variations = JSON.parse(variationsJSON);
         const files = req.files;
 
+        // Step 1: Group files by variation index
+        const filesGroupedByVariation = {};
+        files.forEach(file => {
+            const match = file.fieldname.match(/variations\[(\d+)\]\[images\]/);
+            if (match) {
+                const v_idx = parseInt(match[1]);
+                if (!filesGroupedByVariation[v_idx]) {
+                    filesGroupedByVariation[v_idx] = [];
+                }
+                filesGroupedByVariation[v_idx].push(file);
+            }
+        });
+
         let processedVariations = await Promise.all(variations.map(async (variation, v_idx) => {
-            const imageFiles = files.filter(file => file.fieldname === `variations[${v_idx}][images]`);
+            const imageFiles = filesGroupedByVariation[v_idx] || []; // Get files for this v_idx
             let imagesUrl = await Promise.all(
                 imageFiles.map(async (item) => {
                     let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
@@ -18,15 +31,15 @@ const addProduct = async (req, res) => {
             );
             return {
                 color: variation.color,
-                            sku: variation.sku,
-                            images: imagesUrl,
-                            sizes: variation.sizes.map(s => ({ // Process sizes array
-                                size: s.size,
-                                price: Number(s.price),
-                                mrp: Number(s.mrp)
-                            }))
-                        };
-                    }));
+                sku: variation.sku,
+                images: imagesUrl,
+                sizes: variation.sizes.map(s => ({ // Process sizes array
+                    size: s.size,
+                    price: Number(s.price),
+                    mrp: Number(s.mrp)
+                }))
+            };
+        }));
                 
                     const productData = {
                         name,
@@ -156,7 +169,7 @@ const updateProduct = async (req, res) => {
         const variations = JSON.parse(variationsJSON);
         const files = req.files;
 
-        // Handle image deletions from cloudinary
+        // Handle image deletions from cloudinary (logic remains the same)
         const incomingImageUrls = new Set(variations.flatMap(v => v.images).filter(img => typeof img === 'string'));
         const existingImageUrls = product.variations.flatMap(v => v.images);
         
@@ -167,8 +180,21 @@ const updateProduct = async (req, res) => {
             }
         }
 
+        // Step 1: Group files by variation index
+        const filesGroupedByVariation = {};
+        files.forEach(file => {
+            const match = file.fieldname.match(/variations\[(\d+)\]\[images\]/);
+            if (match) {
+                const v_idx = parseInt(match[1]);
+                if (!filesGroupedByVariation[v_idx]) {
+                    filesGroupedByVariation[v_idx] = [];
+                }
+                filesGroupedByVariation[v_idx].push(file);
+            }
+        });
+
         let processedVariations = await Promise.all(variations.map(async (variation, v_idx) => {
-            const newImageFiles = files.filter(file => file.fieldname === `variations[${v_idx}][images]`);
+            const newImageFiles = filesGroupedByVariation[v_idx] || []; // Get files for this v_idx
             
             let newImagesUrl = await Promise.all(
                 newImageFiles.map(async (item) => {
