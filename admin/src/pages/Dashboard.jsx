@@ -45,7 +45,19 @@ const FebeulDashboard = ({ token }) => {
     try {
       // Fetch Dashboard Stats
       const statsResponse = await axios.get(`${backendUrl}/api/admin/dashboard-stats?range=${timeRange}`, { headers: { token } });
-      if (statsResponse.data.success) {
+      const usersResponse = await axios.get(`${backendUrl}/api/user/allusers`, { headers: { token } });
+
+      if (statsResponse.data.success && usersResponse.data.success) {
+        const stats = statsResponse.data.stats;
+        const totalUsersCount = usersResponse.data.users.length;
+        setDashboardStats({
+          totalUsers: { value: formatValue(totalUsersCount), change: stats.userChange, type: stats.userChangeType },
+          totalOrders: { value: formatValue(stats.totalOrders), change: stats.orderChange, type: stats.orderChangeType },
+          revenue: { value: formatValue(stats.revenue, true), change: stats.revenueChange, type: stats.revenueChangeType },
+          avgOrderValue: { value: formatValue(stats.avgOrderValue, true), change: stats.avgOrderValueChange, type: stats.avgOrderValueChangeType },
+        });
+      } else if (statsResponse.data.success) {
+        // Fallback if only stats are successful but users are not
         const stats = statsResponse.data.stats;
         setDashboardStats({
           totalUsers: { value: formatValue(stats.totalUsers), change: stats.userChange, type: stats.userChangeType },
@@ -53,6 +65,9 @@ const FebeulDashboard = ({ token }) => {
           revenue: { value: formatValue(stats.revenue, true), change: stats.revenueChange, type: stats.revenueChangeType },
           avgOrderValue: { value: formatValue(stats.avgOrderValue, true), change: stats.avgOrderValueChange, type: stats.avgOrderValueChangeType },
         });
+        setError('Failed to fetch user count.');
+      } else {
+        setError('Failed to fetch dashboard data.');
       }
 
       // Fetch Monthly Trends
