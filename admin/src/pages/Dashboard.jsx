@@ -318,47 +318,7 @@ const FebeulDashboard = ({ token }) => {
           </ResponsiveContainer>
         </div>
 
-        {/* Category Distribution */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Sales by Category</h3>
-            <p className="text-sm text-gray-500 font-medium">Distribution overview</p>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={categorySales}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={3}
-                dataKey="value"
-              >
-                {categorySales.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  background: '#fff', 
-                  border: '1px solid #e5e5e5', 
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-                }} 
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="grid gap-3 mt-6">
-            {categorySales.map((item, index) => (
-              <div key={index} className="flex items-center gap-3 text-sm">
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }}></span>
-                <span className="flex-1 text-gray-600 font-medium">{item.name}</span>
-                <span className="font-bold text-gray-900">{item.value}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
+     
       </div>
 
     

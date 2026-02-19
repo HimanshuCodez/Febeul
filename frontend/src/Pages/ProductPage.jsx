@@ -398,7 +398,7 @@ const ProductDetailPage = () => {
 
               <hr className="my-4" />
 
-              <CouponShows productSKUs={productSKUs} onRedeem={onRedeemCoupon} />
+              <CouponShows productSKUs={productSKUs} onRedeem={onRedeemCoupon} appliedCoupon={appliedCoupon} />
 
               {appliedCoupon && (
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mt-4">

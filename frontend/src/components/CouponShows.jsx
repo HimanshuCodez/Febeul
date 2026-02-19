@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Tag } from 'lucide-react';
+import RedeemPopup from './RedeemApply';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const CouponShows = ({ productSKUs = [], onRedeem = () => {} }) => {
+const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = null }) => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
 
   useEffect(() => {
     const fetchCoupons = async () => {
@@ -28,6 +31,12 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {} }) => {
 
     fetchCoupons();
   }, []);
+
+  const handleRedeemClick = (coupon) => {
+    setSelectedCoupon(coupon);
+    setIsModalOpen(true);
+    onRedeem(coupon.code);
+  };
 
   if (loading) {
     return <div className="my-4 text-center text-gray-600">Loading coupons...</div>;
@@ -51,6 +60,8 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {} }) => {
           
           if (!isSKUApplicable) return null; // Don't show coupon if not applicable to product SKUs
 
+          const isApplied = appliedCoupon && appliedCoupon.code === coupon.code;
+
           return (
             <div key={coupon._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3">
@@ -72,16 +83,29 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {} }) => {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => onRedeem(coupon.code)}
-                className="ml-auto sm:ml-0 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition-colors"
-              >
-                Redeem
-              </button>
+              {!isApplied && (
+                <button
+                  onClick={() => handleRedeemClick(coupon)}
+                  className="ml-auto sm:ml-0 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition-colors"
+                >
+                  Redeem
+                </button>
+              )}
+              {isApplied && (
+                <span className="ml-auto sm:ml-0 bg-green-100 text-green-700 px-3 py-1 rounded-md text-sm font-medium border border-green-200">
+                  Applied
+                </span>
+              )}
             </div>
           );
         })}
       </div>
+
+      <RedeemPopup 
+        open={isModalOpen} 
+        handleClose={() => setIsModalOpen(false)} 
+        coupon={selectedCoupon} 
+      />
     </div>
   );
 };

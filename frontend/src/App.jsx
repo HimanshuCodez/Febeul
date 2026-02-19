@@ -41,6 +41,7 @@ import { Toaster } from "react-hot-toast";
 import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
 import MaintenancePage from "./Pages/Maintenance";
 import SwipingMessages from "./components/SwippingMsgs";
+import FebeulLoader from "./components/Loader";
 
 const AppContent = () => {
   const location = useLocation();
@@ -84,6 +85,7 @@ const AppContent = () => {
         {/* Footer items */}
         <Route path="/ReviewRating" element={<ReviewRating />} />
         <Route path="/Faq" element={<Faq />} />
+        <Route path="/log" element={<FebeulLoader />} />
         <Route path="/LuxePolicy" element={<LuxePolicy />} />
         <Route path="/DataPrivacy" element={<DataPrivacy />} />
         <Route path="/GrievanceRedressals" element={<GrievanceRedressals />} />
