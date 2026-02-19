@@ -49,14 +49,14 @@ const FebeulDashboard = ({ token }) => {
 
       if (statsResponse.data.success && usersResponse.data.success) {
         const stats = statsResponse.data.stats;
-        const totalUsersCount = usersResponse.data.users.length;
-        setDashboardStats({
-          totalUsers: { value: formatValue(totalUsersCount), change: stats.userChange, type: stats.userChangeType },
-          totalOrders: { value: formatValue(stats.totalOrders), change: stats.orderChange, type: stats.orderChangeType },
-          revenue: { value: formatValue(stats.revenue, true), change: stats.revenueChange, type: stats.revenueChangeType },
-          avgOrderValue: { value: formatValue(stats.avgOrderValue, true), change: stats.avgOrderValueChange, type: stats.avgOrderValueChangeType },
-        });
-      } else if (statsResponse.data.success) {
+                const totalUsersCount = usersResponse.data.users.length;
+        
+                        setDashboardStats({
+                          totalUsers: { value: formatValue(totalUsersCount), change: stats.userChange, type: stats.userChangeType },
+                          totalOrders: { value: formatValue(stats.totalOrders), change: stats.orderChange, type: stats.orderChangeType },
+                          revenue: { value: formatValue(stats.revenue, true), change: stats.revenueChange, type: stats.revenueChangeType },
+                          avgOrderValue: { value: formatValue(stats.avgOrderValue, true), change: stats.avgOrderValueChange, type: stats.avgOrderValueChangeType },
+                        });      } else if (statsResponse.data.success) {
         // Fallback if only stats are successful but users are not
         const stats = statsResponse.data.stats;
         setDashboardStats({

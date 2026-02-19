@@ -39,7 +39,7 @@ export const getDashboardStats = async (req, res) => {
         const totalOrders = await orderModel.countDocuments({ date: { $gte: startDate.getTime(), $lte: endDate.getTime() } });
         // Fetch total revenue within the range
         const revenueResult = await orderModel.aggregate([
-            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() }, payment: true } },
+            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },
             { $group: { _id: null, totalRevenue: { $sum: '$orderTotal' } } }
         ]);
         const revenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
@@ -78,7 +78,7 @@ export const getMonthlyTrends = async (req, res) => {
         const { startDate, endDate } = getDateRange(range);
 
         const trends = await orderModel.aggregate([
-            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() }, payment: true } },
+            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },
             {
                 $group: {
                     _id: {
@@ -166,7 +166,7 @@ export const getCategorySales = async (req, res) => {
         
         // Example dynamic aggregation (requires productModel to have a 'category' field and order items to reference product IDs)
         const dynamicSales = await orderModel.aggregate([
-            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() }, payment: true } },
+            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },
             { $unwind: '$items' },
             {
                 $lookup: {
@@ -176,10 +176,10 @@ export const getCategorySales = async (req, res) => {
                     as: 'productInfo'
                 }
             },
-            { $unwind: '$productInfo' },
+            { $unwind: '$productInfo' }, // Only proceed with items that successfully linked to a product
             {
                 $group: {
-                    _id: '$productInfo.category',
+                    _id: '$productInfo.category', // Group by actual category, if product found
                     totalSales: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
                 }
             },
@@ -187,19 +187,16 @@ export const getCategorySales = async (req, res) => {
                 $project: {
                     _id: 0,
                     name: '$_id',
-                    value: '$totalSales' // Value here would be absolute sales, frontend converts to percentage
+                    value: '$totalSales'
                 }
             }
         ]);
-
-        // If categories are stored as sub-documents in productModel, this would be more direct.
-        // For now, converting absolute sales to percentages for frontend display might be needed on frontend.
-        // Or, calculate percentage here:
-        const totalSalesValue = dynamicSales.reduce((sum, item) => sum + item.value, 0);
         const salesInPercentage = dynamicSales.map(item => ({
             name: item.name,
             value: totalSalesValue > 0 ? parseFloat(((item.value / totalSalesValue) * 100).toFixed(2)) : 0
         }));
+
+        console.log("Category Sales sent to frontend:", salesInPercentage);
 
         res.json({ success: true, sales: salesInPercentage });
 
