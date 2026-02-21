@@ -18,6 +18,7 @@ const FebeulDashboard = ({ token }) => {
   });
   const [monthlyTrends, setMonthlyTrends] = useState([]);
   const [categorySales, setCategorySales] = useState([]);
+  const [skuSales, setSkuSales] = useState([]);
   const [recentOrdersList, setRecentOrdersList] = useState([]);
 
   // Define category colors for consistency (can be fetched from backend or defined centrally)
@@ -89,6 +90,12 @@ const FebeulDashboard = ({ token }) => {
       const ordersResponse = await axios.get(`${backendUrl}/api/admin/recent-orders`, { headers: { token } });
       if (ordersResponse.data.success) {
         setRecentOrdersList(ordersResponse.data.orders);
+      }
+
+      // Fetch SKU Sales
+      const skuSalesResponse = await axios.get(`${backendUrl}/api/admin/sku-sales?range=${timeRange}`, { headers: { token } });
+      if (skuSalesResponse.data.success) {
+        setSkuSales(skuSalesResponse.data.skuSales);
       }
 
     } catch (err) {
@@ -315,6 +322,45 @@ const FebeulDashboard = ({ token }) => {
               />
               <Bar dataKey="orders" fill="#e88b8d" radius={[8, 8, 0, 0]} />
             </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* SKU Sales Chart */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-1">Top Selling SKUs</h3>
+            <p className="text-sm text-gray-500 font-medium">Distribution by SKU</p>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={skuSales}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="totalSold"
+                nameKey="sku"
+              >
+                {skuSales.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={[
+                    '#f9aeaf', '#e88b8d', '#d66a6c', '#c44a4d', '#b33a3d',
+                    '#ffcdd2', '#f8bbd0', '#e1bee7', '#d1c4e9', '#c5cae9'
+                  ][index % 10]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  background: '#fff', 
+                  border: '1px solid #e5e5e5', 
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                }}
+                formatter={(value, name) => [value + ' Units', `SKU: ${name}`]}
+              />
+              <Legend verticalAlign="bottom" height={36}/>
+            </PieChart>
           </ResponsiveContainer>
         </div>
 

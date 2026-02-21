@@ -191,6 +191,9 @@ export const getCategorySales = async (req, res) => {
                 }
             }
         ]);
+        
+        const totalSalesValue = dynamicSales.reduce((acc, curr) => acc + curr.value, 0);
+
         const salesInPercentage = dynamicSales.map(item => ({
             name: item.name,
             value: totalSalesValue > 0 ? parseFloat(((item.value / totalSalesValue) * 100).toFixed(2)) : 0
@@ -227,5 +230,53 @@ export const getRecentOrders = async (req, res) => {
     } catch (error) {
         console.error('Error in getRecentOrders:', error);
         res.json({ success: false, message: 'Error fetching recent orders.' });
+    }
+};
+
+export const getSkuSales = async (req, res) => {
+    try {
+        const { range } = req.query;
+        const { startDate, endDate } = getDateRange(range);
+
+        const skuSales = await orderModel.aggregate([
+            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },
+            { $unwind: '$items' },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'items.productId',
+                    foreignField: '_id',
+                    as: 'productInfo'
+                }
+            },
+            { $unwind: '$productInfo' },
+            {
+                $group: {
+                    _id: {
+                        sku: '$productInfo.variations.sku',
+                        name: '$productInfo.name'
+                    },
+                    totalSold: { $sum: '$items.quantity' },
+                    revenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    sku: { $arrayElemAt: ["$_id.sku", 0] }, // Just taking the first SKU for simplicity if multiple variations exist
+                    name: '$_id.name',
+                    totalSold: 1,
+                    revenue: 1
+                }
+            },
+            { $sort: { totalSold: -1 } },
+            { $limit: 10 }
+        ]);
+
+        res.json({ success: true, skuSales });
+
+    } catch (error) {
+        console.error('Error in getSkuSales:', error);
+        res.json({ success: false, message: 'Error fetching SKU sales.' });
     }
 };
