@@ -18,7 +18,11 @@ const Section = ({ title, content, index }) => {
               case 'list':
                 return (
                   <ul key={idx} className="list-disc list-inside space-y-2 text-gray-700 pl-4">
-                    {item.items.map((li, i) => <li key={i}>{li}</li>)}
+                    {item.items ? (
+                      item.items.map((li, i) => <li key={i}>{li}</li>)
+                    ) : (
+                      <li>{item.text}</li>
+                    )}
                   </ul>
                 );
               case 'subheading':

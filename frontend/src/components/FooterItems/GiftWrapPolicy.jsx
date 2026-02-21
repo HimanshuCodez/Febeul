@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import PolicySection from '../PolicySection.jsx'; // Import the new reusable component
 
-const backendUrl = "http://localhost:4000"; // Assuming backend is running on port 4000
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const GiftWrapPolicy = () => {
   const [policyContent, setPolicyContent] = useState([]);
