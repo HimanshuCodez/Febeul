@@ -36,7 +36,8 @@ const addProduct = async (req, res) => {
                 sizes: variation.sizes.map(s => ({ // Process sizes array
                     size: s.size,
                     price: Number(s.price),
-                    mrp: Number(s.mrp)
+                    mrp: Number(s.mrp),
+                    stock: Number(s.stock) || 0
                 }))
             };
         }));
@@ -212,7 +213,8 @@ const updateProduct = async (req, res) => {
                 sizes: variation.sizes.map(s => ({ // Process sizes array
                     size: s.size,
                     price: Number(s.price),
-                    mrp: Number(s.mrp)
+                    mrp: Number(s.mrp),
+                    stock: Number(s.stock) || 0
                 }))
             };
         }));

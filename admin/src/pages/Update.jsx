@@ -76,7 +76,11 @@ const Update = ({ token }) => {
                     setItemDimensionsLxWxH(product.itemDimensionsLxWxH || "");
                     setNetQuantity(product.netQuantity || "");
                     setGenericName(product.genericName || "");
-                    setVariations(product.variations.map(v => ({...v, sku: v.sku || ''})) || []); // Updated to new structure
+                    setVariations(product.variations.map(v => ({
+                        ...v, 
+                        sku: v.sku || '',
+                        sizes: v.sizes.map(s => ({...s, stock: s.stock || 0}))
+                    })) || []); // Updated to new structure
                     setKeywords(product.keywords ? product.keywords.join(", ") : "");
                 } else {
                     toast.error(response.data.message);
@@ -118,7 +122,7 @@ const Update = ({ token }) => {
 
     const addSize = (v_index, size) => {
         const newVariations = [...variations];
-        newVariations[v_index].sizes.push({ size: size, price: '', mrp: '' });
+        newVariations[v_index].sizes.push({ size: size, price: '', mrp: '', stock: '' });
         setVariations(newVariations);
     }
 
@@ -185,7 +189,8 @@ const Update = ({ token }) => {
                 sizes: v.sizes.map(s => ({
                     size: s.size, 
                     price: s.price, 
-                    mrp: s.mrp
+                    mrp: s.mrp,
+                    stock: s.stock
                 }))
             }));
             formData.append("variations", JSON.stringify(variationsData));
@@ -261,6 +266,10 @@ const Update = ({ token }) => {
                                         <p className='text-sm mb-1'>Price</p>
                                         <input name='price' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.price} className='w-full max-w-[100px] px-2 py-1 border rounded-md' type="number" placeholder='Price' required/>
                                     </div>
+                                    <div>
+                                        <p className='text-sm mb-1'>Stock</p>
+                                        <input name='stock' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.stock} className='w-full max-w-[100px] px-2 py-1 border rounded-md' type="number" placeholder='Stock' required/>
+                                    </div>
                                     <button type='button' onClick={()=>removeSize(v_index, s_index)} className='bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit'>-</button>
                                 </div>
                             ))}
@@ -330,7 +339,6 @@ const Update = ({ token }) => {
                         <option value="LINGERIE">LINGERIE</option>
                         <option value="NIGHTY">NIGHTY</option>
                         <option value="PAJAMAS">PAJAMAS</option>
-                        <option value="NEW & NOW">NEW & NOW</option>
                         <option value="GIFT WRAP">GIFT WRAP</option>
                     </select>
                 </div>

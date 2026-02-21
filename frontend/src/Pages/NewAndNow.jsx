@@ -13,7 +13,7 @@ const NewAndNow = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(`${backendUrl}/api/product/list?category=NEW%20%26%20NOW`);
+        const response = await axios.get(`${backendUrl}/api/product/list`);
         if (response.data.success) {
           // No need for frontend filtering, backend already handled it
           setProducts(response.data.products);

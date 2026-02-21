@@ -93,7 +93,8 @@ const List = ({ token }) => {
     { label: "Category", key: "category" },
     { label: "SKU", key: "sku" },
     { label: "Price", key: "price" },
-    { label: "MRP", key: "mrp" }
+    { label: "MRP", key: "mrp" },
+    { label: "Stock", key: "stock" }
   ];
 
   const csvData = list
@@ -103,7 +104,8 @@ const List = ({ token }) => {
       category: item.category,
       sku: item.variations?.[0]?.sku,
       price: item.variations?.[0]?.sizes?.[0]?.price,
-      mrp: item.variations?.[0]?.sizes?.[0]?.mrp
+      mrp: item.variations?.[0]?.sizes?.[0]?.mrp,
+      stock: item.variations?.[0]?.sizes?.[0]?.stock
     }));
 
   return (
@@ -136,7 +138,7 @@ const List = ({ token }) => {
 
         {/* ------- List Table Title ---------- */}
 
-        <div className='hidden md:grid grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center py-1 px-2 border bg-gray-100 text-sm'>
+        <div className='hidden md:grid grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center py-1 px-2 border bg-gray-100 text-sm'>
           <input
             type="checkbox"
             onChange={handleSelectAll}
@@ -148,6 +150,7 @@ const List = ({ token }) => {
           <b>SKU</b>
           <b>Price</b>
           <b>MRP</b>
+          <b>Stock</b>
           <b className='text-center'>Edit</b>
           <b className='text-center'>Action</b>
         </div>
@@ -156,7 +159,7 @@ const List = ({ token }) => {
 
         {
           filteredList.map((item, index) => (
-            <div className='grid grid-cols-[auto_1fr_3fr_1fr] md:grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border text-sm' key={index}>
+            <div className='grid grid-cols-[auto_1fr_3fr_1fr] md:grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border text-sm' key={index}>
               <input
                 type="checkbox"
                 checked={selectedProducts.includes(item._id)}
@@ -168,6 +171,7 @@ const List = ({ token }) => {
               <p>{item.variations?.[0]?.sku}</p>
               <p>{currency}{item.variations?.[0]?.sizes?.[0]?.price}</p>
               <p>{currency}{item.variations?.[0]?.sizes?.[0]?.mrp}</p>
+              <p>{item.variations?.[0]?.sizes?.[0]?.stock || 0}</p>
               <Link to={`/update/${item._id}`} className='text-center cursor-pointer text-lg'>Edit</Link>
               <p onClick={() => confirmDelete(item._id)} className='text-right md:text-center cursor-pointer text-lg'>X</p>
             </div>

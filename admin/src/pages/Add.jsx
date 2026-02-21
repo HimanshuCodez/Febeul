@@ -73,7 +73,7 @@ const Add = ({ token }) => {
 
   const addSize = (v_index, size) => {
     const newVariations = [...variations];
-    newVariations[v_index].sizes.push({ size: size, price: "", mrp: "" });
+    newVariations[v_index].sizes.push({ size: size, price: "", mrp: "", stock: "" });
     setVariations(newVariations);
   };
 
@@ -159,6 +159,7 @@ const Add = ({ token }) => {
           size: s.size,
           price: s.price,
           mrp: s.mrp,
+          stock: s.stock
         })),
       }));
       formData.append("variations", JSON.stringify(variationsData));
@@ -298,6 +299,18 @@ const Add = ({ token }) => {
                       required
                     />
                   </div>
+                  <div>
+                    <p className="text-sm mb-1">Stock</p>
+                    <input
+                      name="stock"
+                      onChange={(e) => handleSizeChange(v_index, s_index, e)}
+                      value={sizeData.stock}
+                      className="w-full max-w-[100px] px-2 py-1 border rounded-md"
+                      type="number"
+                      placeholder="Stock"
+                      required
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => removeSize(v_index, s_index)}
@@ -423,7 +436,6 @@ const Add = ({ token }) => {
             <option value="LINGERIE">LINGERIE</option>
             <option value="NIGHTY">NIGHTY</option>
             <option value="PAJAMAS">PAJAMAS</option>
-            <option value="NEW & NOW">NEW & NOW</option>
             <option value="GIFT WRAP">GIFT WRAP</option>
           </select>
         </div>
