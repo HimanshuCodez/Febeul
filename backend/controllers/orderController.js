@@ -209,9 +209,7 @@ const constructEmailHtml = (order, templateHtml) => {
     populatedHtml = populatedHtml.replace('{{orderDate}}', new Date(order.date).toLocaleDateString());
     populatedHtml = populatedHtml.replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
     populatedHtml = populatedHtml.replace('{{itemRows}}', itemRowsHtml);
-    populatedHtml = populatedHtml.replace('{{taxableValue}}', emailTaxableValue.toFixed(2));
-    populatedHtml = populatedHtml.replace('{{cgst}}', emailCgst.toFixed(2));
-    populatedHtml = populatedHtml.replace('{{sgst}}', emailSgst.toFixed(2));
+    populatedHtml = populatedHtml.replace('{{subtotal}}', emailProductAmount.toFixed(2));
     populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE');
     populatedHtml = populatedHtml.replace('{{codChargeRow}}', codChargeRowHtml);
     populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);

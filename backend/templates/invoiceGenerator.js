@@ -364,9 +364,6 @@ const buildInvoicePDF = (order, res) => {
         if (totalDiscount > 0) {
             addTotalRow('Coupon Discount:', `- INR ${totalDiscount.toFixed(2)}`, true);
         }
-        addTotalRow('Taxable Value:', `INR ${taxableValue.toFixed(2)}`);
-        addTotalRow('CGST (9%):', `INR ${cgst.toFixed(2)}`);
-        addTotalRow('SGST (9%):', `INR ${sgst.toFixed(2)}`);
         
         // Display Shipping Charges separately
         if (invoiceShippingOnlyCost > 0) {
