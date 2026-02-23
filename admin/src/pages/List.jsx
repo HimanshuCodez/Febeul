@@ -65,6 +65,12 @@ const List = ({ token }) => {
     fetchList()
   }, [])
 
+  const calculateTotalStock = (item) => {
+    return item.variations?.reduce((total, variation) => {
+      return total + (variation.sizes?.reduce((sTotal, size) => sTotal + (Number(size.stock) || 0), 0) || 0);
+    }, 0) || 0;
+  };
+
   const filteredList = list.filter(item =>
     item.variations?.[0]?.sku?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -105,7 +111,7 @@ const List = ({ token }) => {
       sku: item.variations?.[0]?.sku,
       price: item.variations?.[0]?.sizes?.[0]?.price,
       mrp: item.variations?.[0]?.sizes?.[0]?.mrp,
-      stock: item.variations?.[0]?.sizes?.[0]?.stock
+      stock: calculateTotalStock(item)
     }));
 
   return (
@@ -171,7 +177,7 @@ const List = ({ token }) => {
               <p>{item.variations?.[0]?.sku}</p>
               <p>{currency}{item.variations?.[0]?.sizes?.[0]?.price}</p>
               <p>{currency}{item.variations?.[0]?.sizes?.[0]?.mrp}</p>
-              <p>{item.variations?.[0]?.sizes?.[0]?.stock || 0}</p>
+              <p>{calculateTotalStock(item)}</p>
               <Link to={`/update/${item._id}`} className='text-center cursor-pointer text-lg'>Edit</Link>
               <p onClick={() => confirmDelete(item._id)} className='text-right md:text-center cursor-pointer text-lg'>X</p>
             </div>

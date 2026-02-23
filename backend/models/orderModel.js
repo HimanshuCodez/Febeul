@@ -8,7 +8,9 @@ const orderSchema = new mongoose.Schema({
         size: { type: String },
         name: { type: String, required: true}, // Adding name for easier access without populating
         image: { type: String, required: true}, // Adding image for easier access without populating
-        price: { type: Number, required: true }
+        price: { type: Number, required: true },
+        discountAmount: { type: Number, default: 0 },
+        appliedCoupon: { type: String, default: null }
     }],
     orderTotal: { type: Number, required: true }, // Renamed from 'amount' for clarity
     productAmount: { type: Number, default: 0 }, // Sum of product prices only

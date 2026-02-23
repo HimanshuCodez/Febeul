@@ -187,7 +187,14 @@ const ProductDetailPage = () => {
     }
     try {
       const response = await axios.post(`${backendUrl}/api/cart/add`, 
-        { userId: user._id, itemId: product._id, size: selectedSizeValue, color: selectedVariation.color }, // Use selectedSizeValue
+        { 
+          userId: user._id, 
+          itemId: product._id, 
+          size: selectedSizeValue, 
+          color: selectedVariation.color,
+          appliedCoupon: appliedCoupon?.code,
+          discountAmount: appliedCoupon?.discountAmount
+        }, // Use selectedSizeValue
         { headers: { token } }
       );
       if (response.data.success) {
@@ -202,8 +209,32 @@ const ProductDetailPage = () => {
   };
 
   const handleBuyNow = async () => {
-    await handleAddToCart();
-    navigate("/cart");
+    if (!isAuthenticated) {
+      toast.error("Please log in to add items to your cart.");
+      navigate("/auth");
+      return;
+    }
+    if (!selectedSizeValue) {
+      toast.error("Please select a size.");
+      return;
+    }
+    try {
+      await axios.post(`${backendUrl}/api/cart/add`, 
+        { 
+          userId: user._id, 
+          itemId: product._id, 
+          size: selectedSizeValue, 
+          color: selectedVariation.color,
+          appliedCoupon: appliedCoupon?.code,
+          discountAmount: appliedCoupon?.discountAmount
+        },
+        { headers: { token } }
+      );
+      fetchCartCount();
+      navigate("/cart");
+    } catch (error) {
+      toast.error("Failed to add to cart.");
+    }
   };
 
 

@@ -15,7 +15,9 @@ const userSchema = new mongoose.Schema({
         product: { type: mongoose.Schema.Types.ObjectId, ref: 'product' },
         size: { type: String, },
         quantity: { type: Number,  },
-        color: { type: String,}
+        color: { type: String,},
+        appliedCoupon: { type: String, default: null },
+        discountAmount: { type: Number, default: 0 }
     }],
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }],
     addresses: [{

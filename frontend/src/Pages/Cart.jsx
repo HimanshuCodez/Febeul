@@ -89,11 +89,19 @@ const Cart = () => {
     },
     0
   );
+
+  const totalDiscount = (cartItems || []).reduce(
+    (sum, item) => {
+      return sum + (item.discountAmount || 0);
+    },
+    0
+  );
+
   const shipping = (isAuthenticated && user?.isLuxeMember)
     ? 0 // Luxe members get free shipping here (COD is handled in Checkout)
-    : (subtotal > 499 ? 0 : 50); // Non-Luxe members pay 50 if subtotal <= 499
+    : (subtotal - totalDiscount > 499 ? 0 : 50); // Shipping calculated on discounted total
   const tax = 0;
-  const total = subtotal + shipping + tax;
+  const total = (subtotal - totalDiscount) + shipping + tax;
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>
@@ -164,9 +172,21 @@ const Cart = () => {
                     <p className="text-sm text-gray-500">
                       {item.size} / {item.color}
                     </p>
-                    <p className="text-lg font-bold text-pink-500 mt-1">
-                      ₹{price.toFixed(2)}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className={`text-lg font-bold text-pink-500 ${item.discountAmount > 0 ? 'line-through text-sm text-gray-400' : ''}`}>
+                        ₹{price.toFixed(2)}
+                      </p>
+                      {item.discountAmount > 0 && (
+                        <p className="text-lg font-bold text-green-600">
+                          ₹{(price - item.discountAmount).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    {item.appliedCoupon && (
+                      <p className="text-xs text-green-600 font-medium mt-1">
+                        Coupon "{item.appliedCoupon}" applied
+                      </p>
+                    )}
                     <div className="flex items-center mt-4">
                       <div className="flex items-center border rounded-md">
                         <button
@@ -211,6 +231,12 @@ const Cart = () => {
                   <span>Subtotal</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Coupon Discount</span>
+                    <span>- ₹{totalDiscount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span>{shipping === 0 ? "Free" : `₹${shipping.toFixed(2)}`}</span>

@@ -3,7 +3,7 @@ import userModel from "../models/userModel.js"
 // add products to user cart
 const addToCart = async (req,res) => {
     try {
-        const { itemId, size, color } = req.body
+        const { itemId, size, color, appliedCoupon, discountAmount } = req.body
         const user = await userModel.findById(req.userId)
 
         if (!user) {
@@ -23,8 +23,20 @@ const addToCart = async (req,res) => {
 
         if (cartItemIndex > -1) {
             user.cartData[cartItemIndex].quantity += 1;
+            // Optionally update coupon if a new one is provided
+            if (appliedCoupon) {
+                user.cartData[cartItemIndex].appliedCoupon = appliedCoupon;
+                user.cartData[cartItemIndex].discountAmount = discountAmount || 0;
+            }
         } else {
-            user.cartData.push({ product: itemId, size, color, quantity: 1 });
+            user.cartData.push({ 
+                product: itemId, 
+                size, 
+                color, 
+                quantity: 1,
+                appliedCoupon: appliedCoupon || null,
+                discountAmount: discountAmount || 0
+            });
         }
 
         await user.save();
@@ -148,7 +160,9 @@ const getUserCart = async (req,res) => {
                     color: item.color,
                     price: price, // Add the correct price
                     mrp: mrp,   // Add the correct mrp
-                    _id: item.product._id
+                    _id: item.product._id,
+                    appliedCoupon: item.appliedCoupon,
+                    discountAmount: item.discountAmount
                 };
             }
             return null;

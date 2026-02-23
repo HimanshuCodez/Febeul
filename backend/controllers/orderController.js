@@ -30,28 +30,55 @@ const razorpayInstance = new razorpay({
     key_secret : process.env.RAZORPAY_KEY_SECRET,
 })
 
-// Helper to get item price from product variations
-const getItemPrice = (product, color, size) => {
+// Helper to get item size data from product variations
+const getSizeData = (product, color, size) => {
     const variation = product.variations.find(v => v.color === color);
     if (variation) {
-        const sizeData = variation.sizes.find(s => s.size === size);
-        if (sizeData) {
-            return sizeData.price;
+        return variation.sizes.find(s => s.size === size);
+    }
+    return null;
+};
+
+// Helper function to decrease stock
+const decreaseStock = async (items) => {
+    for (const item of items) {
+        const product = await productModel.findById(item.productId);
+        if (product) {
+            const variation = product.variations.find(v => v.color === item.color);
+            if (variation) {
+                const sizeData = variation.sizes.find(s => s.size === item.size);
+                if (sizeData) {
+                    sizeData.stock -= item.quantity;
+                    if (sizeData.stock < 0) sizeData.stock = 0;
+                }
+            }
+            await product.save();
         }
     }
-    return 0; // Default to 0 if not found
 };
 
 // Helper function to calculate all pricing components
 const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, couponDiscount = 0) => {
     let productAmount = 0;
+    let totalItemDiscount = 0;
     const processedItems = await Promise.all(items.map(async (item) => {
         const product = await productModel.findById(item.productId);
         if (!product) {
             throw new Error(`Product not found for ID: ${item.productId}`);
         }
-        const itemPrice = getItemPrice(product, item.color, item.size); 
+        
+        const sizeData = getSizeData(product, item.color, item.size);
+        if (!sizeData) {
+            throw new Error(`Size ${item.size} not found for product ${product.name} in color ${item.color}`);
+        }
+
+        if (sizeData.stock < item.quantity) {
+            throw new Error(`Insufficient stock for ${product.name} (Color: ${item.color}, Size: ${item.size}). Available: ${sizeData.stock}`);
+        }
+
+        const itemPrice = sizeData.price;
         productAmount += itemPrice * item.quantity;
+        totalItemDiscount += (item.discountAmount || 0);
 
         return { 
             productId: item.productId,
@@ -61,7 +88,9 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
             image: product.variations.find(v => v.color === item.color)?.images[0] || '',
             price: itemPrice,
             color: item.color,
-            sku: product.variations.find(v => v.color === item.color)?.sku || ''
+            sku: product.variations.find(v => v.color === item.color)?.sku || '',
+            discountAmount: item.discountAmount || 0,
+            appliedCoupon: item.appliedCoupon || null
         };
     }));
 
@@ -82,22 +111,25 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     }
 
     // Calculate shipping charge based on frontend logic
-    // This logic should be applied *after* determining isLuxeMember
-    if (paymentMethod !== 'COD' && !isLuxeMember && productAmount < SHIPPING_CHARGE_THRESHOLD) {
+    // Calculate shipping based on discounted total
+    const discountedProductAmount = productAmount - totalItemDiscount;
+
+    if (paymentMethod !== 'COD' && !isLuxeMember && discountedProductAmount < SHIPPING_CHARGE_THRESHOLD) {
         shippingCharge = DEFAULT_SHIPPING_CHARGE;
     }
     
-    // Calculate subtotal for GST (productAmount - couponDiscount)
-    const subtotalForGST = productAmount - couponDiscount;
+    // Calculate subtotal for GST (discountedProductAmount - couponDiscount)
+    const subtotalForGST = discountedProductAmount - couponDiscount;
     const gstRate = 0.09; // 9% for CGST and SGST
     const cgstAmount = subtotalForGST * gstRate;
     const sgstAmount = subtotalForGST * gstRate;
     const totalGst = cgstAmount + sgstAmount;
 
-    // Recalculate orderTotal to include GST
-    const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice + totalGst - couponDiscount;
+    // Recalculate orderTotal to include GST and sum of all discounts
+    const totalCombinedDiscount = totalItemDiscount + couponDiscount;
+    const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice + totalGst - totalCombinedDiscount;
 
-    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember };
+    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount };
 };
 
 const constructEmailHtml = (order, templateHtml) => {
@@ -191,7 +223,7 @@ const placeOrder = async (req,res) => {
         
         const { userId, items, address, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount);
 
         const orderData = {
             userId,
@@ -206,11 +238,14 @@ const placeOrder = async (req,res) => {
             date: Date.now(),
             giftWrap: giftWrapData,
             couponCode,
-            couponDiscount,
+            couponDiscount: totalCombinedDiscount,
         }
 
         const newOrder = new orderModel(orderData)
         await newOrder.save()
+
+        // Decrease stock
+        await decreaseStock(processedItems);
 
         await userModel.findByIdAndUpdate(userId,{cartData:[]})
         
@@ -410,6 +445,9 @@ const verifyStripe = async (req,res) => {
 
             await userModel.findByIdAndUpdate(userId, { cartData: [] });
 
+            // Decrease stock
+            await decreaseStock(updatedOrder.items);
+
             // Decrement giftWrapsLeft if Luxe member used a gift wrap
             if (updatedOrder.isLuxeMemberAtTimeOfOrder && updatedOrder.giftWrap) {
                 await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
@@ -490,7 +528,7 @@ const placeOrderRazorpay = async (req,res) => {
         
         const { userId, items, address, currency, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount);
 
         const orderData = {
             userId,
@@ -506,7 +544,7 @@ const placeOrderRazorpay = async (req,res) => {
             giftWrap: giftWrapData,
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
             couponCode,
-            couponDiscount,
+            couponDiscount: totalCombinedDiscount,
         }
 
         const newOrder = new orderModel(orderData)
@@ -580,6 +618,9 @@ const verifyRazorpay = async (req,res) => {
                     });
                 } else {
                     await userModel.findByIdAndUpdate(userId, { cartData: [] });
+
+                    // Decrease stock
+                    await decreaseStock(order.items);
 
                     // Decrement giftWrapsLeft if Luxe member used a gift wrap on a non-luxe order
                     if (order.isLuxeMemberAtTimeOfOrder && order.giftWrap) {

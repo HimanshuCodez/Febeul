@@ -134,17 +134,22 @@ export default function CheckoutPage() {
 
         return sum + (actualPrice * item.quantity);
     }, 0);
+
+    const totalProductDiscount = cartItems.reduce((sum, item) => {
+        return sum + (item.discountAmount || 0);
+    }, 0);
+
     const isLuxeMember = user?.isLuxeMember;
     
     let shippingCharge = 0;
-    if (selectedPayment !== 'cod' && !isLuxeMember && subtotal < 499) {
+    if (selectedPayment !== 'cod' && !isLuxeMember && (subtotal - totalProductDiscount) < 499) {
         shippingCharge = 50.00;
     }
 
     const codCharge = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : 0;
     
     const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
-    const total = parseFloat((subtotal + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
+    const total = parseFloat((subtotal - totalProductDiscount + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
     
     const addresses = user?.addresses || [];
 
@@ -184,7 +189,9 @@ export default function CheckoutPage() {
             image: actualImage, // Use item.image directly
             price: actualPrice, // Use item.price directly
             color: item.color,
-            sku: selectedVariation?.sku // Add SKU here
+            sku: selectedVariation?.sku, // Add SKU here
+            discountAmount: item.discountAmount || 0,
+            appliedCoupon: item.appliedCoupon || null
         }
     });
     const orderData = {
@@ -240,7 +247,9 @@ export default function CheckoutPage() {
             image: actualImage, // Use item.image directly
             price: actualPrice, // Use item.price directly
             color: item.color,
-            sku: selectedVariation?.sku // Add SKU here
+            sku: selectedVariation?.sku, // Add SKU here
+            discountAmount: item.discountAmount || 0,
+            appliedCoupon: item.appliedCoupon || null
         }
       });      const orderPayload = {
         userId: user._id,
@@ -616,6 +625,12 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
+                {totalProductDiscount > 0 && (
+                    <div className="flex justify-between text-green-600 font-semibold">
+                        <span>Product Discount</span>
+                        <span>- ₹{totalProductDiscount.toFixed(2)}</span>
+                    </div>
+                )}
                 {couponDiscount > 0 && (
                     <div className="flex justify-between text-green-600 font-semibold">
                         <span>Coupon Discount</span>
