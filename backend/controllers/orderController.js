@@ -119,17 +119,20 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     }
     
     // Calculate subtotal for GST (discountedProductAmount - couponDiscount)
-    const subtotalForGST = discountedProductAmount - couponDiscount;
-    const gstRate = 0.09; // 9% for CGST and SGST
-    const cgstAmount = subtotalForGST * gstRate;
-    const sgstAmount = subtotalForGST * gstRate;
-    const totalGst = cgstAmount + sgstAmount;
+    const discountedAmount = discountedProductAmount - couponDiscount;
+    
+    // Extract GST from the inclusive amount
+    // Formula: Base = Inclusive / 1.18
+    const taxableValue = discountedAmount / 1.18;
+    const totalGst = discountedAmount - taxableValue;
+    const cgstAmount = totalGst / 2;
+    const sgstAmount = totalGst / 2;
 
-    // Recalculate orderTotal to include GST and sum of all discounts
+    // Recalculate orderTotal - GST is already included in the product prices
     const totalCombinedDiscount = totalItemDiscount + couponDiscount;
-    const orderTotal = productAmount + shippingCharge + codCharge + giftWrapPrice + totalGst - totalCombinedDiscount;
+    const orderTotal = (productAmount - totalCombinedDiscount) + shippingCharge + codCharge + giftWrapPrice;
 
-    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount };
+    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount };
 };
 
 const constructEmailHtml = (order, templateHtml) => {
@@ -159,11 +162,18 @@ const constructEmailHtml = (order, templateHtml) => {
     const emailProductAmount = parseFloat(order.productAmount || 0);
     const emailCouponDiscount = parseFloat(order.couponDiscount || 0);
     const emailOrderTotal = parseFloat(order.orderTotal || 0);
+    const emailDiscountedAmount = emailProductAmount - emailCouponDiscount;
+    
+    // Inclusive GST extraction
+    const emailTaxableValue = emailDiscountedAmount / 1.18;
+    const emailTotalGst = emailDiscountedAmount - emailTaxableValue;
+    const emailCgst = emailTotalGst / 2;
+    const emailSgst = emailTotalGst / 2;
 
     let giftWrapRowHtml = '';
     if (emailGiftWrapPrice > 0) {
         giftWrapRowHtml = `
-            <tr>
+            <tr class="tax-row">
                 <td colspan="3" style="text-align:right;">Gift Wrap:</td>
                 <td>₹${emailGiftWrapPrice.toFixed(2)}</td>
             </tr>
@@ -173,7 +183,7 @@ const constructEmailHtml = (order, templateHtml) => {
     let codChargeRowHtml = '';
     if (emailCodCharge > 0) {
         codChargeRowHtml = `
-            <tr>
+            <tr class="tax-row">
                 <td colspan="3" style="text-align:right;">COD Charges:</td>
                 <td>₹${emailCodCharge.toFixed(2)}</td>
             </tr>
@@ -183,9 +193,9 @@ const constructEmailHtml = (order, templateHtml) => {
     let couponDiscountRowHtml = '';
     if (emailCouponDiscount > 0) {
         couponDiscountRowHtml = `
-            <tr>
-                <td colspan="3" style="text-align:right;">Coupon Discount:</td>
-                <td>- ₹${emailCouponDiscount.toFixed(2)}</td>
+            <tr class="tax-row">
+                <td colspan="3" style="text-align:right; color: #155724; font-weight: 600;">Coupon Discount:</td>
+                <td style="text-align:right; color: #155724; font-weight: 600;">- ₹${emailCouponDiscount.toFixed(2)}</td>
             </tr>
         `;
     }
@@ -194,10 +204,14 @@ const constructEmailHtml = (order, templateHtml) => {
     let populatedHtml = templateHtml;
     populatedHtml = populatedHtml.replace('{{userName}}', order.userId.name || 'Customer');
     populatedHtml = populatedHtml.replace('{{orderId}}', order._id.toString());
+    populatedHtml = populatedHtml.replace('{{invoiceNumber}}', `INV-${order._id.toString().slice(-8).toUpperCase()}`);
+    populatedHtml = populatedHtml.replace('{{invoiceDate}}', new Date(order.date).toLocaleDateString());
     populatedHtml = populatedHtml.replace('{{orderDate}}', new Date(order.date).toLocaleDateString());
     populatedHtml = populatedHtml.replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
     populatedHtml = populatedHtml.replace('{{itemRows}}', itemRowsHtml);
-    populatedHtml = populatedHtml.replace('{{subtotal}}', emailProductAmount.toFixed(2));
+    populatedHtml = populatedHtml.replace('{{taxableValue}}', emailTaxableValue.toFixed(2));
+    populatedHtml = populatedHtml.replace('{{cgst}}', emailCgst.toFixed(2));
+    populatedHtml = populatedHtml.replace('{{sgst}}', emailSgst.toFixed(2));
     populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE');
     populatedHtml = populatedHtml.replace('{{codChargeRow}}', codChargeRowHtml);
     populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);
@@ -208,8 +222,14 @@ const constructEmailHtml = (order, templateHtml) => {
     populatedHtml = populatedHtml.replace('{{shippingAddressZip}}', order.address.zip);
     populatedHtml = populatedHtml.replace('{{shippingAddressCountry}}', order.address.country);
     populatedHtml = populatedHtml.replace('{{shippingAddressPhone}}', order.address.phone);
+    populatedHtml = populatedHtml.replace('{{billingAddressName}}', order.address.name);
+    populatedHtml = populatedHtml.replace('{{billingAddressAddress}}', order.address.address);
+    populatedHtml = populatedHtml.replace('{{billingAddressCity}}', order.address.city);
+    populatedHtml = populatedHtml.replace('{{billingAddressZip}}', order.address.zip);
+    populatedHtml = populatedHtml.replace('{{billingAddressCountry}}', order.address.country);
     populatedHtml = populatedHtml.replace('{{paymentMethod}}', order.paymentMethod);
     populatedHtml = populatedHtml.replace('{{paymentStatus}}', order.payment ? 'Paid' : 'Pending');
+    populatedHtml = populatedHtml.replace('{{paymentStatusClass}}', order.payment ? 'paid' : 'pending');
     populatedHtml = populatedHtml.replace('{{orderTrackingLink}}', `https://febeul.onrender.com/track/${order._id}`);
     populatedHtml = populatedHtml.replace('{{currentYear}}', new Date().getFullYear());
 

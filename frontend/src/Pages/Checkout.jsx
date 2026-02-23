@@ -149,6 +149,13 @@ export default function CheckoutPage() {
     const codCharge = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : 0;
     
     const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
+    
+    const discountedAmount = subtotal - totalProductDiscount - couponDiscount;
+    const taxableValue = discountedAmount / 1.18;
+    const totalTax = discountedAmount - taxableValue;
+    const cgst = totalTax / 2;
+    const sgst = totalTax / 2;
+
     const total = parseFloat((subtotal - totalProductDiscount + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
     
     const addresses = user?.addresses || [];
@@ -627,7 +634,7 @@ export default function CheckoutPage() {
                 </div>
                 {totalProductDiscount > 0 && (
                     <div className="flex justify-between text-green-600 font-semibold">
-                        <span>Product Discount</span>
+                        <span>Coupon Discount</span>
                         <span>- ₹{totalProductDiscount.toFixed(2)}</span>
                     </div>
                 )}

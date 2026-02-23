@@ -90,7 +90,14 @@ const MyOrders = () => {
 
                 {/* Mobile: Items Count, Status, and Details Button */}
                 <div className="flex justify-between items-center mt-2 sm:mt-0">
-                    <p className="text-sm text-gray-500">{order.items.length} items</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-500">{order.items.length} items</p>
+                        {order.couponDiscount > 0 && (
+                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                                DISCOUNT APPLIED
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center space-x-2">
                         <span className={`text-xs font-medium px-3 py-1 rounded-full capitalize ${
                             order.orderStatus === "Processing" ? "bg-yellow-100 text-yellow-700" :

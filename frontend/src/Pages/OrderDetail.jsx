@@ -269,7 +269,7 @@ export default function OrderDetailPage() {
   const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
   let shippingCharge = order.shippingCharge || 0;
   let codCharge = order.codCharge || 0;
-  const orderTotal = order.orderTotal || (productAmount + shippingCharge + codCharge);
+  const orderTotal = (productAmount - (order.couponDiscount || 0) + shippingCharge + codCharge + (order.giftWrap?.price || 0));
 
   // If payment method is COD and the total seems to include a 50rs charge that isn't accounted for, assume it's the COD charge.
   if (order.paymentMethod === 'COD' && codCharge === 0) {
@@ -542,25 +542,48 @@ export default function OrderDetailPage() {
             </h3>
 
             <div className="space-y-4 mb-4">
-              {order.items.map((item, index) => (
-                <motion.div
-                  key={item.productId + item.size}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.7 + (index * 0.1) }}
-                  className="flex items-center justify-between pb-4 border-b border-gray-200 last:border-0"
-                >
-                  <div className="flex items-center flex-1">
-                    <img src={item.image} className="w-12 h-12 object-cover mr-3 rounded" />
-                    <div>
-                      <p className="font-medium text-gray-800">{item.name}</p>
-                      {item.sku && <p className="text-xs text-gray-500">SKU: {item.sku}</p>}
-                      <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+              {order.items.map((item, index) => {
+                const itemPrice = parseFloat(item.price || 0);
+                const itemQuantity = parseFloat(item.quantity || 0);
+                const itemDiscount = parseFloat(item.discountAmount || 0);
+                const itemTotal = (itemPrice * itemQuantity) - itemDiscount;
+
+                return (
+                  <motion.div
+                    key={item.productId + item.size + item.color}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 + (index * 0.1) }}
+                    className="flex items-center justify-between pb-4 border-b border-gray-200 last:border-0"
+                  >
+                    <div className="flex items-center flex-1">
+                      <img src={item.image} className="w-12 h-12 object-cover mr-3 rounded" />
+                      <div>
+                        <p className="font-medium text-gray-800">{item.name}</p>
+                        {item.sku && <p className="text-xs text-gray-500">SKU: {item.sku}</p>}
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                          {itemDiscount > 0 && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                              Discount Applied
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <p className="font-bold text-gray-800">₹{(parseFloat(item.price || 0) * parseFloat(item.quantity || 0)).toFixed(2)}</p>
-                </motion.div>
-              ))}
+                    <div className="text-right">
+                      <p className={`font-bold text-gray-800 ${itemDiscount > 0 ? 'line-through text-xs text-gray-400' : ''}`}>
+                        ₹{(itemPrice * itemQuantity).toFixed(2)}
+                      </p>
+                      {itemDiscount > 0 && (
+                        <p className="font-bold text-green-600">
+                          ₹{itemTotal.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
 
             <div className="border-t pt-4 space-y-2">
@@ -568,6 +591,13 @@ export default function OrderDetailPage() {
                 <span>Subtotal</span>
                 <span>₹{productAmount.toFixed(2)}</span>
               </div>
+              {order.couponDiscount > 0 && (
+                  <div className="flex justify-between text-green-600 font-semibold">
+                      <span>Total Discount</span>
+                      <span>- ₹{order.couponDiscount.toFixed(2)}</span>
+                  </div>
+              )}
+              
               {shippingCharge > 0 && (
                   <div className="flex justify-between text-gray-600">
                       <span>Shipping Charge</span>
@@ -588,7 +618,7 @@ export default function OrderDetailPage() {
               )}
               <div className="border-t pt-3 flex justify-between text-xl font-bold">
                 <span className="text-gray-800">Total</span>
-                <span className="text-[#e8767a]">₹{orderTotal.toFixed(2)}</span>
+                <span className="text-[#e8767a]">₹{(productAmount - (order.couponDiscount || 0) + shippingCharge + codCharge + (order.giftWrap?.price || 0)).toFixed(2)}</span>
               </div>
             </div>
           </motion.div>

@@ -330,9 +330,14 @@ const buildInvoicePDF = (order, res) => {
         
         // Calculate dynamic totals
         const invoiceItemSubtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const gstRate = 0.09; // 9% for CGST and SGST
-        const cgst = invoiceItemSubtotal * gstRate;
-        const sgst = invoiceItemSubtotal * gstRate;
+        const totalDiscount = order.couponDiscount || 0;
+        const discountedAmount = invoiceItemSubtotal - totalDiscount;
+        
+        // Inclusive GST extraction
+        const taxableValue = discountedAmount / 1.18;
+        const totalGst = discountedAmount - taxableValue;
+        const cgst = totalGst / 2;
+        const sgst = totalGst / 2;
         
         const invoiceShippingOnlyCost = order.shippingCharge || 0;
         const invoiceCodCharge = order.codCharge || 0;
@@ -356,6 +361,10 @@ const buildInvoicePDF = (order, res) => {
         };
         
         addTotalRow('Subtotal:', `INR ${invoiceItemSubtotal.toFixed(2)}`);
+        if (totalDiscount > 0) {
+            addTotalRow('Coupon Discount:', `- INR ${totalDiscount.toFixed(2)}`, true);
+        }
+        addTotalRow('Taxable Value:', `INR ${taxableValue.toFixed(2)}`);
         addTotalRow('CGST (9%):', `INR ${cgst.toFixed(2)}`);
         addTotalRow('SGST (9%):', `INR ${sgst.toFixed(2)}`);
         

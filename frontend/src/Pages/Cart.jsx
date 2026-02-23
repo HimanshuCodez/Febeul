@@ -100,8 +100,14 @@ const Cart = () => {
   const shipping = (isAuthenticated && user?.isLuxeMember)
     ? 0 // Luxe members get free shipping here (COD is handled in Checkout)
     : (subtotal - totalDiscount > 499 ? 0 : 50); // Shipping calculated on discounted total
-  const tax = 0;
-  const total = (subtotal - totalDiscount) + shipping + tax;
+  
+  const discountedAmount = subtotal - totalDiscount;
+  const taxableValue = discountedAmount / 1.18;
+  const totalGst = discountedAmount - taxableValue;
+  const cgst = totalGst / 2;
+  const sgst = totalGst / 2;
+  
+  const total = (subtotal - totalDiscount) + shipping;
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>
