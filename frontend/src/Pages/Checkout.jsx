@@ -78,6 +78,9 @@ export default function CheckoutPage() {
         );
         if (response.data.success) {
           setCartItems(response.data.cartItems);
+          if (response.data.giftWrap) {
+            setSelectedGiftWrap(response.data.giftWrap);
+          }
         }
       } catch (error) {
         toast.error("Failed to fetch cart.");
@@ -139,23 +142,18 @@ export default function CheckoutPage() {
         return sum + (item.discountAmount || 0);
     }, 0);
 
-    const isLuxeMember = user?.isLuxeMember;
+    const isLuxeMember = user?.isLuxeMember && (user?.giftWrapsLeft > 0);
     
     let shippingCharge = 0;
-    if (selectedPayment !== 'cod' && !isLuxeMember && (subtotal - totalProductDiscount) < 499) {
+    if (selectedPayment !== 'cod' && !user?.isLuxeMember && (subtotal - totalProductDiscount) < 499) {
         shippingCharge = 50.00;
     }
 
     const codCharge = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : 0;
     
-    const giftWrapPrice = selectedGiftWrap ? selectedGiftWrap.price : 0;
+    const giftWrapPrice = selectedGiftWrap ? (isLuxeMember ? 0 : selectedGiftWrap.price) : 0;
     
     const discountedAmount = subtotal - totalProductDiscount - couponDiscount;
-    const taxableValue = discountedAmount / 1.18;
-    const totalTax = discountedAmount - taxableValue;
-    const cgst = totalTax / 2;
-    const sgst = totalTax / 2;
-
     const total = parseFloat((subtotal - totalProductDiscount + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
     
     const addresses = user?.addresses || [];

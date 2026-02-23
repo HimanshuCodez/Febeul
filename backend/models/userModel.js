@@ -19,6 +19,11 @@ const userSchema = new mongoose.Schema({
         appliedCoupon: { type: String, default: null },
         discountAmount: { type: Number, default: 0 }
     }],
+    giftWrap: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'giftWrap',
+        default: null
+    },
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }],
     addresses: [{
         name: { type: String, required: true },

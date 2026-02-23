@@ -57,8 +57,32 @@ export default function GiftWrapPage() {
     : 0;
   
   const handleAddToCart = async () => {
-    toast.success(`${quantity} x ${selectedWrap.name} added to cart!`);
-    fetchCartCount(); // Update cart count in store
+    if (!selectedWrap) {
+      toast.error("Please select a gift wrap first.");
+      return;
+    }
+    
+    if (!user) {
+      toast.error("Please log in to add to cart.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${backendUrl}/api/cart/add-giftwrap`, 
+        { giftWrapId: selectedWrap._id },
+        { headers: { token: localStorage.getItem('token') } }
+      );
+
+      if (response.data.success) {
+        toast.success(`${selectedWrap.name} added to cart!`);
+        fetchCartCount(); // Update cart count in store
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error adding gift wrap to cart", error);
+      toast.error("Failed to add gift wrap to cart.");
+    }
   }
   
     if (loading) {

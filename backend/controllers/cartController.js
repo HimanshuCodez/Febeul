@@ -118,12 +118,49 @@ const removeFromCart = async (req, res) => {
     }
 };
 
+// add gift wrap to user cart
+const addGiftWrapToCart = async (req, res) => {
+    try {
+        const { giftWrapId } = req.body;
+        const user = await userModel.findById(req.userId);
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        user.giftWrap = giftWrapId;
+        await user.save();
+        res.json({ success: true, message: "Gift Wrap Added To Cart" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// remove gift wrap from user cart
+const removeGiftWrapFromCart = async (req, res) => {
+    try {
+        const user = await userModel.findById(req.userId);
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        user.giftWrap = null;
+        await user.save();
+        res.json({ success: true, message: "Gift Wrap Removed From Cart" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
 // get user cart data
 const getUserCart = async (req,res) => {
     try {
         const user = await userModel.findById(req.userId).populate({
             path: 'cartData.product'
-        });
+        }).populate('giftWrap');
         
         if (!user) {
             return res.json({ success: false, message: "User not found" });
@@ -168,7 +205,7 @@ const getUserCart = async (req,res) => {
             return null;
         }).filter(item => item !== null);
 
-        res.json({ success: true, cartItems: cartItems });
+        res.json({ success: true, cartItems: cartItems, giftWrap: user.giftWrap });
 
     } catch (error) {
         console.log(error);
@@ -176,4 +213,4 @@ const getUserCart = async (req,res) => {
     }
 }
 
-export { addToCart, updateCart, getUserCart, removeFromCart }
+export { addToCart, updateCart, getUserCart, removeFromCart, addGiftWrapToCart, removeGiftWrapFromCart }
