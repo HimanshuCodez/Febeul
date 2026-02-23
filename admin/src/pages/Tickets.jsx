@@ -10,6 +10,7 @@ const Tickets = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'open', 'closed', 'pending'
+  const [searchTerm, setSearchTerm] = useState(''); // New state for search
   const [adminMessage, setAdminMessage] = useState(''); // New state for admin message
   const [adminAttachments, setAdminAttachments] = useState([]); // New state for admin chat attachments
   const adminFileInputRef = useRef(null); // Ref for admin file input
@@ -127,8 +128,11 @@ const Tickets = ({ token }) => {
   }, [token]);
 
   const filteredTickets = tickets.filter((ticket) => {
-    if (filterStatus === 'all') return true;
-    return ticket.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
+    const userName = ticket.user?.name?.toLowerCase() || '';
+    const userEmail = ticket.user?.email?.toLowerCase() || '';
+    const matchesSearch = userName.includes(searchTerm.toLowerCase()) || userEmail.includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
   });
 
   const getStatusColor = (status) => {
@@ -144,9 +148,9 @@ const Tickets = ({ token }) => {
     <div className='p-6 bg-gray-50 min-h-screen'>
       <h2 className='text-3xl font-semibold text-gray-800 mb-8'>Support Tickets</h2>
 
-      {/* Filter and Search (Future enhancement) */}
-      <div className='mb-6 flex justify-between items-center'>
-        <div className='flex gap-4'>
+      {/* Filter and Search */}
+      <div className='mb-6 flex flex-col md:flex-row justify-between items-center gap-4'>
+        <div className='flex flex-wrap gap-4'>
           <button
             onClick={() => setFilterStatus('all')}
             className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'all' ? 'bg-pink-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
@@ -172,12 +176,22 @@ const Tickets = ({ token }) => {
             Closed
           </button>
         </div>
-        <button
-          onClick={fetchTickets}
-          className="px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-        >
-          Refresh
-        </button>
+        
+        <div className='flex gap-4 w-full md:w-auto'>
+          <input
+            type="text"
+            placeholder="Search by customer name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 flex-1 md:w-64"
+          />
+          <button
+            onClick={fetchTickets}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Tickets List */}

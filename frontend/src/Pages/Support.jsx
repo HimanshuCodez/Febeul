@@ -12,6 +12,7 @@ const Support = () => {
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
+    const [searchTerm, setSearchTerm] = useState(""); // New state for search
     const [formData, setFormData] = useState({ subject: "", description: "", message: "", images: [] });
     const [currentMessage, setCurrentMessage] = useState(''); // New state for message input
     const [currentAttachments, setCurrentAttachments] = useState([]); // New state for chat attachments
@@ -177,6 +178,13 @@ const Support = () => {
         }
     };
 
+    const filteredTickets = tickets.filter((ticket) => {
+        const subject = ticket.subject?.toLowerCase() || '';
+        const ticketId = ticket._id?.toLowerCase() || '';
+        const search = searchTerm.toLowerCase();
+        return subject.includes(search) || ticketId.includes(search);
+    });
+
     return (
         <div className="min-h-screen bg-pink-50/50 font-sans py-12 px-4 sm:px-6 lg:px-8">
             <div className="container mx-auto">
@@ -186,9 +194,16 @@ const Support = () => {
                 </motion.div>
 
                 <div className="bg-white rounded-lg shadow-md p-8">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                         <h2 className="text-2xl font-semibold text-gray-800">My Tickets</h2>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                            <input
+                                type="text"
+                                placeholder="Search by subject or ID..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 flex-1 md:w-64"
+                            />
                             <button
                                 onClick={fetchUserTickets}
                                 className="bg-blue-500 text-white py-2 px-4 rounded-md font-semibold hover:bg-blue-600 transition-colors"
@@ -246,9 +261,9 @@ const Support = () => {
 
                     {loading ? <p>Loading your tickets...</p> : !token ? (
                         <p className="text-center text-gray-500 py-8">Please log in to view or create support tickets.</p>
-                    ) : tickets.length > 0 ? (
+                    ) : filteredTickets.length > 0 ? (
                         <div className="space-y-4">
-                            {tickets.map(ticket => (
+                            {filteredTickets.map(ticket => (
                                 <div key={ticket._id} onClick={() => setSelectedTicket(ticket)} className="bg-white border border-gray-200 p-4 rounded-lg cursor-pointer hover:shadow-lg transition-shadow">
                                     <div className="flex justify-between items-center">
                                         <div>
