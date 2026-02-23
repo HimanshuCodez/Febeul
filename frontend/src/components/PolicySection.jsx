@@ -11,7 +11,7 @@ const Section = ({ title, content, index }) => {
       <motion.div variants={variants} className="mb-8">
         <h2 className="text-2xl font-bold text-[#f68a8b] mb-4">{title}</h2>
         <div className="space-y-4">
-          {content.map((item, idx) => {
+          {content && content.map((item, idx) => {
             switch (item.type) {
               case 'paragraph':
                 return <p key={idx} className="text-gray-700 leading-relaxed">{item.text}</p>;

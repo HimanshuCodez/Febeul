@@ -234,7 +234,7 @@ const ProductDetailPage = () => {
       : 0;
 
   const productDetailRows = [
-    { label: "SKU", value: selectedVariation.sku },
+
     { label: "Material Type", value: product.materialType },
     { label: "Care Instructions", value: product.careInstructions },
     { label: "Country of Origin", value: product.countryOfOrigin },
@@ -558,7 +558,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
       <SimilarItems productId={productId} token={token} />
-      <Reviews productId={productId} /> {/* Integrate the Reviews component */}
+      {/* <Reviews productId={productId} />  */}
       <AddressModal 
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}
