@@ -388,31 +388,40 @@ const ProductDetailPage = () => {
                   <span className="font-bold">{selectedVariation.color}</span>
                 </div>
                 <div className="flex gap-3 flex-wrap">
-                  {variations.map((variation, index) => (
-                    <div
-                      key={index}
-                      onClick={() => {
-                        setSelectedVariationIndex(index);
-                        // Update selected size when color variation changes
-                        if (variation.sizes && variation.sizes.length > 0) {
-                          setSelectedSizeValue(variation.sizes[0].size);
-                        } else {
-                          setSelectedSizeValue(null);
-                        }
-                      }}
-                      className={`p-1 border-2 rounded-md cursor-pointer transition-all ${
-                        index === selectedVariationIndex
-                          ? "border-orange-500"
-                          : "border-transparent"
-                      }`}
-                    >
-                      <img
-                        src={variation.images[0]}
-                        alt={`Color ${variation.color}`}
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                    </div>
-                  ))}
+                  {variations.map((variation, index) => {
+                    const isFullyOutOfStock = variation.sizes?.every(s => Number(s.stock) <= 0);
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => {
+                          setSelectedVariationIndex(index);
+                          // Update selected size when color variation changes
+                          if (variation.sizes && variation.sizes.length > 0) {
+                            setSelectedSizeValue(variation.sizes[0].size);
+                          } else {
+                            setSelectedSizeValue(null);
+                          }
+                        }}
+                        className={`p-1 border-2 rounded-md cursor-pointer transition-all relative ${
+                          index === selectedVariationIndex
+                            ? "border-orange-500"
+                            : "border-transparent"
+                        } ${isFullyOutOfStock ? 'opacity-50' : ''}`}
+                      >
+                        <img
+                          src={variation.images[0]}
+                          alt={`Color ${variation.color}`}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                        {isFullyOutOfStock && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-full h-[2px] bg-red-600 rotate-45 absolute"></div>
+                            <div className="w-full h-[2px] bg-red-600 -rotate-45 absolute"></div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
