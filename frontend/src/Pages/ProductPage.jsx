@@ -10,7 +10,8 @@ import {
   Star,
   MapPin,
   Lock,
-  Heart
+  Heart,
+  XCircle
 } from "lucide-react";
 import Loader from "../components/Loader";
 import useAuthStore from "../store/authStore";
@@ -254,6 +255,7 @@ const ProductDetailPage = () => {
   const currentSizeData = selectedVariation.sizes?.find(s => s.size === selectedSizeValue);
   const displayPrice = currentSizeData?.price;
   const displayMrp = currentSizeData?.mrp;
+  const isOutOfStock = !currentSizeData || Number(currentSizeData.stock) <= 0;
 
   const finalDisplayPrice = appliedCoupon 
     ? Math.max(0, displayPrice - appliedCoupon.discountAmount) 
@@ -328,17 +330,25 @@ const ProductDetailPage = () => {
                     </div>
                   ))}
                 </div>
-                <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
+                <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center relative">
                   <motion.img
                     key={images[selectedImage]}
                     src={images[selectedImage]}
                     alt="Product main view"
-                    className="w-full h-full object-contain"
+                    className={`w-full h-full object-contain ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
                     style={{ maxHeight: "450px" }}
                     initial={{ opacity: 0.8 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2 }}
                   />
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="bg-red-600/90 text-white px-6 py-2 rounded-sm font-bold text-xl uppercase tracking-widest flex items-center gap-2 transform -rotate-12 border-2 border-white shadow-2xl">
+                         <XCircle size={28} />
+                         Out Of Stock
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -494,9 +504,16 @@ const ProductDetailPage = () => {
                 </div>
 
                 <div className="my-4">
-                  <p className="text-lg font-semibold text-green-700">
-                    In stock
-                  </p>
+                  {isOutOfStock ? (
+                    <div className="flex items-center gap-2 text-red-600">
+                      <XCircle size={20} />
+                      <p className="text-lg font-bold">Out of Stock</p>
+                    </div>
+                  ) : (
+                    <p className="text-lg font-semibold text-green-700">
+                      In stock
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-3">
@@ -504,10 +521,18 @@ const ProductDetailPage = () => {
                     <Heart className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-pink-500' : ''}`} />
                     {isWishlisted ? 'Wishlisted' : 'Add to Wishlist'}
                   </button>
-                  <button onClick={handleAddToCart} className="w-full bg-white text-[#f9aeaf] border border-[#f9aeaf] hover:bg-[#f9aeaf] hover:text-black py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
-                    Add to Cart
+                  <button 
+                    disabled={isOutOfStock}
+                    onClick={handleAddToCart} 
+                    className={`w-full py-2 rounded-full font-semibold text-sm transition-colors shadow-sm ${isOutOfStock ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-[#f9aeaf] border border-[#f9aeaf] hover:bg-[#f9aeaf] hover:text-black'}`}
+                  >
+                    {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
                   </button>
-                  <button onClick={handleBuyNow} className="w-full bg-[#f9aeaf] text-black hover:bg-[#f79294] py-2 rounded-full font-semibold text-sm transition-colors shadow-sm">
+                  <button 
+                    disabled={isOutOfStock}
+                    onClick={handleBuyNow} 
+                    className={`w-full py-2 rounded-full font-semibold text-sm transition-colors shadow-sm ${isOutOfStock ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#f9aeaf] text-black hover:bg-[#f79294]'}`}
+                  >
                     Buy Now
                   </button>
                 </div>

@@ -177,7 +177,9 @@ const List = ({ token }) => {
               <p>{item.variations?.[0]?.sku}</p>
               <p>{currency}{item.variations?.[0]?.sizes?.[0]?.price}</p>
               <p>{currency}{item.variations?.[0]?.sizes?.[0]?.mrp}</p>
-              <p>{calculateTotalStock(item)}</p>
+              <p className={calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : ''}>
+                {calculateTotalStock(item) === 0 ? 'Out of Stock' : calculateTotalStock(item)}
+              </p>
               <Link to={`/update/${item._id}`} className='text-center cursor-pointer text-lg'>Edit</Link>
               <p onClick={() => confirmDelete(item._id)} className='text-right md:text-center cursor-pointer text-lg'>X</p>
             </div>
