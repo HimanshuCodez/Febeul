@@ -129,7 +129,8 @@ const buildInvoicePDF = (order, res) => {
                .text(value, 405, y);
         };
 
-        addDetailRow('Invoice No:', `#INV-${order._id.toString().slice(-8).toUpperCase()}`, infoY + 18);
+        const sequentialInvoice = order.invoiceNumber ? order.invoiceNumber.toString().padStart(4, '0') : order._id.toString().slice(-8).toUpperCase();
+        addDetailRow('Invoice No:', `#INV-${sequentialInvoice}`, infoY + 18);
         addDetailRow('Invoice Date:', orderDate, infoY + 33);
         addDetailRow('Order ID:', `#${order._id.toString().slice(-6).toUpperCase()}`, infoY + 48);
         addDetailRow('Order Date:', orderDate, infoY + 63);

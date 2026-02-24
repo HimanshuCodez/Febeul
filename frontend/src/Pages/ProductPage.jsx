@@ -430,19 +430,27 @@ const ProductDetailPage = () => {
                   Size: <span className="font-bold">{selectedSizeValue || 'N/A'}</span> {/* Use selectedSizeValue */}
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  {selectedVariation.sizes?.map((sizeData) => ( // Iterate through sizes of selected variation
-                    <button
-                      key={sizeData.size}
-                      onClick={() => setSelectedSizeValue(sizeData.size)} // Update selectedSizeValue
-                      className={`px-4 py-1 border rounded-md transition-colors ${
-                        selectedSizeValue === sizeData.size
-                          ? "border-orange-500 bg-orange-50 text-orange-700 font-semibold"
-                          : "border-gray-300 bg-white hover:bg-gray-50"
-                      }`}
-                    >
-                      {sizeData.size}
-                    </button>
-                  ))}
+                  {selectedVariation.sizes?.map((sizeData) => {
+                    const isSizeOutOfStock = Number(sizeData.stock) <= 0;
+                    return (
+                      <button
+                        key={sizeData.size}
+                        onClick={() => setSelectedSizeValue(sizeData.size)} // Update selectedSizeValue
+                        className={`px-4 py-1 border rounded-md transition-colors relative overflow-hidden ${
+                          selectedSizeValue === sizeData.size
+                            ? "border-orange-500 bg-orange-50 text-orange-700 font-semibold"
+                            : "border-gray-300 bg-white hover:bg-gray-50"
+                        } ${isSizeOutOfStock ? 'text-gray-400 cursor-not-allowed' : ''}`}
+                      >
+                        {sizeData.size}
+                        {isSizeOutOfStock && (
+                          <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                            <div className="w-full h-[1px] bg-gray-800 rotate-45"></div>
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 

@@ -12,6 +12,7 @@ import { dirname } from 'path';
 import path from 'path';
 import productModel from "../models/productModel.js";
 import couponModel from "../models/couponModel.js"; // Import couponModel
+import counterModel from "../models/counterModel.js"; // Import counterModel
 
 // Define pricing constants
 const SHIPPING_CHARGE_THRESHOLD = 499;
@@ -29,6 +30,16 @@ const razorpayInstance = new razorpay({
     key_id : process.env.RAZORPAY_KEY_ID,
     key_secret : process.env.RAZORPAY_KEY_SECRET,
 })
+
+// Helper function to get next sequential invoice number
+const getNextInvoiceNumber = async () => {
+    const counter = await counterModel.findOneAndUpdate(
+        { id: 'invoiceId' },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+    );
+    return counter.seq;
+};
 
 // Helper to get item size data from product variations
 const getSizeData = (product, color, size) => {
@@ -204,7 +215,8 @@ const constructEmailHtml = (order, templateHtml) => {
     let populatedHtml = templateHtml;
     populatedHtml = populatedHtml.replace('{{userName}}', order.userId.name || 'Customer');
     populatedHtml = populatedHtml.replace('{{orderId}}', order._id.toString());
-    populatedHtml = populatedHtml.replace('{{invoiceNumber}}', `INV-${order._id.toString().slice(-8).toUpperCase()}`);
+    const sequentialInvoice = order.invoiceNumber ? order.invoiceNumber.toString().padStart(4, '0') : order._id.toString().slice(-8).toUpperCase();
+    populatedHtml = populatedHtml.replace('{{invoiceNumber}}', `INV-${sequentialInvoice}`);
     populatedHtml = populatedHtml.replace('{{invoiceDate}}', new Date(order.date).toLocaleDateString());
     populatedHtml = populatedHtml.replace('{{orderDate}}', new Date(order.date).toLocaleDateString());
     populatedHtml = populatedHtml.replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
@@ -243,6 +255,8 @@ const placeOrder = async (req,res) => {
 
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount);
 
+        const invoiceNumber = await getNextInvoiceNumber();
+
         const orderData = {
             userId,
             items: processedItems,
@@ -257,6 +271,7 @@ const placeOrder = async (req,res) => {
             giftWrap: giftWrapData,
             couponCode,
             couponDiscount: totalCombinedDiscount,
+            invoiceNumber
         }
 
         const newOrder = new orderModel(orderData)
@@ -356,6 +371,8 @@ const placeOrderStripe = async (req,res) => {
 
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount);
 
+        const invoiceNumber = await getNextInvoiceNumber();
+
         const orderData = {
             userId,
             items: processedItems,
@@ -371,6 +388,7 @@ const placeOrderStripe = async (req,res) => {
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
             couponCode: req.body.couponCode,
             couponDiscount,
+            invoiceNumber
         }
 
         const newOrder = new orderModel(orderData)
@@ -548,6 +566,8 @@ const placeOrderRazorpay = async (req,res) => {
 
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount);
 
+        const invoiceNumber = await getNextInvoiceNumber();
+
         const orderData = {
             userId,
             items: processedItems,
@@ -563,6 +583,7 @@ const placeOrderRazorpay = async (req,res) => {
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
             couponCode,
             couponDiscount: totalCombinedDiscount,
+            invoiceNumber
         }
 
         const newOrder = new orderModel(orderData)
