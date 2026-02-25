@@ -295,4 +295,15 @@ const getMenuFilters = async (req,res) => {
     }
 }
 
-export { listProducts, addProduct, removeProduct, singleProduct, updateProduct, getSimilarProducts, getMenuFilters }
+// function for listing bestseller products
+const listBestsellers = async (req, res) => {
+    try {
+        const products = await productModel.find({ bestseller: true });
+        res.json({ success: true, products });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+export { listProducts, addProduct, removeProduct, singleProduct, updateProduct, getSimilarProducts, getMenuFilters, listBestsellers }

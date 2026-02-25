@@ -131,7 +131,8 @@ const Tickets = ({ token }) => {
     const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
     const userName = ticket.user?.name?.toLowerCase() || '';
     const userEmail = ticket.user?.email?.toLowerCase() || '';
-    const matchesSearch = userName.includes(searchTerm.toLowerCase()) || userEmail.includes(searchTerm.toLowerCase());
+    const ticketId = ticket._id?.toLowerCase() || '';
+    const matchesSearch = userName.includes(searchTerm.toLowerCase()) || userEmail.includes(searchTerm.toLowerCase()) || ticketId.includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 

@@ -179,6 +179,9 @@ export default function Header() {
       //   Type: ["Satin"],
       // },
     },
+    {
+      title: "BESTSELLERS",
+    },
   
   ];
 

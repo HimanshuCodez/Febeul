@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -8,6 +8,7 @@ const SimilarItems = ({ productId, token }) => {
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSimilarProducts = async () => {
@@ -29,6 +30,11 @@ const SimilarItems = ({ productId, token }) => {
       fetchSimilarProducts();
     }
   }, [productId, token]);
+
+  const handleProductClick = (id) => {
+    navigate(`/product/${id}`);
+    window.scrollTo(0, 0); // Scroll to top
+  };
 
   if (loading) {
     return <div className="text-center py-8">Loading similar products...</div>;
@@ -52,7 +58,11 @@ const SimilarItems = ({ productId, token }) => {
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Similar Items</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {similarProducts.map((product) => (
-          <Link to={`/product/${product._id}`} key={product._id} className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+          <div
+            key={product._id}
+            onClick={() => handleProductClick(product._id)}
+            className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
+          >
             <img
               src={product.variations?.[0]?.images?.[0]}
               alt={product.name}
@@ -76,7 +86,7 @@ const SimilarItems = ({ productId, token }) => {
                 )}
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

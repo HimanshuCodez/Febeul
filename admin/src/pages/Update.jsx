@@ -54,7 +54,7 @@ const Update = ({ token }) => {
                     setDescription(product.description);
                     setCategory(product.category);
 
-                    setBestseller(product.bestseller);
+                    setBestseller(product.bestseller || false);
                     // setSizes(product.sizes); // Removed top-level sizes
                     setIsLuxePrive(product.isLuxePrive || false);
                     setCountryOfOrigin(product.countryOfOrigin || "");
@@ -159,7 +159,7 @@ const Update = ({ token }) => {
             formData.append("description", description);
             formData.append("category", category);
 
-            formData.append("bestseller", bestseller);
+            formData.append("bestseller", bestseller); // Added bestseller to formData
             formData.append("isLuxePrive", isLuxePrive);
             formData.append("countryOfOrigin", countryOfOrigin);
             formData.append("manufacturer", manufacturer);
@@ -447,6 +447,11 @@ const Update = ({ token }) => {
             <div className='flex gap-2 mt-2'>
                 <input onChange={() => setIsLuxePrive(prev => !prev)}
                           checked={isLuxePrive} type="checkbox" id='isLuxePrive' />                <label className='cursor-pointer' htmlFor="isLuxePrive">Add to Luxe Prive Sale</label>
+            </div>
+
+            <div className='flex gap-2 mt-2'>
+                <input onChange={() => setBestseller(prev => !prev)}
+                          checked={bestseller} type="checkbox" id='isBestseller' />                <label className='cursor-pointer' htmlFor="isBestseller">Add to Bestseller</label>
             </div>
 
             <button type="submit" className='w-28 py-3 mt-4 bg-black text-white rounded-md'>UPDATE</button>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  User, Mail, Phone, MapPin, Heart, ShoppingBag, LogOut, Edit, Gift, Save, X, Loader, Trash2, ArrowRight, Package, Calendar
+  User, Mail, Phone, MapPin, Heart, ShoppingBag, LogOut, Edit, Gift, Save, X, Loader, Trash2, ArrowRight, Package, Calendar, HelpCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import useAuthStore from "../store/authStore";
@@ -191,6 +191,7 @@ export default function Profile() {
 }
 
 const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
+  const navigate = useNavigate();
   const navItems = [
     { id: "profile", icon: User, label: "My Profile" },
     { id: "orders", icon: ShoppingBag, label: "My Orders" },
@@ -198,6 +199,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
     { id: "offers", icon: Gift, label: "Coupons & Offers" },
     { id: "addresses", icon: MapPin, label: "Manage Addresses" },
     { id: "wishlist", icon: Heart, label: "My Wishlist" },
+    { id: "tickets", icon: HelpCircle, label: "My Tickets" },
   ];
 
   return (
@@ -218,7 +220,13 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
           {navItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                if (item.id === 'tickets') {
+                  navigate('/support');
+                } else {
+                  setActiveTab(item.id);
+                }
+              }}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeTab === item.id
                   ? "bg-pink-100 text-pink-600"

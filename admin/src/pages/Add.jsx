@@ -658,6 +658,18 @@ const Add = ({ token }) => {
           Add to Luxe Prive Sale
         </label>
       </div>
+      
+      <div className="flex gap-2 mt-2">
+        <input
+          onChange={() => setBestseller((prev) => !prev)}
+          checked={bestseller}
+          type="checkbox"
+          id="isBestseller"
+        />
+        <label className="cursor-pointer" htmlFor="isBestseller">
+          Add to Bestseller
+        </label>
+      </div>
 
       <button type="submit" className="w-28 py-3 mt-4 bg-black text-white">
         ADD
