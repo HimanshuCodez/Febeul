@@ -21,6 +21,7 @@ import SwipingMessages from "./SwippingMsgs";
 import SearchBar from "./SearchBar";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import useAuthStore from "../store/authStore";
+import axios from "axios";
 
 
 
@@ -96,8 +97,23 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [openMegaMenus, setOpenMegaMenus] = useState({}); // New state for accordions
+  const [bestsellers, setBestsellers] = useState([]); // State for bestsellers
   const { isAuthenticated, wishlistCount, cartCount } = useAuthStore();
   const location = useLocation(); // Get location object
+
+  useEffect(() => {
+    const fetchBestsellers = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/product/bestsellers`);
+        if (response.data.success) {
+          setBestsellers(response.data.products);
+        }
+      } catch (error) {
+        console.error("Error fetching bestsellers for menu:", error);
+      }
+    };
+    fetchBestsellers();
+  }, []);
 
   useEffect(() => {
     setIsSearchOpen(false); // Close search overlay on route change
@@ -173,18 +189,16 @@ export default function Header() {
       //   Offers: ["FLAT 20% OFF", "BABYDOLL BUY 3 GET 1 FREE"],
       // },
     },
-   {
-      title: "LUXE PRIVE SALE",
-      // megaMenu: {
-      //   Type: ["Satin"],
-      // },
-    },
-    {
-      title: "BESTSELLERS",
-    },
-  
-  ];
-
+       {
+         title: "LUXE PRIVE SALE",
+         // megaMenu: {
+         //   Type: ["Satin"],
+         // },
+       },
+       {
+         title: "BESTSELLERS",
+       },
+     ];
   return (
     <header className="w-full  sticky top-0 z-40 bg-white shadow-md">
       {/* Top Banner */}
@@ -267,7 +281,7 @@ export default function Header() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-5 hidden md:block"> {/* Only show on desktop */}
                   <div className="flex items-center justify-center md:justify-between h-14">
                     <div className="pl-2 gap-10 flex items-center space-x-12">
-                      {navigation.map((item, index) => (
+                      {navigation.filter(item => item.title !== "BESTSELLERS").map((item, index) => (
                         <div key={index} className="relative group">
                           <Link
                             to={item.megaMenu ? "#" : (
@@ -386,7 +400,41 @@ export default function Header() {
           <div className="px-2 pt-2 pb-3 space-y-1">
             {navigation.map((item, index) => (
               <div key={index}>
-                {item.megaMenu ? (
+                {item.title === "BESTSELLERS" ? (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <h3 className="px-3 py-2 text-sm font-bold text-gray-800 uppercase tracking-wider">
+                      Our Bestsellers
+                    </h3>
+                    <div className="flex overflow-x-auto gap-4 px-3 pb-4 no-scrollbar">
+                      {bestsellers.length > 0 ? (
+                        bestsellers.map((product) => (
+                          <Link 
+                            key={product._id} 
+                            to={`/product/${product._id}`}
+                            onClick={() => setIsMenuOpen(false)}
+                            className="flex-shrink-0 w-32 group"
+                          >
+                            <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-sm">
+                              <img 
+                                src={product.variations?.[0]?.images?.[0]} 
+                                alt={product.name} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                            <p className="mt-2 text-[11px] font-medium text-gray-700 truncate line-clamp-1 px-1">
+                              {product.name}
+                            </p>
+                            <p className="text-xs font-bold text-pink-600 px-1">
+                              ₹{product.variations?.[0]?.sizes?.[0]?.price}
+                            </p>
+                          </Link>
+                        ))
+                      ) : (
+                        <p className="px-3 text-xs text-gray-400">Loading top picks...</p>
+                      )}
+                    </div>
+                  </div>
+                ) : item.megaMenu ? (
                   <button
                     onClick={() => toggleMegaMenu(index)}
                     className="flex justify-between items-center w-full px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
