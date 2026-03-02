@@ -217,13 +217,21 @@ export const getRecentOrders = async (req, res) => {
             .populate('userId', 'name email') // Populate user details
             .select('_id orderTotal orderStatus date userId') // Select relevant fields
 
-        const formattedOrders = recentOrders.map(order => ({
-            id: `#${order._id.toString().slice(-5)}`, // Short ID
-            customer: order.userId ? order.userId.name || order.userId.email : 'Guest',
-            amount: order.orderTotal,
-            status: order.orderStatus,
-            time: `${Math.round((Date.now() - order.date) / (1000 * 60 * 60))} hours ago` // Simple time diff
-        }));
+        const formattedOrders = recentOrders.map(order => {
+            const orderDate = order.date ? new Date(order.date) : new Date();
+            const isValidDate = !isNaN(orderDate.getTime());
+            
+            return {
+                id: `#${order._id.toString().slice(-5)}`, // Short ID
+                customer: order.userId ? order.userId.name || order.userId.email : 'Guest',
+                amount: order.orderTotal,
+                status: order.orderStatus,
+                date: isValidDate ? orderDate.toLocaleDateString() : new Date().toLocaleDateString(),
+                time: isValidDate 
+                    ? `${Math.round((Date.now() - orderDate.getTime()) / (1000 * 60 * 60))} hours ago` 
+                    : 'Recently'
+            };
+        });
 
         res.json({ success: true, orders: formattedOrders });
 

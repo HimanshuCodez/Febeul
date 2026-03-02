@@ -123,10 +123,10 @@ const FebeulDashboard = ({ token }) => {
         { name: 'Beauty', value: 15, color: '#c44a4d' }
       ]);
       setRecentOrdersList([
-        { id: '#12845', customer: 'Sarah Johnson', amount: 245, status: 'Completed', time: '2 hours ago' },
-        { id: '#12844', customer: 'Mike Davis', amount: 189, status: 'Processing', time: '4 hours ago' },
-        { id: '#12843', customer: 'Emma Wilson', amount: 432, status: 'Shipped', time: '6 hours ago' },
-        { id: '#12842', customer: 'James Brown', amount: 156, status: 'Pending', time: '8 hours ago' }
+        { id: '#12845', customer: 'Sarah Johnson', amount: 245, status: 'Completed', date: new Date(Date.now() - 2 * 3600000).toLocaleDateString(), time: '2 hours ago' },
+        { id: '#12844', customer: 'Mike Davis', amount: 189, status: 'Processing', date: new Date(Date.now() - 4 * 3600000).toLocaleDateString(), time: '4 hours ago' },
+        { id: '#12843', customer: 'Emma Wilson', amount: 432, status: 'Shipped', date: new Date(Date.now() - 6 * 3600000).toLocaleDateString(), time: '6 hours ago' },
+        { id: '#12842', customer: 'James Brown', amount: 156, status: 'Pending', date: new Date(Date.now() - 8 * 3600000).toLocaleDateString(), time: '8 hours ago' }
       ]);
 
     } finally {
@@ -192,7 +192,19 @@ const FebeulDashboard = ({ token }) => {
           <span className={`w-2 h-2 rounded-full ${getStatusDotColor(order.status)}`}></span>
           {order.status}
         </div>
-        <div className="text-gray-500 text-xs">{order.time}</div>
+        <div className="flex flex-col text-gray-500">
+          <span className="text-xs font-medium">
+            {(() => {
+              try {
+                const d = new Date(order.date);
+                return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+              } catch (e) {
+                return 'N/A';
+              }
+            })()}
+          </span>
+          <span className="text-[10px] opacity-75">{order.time}</span>
+        </div>
       </div>
     );
   };
@@ -388,7 +400,7 @@ const FebeulDashboard = ({ token }) => {
             <div>Customer</div>
             <div>Amount</div>
             <div>Status</div>
-            <div>Time</div>
+            <div>Date & Time</div>
           </div>
           
           {/* Orders */}
