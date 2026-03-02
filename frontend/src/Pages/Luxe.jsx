@@ -152,9 +152,7 @@ export default function FebeulLuxe() {
     return (
       <section className="w-full bg-[#f8b7b7] py-12 px-6 min-h-screen">
         <div className="text-center mb-10 flex items-center justify-center gap-2">
-          <Link to="/">
-            <img src="/removebgLogo.png" alt="Febeul Logo" className="h-12 w-auto" />
-          </Link>
+       
           <h1 className="text-4xl font-serif text-black">LUXE PRIVE SALE</h1>
         </div>
 
