@@ -154,6 +154,17 @@ const ProductCard = ({ product }) => {
               {discount}% OFF
             </div>
           )}
+
+          {/* Luxe Exclusive Badge */}
+          {product.isLuxePrive && (
+            <div className="absolute bottom-3 left-3 z-10 w-16 h-16 pointer-events-none">
+              <img 
+                src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6eG5qNWR3eG5qNWR3eG5qNWR3eG5qNWR3eG5qNWR3eG5qJmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1z/3o7TKpxvIu797l7e6c/giphy.gif" 
+                alt="Luxe Exclusive" 
+                className="w-full h-full object-contain drop-shadow-lg" 
+              />
+            </div>
+          )}
         </div>
 
         {/* Product Details */}
