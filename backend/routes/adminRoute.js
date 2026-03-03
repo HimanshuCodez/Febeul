@@ -4,8 +4,6 @@ import * as adminController from '../controllers/adminController.js';
 
 const adminRouter = express.Router();
 
-console.log('Admin Router Registered');
-
 adminRouter.get('/dashboard-stats', adminAuth, adminController.getDashboardStats);
 adminRouter.get('/monthly-trends', adminAuth, adminController.getMonthlyTrends);
 adminRouter.get('/category-sales', adminAuth, adminController.getCategorySales);

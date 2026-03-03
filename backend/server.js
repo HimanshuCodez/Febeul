@@ -39,7 +39,6 @@ app.use('/api/giftwrap',giftWrapRouter)
 app.use('/api/tracking',webhookRouter)
 app.use('/api/refund',refundRouter)
 app.use('/api/policy',policyRouter)
-app.get('/api/admin/debug-test', (req, res) => res.send('Debug route is working'));
 app.use('/api/admin',adminRouter)
 app.use('/api/ticket', ticketRouter);
 app.use('/api/coupon', couponRouter);

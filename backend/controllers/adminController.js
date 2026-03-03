@@ -29,10 +29,7 @@ const getDateRange = (range) => {
     return { startDate, endDate };
 };
 
-console.log('Admin Controller Loaded');
-
 export const exportReport = async (req, res) => {
-    console.log('exportReport called with range:', req.query.range);
     try {
         const { range } = req.query;
         const { startDate, endDate } = getDateRange(range);
@@ -66,9 +63,44 @@ export const exportReport = async (req, res) => {
             { $project: { _id: 0, name: '$_id', value: '$totalSales' } }
         ]);
 
+        // Fetch SKU Sales for report
+        const skuSales = await orderModel.aggregate([
+            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },
+            { $unwind: '$items' },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'items.productId',
+                    foreignField: '_id',
+                    as: 'productInfo'
+                }
+            },
+            { $unwind: '$productInfo' },
+            {
+                $group: {
+                    _id: {
+                        sku: '$productInfo.variations.sku',
+                        name: '$productInfo.name'
+                    },
+                    totalSold: { $sum: '$items.quantity' },
+                    revenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    sku: { $arrayElemAt: ["$_id.sku", 0] },
+                    name: '$_id.name',
+                    totalSold: 1,
+                    revenue: 1
+                }
+            },
+            { $sort: { totalSold: -1 } }
+        ]);
+
         // Create PDF
         const doc = new PDFDocument({ margin: 50 });
-        const filename = `Febeul_Report_${range}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const filename = `Febeul_Sales_Report_${range}_${new Date().toISOString().split('T')[0]}.pdf`;
 
         res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
         res.setHeader('Content-type', 'application/pdf');
@@ -77,7 +109,7 @@ export const exportReport = async (req, res) => {
 
         // Header
         doc.fillColor('#f9aeaf').fontSize(25).text('FEBEUL', { align: 'center' });
-        doc.fillColor('#444444').fontSize(15).text('Business Performance Report', { align: 'center' });
+        doc.fillColor('#444444').fontSize(15).text('Sales Performance Report', { align: 'center' });
         doc.moveDown();
         doc.fontSize(10).text(`Reporting Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`, { align: 'center' });
         doc.text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
@@ -106,39 +138,33 @@ export const exportReport = async (req, res) => {
             doc.moveDown();
         }
 
-        // Recent Orders Table
-        doc.fontSize(16).text('Order Details', { underline: true });
+        // Sales by SKU Table
+        doc.fontSize(16).text('Sales by SKU', { underline: true });
         doc.moveDown(0.5);
 
         // Table Header
         const tableTop = doc.y;
         doc.fontSize(10).font('Helvetica-Bold');
-        doc.text('Order ID', 50, tableTop);
-        doc.text('Customer', 150, tableTop);
-        doc.text('Amount', 300, tableTop);
-        doc.text('Status', 400, tableTop);
-        doc.text('Date', 500, tableTop);
+        doc.text('SKU', 50, tableTop);
+        doc.text('Product Name', 150, tableTop);
+        doc.text('Sold', 350, tableTop, { width: 50, align: 'right' });
+        doc.text('Revenue', 450, tableTop, { width: 100, align: 'right' });
         
         doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
         doc.font('Helvetica').fontSize(10);
 
         let y = tableTop + 25;
-        orders.slice(0, 20).forEach(order => { // Limit to top 20 for PDF brevity
+        skuSales.forEach(item => {
             if (y > 700) {
                 doc.addPage();
                 y = 50;
             }
-            doc.text(`#${order._id.toString().slice(-5)}`, 50, y);
-            doc.text(order.userId ? order.userId.name : 'Guest', 150, y);
-            doc.text(`₹${order.orderTotal.toLocaleString()}`, 300, y);
-            doc.text(order.orderStatus, 400, y);
-            doc.text(new Date(order.date).toLocaleDateString(), 500, y);
-            y += 20;
+            doc.text(item.sku || 'N/A', 50, y);
+            doc.text(item.name || 'N/A', 150, y, { width: 180 });
+            doc.text(item.totalSold.toString(), 350, y, { width: 50, align: 'right' });
+            doc.text(`₹${item.revenue.toLocaleString()}`, 450, y, { width: 100, align: 'right' });
+            y += 25; // Increased spacing for product names that might wrap
         });
-
-        if (orders.length > 20) {
-            doc.fontSize(8).fillColor('#888888').text(`... and ${orders.length - 20} more orders.`, 50, y + 10);
-        }
 
         doc.end();
 
