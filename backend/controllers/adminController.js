@@ -2,6 +2,7 @@ import userModel from '../models/userModel.js';
 import orderModel from '../models/orderModel.js';
 import productModel from '../models/productModel.js';
 import mongoose from 'mongoose';
+import PDFDocument from 'pdfkit';
 
 // Helper function to calculate date ranges
 const getDateRange = (range) => {
@@ -26,6 +27,125 @@ const getDateRange = (range) => {
             break;
     }
     return { startDate, endDate };
+};
+
+console.log('Admin Controller Loaded');
+
+export const exportReport = async (req, res) => {
+    console.log('exportReport called with range:', req.query.range);
+    try {
+        const { range } = req.query;
+        const { startDate, endDate } = getDateRange(range);
+
+        // Fetch all data needed for the report
+        const totalUsers = await userModel.countDocuments({ createdAt: { $gte: startDate, $lte: endDate } });
+        const orders = await orderModel.find({ date: { $gte: startDate.getTime(), $lte: endDate.getTime() } }).populate('userId', 'name email');
+        const totalOrders = orders.length;
+        const revenue = orders.reduce((acc, order) => acc + order.orderTotal, 0);
+        const avgOrderValue = totalOrders > 0 ? revenue / totalOrders : 0;
+
+        // Fetch Category Sales
+        const categorySales = await orderModel.aggregate([
+            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },
+            { $unwind: '$items' },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'items.productId',
+                    foreignField: '_id',
+                    as: 'productInfo'
+                }
+            },
+            { $unwind: '$productInfo' },
+            {
+                $group: {
+                    _id: '$productInfo.category',
+                    totalSales: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+                }
+            },
+            { $project: { _id: 0, name: '$_id', value: '$totalSales' } }
+        ]);
+
+        // Create PDF
+        const doc = new PDFDocument({ margin: 50 });
+        const filename = `Febeul_Report_${range}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+        res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-type', 'application/pdf');
+
+        doc.pipe(res);
+
+        // Header
+        doc.fillColor('#f9aeaf').fontSize(25).text('FEBEUL', { align: 'center' });
+        doc.fillColor('#444444').fontSize(15).text('Business Performance Report', { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(10).text(`Reporting Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`, { align: 'center' });
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+        doc.moveDown();
+
+        // Line
+        doc.moveTo(50, 150).lineTo(550, 150).strokeColor('#cccccc').stroke();
+        doc.moveDown();
+
+        // Summary Statistics
+        doc.fillColor('#333333').fontSize(16).text('Summary Statistics', { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(`Total Users Acquired: ${totalUsers}`);
+        doc.text(`Total Orders Placed: ${totalOrders}`);
+        doc.text(`Total Revenue: ₹${revenue.toLocaleString()}`);
+        doc.text(`Average Order Value: ₹${avgOrderValue.toFixed(2)}`);
+        doc.moveDown();
+
+        // Category Sales
+        if (categorySales.length > 0) {
+            doc.fontSize(16).text('Sales by Category', { underline: true });
+            doc.moveDown(0.5);
+            categorySales.forEach(cat => {
+                doc.fontSize(12).text(`${cat.name || 'Uncategorized'}: ₹${cat.value.toLocaleString()}`);
+            });
+            doc.moveDown();
+        }
+
+        // Recent Orders Table
+        doc.fontSize(16).text('Order Details', { underline: true });
+        doc.moveDown(0.5);
+
+        // Table Header
+        const tableTop = doc.y;
+        doc.fontSize(10).font('Helvetica-Bold');
+        doc.text('Order ID', 50, tableTop);
+        doc.text('Customer', 150, tableTop);
+        doc.text('Amount', 300, tableTop);
+        doc.text('Status', 400, tableTop);
+        doc.text('Date', 500, tableTop);
+        
+        doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+        doc.font('Helvetica').fontSize(10);
+
+        let y = tableTop + 25;
+        orders.slice(0, 20).forEach(order => { // Limit to top 20 for PDF brevity
+            if (y > 700) {
+                doc.addPage();
+                y = 50;
+            }
+            doc.text(`#${order._id.toString().slice(-5)}`, 50, y);
+            doc.text(order.userId ? order.userId.name : 'Guest', 150, y);
+            doc.text(`₹${order.orderTotal.toLocaleString()}`, 300, y);
+            doc.text(order.orderStatus, 400, y);
+            doc.text(new Date(order.date).toLocaleDateString(), 500, y);
+            y += 20;
+        });
+
+        if (orders.length > 20) {
+            doc.fontSize(8).fillColor('#888888').text(`... and ${orders.length - 20} more orders.`, 50, y + 10);
+        }
+
+        doc.end();
+
+    } catch (error) {
+        console.error('Error in exportReport:', error);
+        res.status(500).json({ success: false, message: 'Error generating report.' });
+    }
 };
 
 export const getDashboardStats = async (req, res) => {

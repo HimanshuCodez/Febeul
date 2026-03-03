@@ -6,7 +6,15 @@ const connectDB = async () => {
         console.log("DB Connected");
     })
 
-    await mongoose.connect(`${process.env.MONGODB_URI}/e-commerce`)
+    mongoose.connection.on('error', (err) => {
+        console.error("DB Connection Error:", err);
+    });
+
+    try {
+        await mongoose.connect(`${process.env.MONGODB_URI}/e-commerce`);
+    } catch (error) {
+        console.error("Initial DB Connection Error:", error);
+    }
 
 }
 

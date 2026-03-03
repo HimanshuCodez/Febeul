@@ -1,13 +1,16 @@
 import express from 'express';
 import adminAuth from '../middleware/adminAuth.js';
-import { getDashboardStats, getMonthlyTrends, getCategorySales, getRecentOrders, getSkuSales } from '../controllers/adminController.js';
+import * as adminController from '../controllers/adminController.js';
 
 const adminRouter = express.Router();
 
-adminRouter.get('/dashboard-stats', adminAuth, getDashboardStats);
-adminRouter.get('/monthly-trends', adminAuth, getMonthlyTrends);
-adminRouter.get('/category-sales', adminAuth, getCategorySales);
-adminRouter.get('/recent-orders', adminAuth, getRecentOrders);
-adminRouter.get('/sku-sales', adminAuth, getSkuSales);
+console.log('Admin Router Registered');
+
+adminRouter.get('/dashboard-stats', adminAuth, adminController.getDashboardStats);
+adminRouter.get('/monthly-trends', adminAuth, adminController.getMonthlyTrends);
+adminRouter.get('/category-sales', adminAuth, adminController.getCategorySales);
+adminRouter.get('/recent-orders', adminAuth, adminController.getRecentOrders);
+adminRouter.get('/sku-sales', adminAuth, adminController.getSkuSales);
+adminRouter.get('/export-report', adminAuth, adminController.exportReport);
 
 export default adminRouter;

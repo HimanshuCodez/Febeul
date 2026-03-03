@@ -10,10 +10,10 @@ import orderRouter from './routes/orderRoute.js'
 import reviewRouter from './routes/reviewRoute.js'
 import otpRouter from './routes/otpRoute.js'
 import giftWrapRouter from './routes/giftWrapRoute.js'
-import webhookRouter from './routes/webhookRoute.js'
-import refundRouter from './routes/refundRoute.js' // Import refundRouter
+import webhookRouter from './routes/webhookRoute.js' // Corrected name
+import refundRouter from './routes/refundRoute.js'
 import policyRouter from './routes/policyRoute.js'
-import adminRouter from './routes/adminRoute.js' // Import adminRouter
+import adminRouter from './routes/adminRoute.js'
 import ticketRouter from './routes/ticketRoute.js';
 import couponRouter from './routes/couponRoute.js';
 import errorHandler from './middleware/errorHandler.js'
@@ -37,9 +37,10 @@ app.use('/api/review',reviewRouter)
 app.use('/api/otp',otpRouter)
 app.use('/api/giftwrap',giftWrapRouter)
 app.use('/api/tracking',webhookRouter)
-app.use('/api/refund',refundRouter) // Use refundRouter
+app.use('/api/refund',refundRouter)
 app.use('/api/policy',policyRouter)
-app.use('/api/admin',adminRouter) // Use adminRouter
+app.get('/api/admin/debug-test', (req, res) => res.send('Debug route is working'));
+app.use('/api/admin',adminRouter)
 app.use('/api/ticket', ticketRouter);
 app.use('/api/coupon', couponRouter);
 

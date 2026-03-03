@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { FiUsers, FiShoppingBag, FiTrendingUp, FiDollarSign, FiPackage, FiClock, FiActivity, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { FiUsers, FiShoppingBag, FiTrendingUp, FiDollarSign, FiPackage, FiClock, FiActivity, FiArrowUp, FiArrowDown, FiDownload } from 'react-icons/fi';
 import { backendUrl, currency } from '../App'; // Import backendUrl and currency
 
 const FebeulDashboard = ({ token }) => {
   const [timeRange, setTimeRange] = useState('30days');
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
 
   // States for dashboard data
@@ -140,6 +141,31 @@ const FebeulDashboard = ({ token }) => {
     }
   }, [token, timeRange]);
 
+  const handleExport = async () => {
+    if (!token) return;
+    setExporting(true);
+    try {
+      const response = await axios.get(`${backendUrl}/api/admin/export-report?range=${timeRange}`, {
+        headers: { token },
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Febeul_Report_${timeRange}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error exporting report:', err);
+      alert('Failed to export report. Please check if the server is connected to the database.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const StatCard = ({ icon: Icon, title, value, change, changeType, gradient }) => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
       <div className="flex items-start gap-4">
@@ -219,7 +245,15 @@ const FebeulDashboard = ({ token }) => {
           </h1>
           <p className="text-gray-600 font-medium">Admin Dashboard</p>
         </div>
-        <div>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={handleExport}
+            disabled={exporting}
+            className={`flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] shadow-sm ${exporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <FiDownload size={18} />
+            {exporting ? 'Exporting...' : 'Export Report'}
+          </button>
           <select 
             className="px-6 py-3 border-2 border-gray-200 rounded-xl bg-white text-sm font-medium text-gray-700 cursor-pointer transition-all duration-300 hover:border-[#f9aeaf] focus:outline-none focus:border-[#f9aeaf] focus:ring-4 focus:ring-[#f9aeaf]/20"
             value={timeRange}
