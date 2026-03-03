@@ -46,7 +46,7 @@ const NewAndNow = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-center items-center gap-4 mb-2">
           <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800">New Arrivals</h1>
-          <img src="/new_tag.gif" alt="NEW" className="h-10 sm:h-12 object-contain" /> {/* Adjust size as needed */}
+          <img src="/new.gif" alt="NEW" className="h-10 sm:h-12 object-contain" /> {/* Adjust size as needed */}
         </div>
         <p className="text-center text-gray-600 mb-8">{products.length} products found</p>
         <div className="flex justify-end mb-4">
