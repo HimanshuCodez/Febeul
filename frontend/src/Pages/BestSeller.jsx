@@ -3,7 +3,7 @@ import axios from 'axios';
 import { backendUrl } from '../App'; // Assuming backendUrl is exported from App.jsx or similar config
 import ProductCard from '../components/ProductCard'; // Assuming ProductCard is available
 import { motion } from 'framer-motion';
-import { Loader as LoaderIcon, XCircle } from 'lucide-react';
+import { Loader as LoaderIcon, XCircle, RefreshCcw } from 'lucide-react';
 
 const Bestseller = () => {
   const [bestsellerProducts, setBestsellerProducts] = useState([]);
