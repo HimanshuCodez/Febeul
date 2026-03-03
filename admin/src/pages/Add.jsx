@@ -436,7 +436,7 @@ const Add = ({ token }) => {
             <option value="LINGERIE">LINGERIE</option>
             <option value="NIGHTY">NIGHTY</option>
             <option value="PAJAMAS">PAJAMAS</option>
-            <option value="GIFT WRAP">GIFT WRAP</option>
+            
           </select>
         </div>
       </div>
