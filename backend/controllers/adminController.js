@@ -155,15 +155,20 @@ export const exportReport = async (req, res) => {
 
         let y = tableTop + 25;
         skuSales.forEach(item => {
-            if (y > 700) {
+            if (y > 730) {
                 doc.addPage();
                 y = 50;
             }
+            // Truncate name for a cleaner UI
+            const displayName = item.name && item.name.length > 40 
+                ? item.name.substring(0, 37) + '...' 
+                : item.name || 'N/A';
+
             doc.text(item.sku || 'N/A', 50, y);
-            doc.text(item.name || 'N/A', 150, y, { width: 180 });
+            doc.text(displayName, 150, y, { width: 180 });
             doc.text(item.totalSold.toString(), 350, y, { width: 50, align: 'right' });
             doc.text(`₹${item.revenue.toLocaleString()}`, 450, y, { width: 100, align: 'right' });
-            y += 25; // Increased spacing for product names that might wrap
+            y += 20; 
         });
 
         doc.end();
