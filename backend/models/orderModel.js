@@ -6,6 +6,7 @@ const orderSchema = new mongoose.Schema({
         productId: { type: mongoose.Schema.Types.ObjectId, ref: 'product', required: true },
         quantity: { type: Number, required: true },
         size: { type: String },
+        sku: { type: String }, // Adding sku field
         name: { type: String, required: true}, // Adding name for easier access without populating
         image: { type: String, required: true}, // Adding image for easier access without populating
         price: { type: Number, required: true },

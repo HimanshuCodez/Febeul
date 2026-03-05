@@ -12,6 +12,7 @@ const List = ({ token }) => {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [expandedProductId, setExpandedProductId] = useState(null);
 
   const fetchList = async () => {
     try {
@@ -165,23 +166,78 @@ const List = ({ token }) => {
 
         {
           filteredList.map((item, index) => (
-            <div className='grid grid-cols-[auto_1fr_3fr_1fr] md:grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border text-sm' key={index}>
-              <input
-                type="checkbox"
-                checked={selectedProducts.includes(item._id)}
-                onChange={() => handleProductSelect(item._id)}
-              />
-              <img className='w-12' src={item.variations?.[0]?.images?.[0]} alt="" />
-              <p>{item.name}</p>
-              <p>{item.category}</p>
-              <p>{item.variations?.[0]?.sku}</p>
-              <p>{currency}{item.variations?.[0]?.sizes?.[0]?.price}</p>
-              <p>{currency}{item.variations?.[0]?.sizes?.[0]?.mrp}</p>
-              <p className={calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : ''}>
-                {calculateTotalStock(item) === 0 ? 'Out of Stock' : calculateTotalStock(item)}
-              </p>
-              <Link to={`/update/${item._id}`} className='text-center cursor-pointer text-lg'>Edit</Link>
-              <p onClick={() => confirmDelete(item._id)} className='text-right md:text-center cursor-pointer text-lg'>X</p>
+            <div key={index} className='border rounded-lg overflow-hidden bg-white'>
+              <div 
+                className='grid grid-cols-[auto_1fr_3fr_1fr] md:grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2 px-2 cursor-pointer hover:bg-gray-50 transition-colors'
+                onClick={() => setExpandedProductId(expandedProductId === item._id ? null : item._id)}
+              >
+                <div onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedProducts.includes(item._id)}
+                    onChange={() => handleProductSelect(item._id)}
+                  />
+                </div>
+                <img className='w-12 h-12 object-cover rounded' src={item.variations?.[0]?.images?.[0]} alt="" />
+                <p className='font-medium'>{item.name}</p>
+                <p>{item.category}</p>
+                <p>{item.variations?.[0]?.sku}</p>
+                <p>{currency}{item.variations?.[0]?.sizes?.[0]?.price}</p>
+                <p>{currency}{item.variations?.[0]?.sizes?.[0]?.mrp}</p>
+                <p className={calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : ''}>
+                  {calculateTotalStock(item) === 0 ? 'Out of Stock' : calculateTotalStock(item)}
+                </p>
+                <div onClick={(e) => e.stopPropagation()} className='text-center'>
+                  <Link to={`/update/${item._id}`} className='text-indigo-600 hover:text-indigo-900 font-medium'>Edit</Link>
+                </div>
+                <div onClick={(e) => { e.stopPropagation(); confirmDelete(item._id); }} className='text-right md:text-center'>
+                  <p className='text-red-500 hover:text-red-700 cursor-pointer font-bold text-lg'>×</p>
+                </div>
+              </div>
+
+              {/* Accordion Content: Variations */}
+              {expandedProductId === item._id && (
+                <div className='bg-gray-50 p-4 border-t'>
+                  <h4 className='font-bold text-gray-700 mb-3 text-sm uppercase tracking-wider'>Product Variations</h4>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    {item.variations.map((v, vIndex) => (
+                      <div key={vIndex} className='bg-white p-3 rounded-lg border shadow-sm'>
+                        <div className='flex items-center gap-3 mb-3'>
+                           <img className='w-14 h-14 object-cover rounded-md' src={v.images?.[0]} />
+                           <div className='text-xs'>
+                             <p><span className='font-semibold text-gray-500'>Color:</span> {v.color}</p>
+                             <p><span className='font-semibold text-gray-500'>SKU:</span> {v.sku}</p>
+                           </div>
+                        </div>
+                        <div className='overflow-hidden rounded-md border border-gray-100'>
+                          <table className='min-w-full divide-y divide-gray-200 text-[10px]'>
+                            <thead className='bg-gray-100'>
+                              <tr>
+                                <th className='px-2 py-1 text-left font-bold text-gray-600'>Size</th>
+                                <th className='px-2 py-1 text-left font-bold text-gray-600'>Price</th>
+                                <th className='px-2 py-1 text-left font-bold text-gray-600'>MRP</th>
+                                <th className='px-2 py-1 text-left font-bold text-gray-600'>Stock</th>
+                              </tr>
+                            </thead>
+                            <tbody className='bg-white divide-y divide-gray-100'>
+                              {v.sizes.map((s, sIndex) => (
+                                <tr key={sIndex} className='hover:bg-gray-50'>
+                                  <td className='px-2 py-1 font-medium'>{s.size}</td>
+                                  <td className='px-2 py-1'>{currency}{s.price}</td>
+                                  <td className='px-2 py-1 text-gray-400'>{currency}{s.mrp}</td>
+                                  <td className={`px-2 py-1 font-semibold ${s.stock === 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                    {s.stock}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))
         }

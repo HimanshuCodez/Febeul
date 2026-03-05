@@ -178,7 +178,13 @@ const Orders = ({ token }) => {
                             <img className='w-12 h-12 object-cover rounded' src={item.image} alt={item.name} />
                             <div>
                               <p className='text-sm font-medium text-gray-700'>{item.name}</p>
-                              <p className='text-xs text-gray-500'>{item.quantity} x {currency}{item.price.toFixed(2)} {item.size && `(${item.size})`}</p>
+                              <p className='text-xs text-gray-500'>
+                                {(() => {
+                                  const sku = item.sku || (item.productId?.variations?.find(v => v.images.includes(item.image))?.sku);
+                                  return sku ? `SKU: ${sku} | ` : '';
+                                })()}
+                                {item.quantity} x {currency}{item.price.toFixed(2)} {item.size && `(${item.size})`}
+                              </p>
                             </div>
                           </div>
                         ))}

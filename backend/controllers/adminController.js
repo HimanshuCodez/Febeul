@@ -5,9 +5,17 @@ import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
 
 // Helper function to calculate date ranges
-const getDateRange = (range) => {
-    const endDate = new Date();
+const getDateRange = (range, customStart, customEnd) => {
+    let endDate = new Date();
     let startDate = new Date();
+
+    if (range === 'custom' && customStart && customEnd) {
+        startDate = new Date(customStart);
+        endDate = new Date(customEnd);
+        // Ensure endDate includes the full day
+        endDate.setHours(23, 59, 59, 999);
+        return { startDate, endDate };
+    }
 
     switch (range) {
         case '7days':
@@ -31,8 +39,8 @@ const getDateRange = (range) => {
 
 export const exportReport = async (req, res) => {
     try {
-        const { range } = req.query;
-        const { startDate, endDate } = getDateRange(range);
+        const { range, startDate: customStart, endDate: customEnd } = req.query;
+        const { startDate, endDate } = getDateRange(range, customStart, customEnd);
 
         // Fetch all data needed for the report
         const totalUsers = await userModel.countDocuments({ createdAt: { $gte: startDate, $lte: endDate } });
@@ -100,7 +108,8 @@ export const exportReport = async (req, res) => {
 
         // Create PDF
         const doc = new PDFDocument({ margin: 50 });
-        const filename = `Febeul_Sales_Report_${range}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const dateString = range === 'custom' ? `${customStart}_to_${customEnd}` : range;
+        const filename = `Febeul_Sales_Report_${dateString}_${new Date().toISOString().split('T')[0]}.pdf`;
 
         res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
         res.setHeader('Content-type', 'application/pdf');
@@ -181,8 +190,8 @@ export const exportReport = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
     try {
-        const { range } = req.query;
-        const { startDate, endDate } = getDateRange(range);
+        const { range, startDate: customStart, endDate: customEnd } = req.query;
+        const { startDate, endDate } = getDateRange(range, customStart, customEnd);
 
         // Fetch total users within the range
         const totalUsers = await userModel.countDocuments({ createdAt: { $gte: startDate, $lte: endDate } });
@@ -225,8 +234,8 @@ export const getDashboardStats = async (req, res) => {
 
 export const getMonthlyTrends = async (req, res) => {
     try {
-        const { range } = req.query;
-        const { startDate, endDate } = getDateRange(range);
+        const { range, startDate: customStart, endDate: customEnd } = req.query;
+        const { startDate, endDate } = getDateRange(range, customStart, customEnd);
 
         const trends = await orderModel.aggregate([
             { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },
@@ -304,8 +313,8 @@ export const getMonthlyTrends = async (req, res) => {
 
 export const getCategorySales = async (req, res) => {
     try {
-        const { range } = req.query;
-        const { startDate, endDate } = getDateRange(range);
+        const { range, startDate: customStart, endDate: customEnd } = req.query;
+        const { startDate, endDate } = getDateRange(range, customStart, customEnd);
 
         // This aggregation is more complex as it requires joining orders with products to get categories
         // For simplicity, let's assume each order item has a category or we can look it up
@@ -394,8 +403,8 @@ export const getRecentOrders = async (req, res) => {
 
 export const getSkuSales = async (req, res) => {
     try {
-        const { range } = req.query;
-        const { startDate, endDate } = getDateRange(range);
+        const { range, startDate: customStart, endDate: customEnd } = req.query;
+        const { startDate, endDate } = getDateRange(range, customStart, customEnd);
 
         const skuSales = await orderModel.aggregate([
             { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },

@@ -281,7 +281,7 @@ export default function Header() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-5 hidden md:block"> {/* Only show on desktop */}
                   <div className="flex items-center justify-center md:justify-between h-14">
                     <div className="pl-2 gap-10 flex items-center space-x-12">
-                      {navigation.filter(item => item.title !== "BESTSELLERS").map((item, index) => (
+                      {navigation.map((item, index) => (
                         <div key={index} className="relative group">
                           <Link
                             to={item.megaMenu ? "#" : (
@@ -291,6 +291,8 @@ export default function Header() {
                                 ? "/luxe"
                                 : item.title === "NEW & NOW"
                                 ? "/new-and-now"
+                                : item.title === "BESTSELLERS"
+                                ? "/bestsellers"
                                 : `/products/${item.title.replace(/ /g, "-").replace("🎁", "").toLowerCase()}`
                             )}
                             onClick={(e) => item.megaMenu && e.preventDefault()}
@@ -402,9 +404,13 @@ export default function Header() {
               <div key={index}>
                 {item.title === "BESTSELLERS" ? (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <h3 className="px-3 py-2 text-sm font-bold text-gray-800 uppercase tracking-wider">
+                    <Link 
+                      to="/bestsellers" 
+                      onClick={() => setIsMenuOpen(false)}
+                      className="px-3 py-2 text-sm font-bold text-gray-800 uppercase tracking-wider block hover:text-pink-600"
+                    >
                       Our Bestsellers
-                    </h3>
+                    </Link>
                     <div className="flex overflow-x-auto gap-4 px-3 pb-4 no-scrollbar">
                       {bestsellers.length > 0 ? (
                         bestsellers.map((product) => (

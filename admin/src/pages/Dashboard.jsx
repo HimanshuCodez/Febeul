@@ -6,6 +6,8 @@ import { backendUrl, currency } from '../App'; // Import backendUrl and currency
 
 const FebeulDashboard = ({ token }) => {
   const [timeRange, setTimeRange] = useState('30days');
+  const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
@@ -45,8 +47,10 @@ const FebeulDashboard = ({ token }) => {
     setLoading(true);
     setError(null);
     try {
+      const queryParams = `range=${timeRange}${timeRange === 'custom' ? `&startDate=${startDate}&endDate=${endDate}` : ''}`;
+      
       // Fetch Dashboard Stats
-      const statsResponse = await axios.get(`${backendUrl}/api/admin/dashboard-stats?range=${timeRange}`, { headers: { token } });
+      const statsResponse = await axios.get(`${backendUrl}/api/admin/dashboard-stats?${queryParams}`, { headers: { token } });
       const usersResponse = await axios.get(`${backendUrl}/api/user/allusers`, { headers: { token } });
 
       if (statsResponse.data.success && usersResponse.data.success) {
@@ -73,13 +77,13 @@ const FebeulDashboard = ({ token }) => {
       }
 
       // Fetch Monthly Trends
-      const trendsResponse = await axios.get(`${backendUrl}/api/admin/monthly-trends?range=${timeRange}`, { headers: { token } });
+      const trendsResponse = await axios.get(`${backendUrl}/api/admin/monthly-trends?${queryParams}`, { headers: { token } });
       if (trendsResponse.data.success) {
         setMonthlyTrends(trendsResponse.data.trends);
       }
 
       // Fetch Category Sales
-      const categoryResponse = await axios.get(`${backendUrl}/api/admin/category-sales?range=${timeRange}`, { headers: { token } });
+      const categoryResponse = await axios.get(`${backendUrl}/api/admin/category-sales?${queryParams}`, { headers: { token } });
       if (categoryResponse.data.success) {
         setCategorySales(categoryResponse.data.sales.map(item => ({
             ...item,
@@ -94,7 +98,7 @@ const FebeulDashboard = ({ token }) => {
       }
 
       // Fetch SKU Sales
-      const skuSalesResponse = await axios.get(`${backendUrl}/api/admin/sku-sales?range=${timeRange}`, { headers: { token } });
+      const skuSalesResponse = await axios.get(`${backendUrl}/api/admin/sku-sales?${queryParams}`, { headers: { token } });
       if (skuSalesResponse.data.success) {
         setSkuSales(skuSalesResponse.data.skuSales);
       }
@@ -139,13 +143,14 @@ const FebeulDashboard = ({ token }) => {
     if (token) {
       fetchDashboardData();
     }
-  }, [token, timeRange]);
+  }, [token, timeRange, startDate, endDate]);
 
   const handleExport = async () => {
     if (!token) return;
     setExporting(true);
     try {
-      const response = await axios.get(`${backendUrl}/api/admin/export-report?range=${timeRange}`, {
+      const queryParams = `range=${timeRange}${timeRange === 'custom' ? `&startDate=${startDate}&endDate=${endDate}` : ''}`;
+      const response = await axios.get(`${backendUrl}/api/admin/export-report?${queryParams}`, {
         headers: { token },
         responseType: 'blob',
       });
@@ -153,7 +158,8 @@ const FebeulDashboard = ({ token }) => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Febeul_Report_${timeRange}.pdf`);
+      const downloadName = timeRange === 'custom' ? `Febeul_Report_${startDate}_to_${endDate}.pdf` : `Febeul_Report_${timeRange}.pdf`;
+      link.setAttribute('download', downloadName);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -238,32 +244,52 @@ const FebeulDashboard = ({ token }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
       {/* Header */}
-      <header className="flex justify-between items-center mb-10 pb-6 border-b-2 border-gray-200">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 pb-6 border-b-2 border-gray-200 gap-6">
         <div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] bg-clip-text text-transparent tracking-tight mb-1">
             Febeul
           </h1>
           <p className="text-gray-600 font-medium">Admin Dashboard</p>
         </div>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={handleExport}
-            disabled={exporting}
-            className={`flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] shadow-sm ${exporting ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <FiDownload size={18} />
-            {exporting ? 'Exporting...' : 'Export Report'}
-          </button>
-          <select 
-            className="px-6 py-3 border-2 border-gray-200 rounded-xl bg-white text-sm font-medium text-gray-700 cursor-pointer transition-all duration-300 hover:border-[#f9aeaf] focus:outline-none focus:border-[#f9aeaf] focus:ring-4 focus:ring-[#f9aeaf]/20"
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-          >
-            <option value="7days">Last 7 Days</option>
-            <option value="30days">Last 30 Days</option>
-            <option value="90days">Last 90 Days</option>
-            <option value="year">This Year</option>
-          </select>
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full lg:w-auto">
+          {timeRange === 'custom' && (
+            <div className="flex items-center gap-2 bg-white p-2 border-2 border-gray-200 rounded-xl shadow-sm">
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-2 py-1 border-none text-sm font-medium text-gray-700 focus:outline-none"
+              />
+              <span className="text-gray-400 font-bold">-</span>
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-2 py-1 border-none text-sm font-medium text-gray-700 focus:outline-none"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={handleExport}
+              disabled={exporting}
+              className={`flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] shadow-sm ${exporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <FiDownload size={18} />
+              {exporting ? 'Exporting...' : 'Export Report'}
+            </button>
+            <select 
+              className="px-6 py-3 border-2 border-gray-200 rounded-xl bg-white text-sm font-medium text-gray-700 cursor-pointer transition-all duration-300 hover:border-[#f9aeaf] focus:outline-none focus:border-[#f9aeaf] focus:ring-4 focus:ring-[#f9aeaf]/20"
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+            >
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="90days">Last 90 Days</option>
+              <option value="year">This Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
         </div>
       </header>
 

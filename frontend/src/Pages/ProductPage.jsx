@@ -11,7 +11,8 @@ import {
   MapPin,
   Lock,
   Heart,
-  XCircle
+  XCircle,
+  X
 } from "lucide-react";
 import Loader from "../components/Loader";
 import useAuthStore from "../store/authStore";
@@ -22,6 +23,95 @@ import AddressModal from "../components/AddressModal";
 import CouponShows from "../components/CouponShows";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick }) => {
+  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+  const [isZooming, setIsZooming] = useState(false);
+
+  const handleMouseMove = (e) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomPos({ x, y });
+  };
+
+  return (
+    <div 
+      className="relative w-full h-full overflow-hidden bg-gray-50 rounded-lg cursor-zoom-in"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => !isOutOfStock && setIsZooming(true)}
+      onMouseLeave={() => setIsZooming(false)}
+      onClick={onMobileClick}
+    >
+      <motion.img
+        key={src}
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-contain transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} ${isZooming ? 'lg:opacity-0' : 'opacity-100'}`}
+        style={{ maxHeight: "450px" }}
+        initial={{ opacity: 0.8 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+      />
+      {isZooming && !isOutOfStock && (
+        <div 
+          className="absolute inset-0 pointer-events-none hidden lg:block bg-no-repeat"
+          style={{
+            backgroundImage: `url(${src})`,
+            backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+            backgroundSize: '250%',
+          }}
+        />
+      )}
+      {isOutOfStock && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="bg-red-600/90 text-white px-6 py-2 rounded-sm font-bold text-xl uppercase tracking-widest flex items-center gap-2 transform -rotate-12 border-2 border-white shadow-2xl">
+             <XCircle size={28} />
+             Out Of Stock
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FullScreenGallery = ({ images, initialIndex, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  return (
+    <div className="fixed inset-0 z-[999] bg-white flex flex-col lg:hidden">
+      <div className="flex items-center justify-between p-4 border-b">
+        <h3 className="font-semibold text-gray-800">Product Images</h3>
+        <button onClick={onClose} className="p-2 text-gray-600 hover:text-black">
+          <X size={24} />
+        </button>
+      </div>
+      <div className="flex-1 relative flex items-center justify-center p-4 bg-white">
+        <motion.img
+          key={currentIndex}
+          src={images[currentIndex]}
+          alt={`Product ${currentIndex + 1}`}
+          className="max-w-full max-h-full object-contain"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        />
+      </div>
+      <div className="p-4 border-t flex gap-2 overflow-x-auto bg-gray-50 no-scrollbar">
+        {images.map((img, idx) => (
+          <div
+            key={idx}
+            onClick={() => setCurrentIndex(idx)}
+            className={`flex-shrink-0 w-16 h-16 rounded-md border-2 transition-all ${
+              currentIndex === idx ? "border-orange-500 scale-105" : "border-gray-200"
+            }`}
+          >
+            <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
@@ -41,6 +131,7 @@ const ProductDetailPage = () => {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [appliedCoupon, setAppliedCoupon] = useState(null); // New state for applied coupon
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated && user && user.addresses && user.addresses.length > 0) {
@@ -311,12 +402,12 @@ const ProductDetailPage = () => {
             {/* --- Image Gallery (Left) --- */}
             <div className="lg:col-span-5">
               <div className="flex flex-col-reverse sm:flex-row gap-4">
-                <div className="flex sm:flex-col gap-2 justify-center">
+                <div className="flex sm:flex-col gap-2 justify-start overflow-x-auto sm:overflow-x-visible no-scrollbar">
                   {images.map((img, idx) => (
                     <div
                       key={idx}
                       onClick={() => setSelectedImage(idx)}
-                      className={`w-16 h-16 rounded-md border-2 cursor-pointer overflow-hidden transition-all ${
+                      className={`flex-shrink-0 w-16 h-16 rounded-md border-2 cursor-pointer overflow-hidden transition-all ${
                         selectedImage === idx
                           ? "border-orange-500"
                           : "border-gray-300 hover:border-orange-400"
@@ -330,25 +421,13 @@ const ProductDetailPage = () => {
                     </div>
                   ))}
                 </div>
-                <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center relative">
-                  <motion.img
-                    key={images[selectedImage]}
-                    src={images[selectedImage]}
-                    alt="Product main view"
-                    className={`w-full h-full object-contain ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
-                    style={{ maxHeight: "450px" }}
-                    initial={{ opacity: 0.8 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2 }}
+                <div className="flex-1">
+                  <ImageZoom 
+                    src={images[selectedImage]} 
+                    alt={product.name} 
+                    isOutOfStock={isOutOfStock} 
+                    onMobileClick={() => setIsGalleryOpen(true)}
                   />
-                  {isOutOfStock && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="bg-red-600/90 text-white px-6 py-2 rounded-sm font-bold text-xl uppercase tracking-widest flex items-center gap-2 transform -rotate-12 border-2 border-white shadow-2xl">
-                         <XCircle size={28} />
-                         Out Of Stock
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -639,6 +718,14 @@ const ProductDetailPage = () => {
         selectedAddress={selectedAddress}
         onSelectAddress={handleSelectAddress}
       />
+
+      {isGalleryOpen && (
+        <FullScreenGallery 
+          images={images} 
+          initialIndex={selectedImage} 
+          onClose={() => setIsGalleryOpen(false)} 
+        />
+      )}
     </div>
   );
 };

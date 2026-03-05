@@ -131,7 +131,7 @@ const Tickets = ({ token }) => {
     const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
     const userName = ticket.user?.name?.toLowerCase() || '';
     const userEmail = ticket.user?.email?.toLowerCase() || '';
-    const ticketId = ticket._id?.toLowerCase() || '';
+    const ticketId = ticket.ticketNumber || ticket._id?.slice(-6); // Support new and old tickets
     const matchesSearch = userName.includes(searchTerm.toLowerCase()) || userEmail.includes(searchTerm.toLowerCase()) || ticketId.includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
@@ -218,7 +218,7 @@ const Tickets = ({ token }) => {
               <tbody className='bg-white divide-y divide-gray-200'>
                 {filteredTickets.map((ticket) => (
                   <tr key={ticket._id} className='hover:bg-gray-50'>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{ticket._id.slice(-6)}</td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{ticket.ticketNumber || ticket._id.slice(-6)}</td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{ticket.subject}</td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{ticket.user?.name || ticket.user?.email || 'N/A'}</td>
                     <td className='px-6 py-4 whitespace-nowrap'>
@@ -250,7 +250,7 @@ const Tickets = ({ token }) => {
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
           <div className='bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto'>
             <div className='p-6 border-b flex justify-between items-center'>
-              <h3 className='text-2xl font-bold text-gray-800'>Ticket #{selectedTicket._id.slice(-6)} - {selectedTicket.subject}</h3>
+              <h3 className='text-2xl font-bold text-gray-800'>Ticket #{selectedTicket.ticketNumber || selectedTicket._id.slice(-6)} - {selectedTicket.subject}</h3>
               <button onClick={() => setSelectedTicket(null)} className='text-gray-500 hover:text-gray-800 text-xl font-bold'>&times;</button>
             </div>
             <div className='p-6 space-y-4'>

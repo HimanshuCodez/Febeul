@@ -20,6 +20,15 @@ export const createTicket = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
+        // Generate 6-digit numeric ticket number
+        let ticketNumber;
+        let isUnique = false;
+        while (!isUnique) {
+            ticketNumber = Math.floor(100000 + Math.random() * 900000).toString();
+            const existingTicket = await ticketModel.findOne({ ticketNumber });
+            if (!existingTicket) isUnique = true;
+        }
+
         const imageUrls = [];
         if (files && files.length > 0) {
             for (const file of files) {
@@ -30,9 +39,6 @@ export const createTicket = async (req, res) => {
                     imageUrls.push(result.secure_url);
                 } catch (uploadError) {
                     console.error('Error uploading image to Cloudinary:', uploadError);
-                    // Decide how to handle upload errors: either fail the ticket creation or continue without the image
-                    // For now, we'll log and continue without the image, but a more robust solution might fail
-                    // return res.status(500).json({ success: false, message: 'Failed to upload image.' });
                 }
             }
         }
@@ -41,6 +47,7 @@ export const createTicket = async (req, res) => {
             user: req.userId,
             subject,
             description,
+            ticketNumber, // Store the numeric ID
             messages: [{ sender: 'user', message }],
             images: imageUrls, // Store the uploaded image URLs
         });
