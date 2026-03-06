@@ -448,3 +448,29 @@ export const getSkuSales = async (req, res) => {
         res.json({ success: false, message: 'Error fetching SKU sales.' });
     }
 };
+
+export const getSkuStocks = async (req, res) => {
+    try {
+        const products = await productModel.find({});
+        const skuStocks = [];
+
+        products.forEach(product => {
+            product.variations.forEach(variation => {
+                const totalStock = variation.sizes.reduce((sum, size) => sum + (size.stock || 0), 0);
+                skuStocks.push({
+                    sku: variation.sku || 'N/A',
+                    name: `${product.name} (${variation.color})`,
+                    stock: totalStock
+                });
+            });
+        });
+
+        // Sort by stock low to high to highlight low stock items if needed, or just alphabetically
+        skuStocks.sort((a, b) => b.stock - a.stock);
+
+        res.json({ success: true, skuStocks });
+    } catch (error) {
+        console.error('Error in getSkuStocks:', error);
+        res.json({ success: false, message: 'Error fetching SKU stocks.' });
+    }
+};

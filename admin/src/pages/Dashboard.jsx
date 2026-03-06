@@ -16,6 +16,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import {
   FiUsers,
@@ -65,6 +66,7 @@ const FebeulDashboard = ({ token }) => {
   const [monthlyTrends, setMonthlyTrends] = useState([]);
   const [categorySales, setCategorySales] = useState([]);
   const [skuSales, setSkuSales] = useState([]);
+  const [skuStocks, setSkuStocks] = useState([]);
   const [recentOrdersList, setRecentOrdersList] = useState([]);
 
   // Define category colors for consistency (can be fetched from backend or defined centrally)
@@ -196,6 +198,15 @@ const FebeulDashboard = ({ token }) => {
       );
       if (skuSalesResponse.data.success) {
         setSkuSales(skuSalesResponse.data.skuSales);
+      }
+
+      // Fetch SKU Stocks
+      const skuStocksResponse = await axios.get(
+        `${backendUrl}/api/admin/sku-stocks`,
+        { headers: { token } },
+      );
+      if (skuStocksResponse.data.success) {
+        setSkuStocks(skuStocksResponse.data.skuStocks);
       }
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
@@ -624,6 +635,62 @@ const FebeulDashboard = ({ token }) => {
               <Legend verticalAlign="bottom" height={36} />
             </PieChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* SKU Stocks List */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-1">
+                Stock Levels by SKU
+              </h3>
+              <p className="text-sm text-gray-500 font-medium">
+                Current inventory per variation
+              </p>
+            </div>
+            <div className="bg-pink-50 text-[#f9aeaf] text-[10px] font-black px-3 py-1 rounded-full border border-pink-100 uppercase tracking-widest">
+              Live Stock
+            </div>
+          </div>
+          
+          <div className="overflow-hidden border border-gray-100 rounded-xl">
+            <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 sticky top-0 z-10 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Product & Color</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Qty</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {skuStocks.map((item, index) => (
+                    <tr key={index} className="hover:bg-pink-50/20 transition-colors group">
+                      <td className="px-6 py-4">
+                        <span className="font-mono font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded text-xs group-hover:bg-white border border-transparent group-hover:border-gray-200">
+                          {item.sku}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-600 truncate max-w-[200px]">
+                        {item.name}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className={`inline-block px-3 py-1 rounded-lg font-black text-xs min-w-[45px] text-center ${
+                          item.stock <= 5 
+                            ? "bg-red-100 text-red-600 animate-pulse" 
+                            : item.stock <= 15 
+                              ? "bg-yellow-100 text-yellow-600" 
+                              : "bg-green-100 text-green-600"
+                        }`}>
+                          {item.stock}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 

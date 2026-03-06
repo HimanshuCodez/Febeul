@@ -9,6 +9,7 @@ adminRouter.get('/monthly-trends', adminAuth, adminController.getMonthlyTrends);
 adminRouter.get('/category-sales', adminAuth, adminController.getCategorySales);
 adminRouter.get('/recent-orders', adminAuth, adminController.getRecentOrders);
 adminRouter.get('/sku-sales', adminAuth, adminController.getSkuSales);
+adminRouter.get('/sku-stocks', adminAuth, adminController.getSkuStocks);
 adminRouter.get('/export-report', adminAuth, adminController.exportReport);
 
 export default adminRouter;
