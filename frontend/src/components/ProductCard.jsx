@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onWishlistToggle }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeVariationIndex, setActiveVariationIndex] = useState(0);
@@ -62,9 +62,13 @@ const ProductCard = ({ product }) => {
         { headers: { token } }
       );
       if (response.data.success) {
-        setIsWishlisted(!isWishlisted);
-        toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
+        const newWishlistState = !isWishlisted;
+        setIsWishlisted(newWishlistState);
+        toast.success(newWishlistState ? "Added to wishlist" : "Removed from wishlist");
         fetchWishlistCount(); // Update wishlist count in store
+        if (onWishlistToggle) {
+          onWishlistToggle(newWishlistState);
+        }
       }
     } catch (error) {
       toast.error("Failed to update wishlist.");

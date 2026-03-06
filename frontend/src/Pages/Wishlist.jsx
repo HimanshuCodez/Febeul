@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Heart, Trash2 } from "lucide-react";
+import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
@@ -41,20 +41,11 @@ const Wishlist = () => {
     fetchWishlist();
   }, [user, token]);
 
-  const handleRemove = async (productId) => {
-    try {
-      await axios.post(
-        `${backendUrl}/api/user/wishlist/remove`,
-        { userId: user._id, productId },
-        { headers: { token } }
-      );
+  const handleWishlistUpdate = (productId, isAdded) => {
+    if (!isAdded) {
       setWishlistItems((items) =>
         items.filter((item) => item._id !== productId)
       );
-      toast.success("Removed from wishlist");
-      fetchWishlistCount(); // Update wishlist count in store
-    } catch (error) {
-      toast.error("Failed to remove from wishlist");
     }
   };
 
@@ -116,14 +107,10 @@ const Wishlist = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {wishlistItems.map((item) => (
               <div key={item._id} className="relative">
-                <ProductCard product={item} />
-                <button
-                  onClick={() => handleRemove(item._id)}
-                  className="absolute top-10 right-10 bg-white rounded-full p-2 shadow-md hover:bg-red-100 transition-colors z-10"
-                  aria-label="Remove from wishlist"
-                >
-                  <Trash2 className="text-red-500 w-5 h-5" />
-                </button>
+                <ProductCard 
+                  product={item} 
+                  onWishlistToggle={(isAdded) => handleWishlistUpdate(item._id, isAdded)}
+                />
               </div>
             ))}
           </div>
