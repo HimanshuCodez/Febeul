@@ -30,6 +30,10 @@ const orderSchema = new mongoose.Schema({
     couponCode: { type: String },
     couponDiscount: { type: Number, default: 0 },
     invoiceNumber: { type: Number },
+    taxableValue: { type: Number, default: 0 },
+    cgstAmount: { type: Number, default: 0 },
+    sgstAmount: { type: Number, default: 0 },
+    igstAmount: { type: Number, default: 0 },
 
     // Refund details
     refundDetails: {

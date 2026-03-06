@@ -47,6 +47,36 @@ export default function CheckoutPage() {
   const [addressCountry, setAddressCountry] = useState('');
   const [addressPhone, setAddressPhone] = useState('');
   const [addressState, setAddressState] = useState('');
+  const [isPincodeLoading, setPincodeLoading] = useState(false);
+
+  // Fetch City/State from Pincode in Checkout
+  useEffect(() => {
+    const fetchPincodeDetails = async () => {
+      if (addressZip.length === 6) {
+        setPincodeLoading(true);
+        try {
+          const response = await axios.get(`https://api.postalpincode.in/pincode/${addressZip}`);
+          const data = response.data[0];
+
+          if (data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
+            const { District, State } = data.PostOffice[0];
+            setAddressCity(District);
+            setAddressState(State);
+            toast.success(`Detected: ${District}, ${State}`);
+          } else {
+            toast.error("Invalid Pincode or no data found.");
+          }
+        } catch (error) {
+          console.error("Pincode API error:", error);
+          toast.error("Failed to fetch location.");
+        } finally {
+          setPincodeLoading(false);
+        }
+      }
+    };
+
+    fetchPincodeDetails();
+  }, [addressZip]);
 
   // Fetch Razorpay Key
   useEffect(() => {
@@ -156,6 +186,15 @@ export default function CheckoutPage() {
     const discountedAmount = subtotal - totalProductDiscount - couponDiscount;
     const total = parseFloat((subtotal - totalProductDiscount + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
     
+    // GST Breakdown Calculation (Inclusive 5%)
+    const selectedAddr = user?.addresses?.[selectedAddress];
+    const isDelhi = selectedAddr?.state?.trim().toLowerCase() === 'delhi';
+    const taxableValue = total / 1.05;
+    const totalGst = total - taxableValue;
+    const cgst = totalGst / 2;
+    const sgst = totalGst / 2;
+    const igst = totalGst;
+
     const addresses = user?.addresses || [];
 
   const handleSelectGiftWrap = (wrap) => {
@@ -671,6 +710,28 @@ export default function CheckoutPage() {
                         <FaTimes/>
                     </button>
                     </div>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-gray-600">
+                  <span>Taxable Value</span>
+                  <span>₹{taxableValue.toFixed(2)}</span>
+                </div>
+                {isDelhi ? (
+                  <>
+                    <div className="flex justify-between text-gray-500 text-xs">
+                      <span>CGST (2.5%)</span>
+                      <span>₹{cgst.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-500 text-xs">
+                      <span>SGST (2.5%)</span>
+                      <span>₹{sgst.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between text-gray-500 text-xs">
+                    <span>IGST (5%)</span>
+                    <span>₹{igst.toFixed(2)}</span>
                   </div>
                 )}
                 

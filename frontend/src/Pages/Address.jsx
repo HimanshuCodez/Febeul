@@ -55,11 +55,44 @@ const Address = () => {
     });
     const [isSaving, setIsSaving] = useState(false);
 
+    const [isPincodeLoading, setPincodeLoading] = useState(false);
+
+    // Fetch City/State from Pincode
+    useEffect(() => {
+        const fetchPincodeDetails = async () => {
+            if (address.zip.length === 6) {
+                setPincodeLoading(true);
+                try {
+                    const response = await axios.get(`https://api.postalpincode.in/pincode/${address.zip}`);
+                    const data = response.data[0];
+
+                    if (data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
+                        const { District, State } = data.PostOffice[0];
+                        setAddress(prev => ({
+                            ...prev,
+                            city: District,
+                            state: State
+                        }));
+                        toast.success(`Detected: ${District}, ${State}`);
+                    } else {
+                        toast.error("Invalid Pincode or no data found.");
+                    }
+                } catch (error) {
+                    console.error("Pincode API error:", error);
+                    toast.error("Failed to fetch location. Please enter manually.");
+                } finally {
+                    setPincodeLoading(false);
+                }
+            }
+        };
+
+        fetchPincodeDetails();
+    }, [address.zip]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setAddress((prev) => {
             if (name === 'state') {
-                // Reset city when state changes
                 return { ...prev, state: value, city: '' };
             }
             return { ...prev, [name]: value };

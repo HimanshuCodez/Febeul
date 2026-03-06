@@ -69,7 +69,7 @@ const decreaseStock = async (items) => {
 };
 
 // Helper function to calculate all pricing components
-const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, couponDiscount = 0) => {
+const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, couponDiscount = 0, userState = 'Delhi') => {
     let productAmount = 0;
     let totalItemDiscount = 0;
     const processedItems = await Promise.all(items.map(async (item) => {
@@ -132,18 +132,28 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     // Calculate subtotal for GST (discountedProductAmount - couponDiscount)
     const discountedAmount = discountedProductAmount - couponDiscount;
     
-    // Extract GST from the inclusive amount
-    // Formula: Base = Inclusive / 1.18
-    const taxableValue = discountedAmount / 1.18;
+    // Extract GST from the inclusive amount (5% GST)
+    // Formula: Base = Inclusive / 1.05
+    const taxableValue = discountedAmount / 1.05;
     const totalGst = discountedAmount - taxableValue;
-    const cgstAmount = totalGst / 2;
-    const sgstAmount = totalGst / 2;
+    
+    const isDelhi = userState?.trim().toLowerCase() === 'delhi';
+    let cgstAmount = 0;
+    let sgstAmount = 0;
+    let igstAmount = 0;
+
+    if (isDelhi) {
+        cgstAmount = totalGst / 2;
+        sgstAmount = totalGst / 2;
+    } else {
+        igstAmount = totalGst;
+    }
 
     // Recalculate orderTotal - GST is already included in the product prices
     const totalCombinedDiscount = totalItemDiscount + couponDiscount;
     const orderTotal = (productAmount - totalCombinedDiscount) + shippingCharge + codCharge + giftWrapPrice;
 
-    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount };
+    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, isDelhi };
 };
 
 const constructEmailHtml = (order, templateHtml) => {
@@ -175,11 +185,32 @@ const constructEmailHtml = (order, templateHtml) => {
     const emailOrderTotal = parseFloat(order.orderTotal || 0);
     const emailDiscountedAmount = emailProductAmount - emailCouponDiscount;
     
-    // Inclusive GST extraction
-    const emailTaxableValue = emailDiscountedAmount / 1.18;
-    const emailTotalGst = emailDiscountedAmount - emailTaxableValue;
-    const emailCgst = emailTotalGst / 2;
-    const emailSgst = emailTotalGst / 2;
+    // Use stored GST values from order
+    const emailTaxableValue = parseFloat(order.taxableValue || 0);
+    const emailCgst = parseFloat(order.cgstAmount || 0);
+    const emailSgst = parseFloat(order.sgstAmount || 0);
+    const emailIgst = parseFloat(order.igstAmount || 0);
+
+    let gstRowsHtml = '';
+    if (emailIgst > 0) {
+        gstRowsHtml = `
+            <tr class="tax-row">
+                <td colspan="3" style="text-align:right;">IGST (5%):</td>
+                <td>₹${emailIgst.toFixed(2)}</td>
+            </tr>
+        `;
+    } else {
+        gstRowsHtml = `
+            <tr class="tax-row">
+                <td colspan="3" style="text-align:right;">CGST (2.5%):</td>
+                <td>₹${emailCgst.toFixed(2)}</td>
+            </tr>
+            <tr class="tax-row">
+                <td colspan="3" style="text-align:right;">SGST (2.5%):</td>
+                <td>₹${emailSgst.toFixed(2)}</td>
+            </tr>
+        `;
+    }
 
     let giftWrapRowHtml = '';
     if (emailGiftWrapPrice > 0) {
@@ -225,6 +256,7 @@ const constructEmailHtml = (order, templateHtml) => {
     populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE');
     populatedHtml = populatedHtml.replace('{{codChargeRow}}', codChargeRowHtml);
     populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);
+    populatedHtml = populatedHtml.replace('{{gstRows}}', gstRowsHtml);
     populatedHtml = populatedHtml.replace('{{couponDiscountRow}}', couponDiscountRowHtml);
     populatedHtml = populatedHtml.replace('{{shippingAddressName}}', order.address.name);
     populatedHtml = populatedHtml.replace('{{shippingAddressAddress}}', order.address.address);
@@ -253,7 +285,7 @@ const placeOrder = async (req,res) => {
         
         const { userId, items, address, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount, address.state);
 
         const invoiceNumber = await getNextInvoiceNumber();
 
@@ -271,7 +303,11 @@ const placeOrder = async (req,res) => {
             giftWrap: giftWrapData,
             couponCode,
             couponDiscount: totalCombinedDiscount,
-            invoiceNumber
+            invoiceNumber,
+            taxableValue,
+            cgstAmount,
+            sgstAmount,
+            igstAmount
         }
 
         const newOrder = new orderModel(orderData)
@@ -369,7 +405,7 @@ const placeOrderStripe = async (req,res) => {
         const { userId, items, address, currency, giftWrap: giftWrapData, couponDiscount } = req.body;
         const { origin } = req.headers;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, taxableValue, cgstAmount, sgstAmount, igstAmount } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount, address.state);
 
         const invoiceNumber = await getNextInvoiceNumber();
 
@@ -388,7 +424,11 @@ const placeOrderStripe = async (req,res) => {
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
             couponCode: req.body.couponCode,
             couponDiscount,
-            invoiceNumber
+            invoiceNumber,
+            taxableValue,
+            cgstAmount,
+            sgstAmount,
+            igstAmount
         }
 
         const newOrder = new orderModel(orderData)
@@ -564,7 +604,7 @@ const placeOrderRazorpay = async (req,res) => {
         
         const { userId, items, address, currency, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount, address.state);
 
         const invoiceNumber = await getNextInvoiceNumber();
 
@@ -583,7 +623,11 @@ const placeOrderRazorpay = async (req,res) => {
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
             couponCode,
             couponDiscount: totalCombinedDiscount,
-            invoiceNumber
+            invoiceNumber,
+            taxableValue,
+            cgstAmount,
+            sgstAmount,
+            igstAmount
         }
 
         const newOrder = new orderModel(orderData)

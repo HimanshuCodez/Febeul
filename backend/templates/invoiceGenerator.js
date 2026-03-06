@@ -362,8 +362,20 @@ const buildInvoicePDF = (order, res) => {
         };
         
         addTotalRow('Subtotal:', `INR ${invoiceItemSubtotal.toFixed(2)}`);
+        // Total Discount
         if (totalDiscount > 0) {
             addTotalRow('Coupon Discount:', `- INR ${totalDiscount.toFixed(2)}`, true);
+        }
+
+        // Taxable Value
+        addTotalRow('Taxable Value:', `INR ${(order.taxableValue || 0).toFixed(2)}`);
+
+        // GST Components
+        if (order.igstAmount > 0) {
+            addTotalRow('IGST (5%):', `INR ${order.igstAmount.toFixed(2)}`);
+        } else {
+            addTotalRow('CGST (2.5%):', `INR ${(order.cgstAmount || 0).toFixed(2)}`);
+            addTotalRow('SGST (2.5%):', `INR ${(order.sgstAmount || 0).toFixed(2)}`);
         }
         
         // Display Shipping Charges separately

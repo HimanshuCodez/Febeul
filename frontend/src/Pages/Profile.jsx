@@ -1,20 +1,20 @@
 import { useState, useEffect } from "react";
 import {
-  User, Mail, Phone, MapPin, Heart, ShoppingBag, LogOut, Edit, Gift, Save, X, Loader, Trash2, ArrowRight, Package, Calendar, HelpCircle
+  User, Mail, Phone, MapPin, ShoppingBag, LogOut, Edit, Gift, Save, X, Loader, Package, Calendar, HelpCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import useAuthStore from "../store/authStore";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 import { toast } from "react-hot-toast";
 import MembershipStatus from "../components/MembershipStatus";
-import MyOrders from "./MyOrders"; // Import MyOrders component
-import CouponShows from "../components/CouponShows"; // Import CouponShows component
+import MyOrders from "./MyOrders"; 
+import CouponShows from "../components/CouponShows";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export default function Profile() {
-  const { user, logout, isAuthenticated, token, fetchWishlistCount } = useAuthStore();
+  const { user, logout, isAuthenticated, token } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -23,15 +23,12 @@ export default function Profile() {
   const [editedUser, setEditedUser] = useState(user);
 
   const [addresses, setAddresses] = useState([]);
-  const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(false);
   
   const fetchAddresses = async () => {
     setLoading(true);
     try {
-        // This function implicitly updates the user object in useAuthStore
         await useAuthStore.getState().getProfile(); 
-        // Now, get the updated user object from the store
         const updatedUser = useAuthStore.getState().user; 
         if(updatedUser && updatedUser.addresses) {
             setAddresses(updatedUser.addresses);
@@ -46,25 +43,6 @@ export default function Profile() {
     }
   };
 
-  const fetchWishlist = async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const response = await axios.get(`${backendUrl}/api/user/wishlist`, {
-        headers: { token },
-        params: { userId: user._id }
-      });
-      if (response.data.success) {
-        setWishlistItems(response.data.wishlist);
-      }
-    } catch (error) {
-      toast.error("Error fetching wishlist");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/auth');
@@ -82,9 +60,7 @@ export default function Profile() {
 
   useEffect(() => {
     if(user) {
-        // 'orders' tab no longer triggers a fetchOrders here as it's handled by MyOrders component
         if (activeTab === 'addresses') fetchAddresses();
-        else if (activeTab === 'wishlist') fetchWishlist();
         else setLoading(false);
     }
   }, [activeTab, user]);
@@ -96,32 +72,15 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
-    // This assumes a backend endpoint exists for updating user profile
     console.log("Updated user data:", editedUser);
     useAuthStore.setState({ user: editedUser });
     setIsEditing(false);
-    toast.success("Profile updated locally (no API call).");
+    toast.success("Profile updated locally.");
   };
 
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-
-
-  const handleRemoveFromWishlist = async (productId) => {
-    try {
-      await axios.post(`${backendUrl}/api/user/wishlist/remove`, 
-        { userId: user._id, productId },
-        { headers: { token } }
-      );
-      setWishlistItems((items) => items.filter((item) => item._id !== productId));
-      toast.success("Removed from wishlist");
-      fetchWishlistCount();
-    } catch (error) {
-      toast.error("Failed to remove from wishlist");
-    }
   };
 
   if (!user) {
@@ -141,7 +100,7 @@ export default function Profile() {
       case "profile":
         return <ProfileInfo user={user} editedUser={editedUser} isEditing={isEditing} setIsEditing={setIsEditing} handleInputChange={handleInputChange} handleSave={handleSave} />;
       case "orders":
-        return <MyOrders />; // Render MyOrders component directly
+        return <MyOrders />;
       case "luxeMembership":
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
@@ -151,9 +110,7 @@ export default function Profile() {
         );
       case "addresses":
         return <ManageAddresses addresses={addresses} />;
-      case "wishlist":
-        return <WishlistItems wishlist={wishlistItems} onRemove={handleRemoveFromWishlist} />;
-      case "offers": // New case for Coupons & Offers
+      case "offers": 
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-6">Coupons & Offers</h2>
@@ -185,7 +142,6 @@ export default function Profile() {
           </main>
         </div>
       </div>
-
     </div>
   );
 }
@@ -198,7 +154,6 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
     { id: "luxeMembership", icon: Gift, label: "Luxe Membership" },
     { id: "offers", icon: Gift, label: "Coupons & Offers" },
     { id: "addresses", icon: MapPin, label: "Manage Addresses" },
-    { id: "wishlist", icon: Heart, label: "My Wishlist" },
     { id: "tickets", icon: HelpCircle, label: "My Tickets" },
   ];
 
@@ -315,14 +270,13 @@ const ManageAddresses = ({ addresses }) => {
                     <div key={addr._id} className="p-4 rounded-lg border flex justify-between items-start">
                     <div>
                         <div className="flex items-center space-x-3 mb-2">
-                          <MapPin className="w-5 h-5 text-gray-500"/> {/* Use generic MapPin icon */}
+                          <MapPin className="w-5 h-5 text-gray-500"/> 
                           <h3 className="font-semibold text-gray-700">{addr.name}</h3>
                         </div>
                         <p className="text-sm text-gray-600 ml-8">{addr.address}, {addr.city}</p>
                         <p className="text-sm text-gray-600 ml-8">{addr.country} - {addr.zip}</p>
                         <p className="text-sm text-gray-600 ml-8 mt-1">Phone: {addr.phone}</p>
                     </div>
-                    {/* Removed Edit and Delete buttons as per backend limitation */}
                     </div>
                 ))}
                 </div>
@@ -336,39 +290,6 @@ const ManageAddresses = ({ addresses }) => {
         </div>
     )
 };
-
-const WishlistItems = ({ wishlist, onRemove }) => (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-6">My Wishlist</h2>
-      {wishlist.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {wishlist.map((item) => (
-              <div key={item._id} className="relative">
-                  <ProductCard product={item} />
-                  <button
-                      onClick={() => onRemove(item._id)}
-                      className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-md hover:bg-red-100 transition-colors z-10"
-                      aria-label="Remove from wishlist"
-                  >
-                      <Trash2 className="text-red-500 w-5 h-5" />
-                  </button>
-              </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-            <Heart className="mx-auto w-12 h-12 text-gray-300 mb-4" />
-            <h2 className="text-lg font-semibold text-gray-700">Your Wishlist is Empty</h2>
-            <p className="text-gray-500 mt-2 mb-4">You haven’t added anything yet. Start exploring!</p>
-            <Link to="/" className="bg-pink-500 text-white px-6 py-2 rounded-full font-semibold hover:bg-pink-600 transition-colors">
-                Explore Products
-            </Link>
-        </div>
-      )}
-    </div>
-);
-
-
 
 const InfoItem = ({ icon: Icon, label, value, wide = false }) => (
   <div className={`flex items-start space-x-3 ${wide ? 'md:col-span-2' : ''}`}>
