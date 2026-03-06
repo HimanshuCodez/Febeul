@@ -267,15 +267,68 @@ const googleLogin = async (req, res) => {
 // Route for admin login
 const adminLogin = async (req, res) => {
     try {
-        
-        const {email,password} = req.body
+        const { email: rawEmail, password: rawPassword } = req.body
+        const email = rawEmail.trim().toLowerCase();
+        const password = rawPassword.trim();
 
-        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-            const token = jwt.sign(email+password,process.env.JWT_SECRET);
-            res.json({success:true,token})
-        } else {
-            res.json({success:false,message:"Invalid credentials"})
+        const cleanEnv = (val) => {
+            if (!val) return '';
+            // 1. Remove that weird '│' and anything after it
+            let cleaned = val.split('│')[0];
+            // 2. Trim whitespace
+            cleaned = cleaned.trim();
+            // 3. Remove surrounding quotes
+            cleaned = cleaned.replace(/^["'](.+)["']$/, '$1');
+            // 4. Final trim
+            return cleaned.trim();
+        };
+
+        // Check for primary admin
+        const adminEmail = cleanEnv(process.env.ADMIN_EMAIL).toLowerCase();
+        const adminPass = cleanEnv(process.env.ADMIN_PASSWORD);
+
+        if (email === adminEmail && password === adminPass) {
+            const token = jwt.sign(email + password, process.env.JWT_SECRET);
+            return res.json({ success: true, token, role: 'admin' })
         }
+
+        // Check for staff members (supporting multiple)
+        const staffEmails = process.env.STAFF_EMAILS ? process.env.STAFF_EMAILS.split(',').map(e => cleanEnv(e).toLowerCase()) : [];
+        const staffPasswords = process.env.STAFF_PASSWORDS ? process.env.STAFF_PASSWORDS.split(',').map(p => cleanEnv(p)) : [];
+
+       
+        
+        if (staffEmails.length !== staffPasswords.length) {
+            console.log("WARNING: Your STAFF_EMAILS and STAFF_PASSWORDS lists have different lengths!");
+        }
+
+        const staffIndex = staffEmails.indexOf(email);
+        if (staffIndex !== -1) {
+            const configuredPass = staffPasswords[staffIndex] ? staffPasswords[staffIndex].trim() : '';
+            console.log(`Match found at index ${staffIndex}.`);
+            console.log(`Input Password: '${password}' (len: ${password.length})`);
+            console.log(`Configured Password: '${configuredPass}' (len: ${configuredPass.length})`);
+            
+            if (configuredPass === password) {
+                const token = jwt.sign(email + password, process.env.JWT_SECRET);
+                return res.json({ success: true, token, role: 'staff' })
+            } else {
+                console.log("Result: Password mismatch!");
+            }
+        }
+
+        // Check for legacy single staff config (singular)
+        const legacyStaffEmail = cleanEnv(process.env.STAFF_EMAIL).toLowerCase();
+        const legacyStaffPass = cleanEnv(process.env.STAFF_PASSWORD);
+
+        if (email && email === legacyStaffEmail && password === legacyStaffPass) {
+            const token = jwt.sign(email + password, process.env.JWT_SECRET);
+            return res.json({ success: true, token, role: 'staff' })
+        }
+
+        console.log("Login failed: No match found in config.");
+        console.log("------------------------");
+        res.json({ success: false, message: "Invalid credentials" })
 
     } catch (error) {
         console.log(error);
