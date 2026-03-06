@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { backendUrl } from '../App'; // Assuming backendUrl is exported from App.jsx or similar config
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 import ProductCard from '../components/ProductCard'; // Assuming ProductCard is available
 import { motion } from 'framer-motion';
 import { Loader as LoaderIcon, XCircle, RefreshCcw } from 'lucide-react';
