@@ -64,6 +64,7 @@ const FebeulDashboard = ({ token }) => {
     avgOrderValue: { value: currency + "0", change: "0%", type: "up" },
   });
   const [monthlyTrends, setMonthlyTrends] = useState([]);
+  const [dailyTrends, setDailyTrends] = useState([]);
   const [categorySales, setCategorySales] = useState([]);
   const [skuSales, setSkuSales] = useState([]);
   const [skuStocks, setSkuStocks] = useState([]);
@@ -168,6 +169,15 @@ const FebeulDashboard = ({ token }) => {
         setMonthlyTrends(trendsResponse.data.trends);
       }
 
+      // Fetch Daily Trends
+      const dailyTrendsResponse = await axios.get(
+        `${backendUrl}/api/admin/daily-trends?${queryParams}`,
+        { headers: { token } },
+      );
+      if (dailyTrendsResponse.data.success) {
+        setDailyTrends(dailyTrendsResponse.data.trends);
+      }
+
       // Fetch Category Sales
       const categoryResponse = await axios.get(
         `${backendUrl}/api/admin/category-sales?${queryParams}`,
@@ -221,12 +231,21 @@ const FebeulDashboard = ({ token }) => {
         avgOrderValue: { value: "$300.29", change: "-2.1%", type: "down" },
       });
       setMonthlyTrends([
-        { month: "Jan", orders: 45, revenue: 12500, users: 120 },
-        { month: "Feb", orders: 52, revenue: 15800, users: 145 },
-        { month: "Mar", orders: 48, revenue: 14200, users: 138 },
-        { month: "Apr", orders: 61, revenue: 18900, users: 167 },
-        { month: "May", orders: 72, revenue: 22400, users: 189 },
-        { month: "Jun", orders: 68, revenue: 20100, users: 201 },
+        { month: "Oct", orders: 45, revenue: 12500, users: 120 },
+        { month: "Nov", orders: 52, revenue: 15800, users: 145 },
+        { month: "Dec", orders: 48, revenue: 14200, users: 138 },
+        { month: "Jan", orders: 61, revenue: 18900, users: 167 },
+        { month: "Feb", orders: 72, revenue: 22400, users: 189 },
+        { month: "Mar", orders: 68, revenue: 20100, users: 201 },
+      ]);
+      setDailyTrends([
+        { date: "2026-03-01", orders: 5, revenue: 1200, users: 10 },
+        { date: "2026-03-02", orders: 8, revenue: 1500, users: 12 },
+        { date: "2026-03-03", orders: 4, revenue: 1100, users: 8 },
+        { date: "2026-03-04", orders: 12, revenue: 2800, users: 15 },
+        { date: "2026-03-05", orders: 9, revenue: 2100, users: 11 },
+        { date: "2026-03-06", orders: 15, revenue: 3500, users: 20 },
+        { date: "2026-03-07", orders: 11, revenue: 2400, users: 14 },
       ]);
       setCategorySales([
         { name: "Electronics", value: 35, color: "#f9aeaf" },
@@ -496,56 +515,102 @@ const FebeulDashboard = ({ token }) => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
         {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex justify-between items-start mb-6">
+        <div className="lg:col-span-2 bg-white rounded-3xl p-8 shadow-xl border border-gray-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <FiTrendingUp size={120} className="text-[#f9aeaf]" />
+          </div>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 relative z-10">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-1">
-                Revenue Overview
-              </h3>
-              <p className="text-sm text-gray-500 font-medium">
-                Monthly performance tracking
+              <div className="flex items-center gap-2 mb-1">
+                <span className="p-1.5 bg-pink-50 rounded-lg">
+                  <FiDollarSign className="text-[#f9aeaf]" size={16} />
+                </span>
+                <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+                  Revenue Intelligence
+                </h3>
+              </div>
+              <p className="text-sm text-gray-400 font-semibold tracking-wide uppercase">
+                Daily Financial Performance
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#f9aeaf]"></span>
-              <span className="text-sm text-gray-600 font-medium">Revenue</span>
+            <div className="flex items-center gap-6 mt-4 md:mt-0">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] shadow-sm"></div>
+                <span className="text-xs font-bold text-gray-500 uppercase">Gross Revenue</span>
+              </div>
+              <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-xs font-bold text-gray-400 mr-2 uppercase">Today</span>
+                <span className="text-lg font-black text-gray-900">
+                  {currency}{(dailyTrends[dailyTrends.length - 1]?.revenue || 0).toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={monthlyTrends}>
+          
+          <ResponsiveContainer width="100%" height={380}>
+            <AreaChart data={dailyTrends}>
               <defs>
-                <linearGradient
-                  id="revenueGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor="#f9aeaf" stopOpacity={0.3} />
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f9aeaf" stopOpacity={0.4} />
                   <stop offset="95%" stopColor="#f9aeaf" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
               <XAxis
-                dataKey="month"
-                stroke="#888"
-                style={{ fontSize: "12px" }}
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 700 }}
+                dy={15}
+                tickFormatter={(str) => {
+                  try {
+                    const date = new Date(str);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  } catch (e) { return str; }
+                }}
               />
-              <YAxis stroke="#888" style={{ fontSize: "12px" }} />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 700 }}
+                tickFormatter={(val) => `${currency}${val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val}`}
+              />
               <Tooltip
-                contentStyle={{
-                  background: "#fff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                cursor={{ stroke: '#f9aeaf', strokeWidth: 2, strokeDasharray: '5 5' }}
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-2xl border border-pink-50 ring-4 ring-pink-50/20">
+                        <p className="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">
+                          {new Date(label).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d] flex items-center justify-center shadow-lg shadow-pink-200">
+                            <FiDollarSign className="text-white" size={18} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-500 uppercase leading-none">Revenue</p>
+                            <p className="text-xl font-black text-gray-900">
+                              {currency}{payload[0].value.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
                 }}
               />
               <Area
                 type="monotone"
                 dataKey="revenue"
                 stroke="#f9aeaf"
-                strokeWidth={3}
-                fill="url(#revenueGradient)"
+                strokeWidth={4}
+                fillOpacity={1}
+                fill="url(#colorRevenue)"
+                animationBegin={0}
+                animationDuration={1500}
+                animationEasing="ease-in-out"
               />
             </AreaChart>
           </ResponsiveContainer>

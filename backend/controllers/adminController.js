@@ -311,6 +311,98 @@ export const getMonthlyTrends = async (req, res) => {
     }
 };
 
+export const getDailyTrends = async (req, res) => {
+    try {
+        const { range, startDate: customStart, endDate: customEnd } = req.query;
+        const { startDate, endDate } = getDateRange(range, customStart, customEnd);
+
+        const trends = await orderModel.aggregate([
+            { $match: { date: { $gte: startDate.getTime(), $lte: endDate.getTime() } } },
+            {
+                $group: {
+                    _id: {
+                        day: { $dayOfMonth: { $toDate: "$date" } },
+                        month: { $month: { $toDate: "$date" } },
+                        year: { $year: { $toDate: "$date" } }
+                    },
+                    orders: { $sum: 1 },
+                    revenue: { $sum: "$orderTotal" }
+                }
+            },
+            {
+                $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    date: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: { $toDate: { $concat: [ { $toString: "$_id.year" }, "-", { $toString: "$_id.month" }, "-", { $toString: "$_id.day" } ] } }
+                        }
+                    },
+                    orders: 1,
+                    revenue: 1
+                }
+            }
+        ]);
+
+        // Integrate user sign-ups for daily trends
+        const userTrends = await userModel.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+            {
+                $group: {
+                    _id: {
+                        day: { $dayOfMonth: "$createdAt" },
+                        month: { $month: "$createdAt" },
+                        year: { $year: "$createdAt" }
+                    },
+                    users: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    date: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: { $toDate: { $concat: [ { $toString: "$_id.year" }, "-", { $toString: "$_id.month" }, "-", { $toString: "$_id.day" } ] } }
+                        }
+                    },
+                    users: 1
+                }
+            }
+        ]);
+
+        // Merge order and user trends
+        // We'll use a Map to merge them efficiently
+        const mergedData = new Map();
+
+        trends.forEach(item => {
+            mergedData.set(item.date, { ...item, users: 0 });
+        });
+
+        userTrends.forEach(item => {
+            if (mergedData.has(item.date)) {
+                mergedData.get(item.date).users = item.users;
+            } else {
+                mergedData.set(item.date, { date: item.date, orders: 0, revenue: 0, users: item.users });
+            }
+        });
+
+        const mergedTrends = Array.from(mergedData.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        res.json({ success: true, trends: mergedTrends });
+
+    } catch (error) {
+        console.error('Error in getDailyTrends:', error);
+        res.json({ success: false, message: 'Error fetching daily trends.' });
+    }
+};
+
 export const getCategorySales = async (req, res) => {
     try {
         const { range, startDate: customStart, endDate: customEnd } = req.query;

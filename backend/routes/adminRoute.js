@@ -6,6 +6,7 @@ const adminRouter = express.Router();
 
 adminRouter.get('/dashboard-stats', adminAuth, adminController.getDashboardStats);
 adminRouter.get('/monthly-trends', adminAuth, adminController.getMonthlyTrends);
+adminRouter.get('/daily-trends', adminAuth, adminController.getDailyTrends);
 adminRouter.get('/category-sales', adminAuth, adminController.getCategorySales);
 adminRouter.get('/recent-orders', adminAuth, adminController.getRecentOrders);
 adminRouter.get('/sku-sales', adminAuth, adminController.getSkuSales);
