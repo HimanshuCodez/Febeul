@@ -195,9 +195,9 @@ export default function Header() {
          //   Type: ["Satin"],
          // },
        },
-       {
-         title: "BESTSELLERS",
-       },
+      //  {
+      //    title: "BESTSELLERS",
+      //  },
      ];
   return (
     <header className="w-full  sticky top-0 z-40 bg-white shadow-md">

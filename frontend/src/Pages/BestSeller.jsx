@@ -45,7 +45,7 @@ const Bestseller = () => {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] bg-red-50 p-4 rounded-lg shadow-md m-6">
         <XCircle className="text-red-600 mb-4" size={64} />
-        <p className="text-2xl text-red-800 font-bold mb-4">Error Loading Bestsellers</p>
+        <p className="text-2xl text-red-800 font-bold mb-4">Error Loading Bestseller</p>
         <p className="text-lg text-red-700 mb-6">{error}</p>
         <button
           onClick={fetchBestsellerProducts}
@@ -65,7 +65,7 @@ const Bestseller = () => {
         transition={{ duration: 0.5 }}
         className='text-4xl font-extrabold text-gray-800 mb-10 text-center'
       >
-        🌟 Our Bestsellers 🌟
+        🌟 Our Bestseller 🌟
       </motion.h2>
       
       {bestsellerProducts.length > 0 ? (
@@ -77,7 +77,7 @@ const Bestseller = () => {
       ) : (
         <div className="text-center py-20 bg-white rounded-lg shadow-md mx-auto max-w-xl">
           <XCircle className="mx-auto w-16 h-16 text-gray-400 mb-4" />
-          <h3 className="text-2xl font-semibold text-gray-800 mb-2">No Bestsellers Found Yet</h3>
+          <h3 className="text-2xl font-semibold text-gray-800 mb-2">No Bestseller Found Yet</h3>
           <p className="text-gray-600 text-lg">Check back soon for our top picks!</p>
         </div>
       )}
