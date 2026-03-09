@@ -713,11 +713,11 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 
-                <div className="flex justify-between text-gray-600">
+                {/* <div className="flex justify-between text-gray-600">
                   <span>Taxable Value</span>
                   <span>₹{taxableValue.toFixed(2)}</span>
-                </div>
-                {isDelhi ? (
+                </div> */}
+                {/* {isDelhi ? (
                   <>
                     <div className="flex justify-between text-gray-500 text-xs">
                       <span>CGST (2.5%)</span>
@@ -733,7 +733,7 @@ export default function CheckoutPage() {
                     <span>IGST (5%)</span>
                     <span>₹{igst.toFixed(2)}</span>
                   </div>
-                )}
+                )} */}
                 
                 <div className="border-t pt-2 flex justify-between text-lg font-bold text-gray-800">
                   <span>Total(including taxes)</span>
