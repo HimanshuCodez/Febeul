@@ -441,16 +441,7 @@ const buildInvoicePDF = (order, res) => {
            .font('Helvetica-Bold')
            .text(order.paymentMethod);
 
-        const paymentStatus = order.paymentStatus || 'Paid';
-        const statusColor = paymentStatus === 'Paid' ? '#27ae60' : '#f39c12';
-        
-        doc.fillColor(mediumGray)
-           .font('Helvetica')
-           .text('Payment Status: ', 280, paymentBoxY + 28, { continued: true })
-           .fillColor(statusColor)
-           .font('Helvetica-Bold')
-           .text(paymentStatus);
-
+      
         // ===================================
         // TERMS & FOOTER
         // ===================================
