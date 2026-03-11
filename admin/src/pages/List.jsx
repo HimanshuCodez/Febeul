@@ -72,9 +72,17 @@ const List = ({ token }) => {
     }, 0) || 0;
   };
 
-  const filteredList = list.filter(item =>
-    item.variations?.[0]?.sku?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredList = list.filter(item => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(searchLower) ||
+      item.category.toLowerCase().includes(searchLower) ||
+      item.variations?.some(variation => 
+        variation.sku?.toLowerCase().includes(searchLower) ||
+        variation.color?.toLowerCase().includes(searchLower)
+      )
+    );
+  });
 
   const handleProductSelect = (productId) => {
     setSelectedProducts(prevSelected => {
@@ -120,7 +128,7 @@ const List = ({ token }) => {
       <div className='flex justify-between items-center mb-4'>
         <input
           type="text"
-          placeholder="Search by SKU"
+          placeholder="Search by Name, Category, SKU or Color"
           className="p-2 border border-gray-300 rounded w-full mr-4"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
