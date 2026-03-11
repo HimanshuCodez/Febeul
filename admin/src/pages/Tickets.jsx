@@ -220,7 +220,18 @@ const Tickets = ({ token }) => {
                   <tr key={ticket._id} className='hover:bg-gray-50'>
                     <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{ticket.ticketNumber || ticket._id.slice(-6)}</td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{ticket.subject}</td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{ticket.user?.name || ticket.user?.email || 'N/A'}</td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                      <div className='flex flex-col gap-1'>
+                        <span className='font-medium text-gray-900'>{ticket.user?.name || 'N/A'}</span>
+                        <span className='text-xs'>{ticket.user?.email}</span>
+                        {ticket.user?.isLuxeMember && (
+                          <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit'>
+                            <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
+                            Luxe Member
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ticket.status)} capitalize`}>
                         {ticket.status}
@@ -254,25 +265,45 @@ const Tickets = ({ token }) => {
               <button onClick={() => setSelectedTicket(null)} className='text-gray-500 hover:text-gray-800 text-xl font-bold'>&times;</button>
             </div>
             <div className='p-6 space-y-4'>
-              <div>
-                <p className='text-sm font-medium text-gray-700'>Customer:</p>
-                <p className='text-base text-gray-900'>{selectedTicket.user?.name || selectedTicket.user?.email || 'N/A'}</p>
+              <div className='flex justify-between items-start'>
+                <div>
+                  <p className='text-sm font-medium text-gray-700'>Customer:</p>
+                  <p className='text-base text-gray-900 font-bold'>{selectedTicket.user?.name || 'N/A'}</p>
+                  <p className='text-xs text-gray-500'>{selectedTicket.user?.email}</p>
+                </div>
+                {selectedTicket.user?.isLuxeMember && (
+                  <div className='flex flex-col items-end'>
+                    <span className='px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-sm flex items-center gap-1.5 uppercase tracking-widest'>
+                      <span className='w-2 h-2 bg-amber-500 rounded-full animate-ping'></span>
+                      Luxe Priority
+                    </span>
+                    <span className='text-[10px] text-amber-600 font-semibold mt-1'>High Priority Support</span>
+                  </div>
+                )}
+              </div>
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <p className='text-sm font-medium text-gray-700'>Status:</p>
+                  <select
+                    value={selectedTicket.status}
+                    onChange={(e) => handleStatusChange(selectedTicket._id, e.target.value)}
+                    className='mt-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500 w-full'
+                  >
+                    <option value="open">Open</option>
+                    <option value="pending">Pending</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-gray-700'>Created At:</p>
+                  <p className='mt-2.5 text-sm text-gray-600 font-medium'>{new Date(selectedTicket.createdAt).toLocaleString()}</p>
+                </div>
               </div>
               <div>
-                <p className='text-sm font-medium text-gray-700'>Status:</p>
-                <select
-                  value={selectedTicket.status}
-                  onChange={(e) => handleStatusChange(selectedTicket._id, e.target.value)}
-                  className='p-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500'
-                >
-                  <option value="open">Open</option>
-                  <option value="pending">Pending</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </div>
-              <div>
-                <p className='text-sm font-medium text-gray-700'>Description:</p>
-                <p className='text-base text-gray-900'>{selectedTicket.description}</p>
+                <p className='text-sm font-medium text-gray-700 border-b pb-1 mb-2'>Description:</p>
+                <div className='bg-gray-50 p-3 rounded-lg border border-gray-100 italic text-gray-800 text-sm'>
+                  {selectedTicket.description}
+                </div>
               </div>
               </div>
               <div className='space-y-2'>
