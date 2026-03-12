@@ -4,10 +4,10 @@ import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { Tag } from 'lucide-react';
 
-const CouponCodeInput = ({ cartTotal, onCouponApply }) => {
+const CouponCodeInput = ({ items, onCouponApply }) => {
     const [couponCode, setCouponCode] = useState('');
     const [loading, setLoading] = useState(false);
-    const { token } = useAuthStore();
+    const { token, user } = useAuthStore();
     const url = import.meta.env.VITE_BACKEND_URL;
 
     const handleApplyCoupon = async () => {
@@ -19,10 +19,14 @@ const CouponCodeInput = ({ cartTotal, onCouponApply }) => {
             toast.error('You must be logged in to apply a coupon.');
             return;
         }
+        if (!items || items.length === 0) {
+            toast.error('No items in cart to apply coupon.');
+            return;
+        }
         setLoading(true);
         try {
             const response = await axios.post(`${url}/api/coupon/apply`, 
-                { code: couponCode, cartTotal },
+                { code: couponCode, items, userId: user?._id },
                 { headers: { token } }
             );
 
@@ -31,7 +35,7 @@ const CouponCodeInput = ({ cartTotal, onCouponApply }) => {
                 onCouponApply(response.data);
             } else {
                 toast.error(response.data.message);
-                onCouponApply(null); // Signal that coupon is invalid or not applicable
+                onCouponApply(null);
             }
         } catch (error) {
             console.error("Error applying coupon:", error);

@@ -16,7 +16,8 @@ import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 import GiftWrapModal from '../components/GiftWrapModal';
-import CouponCodeInput from '../components/CouponCodeInput'; // Import the new component
+import CouponCodeInput from '../components/CouponCodeInput';
+import CouponShows from '../components/CouponShows';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -660,8 +661,46 @@ export default function CheckoutPage() {
                   )
                 })}
               </div>
-              
-              <CouponCodeInput cartTotal={subtotal} onCouponApply={handleCouponApply} />
+
+              {/* Coupon Application Logic */}
+              {(() => {
+                const cartItemsForCoupon = cartItems.map((item) => {
+                    const selectedVariation = item.variations?.find(v => v.color === item.color);
+                    const itemPrice = selectedVariation?.sizes?.find(s => s.size === item.size)?.price;
+                    return {
+                        sku: selectedVariation?.sku,
+                        price: item.price || itemPrice || 0,
+                        quantity: item.quantity
+                    };
+                });
+                const productSKUs = [...new Set(cartItemsForCoupon.map(i => i.sku).filter(Boolean))];
+
+                const handleRedeem = async (code) => {
+                  try {
+                      const response = await axios.post(`${backendUrl}/api/coupon/apply`, 
+                          { code, items: cartItemsForCoupon, userId: user?._id },
+                          { headers: { token } }
+                      );
+                      if (response.data.success) {
+                          toast.success(response.data.message);
+                          handleCouponApply(response.data);
+                      } else {
+                          toast.error(response.data.message);
+                      }
+                  } catch (error) {
+                      toast.error(error.response?.data?.message || 'Failed to apply coupon.');
+                  }
+                };
+
+                return (
+                  <>
+                    <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} />
+                    <div className="mt-4 border-t pt-4">
+                      <CouponShows productSKUs={productSKUs} onRedeem={handleRedeem} appliedCoupon={appliedCoupon} />
+                    </div>
+                  </>
+                );
+              })()}
 
 
               <div className="border-t pt-4 mt-6 space-y-2 text-sm">

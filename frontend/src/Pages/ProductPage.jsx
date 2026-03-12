@@ -708,9 +708,11 @@ const ProductDetailPage = () => {
           </div>{" "}
           {/* End of New Grid Container */}
         </div>
+        <div className="bg-white p-6 rounded-lg shadow-sm mt-6">
+           <Reviews productId={productId} />
+        </div>
       </div>
       <SimilarItems productId={productId} token={token} />
-      {/* <Reviews productId={productId} />  */}
       <AddressModal 
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}

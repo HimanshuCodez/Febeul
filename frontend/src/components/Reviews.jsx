@@ -12,29 +12,39 @@ const Reviews = ({ productId }) => {
   const [newReview, setNewReview] = useState({ rating: 0, comment: '', images: [] });
   const [imagePreviews, setImagePreviews] = useState([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
+  const [userReview, setUserReview] = useState(null);
 
   useEffect(() => {
     fetchReviews();
-  }, [productId]);
+    if (isAuthenticated) {
+      fetchMyReview();
+    }
+  }, [productId, isAuthenticated]);
 
   const fetchReviews = async () => {
     try {
       const response = await axios.get(`${backendUrl}/api/review/list/${productId}`);
       if (response.data.success) {
         setReviews(response.data.reviews);
-        if (isAuthenticated && user) {
-          const userHasReviewed = response.data.reviews.some(
-            (review) => review.userId && review.userId._id === user._id
-          );
-          setHasUserReviewed(userHasReviewed);
-        }
       } else {
         toast.error(response.data.message);
       }
     } catch (error) {
       console.error("Error fetching reviews:", error);
       toast.error("Failed to fetch reviews.");
+    }
+  };
+
+  const fetchMyReview = async () => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/review/my-review/${productId}`, {
+        headers: { token }
+      });
+      if (response.data.success) {
+        setUserReview(response.data.review);
+      }
+    } catch (error) {
+      console.error("Error fetching my review:", error);
     }
   };
 
@@ -78,7 +88,6 @@ const Reviews = ({ productId }) => {
 
     const formData = new FormData();
     formData.append('productId', productId);
-    formData.append('userId', user._id);
     formData.append('rating', newReview.rating);
     formData.append('comment', newReview.comment);
     newReview.images.forEach(image => {
@@ -94,11 +103,11 @@ const Reviews = ({ productId }) => {
       });
 
       if (response.data.success) {
-        toast.success("Review submitted successfully!");
+        toast.success("Review submitted! It will be visible after admin approval.");
         setNewReview({ rating: 0, comment: '', images: [] });
         setImagePreviews([]);
         setShowReviewForm(false);
-        fetchReviews(); // Refresh reviews list
+        fetchMyReview(); // Update user review status
       } else {
         toast.error(response.data.message);
       }
@@ -114,8 +123,19 @@ const Reviews = ({ productId }) => {
 
       {isAuthenticated ? (
         <div className="mb-8 p-6 bg-gray-50 rounded-lg shadow-sm">
-          {hasUserReviewed ? (
-            <p className="text-center text-lg font-semibold text-gray-700">You have already reviewed this product.</p>
+          {userReview ? (
+            <div className="text-center p-4">
+              <p className="text-lg font-semibold text-gray-700">Review Submitted</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Status: <span className={`font-bold capitalize ${
+                  userReview.status === 'approved' ? 'text-green-600' : 
+                  userReview.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'
+                }`}>{userReview.status || 'Pending'}</span>
+              </p>
+              {userReview.status === 'pending' && (
+                <p className="text-xs text-gray-400 mt-2">Your review is being moderated and will be visible once approved by our team.</p>
+              )}
+            </div>
           ) : (
             <>
               <button

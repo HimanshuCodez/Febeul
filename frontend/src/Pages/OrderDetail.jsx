@@ -24,6 +24,9 @@ import Loader from '../components/Loader';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+import SimilarItems from '../components/SimilarItems';
+import Reviews from '../components/Reviews';
+
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 // --- Return/Exchange Modal Component ---
@@ -549,8 +552,8 @@ export default function OrderDetailPage() {
                 const itemTotal = (itemPrice * itemQuantity) - itemDiscount;
 
                 return (
+                  <React.Fragment key={item.productId + item.size + item.color}>
                   <motion.div
-                    key={item.productId + item.size + item.color}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.7 + (index * 0.1) }}
@@ -582,6 +585,13 @@ export default function OrderDetailPage() {
                       )}
                     </div>
                   </motion.div>
+                  {order.orderStatus === 'Delivered' && (
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100 mt-2">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Rate & Review this product:</p>
+                      <Reviews productId={item.productId} />
+                    </div>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </div>

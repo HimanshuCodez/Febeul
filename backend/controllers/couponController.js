@@ -100,6 +100,14 @@ export const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'You have already used this coupon the maximum number of times.' });
         }
 
+        // Check User Type Restriction
+        if (coupon.userType === 'luxe') {
+            const user = await mongoose.model('user').findById(userId);
+            if (!user || !user.isLuxeMember) {
+                return res.status(403).json({ success: false, message: 'This coupon is reserved for Luxe Members only.' });
+            }
+        }
+
         let applicableTotal = 0;
         let cartTotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
@@ -186,6 +194,14 @@ export const applyProductCoupon = async (req, res) => {
             const userUsage = coupon.usersWhoUsed.filter(u => u.userId.toString() === userId).length;
             if (coupon.usageLimitPerUser && userUsage >= coupon.usageLimitPerUser) {
                 return res.status(400).json({ success: false, message: 'You have already used this coupon the maximum number of times.' });
+            }
+
+            // Check User Type Restriction
+            if (coupon.userType === 'luxe') {
+                const user = await mongoose.model('user').findById(userId);
+                if (!user || !user.isLuxeMember) {
+                    return res.status(403).json({ success: false, message: 'This coupon is reserved for Luxe Members only.' });
+                }
             }
         }
 

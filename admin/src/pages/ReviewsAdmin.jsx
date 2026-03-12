@@ -44,6 +44,31 @@ const ReviewsAdmin = ({ token }) => {
         }
     };
 
+    const handleUpdateStatus = async (reviewId, newStatus) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/review/update-status`, 
+                { reviewId, status: newStatus },
+                {
+                    headers: {
+                        token: token,
+                    },
+                }
+            );
+
+            if (response.data.success) {
+                toast.success(response.data.message);
+                setReviews(prevReviews => prevReviews.map(review => 
+                    review._id === reviewId ? { ...review, status: newStatus } : review
+                ));
+            } else {
+                toast.error(response.data.message);
+            }
+        } catch (error) {
+            console.error("Error updating review status:", error);
+            toast.error("Failed to update status.");
+        }
+    };
+
     const handleDeleteReview = async (reviewId) => {
         if (!window.confirm("Are you sure you want to delete this review? This action cannot be undone.")) {
             return;
@@ -87,6 +112,7 @@ const ReviewsAdmin = ({ token }) => {
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comment</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -150,10 +176,35 @@ const ReviewsAdmin = ({ token }) => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {new Date(review.date).toLocaleDateString()}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                review.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                                                review.status === 'rejected' ? 'bg-red-100 text-red-800' : 
+                                                'bg-yellow-100 text-yellow-800'
+                                            } capitalize`}>
+                                                {review.status || 'pending'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                                            {review.status !== 'approved' && (
+                                                <button
+                                                    onClick={() => handleUpdateStatus(review._id, 'approved')}
+                                                    className="text-green-600 hover:text-green-900 bg-green-50 px-2 py-1 rounded"
+                                                >
+                                                    Approve
+                                                </button>
+                                            )}
+                                            {review.status !== 'rejected' && (
+                                                <button
+                                                    onClick={() => handleUpdateStatus(review._id, 'rejected')}
+                                                    className="text-orange-600 hover:text-orange-900 bg-orange-50 px-2 py-1 rounded"
+                                                >
+                                                    Reject
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => handleDeleteReview(review._id)}
-                                                className="text-red-600 hover:text-red-900"
+                                                className="text-red-600 hover:text-red-900 bg-red-50 px-2 py-1 rounded"
                                             >
                                                 Delete
                                             </button>
