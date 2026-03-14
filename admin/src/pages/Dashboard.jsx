@@ -216,7 +216,8 @@ const FebeulDashboard = ({ token }) => {
         { headers: { token } },
       );
       if (skuStocksResponse.data.success) {
-        setSkuStocks(skuStocksResponse.data.skuStocks);
+        const sortedStocks = [...skuStocksResponse.data.skuStocks].sort((a, b) => a.stock - b.stock);
+        setSkuStocks(sortedStocks);
       }
     } catch (err) {
       console.error("Error fetching dashboard data:", err);

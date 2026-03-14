@@ -326,6 +326,19 @@ const adminLogin = async (req, res) => {
             return res.json({ success: true, token, role: 'staff' })
         }
 
+        // Check Database for Staff/Admin
+        const dbUser = await userModel.findOne({ email });
+        if (dbUser && (dbUser.role === 'staff' || dbUser.role === 'admin')) {
+            if (!dbUser.password) {
+                 return res.json({ success: false, message: "User has no password set. Please reset password first." });
+            }
+            const isMatch = await bcrypt.compare(password, dbUser.password);
+            if (isMatch) {
+                const token = jwt.sign(dbUser._id.toString(), process.env.JWT_SECRET);
+                return res.json({ success: true, token, role: dbUser.role, permissions: dbUser.permissions })
+            }
+        }
+
         console.log("Login failed: No match found in config.");
         console.log("------------------------");
         res.json({ success: false, message: "Invalid credentials" })
@@ -463,4 +476,26 @@ const decrementGiftWraps = async (req, res) => {
 };
 
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps }
+// Update staff permissions
+const updateStaffPermissions = async (req, res) => {
+    try {
+        const { email, role, permissions } = req.body;
+        const user = await userModel.findOne({ email });
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        user.role = role;
+        user.permissions = permissions;
+        await user.save();
+
+        res.json({ success: true, message: "User permissions updated successfully" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error updating permissions" });
+    }
+};
+
+
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions }

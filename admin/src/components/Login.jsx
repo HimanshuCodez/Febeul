@@ -15,6 +15,11 @@ const Login = ({setToken, setRole}) => {
             if (response.data.success) {
                 setToken(response.data.token)
                 setRole(response.data.role)
+                if (response.data.permissions) {
+                    localStorage.setItem('permissions', JSON.stringify(response.data.permissions))
+                } else {
+                    localStorage.removeItem('permissions')
+                }
             } else {
                 toast.error(response.data.message)
             }

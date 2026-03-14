@@ -34,11 +34,40 @@ const adminAuth = async (req, res, next) => {
         if (isStaff) {
             req.role = 'staff';
             // Restrict staff from accessing dashboard endpoints
-            if (req.baseUrl.includes('/api/admin')) {
-                return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
+            if (req.baseUrl.includes('/api/admin') && !req.path.includes('/dashboard-stats')) { // Allow some basic stats if needed, or keep restricted
+                 // actually the original code restricted /api/admin
             }
+            // but wait, the original code had:
+            // if (req.baseUrl.includes('/api/admin')) { return res.status(403).json({ success: false, message: 'Access denied. Admins only.' }); }
+            // Let's keep it but also check DB
+        }
+
+        if (!isStaff && token_decode === adminCredentials) {
+            req.role = 'admin';
             return next();
         }
+
+        if (isStaff) {
+             req.role = 'staff';
+             if (req.baseUrl.includes('/api/admin')) {
+                return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
+             }
+             return next();
+        }
+
+        // --- NEW: Check Database ---
+        const userModel = (await import('../models/userModel.js')).default;
+        try {
+            const user = await userModel.findById(token_decode);
+            if (user && (user.role === 'staff' || user.role === 'admin')) {
+                req.role = user.role;
+                req.permissions = user.permissions;
+                return next();
+            }
+        } catch (dbError) {
+            // Probably not a valid ObjectId, ignore
+        }
+        // --- END NEW ---
 
         return res.status(401).json({ success: false, message: 'Invalid Token. Not authorized.' });
 

@@ -1,6 +1,7 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
+import adminAuth from '../middleware/adminAuth.js';
 
 const userRouter = express.Router();
 
@@ -11,6 +12,7 @@ userRouter.post('/admin', adminLogin)
 userRouter.get('/profile', authUser, getProfile)
 userRouter.post('/add-address', authUser, addAddress)
 userRouter.get('/allusers', authUser, getAllUsers)
+userRouter.post('/update-permissions', adminAuth, updateStaffPermissions)
 
 // Password Reset Routes
 userRouter.post('/forgot-password', forgotPassword);

@@ -33,7 +33,9 @@ const userSchema = new mongoose.Schema({
         state: { type: String, required: true },
         country: { type: String, required: true },
         phone: { type: String, required: true },
-    }]
+    }],
+    role: { type: String, default: 'user' },
+    permissions: [{ type: String }]
 }, { minimize: false })
 
 const userModel = mongoose.models.user || mongoose.model('user',userSchema);
