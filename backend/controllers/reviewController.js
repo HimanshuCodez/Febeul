@@ -187,4 +187,4 @@ const removeReview = async (req, res) => {
     }
 };
 
-export { addReview, getProductReviews, getUserReviews, getAllReviews, removeReview, updateReviewStatus };
+export { addReview, getProductReviews, getUserReviews, getAllReviews, removeReview, updateReviewStatus, getMyProductReview };
