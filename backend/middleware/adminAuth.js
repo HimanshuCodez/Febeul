@@ -8,66 +8,54 @@ const adminAuth = async (req, res, next) => {
     try {
         const token_decode = jwt.verify(token, process.env.JWT_SECRET);
         
+        // 1. Check Primary Admin (ENV)
         const adminCredentials = process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD;
         if (token_decode === adminCredentials) {
             req.role = 'admin';
             return next();
         }
 
+        // 2. Check Staff Members (ENV)
         const staffEmails = process.env.STAFF_EMAILS ? process.env.STAFF_EMAILS.split(',') : [];
         const staffPasswords = process.env.STAFF_PASSWORDS ? process.env.STAFF_PASSWORDS.split(',') : [];
-
-        // Check if token matches any staff member
-        let isStaff = false;
+        let isStaffEnv = false;
         for (let i = 0; i < staffEmails.length; i++) {
             if (token_decode === (staffEmails[i] + staffPasswords[i])) {
-                isStaff = true;
+                isStaffEnv = true;
                 break;
             }
         }
-
-        // Check legacy single staff config
-        if (!isStaff && token_decode === (process.env.STAFF_EMAIL + process.env.STAFF_PASSWORD)) {
-            isStaff = true;
+        // Legacy single staff check
+        if (!isStaffEnv && token_decode === (process.env.STAFF_EMAIL + process.env.STAFF_PASSWORD)) {
+            isStaffEnv = true;
         }
 
-        if (isStaff) {
+        if (isStaffEnv) {
             req.role = 'staff';
-            // Restrict staff from accessing dashboard endpoints
-            if (req.baseUrl.includes('/api/admin') && !req.path.includes('/dashboard-stats')) { // Allow some basic stats if needed, or keep restricted
-                 // actually the original code restricted /api/admin
+            if (req.baseUrl.includes('/api/admin')) {
+                return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
             }
-            // but wait, the original code had:
-            // if (req.baseUrl.includes('/api/admin')) { return res.status(403).json({ success: false, message: 'Access denied. Admins only.' }); }
-            // Let's keep it but also check DB
-        }
-
-        if (!isStaff && token_decode === adminCredentials) {
-            req.role = 'admin';
             return next();
         }
 
-        if (isStaff) {
-             req.role = 'staff';
-             if (req.baseUrl.includes('/api/admin')) {
-                return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
-             }
-             return next();
-        }
-
-        // --- NEW: Check Database ---
-        const userModel = (await import('../models/userModel.js')).default;
+        // 3. Check Database for Staff/Admin
         try {
+            const userModel = (await import('../models/userModel.js')).default;
             const user = await userModel.findById(token_decode);
             if (user && (user.role === 'staff' || user.role === 'admin')) {
                 req.role = user.role;
                 req.permissions = user.permissions;
+                
+                // If they are database-staff, still restrict /api/admin if that's the policy
+                if (user.role === 'staff' && req.baseUrl.includes('/api/admin')) {
+                    return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
+                }
+                
                 return next();
             }
         } catch (dbError) {
-            // Probably not a valid ObjectId, ignore
+            // Probably not a valid ObjectId (it was a credentials string from ENV login), ignore
         }
-        // --- END NEW ---
 
         return res.status(401).json({ success: false, message: 'Invalid Token. Not authorized.' });
 

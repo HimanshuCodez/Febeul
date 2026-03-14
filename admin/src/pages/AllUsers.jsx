@@ -35,7 +35,7 @@ const AllUsers = ({ token }) => {
 
   const handleSavePermissions = async () => {
     try {
-      const response = await axios.post(`${backendUrl}/api/user/update-permissions`, {
+      const response = await axios.post(`${backendUrl}/api/admin/update-permissions`, {
         email,
         role,
         permissions: selectedPermissions
