@@ -163,7 +163,7 @@ const ProductCard = ({ product, onWishlistToggle }) => {
           {product.isLuxePrive && (
             <div className="absolute bottom-3 left-3 z-10 w-16 h-16 pointer-events-none">
               <img 
-                src="sale.gif" 
+                src="luxeprive.png" 
                 alt="Luxe Exclusive" 
                 className="w-full h-full object-contain drop-shadow-lg" 
               />
