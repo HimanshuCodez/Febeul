@@ -48,6 +48,8 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
     setIsModalOpen(true);
     onRedeem(coupon.code);
   };
+
+  if (loading) {
     return <div className="my-4 text-center text-gray-600">Loading coupons...</div>;
   }
 
