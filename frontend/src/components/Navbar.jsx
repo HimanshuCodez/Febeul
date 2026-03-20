@@ -242,7 +242,7 @@ export default function Header() {
                     <button onClick={() => setIsSearchOpen(true)} className="md:hidden p-2 text-gray-700"> {/* Mobile search icon */}
                       <Search className="h-6 w-6" />
                     </button>
-                    <div className="hidden md:block"> {/* SearchBar desktop only */}
+                    <div className="hidden md:block w-full max-w-sm lg:max-w-lg ml-4"> {/* SearchBar desktop only */}
                       <SearchBar />
                     </div>
                   </div>

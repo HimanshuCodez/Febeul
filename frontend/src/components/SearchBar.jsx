@@ -129,7 +129,7 @@ export default function SearchBar() {
   return (
     <div className="relative w-full" ref={searchBarRef}>
       <form onSubmit={handleSearchSubmit}>
-        <div className="flex items-center border pl-4 gap-2 border-black h-[40px] rounded-full overflow-hidden w-full md:max-w-4xl bg-gray-50 hover:bg-white transition">
+        <div className="flex items-center border pl-4 gap-2 border-black h-[40px] rounded-full overflow-hidden w-full bg-gray-50 hover:bg-white transition">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="22"
