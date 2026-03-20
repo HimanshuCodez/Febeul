@@ -4,13 +4,13 @@ import { Facebook, Instagram, Youtube, Twitter, AtSign } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-black text-gray-300 pt-12 pb-6">
+    <footer className="bg-black text-gray-300 pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 lg:gap-8 mb-10">
           
           {/* Brand + Contact Info */}
-          <div className="space-y-4 text-center sm:text-left">
+          <div className="lg:col-span-1 space-y-6 text-center lg:text-left">
             <img
               src="/removebgLogo.png"   /* <-- replace with: /logo.png or actual path */
               alt="Febeul Logo"
@@ -42,49 +42,51 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="text-center sm:text-left">
-            <h3 className="text-white font-semibold mb-4 uppercase text-sm">
-              QUICK LINKS
-            </h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/" className="hover:text-white">Home</Link></li>
-              <li><Link to="/explore" className="hover:text-white">Explore</Link></li>
-              <li><Link to="/babydoll" className="hover:text-white">Babydoll</Link></li>
-              <li><Link to="/lingerie" className="hover:text-white">Lingerie</Link></li>
-              <li><Link to="/pajamas" className="hover:text-white">Pajamas</Link></li>
-              <li><Link to="/nighty" className="hover:text-white">Nighty</Link></li>
-            </ul>
-          </div>
+          {/* Links Sections */}
+          <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-8">
+            {/* Quick Links */}
+            <div className="text-center sm:text-left">
+              <h3 className="text-white font-semibold mb-4 uppercase text-sm">
+                QUICK LINKS
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/" className="hover:text-white">Home</Link></li>
+                <li><Link to="/explore" className="hover:text-white">Explore</Link></li>
+                <li><Link to="/babydoll" className="hover:text-white">Babydoll</Link></li>
+                <li><Link to="/lingerie" className="hover:text-white">Lingerie</Link></li>
+                <li><Link to="/pajamas" className="hover:text-white">Pajamas</Link></li>
+                <li><Link to="/nighty" className="hover:text-white">Nighty</Link></li>
+              </ul>
+            </div>
 
-          {/* Support */}
-          <div className="text-center sm:text-left">
-            <h3 className="text-white font-semibold mb-4 uppercase text-sm">
-              SUPPORT
-            </h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/order-tracking" className="hover:text-white">Order Tracking</Link></li>
-              <li><Link to="/ReturnRefund" className="hover:text-white">Return & Refund</Link></li>
-              <li><Link to="/GrievanceRedressals" className="hover:text-white">Grievance Redressals</Link></li>
-              <li><Link to="/PaymentPolicy" className="hover:text-white">Payment Policy</Link></li>
-              <li><Link to="/Faq" className="hover:text-white">FAQs</Link></li>
-              <li><Link to="/contact" className="hover:text-white">Contact Us</Link></li>
-            </ul>
-          </div>
+            {/* Support */}
+            <div className="text-center sm:text-left">
+              <h3 className="text-white font-semibold mb-4 uppercase text-sm">
+                SUPPORT
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/order-tracking" className="hover:text-white">Order Tracking</Link></li>
+                <li><Link to="/ReturnRefund" className="hover:text-white">Return & Refund</Link></li>
+                <li><Link to="/GrievanceRedressals" className="hover:text-white">Grievance Redressals</Link></li>
+                <li><Link to="/PaymentPolicy" className="hover:text-white">Payment Policy</Link></li>
+                <li><Link to="/Faq" className="hover:text-white">FAQs</Link></li>
+                <li><Link to="/contact" className="hover:text-white">Contact Us</Link></li>
+              </ul>
+            </div>
 
-          {/* Policies + Account */}
-          <div className="text-center sm:text-left">
-            <h3 className="text-white font-semibold mb-4 uppercase text-sm">
-              Policies
-            </h3>
-            <ul className="space-y-2 text-sm mb-6">
-              <li><Link to="/ReviewRating" className="hover:text-white">Review & Rating</Link></li>
-              <li><Link to="/TermsConditions" className="hover:text-white">Terms & Conditions</Link></li>
-              <li><Link to="/DataPrivacy" className="hover:text-white">Data Privacy</Link></li>
-              <li><Link to="/LuxePolicy" className="hover:text-white">Luxe membership policy</Link></li>
-              <li><Link to="/GiftWrapPolicy" className="hover:text-white">Gift Wrap Policy</Link></li>
-            </ul>
-           
+            {/* Policies + Account */}
+            <div className="text-center sm:text-left col-span-2 sm:col-span-1">
+              <h3 className="text-white font-semibold mb-4 uppercase text-sm">
+                Policies
+              </h3>
+              <ul className="space-y-2 text-sm mb-6">
+                <li><Link to="/ReviewRating" className="hover:text-white">Review & Rating</Link></li>
+                <li><Link to="/TermsConditions" className="hover:text-white">Terms & Conditions</Link></li>
+                <li><Link to="/DataPrivacy" className="hover:text-white">Data Privacy</Link></li>
+                <li><Link to="/LuxePolicy" className="hover:text-white">Luxe membership policy</Link></li>
+                <li><Link to="/GiftWrapPolicy" className="hover:text-white">Gift Wrap Policy</Link></li>
+              </ul>
+            </div>
           </div>
         </div>
 
