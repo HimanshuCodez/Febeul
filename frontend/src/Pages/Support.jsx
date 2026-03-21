@@ -38,6 +38,10 @@ const Support = () => {
     };
 
     useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
+    useEffect(() => {
         fetchUserTickets();
     }, [token]);
 
