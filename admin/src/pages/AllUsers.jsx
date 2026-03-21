@@ -14,6 +14,10 @@ const AllUsers = ({ token }) => {
   const [role, setRole] = useState('staff');
   const [selectedPermissions, setSelectedPermissions] = useState([]);
 
+  // Search and Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+
   const permissionOptions = [
     { label: 'Dashboard', path: '/' },
     { label: 'All Users', path: '/allusers' },
@@ -31,6 +35,19 @@ const AllUsers = ({ token }) => {
     setSelectedPermissions(prev => 
       prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
     );
+  };
+
+  const openPermissionsModal = (user = null) => {
+    if (user) {
+      setEmail(user.email);
+      setRole(user.role || 'user');
+      setSelectedPermissions(user.permissions || []);
+    } else {
+      setEmail('');
+      setRole('staff');
+      setSelectedPermissions([]);
+    }
+    setShowModal(true);
   };
 
   const handleSavePermissions = async () => {
@@ -78,6 +95,20 @@ const AllUsers = ({ token }) => {
     }
   }, [token]);
 
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.mobile && user.mobile.includes(searchTerm));
+    
+    const matchesRole = 
+      roleFilter === 'all' || 
+      (roleFilter === 'staff' && (user.role === 'staff' || user.role === 'admin')) ||
+      (roleFilter === 'user' && user.role === 'user');
+
+    return matchesSearch && matchesRole;
+  });
+
   if (loading) {
     return <p className="p-4">Loading users...</p>;
   }
@@ -88,14 +119,32 @@ const AllUsers = ({ token }) => {
 
   return (
     <div className='p-4 relative'>
-      <div className='flex justify-between items-center mb-6'>
+      <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4'>
         <h2 className='text-2xl font-bold'>All Users</h2>
-        <button 
-          onClick={() => setShowModal(true)}
-          className='bg-black text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition-colors'
-        >
-          Add Staff Permissions
-        </button>
+        <div className='flex flex-col sm:flex-row gap-3 w-full md:w-auto'>
+          <input 
+            type="text" 
+            placeholder="Search name, email, phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className='border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black w-full sm:w-64'
+          />
+          <select 
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className='border border-gray-300 rounded-md px-3 py-2 text-sm outline-none bg-white'
+          >
+            <option value="all">All Roles</option>
+            <option value="staff">Staff/Admin</option>
+            <option value="user">Normal Users</option>
+          </select>
+          <button 
+            onClick={() => openPermissionsModal()}
+            className='bg-black text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition-colors whitespace-nowrap'
+          >
+            Add Staff Permissions
+          </button>
+        </div>
       </div>
 
       {/* Permissions Modal */}
@@ -122,9 +171,9 @@ const AllUsers = ({ token }) => {
                 onChange={(e) => setRole(e.target.value)}
                 className='w-full border border-gray-300 rounded-md px-3 py-2 outline-none'
               >
+                <option value="user">User</option>
                 <option value="staff">Staff</option>
                 <option value="admin">Admin</option>
-                <option value="user">User</option>
               </select>
             </div>
 
@@ -163,23 +212,26 @@ const AllUsers = ({ token }) => {
         </div>
       )}
 
-      {users.length > 0 ? (
+      {filteredUsers.length > 0 ? (
         <div className='overflow-x-auto border border-gray-200 rounded-lg'>
           <table className='min-w-full bg-white divide-y divide-gray-200'>
             <thead className='bg-gray-50'>
               <tr>
                 <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Name</th>
                 <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Email</th>
+                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Phone</th>
                 <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Role</th>
                 <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Luxe</th>
                 <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Gift Wraps</th>
+                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Actions</th>
               </tr>
             </thead>
             <tbody className='bg-white divide-y divide-gray-200'>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <tr key={user._id} className='hover:bg-gray-50 transition-colors'>
                   <td className='py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900'>{user.name || 'N/A'}</td>
                   <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.email}</td>
+                  <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.mobile || 'N/A'}</td>
                   <td className='py-3 px-4 whitespace-nowrap text-sm'>
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       user.role === 'admin' ? 'bg-red-100 text-red-700' : 
@@ -190,14 +242,23 @@ const AllUsers = ({ token }) => {
                   </td>
                   <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.isLuxeMember ? 'Yes' : 'No'}</td>
                   <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.giftWrapsLeft}</td>
+                  <td className='py-3 px-4 whitespace-nowrap text-sm'>
+                    <button 
+                      onClick={() => openPermissionsModal(user)}
+                      className='text-blue-600 hover:text-blue-800 font-medium underline'
+                    >
+                      View Permissions
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : (
-        <p>No users found.</p>
+        <p className='p-4 text-gray-500'>No users found matching your search.</p>
       )}
+
     </div>
   );
 };
