@@ -76,7 +76,7 @@ export const getUserTickets = async (req, res) => {
 // Admin: Get all tickets
 export const listTickets = async (req, res) => {
     try {
-        const tickets = await ticketModel.find({}).populate('user', 'name email').sort({ createdAt: -1 });
+        const tickets = await ticketModel.find({}).populate('user', 'name email isLuxeMember').sort({ createdAt: -1 });
         res.json({ success: true, tickets });
     } catch (error) {
         console.error('Error listing tickets:', error);
@@ -228,7 +228,7 @@ export const adminPanelReplyToTicket = async (req, res) => {
 // User & Admin: Get a single ticket by ID
 export const getTicketById = async (req, res) => {
     try {
-        const ticket = await ticketModel.findById(req.params.id).populate('user', 'name email');
+        const ticket = await ticketModel.findById(req.params.id).populate('user', 'name email isLuxeMember');
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Ticket not found' });
         }
