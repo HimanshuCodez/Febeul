@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { backendUrl } from '../../App';
+import { backendUrl } from '../../App.jsx';
 import { FiPlus, FiTrash2, FiSave } from 'react-icons/fi';
 
 const Cms = ({ token }) => {
   const [swipingMessages, setSwipingMessages] = useState([]);
+  const [promoBanner, setPromoBanner] = useState({
+    topLine: "JOIN NOW & SAVE 15% ON MEMBERSHIP!",
+    discountCode: "luxe15",
+    buttonText: "JOIN NOW"
+  });
   const [loading, setLoading] = useState(false);
 
   const API_BASE_URL = `${backendUrl}/api/cms`;
@@ -13,16 +18,33 @@ const Cms = ({ token }) => {
   const fetchCmsContent = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/swiping_messages`);
-      setSwipingMessages(response.data.content || []);
+      // Fetch Swiping Messages
+      try {
+        const resMsg = await axios.get(`${API_BASE_URL}/swiping_messages`);
+        if (resMsg.data && resMsg.data.content) {
+          setSwipingMessages(resMsg.data.content);
+        }
+      } catch (err) {
+        console.warn('Swiping messages not found, using defaults.');
+        setSwipingMessages([
+          "Free Shipping on Orders Over Rs 499",
+          "Register To Get 10% Off: CODE: FNEW10",
+          "2 Days Return And Exchange Policy",
+        ]);
+      }
+
+      // Fetch Promo Banner
+      try {
+        const resPromo = await axios.get(`${API_BASE_URL}/promo_banner`);
+        if (resPromo.data && resPromo.data.content) {
+          setPromoBanner(resPromo.data.content);
+        }
+      } catch (err) {
+        console.warn('Promo banner not found, using defaults.');
+      }
+
     } catch (err) {
       console.error('Error fetching CMS content:', err);
-      // If not found, it's okay, we'll start with default
-      setSwipingMessages([
-        "Free Shipping on Orders Over Rs 499",
-        "Register To Get 10% Off: CODE: FNEW10",
-        "2 Days Return And Exchange Policy",
-      ]);
     } finally {
       setLoading(false);
     }
@@ -47,18 +69,31 @@ const Cms = ({ token }) => {
     setSwipingMessages(newMessages);
   };
 
+  const handlePromoChange = (e) => {
+    const { name, value } = e.target;
+    setPromoBanner(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = {
+      // Save Swiping Messages
+      await axios.post(`${API_BASE_URL}/`, {
         name: 'swiping_messages',
         content: swipingMessages.filter(msg => msg.trim() !== '')
-      };
-      
-      await axios.post(`${API_BASE_URL}/`, payload, {
+      }, {
         headers: { 'Content-Type': 'application/json', 'token': token }
       });
+
+      // Save Promo Banner
+      await axios.post(`${API_BASE_URL}/`, {
+        name: 'promo_banner',
+        content: promoBanner
+      }, {
+        headers: { 'Content-Type': 'application/json', 'token': token }
+      });
+
       toast.success('CMS content updated successfully!');
     } catch (err) {
       console.error('Error updating CMS content:', err);
@@ -75,14 +110,15 @@ const Cms = ({ token }) => {
         <p className="text-gray-500">Manage dynamic text content across the website</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Swiping Messages Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">Swiping Messages</h2>
             <button
               type="button"
               onClick={addMessage}
-              className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-sm text-sm"
             >
               <FiPlus /> Add Message
             </button>
@@ -109,9 +145,52 @@ const Cms = ({ token }) => {
                 </button>
               </div>
             ))}
-            {swipingMessages.length === 0 && (
-              <p className="text-gray-400 text-center py-4">No messages added. Click "Add Message" to start.</p>
-            )}
+          </div>
+        </div>
+
+        {/* Promo Banner Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Promo Banner (Join Now Section)</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Top Line Text</label>
+              <input
+                type="text"
+                name="topLine"
+                className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                value={promoBanner.topLine}
+                onChange={handlePromoChange}
+                placeholder="e.g. JOIN NOW & SAVE 15% ON MEMBERSHIP!"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Discount Code</label>
+              <input
+                type="text"
+                name="discountCode"
+                className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                value={promoBanner.discountCode}
+                onChange={handlePromoChange}
+                placeholder="e.g. luxe15"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Button Text</label>
+              <input
+                type="text"
+                name="buttonText"
+                className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                value={promoBanner.buttonText}
+                onChange={handlePromoChange}
+                placeholder="e.g. JOIN NOW"
+                required
+              />
+            </div>
           </div>
         </div>
 

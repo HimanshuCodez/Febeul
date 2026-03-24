@@ -232,7 +232,7 @@ const Orders = ({ token }) => {
                       )}
                     </div>
 
-                    {/* Order Status Update */}
+                    {/* Order Status Update
                     <div className='flex flex-col justify-between items-start'>
                       <div>
                         <p className='font-semibold text-gray-700 mb-3 flex items-center gap-2'><BadgeCheck size={16}/> Update Status</p>
@@ -254,7 +254,7 @@ const Orders = ({ token }) => {
                           <option value="Failed">Failed</option>
                         </select>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               )}

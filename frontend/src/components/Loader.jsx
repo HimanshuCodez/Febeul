@@ -80,14 +80,17 @@ export default function FebeulLoader() {
 
       {/* root */}
       <div
-        className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
-        style={{ background: "#fdf5f5", fontFamily: "'Raleway', sans-serif" }}
+        className="fixed inset-0 flex flex-col items-center justify-center z-[9999] overflow-hidden"
+        style={{ 
+          background: "rgba(253, 245, 245, 0.95)", // Semi-transparent background
+          fontFamily: "'Raleway', sans-serif" 
+        }}
       >
         {/* bloom glow */}
         <div
           className="bloom absolute rounded-full pointer-events-none"
           style={{
-            width: 640, height: 400,
+            width: "min(640px, 90vw)", height: "min(400px, 60vh)",
             background: "radial-gradient(ellipse, #f9aeaf3a 0%, transparent 70%)",
             top: "50%", left: "50%",
           }}
@@ -105,10 +108,10 @@ export default function FebeulLoader() {
         ))}
 
         {/* ── MAIN CONTENT ── */}
-        <div className="relative z-10 flex flex-col items-center gap-8 px-6">
+        <div className="relative z-10 flex flex-col items-center gap-4 sm:gap-8 px-6 w-full max-w-lg">
 
           {/* ── THE BIG FILLING TEXT ── */}
-          <div style={{ width: "100%", maxWidth: 560 }}>
+          <div className="w-full">
             <svg
               viewBox={`0 0 ${VW} ${VH}`}
               width="100%"
@@ -232,17 +235,16 @@ export default function FebeulLoader() {
           </div>
 
           {/* tagline */}
-          <p style={{
+          <p className="text-sm sm:text-lg" style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: "italic",
             fontWeight: 300,
-            fontSize: 19,
             color: "#b87a7b",
             letterSpacing: "0.04em",
             lineHeight: 1.5,
             textAlign: "center",
           }}>
-            something beautiful is on its way
+            Elegance - Douceur - Amour
           </p>
 
           {/* bouncing dots */}
