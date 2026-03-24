@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { backendUrl } from '../../App.jsx';
+import { backendUrl } from '../../App';
 import { FiPlus, FiTrash2, FiSave } from 'react-icons/fi';
 
 const Cms = ({ token }) => {
