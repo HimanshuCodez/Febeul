@@ -7,12 +7,12 @@ const getCmsContent = async (req, res) => {
     try {
         const content = await cmsModel.findOne({ name: req.params.name });
         if (content) {
-            res.json(content);
+            res.json({ success: true, content: content.content });
         } else {
-            res.status(404).json({ message: 'Content not found' });
+            res.json({ success: false, message: 'Content not found' });
         }
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
@@ -29,9 +29,9 @@ const updateCmsContent = async (req, res) => {
             { new: true, upsert: true, runValidators: true }
         );
 
-        res.status(201).json(updatedContent);
+        res.status(201).json({ success: true, content: updatedContent.content });
     } catch (error) {
-        res.status(400).json({ message: 'Error updating CMS content', error });
+        res.status(400).json({ success: false, message: 'Error updating CMS content', error });
     }
 };
 

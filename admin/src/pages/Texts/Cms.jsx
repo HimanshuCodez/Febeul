@@ -21,11 +21,17 @@ const Cms = ({ token }) => {
       // Fetch Swiping Messages
       try {
         const resMsg = await axios.get(`${API_BASE_URL}/swiping_messages`);
-        if (resMsg.data && resMsg.data.content) {
+        if (resMsg.data && resMsg.data.success && resMsg.data.content) {
           setSwipingMessages(resMsg.data.content);
+        } else {
+          setSwipingMessages([
+            "Free Shipping on Orders Over Rs 499",
+            "Register To Get 10% Off: CODE: FNEW10",
+            "2 Days Return And Exchange Policy",
+          ]);
         }
       } catch (err) {
-        console.warn('Swiping messages not found, using defaults.');
+        console.warn('Swiping messages fetch error, using defaults.');
         setSwipingMessages([
           "Free Shipping on Orders Over Rs 499",
           "Register To Get 10% Off: CODE: FNEW10",
@@ -36,11 +42,11 @@ const Cms = ({ token }) => {
       // Fetch Promo Banner
       try {
         const resPromo = await axios.get(`${API_BASE_URL}/promo_banner`);
-        if (resPromo.data && resPromo.data.content) {
+        if (resPromo.data && resPromo.data.success && resPromo.data.content) {
           setPromoBanner(resPromo.data.content);
         }
       } catch (err) {
-        console.warn('Promo banner not found, using defaults.');
+        console.warn('Promo banner fetch error, using defaults.');
       }
 
     } catch (err) {
