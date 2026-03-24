@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 export default function DiscountBanner() {
   const [promoContent, setPromoContent] = useState({
@@ -38,9 +39,12 @@ export default function DiscountBanner() {
       </p>
 
       {/* Button */}
-      <button className="mt-6 bg-[#c8240b] text-white text-lg font-bold px-8 py-3 rounded-full shadow">
-        {promoContent.buttonText}
-      </button>
+      <Link to="/luxe">
+        <button className="mt-6 bg-[#c8240b] text-white text-lg font-bold px-8 py-3 rounded-full shadow">
+          {promoContent.buttonText}
+        </button>
+      </Link>
     </section>
   );
 }
+
