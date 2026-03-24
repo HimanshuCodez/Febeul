@@ -85,6 +85,7 @@ export default function FebeulLuxe() {
           items,
           amount,
           address,
+          currency: "INR",
         },
         { headers: { token } }
       );

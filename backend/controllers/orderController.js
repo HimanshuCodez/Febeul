@@ -73,6 +73,19 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     let productAmount = 0;
     let totalItemDiscount = 0;
     const processedItems = await Promise.all(items.map(async (item) => {
+        if (item.name === "Febeul Luxe Membership") {
+            productAmount += (item.price || 129) * item.quantity;
+            return {
+                productId: "60d5ecb8b3b1c8e1e8e8e8e8", // Dummy valid ObjectId for membership
+                quantity: item.quantity,
+                name: item.name,
+                image: "https://res.cloudinary.com/dv5p6v6jx/image/upload/v1715414841/membership_icon.png", // Default image or handle in frontend
+                price: item.price || 129,
+                sku: "LUXE-MEMBERSHIP",
+                discountAmount: 0
+            };
+        }
+
         const product = await productModel.findById(item.productId);
         if (!product) {
             throw new Error(`Product not found for ID: ${item.productId}`);
@@ -125,8 +138,15 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     // Calculate shipping based on discounted total
     const discountedProductAmount = productAmount - totalItemDiscount;
 
-    if (paymentMethod !== 'COD' && !isLuxeMember && discountedProductAmount < SHIPPING_CHARGE_THRESHOLD) {
+    const isMembershipOrder = items.every(item => item.name === "Febeul Luxe Membership");
+
+    if (!isMembershipOrder && paymentMethod !== 'COD' && !isLuxeMember && discountedProductAmount < SHIPPING_CHARGE_THRESHOLD) {
         shippingCharge = DEFAULT_SHIPPING_CHARGE;
+    }
+    
+    if (isMembershipOrder) {
+        shippingCharge = 0;
+        codCharge = 0;
     }
     
     // Calculate subtotal for GST (discountedProductAmount - couponDiscount)
@@ -602,7 +622,7 @@ const verifyStripe = async (req,res) => {
 const placeOrderRazorpay = async (req,res) => {
     try {
         
-        const { userId, items, address, currency, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
+        const { userId, items, address, currency = "INR", giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount, address.state);
 
