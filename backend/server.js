@@ -16,6 +16,7 @@ import policyRouter from './routes/policyRoute.js'
 import adminRouter from './routes/adminRoute.js'
 import ticketRouter from './routes/ticketRoute.js';
 import couponRouter from './routes/couponRoute.js';
+import cmsRouter from './routes/cmsRoute.js';
 import errorHandler from './middleware/errorHandler.js'
 
 // App Config
@@ -42,6 +43,7 @@ app.use('/api/policy',policyRouter)
 app.use('/api/admin',adminRouter)
 app.use('/api/ticket', ticketRouter);
 app.use('/api/coupon', couponRouter);
+app.use('/api/cms', cmsRouter);
 
 app.get('/',(req,res)=>{
     res.send("API Working")

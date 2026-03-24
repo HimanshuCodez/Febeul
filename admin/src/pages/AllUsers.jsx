@@ -29,6 +29,7 @@ const AllUsers = ({ token }) => {
     { label: 'Generate Coupon', path: '/coupons' },
     { label: 'Tickets', path: '/tickets' },
     { label: 'Reviews', path: '/reviews' },
+    { label: 'CMS', path: '/cms' },
   ];
 
   const togglePermission = (path) => {
