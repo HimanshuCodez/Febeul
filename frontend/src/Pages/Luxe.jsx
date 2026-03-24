@@ -62,6 +62,7 @@ export default function FebeulLuxe() {
     const amount = 129;
     const items = [
       {
+        productId: "60d5ecb8b3b1c8e1e8e8e8e8", // Dummy ID for membership
         name: "Febeul Luxe Membership",
         price: amount,
         quantity: 1,

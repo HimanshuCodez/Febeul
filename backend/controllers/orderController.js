@@ -53,6 +53,7 @@ const getSizeData = (product, color, size) => {
 // Helper function to decrease stock
 const decreaseStock = async (items) => {
     for (const item of items) {
+        if (item.name === "Febeul Luxe Membership") continue;
         const product = await productModel.findById(item.productId);
         if (product) {
             const variation = product.variations.find(v => v.color === item.color);
