@@ -45,7 +45,7 @@ const uploadCmsImage = async (req, res) => {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        const result = await cloudinary.uploader.upload(req.file.path, { resource_type: 'image' });
+        const result = await cloudinary.uploader.upload(req.file.path, { resource_type: 'auto' });
         res.json({ success: true, imageUrl: result.secure_url });
     } catch (error) {
         console.log(error);
