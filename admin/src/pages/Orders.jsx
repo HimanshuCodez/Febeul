@@ -133,7 +133,15 @@ const Orders = ({ token }) => {
                   <User size={24} className="text-pink-500" />
                   <div>
                     <p className='text-sm font-medium text-gray-500'>Customer</p>
-                    <p className='text-md font-semibold text-gray-800'>{order.userId?.name || order.userId?.email || 'N/A'}</p>
+                    <div className='flex flex-col'>
+                      <p className='text-md font-semibold text-gray-800'>{order.userId?.name || order.userId?.email || 'N/A'}</p>
+                      {order.userId?.isLuxeMember && (
+                        <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit mt-0.5'>
+                          <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
+                          Luxe Member
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -195,7 +203,15 @@ const Orders = ({ token }) => {
                     <div>
                       <p className='font-semibold text-gray-700 mb-3 flex items-center gap-2'><User size={16}/> Customer Info</p>
                       <div className='space-y-1 text-sm text-gray-600'>
-                        <p className='flex items-center gap-2'><User size={14}/> {order.userId?.name || 'N/A'}</p>
+                        <div className='flex items-center gap-2'>
+                          <User size={14}/> 
+                          <span>{order.userId?.name || 'N/A'}</span>
+                          {order.userId?.isLuxeMember && (
+                            <span className='ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider'>
+                              Luxe
+                            </span>
+                          )}
+                        </div>
                         <p className='flex items-center gap-2'><Mail size={14}/> {order.userId?.email || 'N/A'}</p>
                         <p className='flex items-center gap-2'><Phone size={14}/> {order.address.phone}</p>
                       </div>
@@ -203,6 +219,7 @@ const Orders = ({ token }) => {
                       <address className='text-xs text-gray-600 not-italic space-y-1'>
                         <p>{order.address.name}</p>
                         <p>{order.address.address},</p>
+                        {order.address.nearby && <p className="italic text-gray-500">Nearby: {order.address.nearby}</p>}
                         <p>{order.address.city}, {order.address.state}, {order.address.country} - {order.address.zip}</p>
                       </address>
                     </div>

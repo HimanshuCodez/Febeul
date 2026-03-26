@@ -329,7 +329,9 @@ const ManageAddresses = ({ addresses, cardStyles }) => {
                           <MapPin className="w-5 h-5 text-gray-500"/> 
                           <h3 className="font-semibold text-gray-700">{addr.name}</h3>
                         </div>
-                        <p className="text-sm text-gray-600 ml-8">{addr.address}, {addr.city}</p>
+                        <p className="text-sm text-gray-600 ml-8">{addr.address}</p>
+                        {addr.nearby && <p className="text-sm text-gray-400 italic ml-8">Nearby: {addr.nearby}</p>}
+                        <p className="text-sm text-gray-600 ml-8">{addr.city}, {addr.state}</p>
                         <p className="text-sm text-gray-600 ml-8">{addr.country} - {addr.zip}</p>
                         <p className="text-sm text-gray-600 ml-8 mt-1">Phone: {addr.phone}</p>
                     </div>

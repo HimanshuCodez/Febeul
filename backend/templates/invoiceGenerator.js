@@ -176,6 +176,11 @@ const buildInvoicePDF = (order, res) => {
         doc.text(order.address.address, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
         currentYLeft = doc.y; // Update Y after multi-line text
 
+        if (order.address.nearby) {
+            doc.text(`Nearby: ${order.address.nearby}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
+            currentYLeft = doc.y;
+        }
+
         doc.text(`${order.address.city}, ${order.address.state}`, addressBlockStartX, currentYLeft, { width: addressBlockWidth });
         currentYLeft = doc.y;
 
@@ -210,6 +215,11 @@ const buildInvoicePDF = (order, res) => {
         
         doc.text(order.address.address, rightColumnX, currentYRight, { width: addressBlockWidth });
         currentYRight = doc.y;
+
+        if (order.address.nearby) {
+            doc.text(`Nearby: ${order.address.nearby}`, rightColumnX, currentYRight, { width: addressBlockWidth });
+            currentYRight = doc.y;
+        }
 
         doc.text(`${order.address.city}, ${order.address.state}`, rightColumnX, currentYRight, { width: addressBlockWidth });
         currentYRight = doc.y;

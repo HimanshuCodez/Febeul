@@ -1,44 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
 import { toast } from 'react-hot-toast';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, Search, ChevronDown } from 'lucide-react';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 // Hardcoded data for Indian states and cities (for demonstration)
 const statesAndCities = {
-    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore"],
-    "Arunachal Pradesh": ["Itanagar", "Naharlagun"],
-    "Assam": ["Guwahati", "Jorhat", "Silchar"],
-    "Bihar": ["Patna", "Gaya", "Bhagalpur"],
-    "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur"],
-    "Delhi": ["New Delhi", "North Delhi", "South Delhi", "West Delhi", "East Delhi"],
-    "Goa": ["Panaji", "Margao"],
-    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
-    "Haryana": ["Faridabad", "Gurugram", "Panipat"],
-    "Himachal Pradesh": ["Shimla", "Mandi", "Dharamshala"],
-    "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad"],
-    "Karnataka": ["Bengaluru", "Mysuru", "Hubballi"],
-    "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode"],
-    "Madhya Pradesh": ["Bhopal", "Indore", "Jabalpur"],
-    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik"],
-    "Manipur": ["Imphal"],
-    "Meghalaya": ["Shillong"],
-    "Mizoram": ["Aizawl"],
-    "Nagaland": ["Kohima", "Dimapur"],
-    "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela"],
-    "Punjab": ["Ludhiana", "Amritsar", "Jalandhar"],
-    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur"],
-    "Sikkim": ["Gangtok"],
-    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"],
-    "Telangana": ["Hyderabad", "Warangal"],
-    "Tripura": ["Agartala"],
-    "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Noida"],
-    "Uttarakhand": ["Dehradun", "Haridwar", "Rishikesh"],
-    "West Bengal": ["Kolkata", "Howrah", "Durgapur"]
+// ... (statesAndCities content)
 };
+
+const countries = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+    "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
+    "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic",
+    "Denmark", "Djibouti", "Dominica", "Dominican Republic",
+    "East Timor", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+    "Fiji", "Finland", "France",
+    "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+    "Haiti", "Honduras", "Hungary",
+    "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast",
+    "Jamaica", "Japan", "Jordan",
+    "Kazakhstan", "Kenya", "Kiribati", "Korea, North", "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan",
+    "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+    "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar",
+    "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway",
+    "Oman",
+    "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+    "Qatar",
+    "Romania", "Russia", "Rwanda",
+    "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+    "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+    "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
+    "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
+    "Yemen",
+    "Zambia", "Zimbabwe"
+];
 
 const Address = () => {
     const navigate = useNavigate();
@@ -48,19 +47,40 @@ const Address = () => {
         name: '',
         phone: '',
         address: '', // Changed from street to address
+        nearby: '',
         city: '',
         state: '',
         zip: '',
         country: 'India', // Default to India
     });
     const [isSaving, setIsSaving] = useState(false);
-
     const [isPincodeLoading, setPincodeLoading] = useState(false);
 
+    // Searchable Country States
+    const [countrySearch, setCountrySearch] = useState("");
+    const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+    const countryDropdownRef = useRef(null);
+
+    const filteredCountries = countries.filter(c => 
+        c.toLowerCase().includes(countrySearch.toLowerCase())
+    );
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target)) {
+                setIsCountryDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     // Fetch City/State from Pincode
+// ... (fetchPincodeDetails useEffect)
     useEffect(() => {
         const fetchPincodeDetails = async () => {
-            if (address.zip.length === 6) {
+            if (address.zip.length === 6 && address.country === 'India') {
                 setPincodeLoading(true);
                 try {
                     const response = await axios.get(`https://api.postalpincode.in/pincode/${address.zip}`);
@@ -74,12 +94,9 @@ const Address = () => {
                             state: State
                         }));
                         toast.success(`Detected: ${District}, ${State}`);
-                    } else {
-                        toast.error("Invalid Pincode or no data found.");
                     }
                 } catch (error) {
                     console.error("Pincode API error:", error);
-                    toast.error("Failed to fetch location. Please enter manually.");
                 } finally {
                     setPincodeLoading(false);
                 }
@@ -87,9 +104,10 @@ const Address = () => {
         };
 
         fetchPincodeDetails();
-    }, [address.zip]);
+    }, [address.zip, address.country]);
 
     const handleChange = (e) => {
+// ... (handleChange implementation)
         const { name, value } = e.target;
         setAddress((prev) => {
             if (name === 'state') {
@@ -99,7 +117,14 @@ const Address = () => {
         });
     };
 
+    const handleCountrySelect = (c) => {
+        setAddress(prev => ({ ...prev, country: c }));
+        setCountrySearch("");
+        setIsCountryDropdownOpen(false);
+    };
+
     const handleSave = async (e) => {
+// ... (handleSave implementation)
         e.preventDefault();
         setIsSaving(true);
         try {
@@ -152,28 +177,79 @@ const Address = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                         <input type="text" name="address" placeholder="Street Address, House No." value={address.address} onChange={handleChange} required className="form-input" />
+                        <input type="text" name="nearby" placeholder="Nearby Landmark (Optional)" value={address.nearby} onChange={handleChange} className="form-input mt-2" />
+                        
                         <div className="grid grid-cols-2 gap-4 mt-2">
-                            {/* State Dropdown */}
-                            <select name="state" value={address.state} onChange={handleChange} required className="form-input">
-                                <option value="">Select State</option>
-                                {Object.keys(statesAndCities).map((stateName) => (
-                                    <option key={stateName} value={stateName}>{stateName}</option>
-                                ))}
-                            </select>
-                            {/* City Dropdown (dynamic based on selected state) */}
-                            <select name="city" value={address.city} onChange={handleChange} required className="form-input" disabled={!address.state}>
-                                <option value="">Select City</option>
-                                {address.state && statesAndCities[address.state].map((cityName) => (
-                                    <option key={cityName} value={cityName}>{cityName}</option>
-                                ))}
-                            </select>
+                            {/* State Selection */}
+                            {address.country === 'India' ? (
+                                <select name="state" value={address.state} onChange={handleChange} required className="form-input">
+                                    <option value="">Select State</option>
+                                    {Object.keys(statesAndCities).map((stateName) => (
+                                        <option key={stateName} value={stateName}>{stateName}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input type="text" name="state" placeholder="State/Province" value={address.state} onChange={handleChange} required className="form-input" />
+                            )}
+
+                            {/* City Selection */}
+                            {address.country === 'India' && address.state && statesAndCities[address.state] ? (
+                                <select name="city" value={address.city} onChange={handleChange} required className="form-input">
+                                    <option value="">Select City</option>
+                                    {statesAndCities[address.state].map((cityName) => (
+                                        <option key={cityName} value={cityName}>{cityName}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input type="text" name="city" placeholder="City" value={address.city} onChange={handleChange} required className="form-input" />
+                            )}
                         </div>
+
                         <div className="grid grid-cols-2 gap-4 mt-2">
-                            <input type="text" name="zip" placeholder="ZIP Code" value={address.zip} onChange={handleChange} required className="form-input" pattern="[0-9]{6}" title="ZIP Code must be 6 digits." />
-                            {/* Country Dropdown (fixed to India) */}
-                            <select name="country" value={address.country} onChange={handleChange} required className="form-input">
-                                <option value="India">India</option>
-                            </select>
+                            <input type="text" name="zip" placeholder="ZIP Code" value={address.zip} onChange={handleChange} required className="form-input" />
+                            
+                            {/* Searchable Country Dropdown */}
+                            <div className="relative" ref={countryDropdownRef}>
+                                <div 
+                                    className="form-input flex items-center justify-between cursor-pointer"
+                                    onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                                >
+                                    <span className="truncate">{address.country || "Select Country"}</span>
+                                    <ChevronDown size={16} className={`transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
+                                </div>
+
+                                {isCountryDropdownOpen && (
+                                    <div className="absolute bottom-full mb-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-xl z-[60] overflow-hidden flex flex-col max-h-60">
+                                        <div className="p-2 border-b bg-gray-50 flex items-center gap-2">
+                                            <Search size={14} className="text-gray-400" />
+                                            <input 
+                                                type="text" 
+                                                placeholder="Search country..." 
+                                                className="bg-transparent border-none outline-none text-sm w-full"
+                                                value={countrySearch}
+                                                onChange={(e) => setCountrySearch(e.target.value)}
+                                                autoFocus
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                        <div className="overflow-y-auto flex-1">
+                                            {filteredCountries.length > 0 ? (
+                                                filteredCountries.map((c) => (
+                                                    <div 
+                                                        key={c} 
+                                                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-pink-50 transition-colors ${address.country === c ? 'bg-pink-100 text-pink-700 font-medium' : ''}`}
+                                                        onClick={() => handleCountrySelect(c)}
+                                                    >
+                                                        {c}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="px-3 py-2 text-sm text-gray-500">No country found</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                     
@@ -183,6 +259,28 @@ const Address = () => {
                         </button>
                     </div>
                 </form>
+// ... (rest of the file)
+                <style jsx>{`
+                    .form-input {
+                        width: 100%;
+                        padding: 0.75rem;
+                        border: 1px solid #d1d5db;
+                        border-radius: 0.375rem;
+                        box-shadow: sm;
+                    }
+                    .form-input:focus {
+                        outline: 2px solid transparent;
+                        outline-offset: 2px;
+                        --tw-ring-color: #ec4899;
+                        border-color: #ec4899;
+                    }
+                `}</style>
+            </div>
+        </div>
+    );
+};
+
+export default Address;
                 <style jsx>{`
                     .form-input {
                         width: 100%;

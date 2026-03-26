@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Clock, Flame, Search } from "lucide-react";
+import useAuthStore from "../store/authStore";
+import { toast } from "react-hot-toast";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -14,6 +16,8 @@ export default function SearchBar() {
   const searchBarRef = useRef(null); // Add this line
   const [history, setHistory] = useState([]); // Initialize as empty array
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isLuxeMember = user?.isLuxeMember;
 
   // Load history from localStorage on component mount
   useEffect(() => {
@@ -95,6 +99,13 @@ export default function SearchBar() {
     setHistory(newHistory);
     setQuery(product.name);
     setShowResults(false);
+
+    if (product.isLuxePrive && !isLuxeMember) {
+      navigate('/luxe');
+      toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
+      return;
+    }
+
     setTimeout(() => { // Add setTimeout
       navigate(`/product/${product._id}`);
     }, 50); // Small delay to allow UI update

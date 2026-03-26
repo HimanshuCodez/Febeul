@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../store/authStore';
+import { toast } from 'react-hot-toast';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -9,6 +11,8 @@ const SimilarItems = ({ productId, token }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isLuxeMember = user?.isLuxeMember;
 
   useEffect(() => {
     const fetchSimilarProducts = async () => {
@@ -31,8 +35,13 @@ const SimilarItems = ({ productId, token }) => {
     }
   }, [productId, token]);
 
-  const handleProductClick = (id) => {
-    navigate(`/product/${id}`);
+  const handleProductClick = (product) => {
+    if (product.isLuxePrive && !isLuxeMember) {
+      navigate('/luxe');
+      toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
+      return;
+    }
+    navigate(`/product/${product._id}`);
     window.scrollTo(0, 0); // Scroll to top
   };
 
@@ -60,7 +69,7 @@ const SimilarItems = ({ productId, token }) => {
         {similarProducts.map((product) => (
           <div
             key={product._id}
-            onClick={() => handleProductClick(product._id)}
+            onClick={() => handleProductClick(product)}
             className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
           >
             <img

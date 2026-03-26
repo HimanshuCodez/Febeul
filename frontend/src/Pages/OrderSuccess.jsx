@@ -308,6 +308,7 @@ export default function OrderSuccess() {
             <div className="text-gray-600 space-y-1">
               <p className="font-semibold text-gray-800">{address.name}</p>
               <p className="text-sm">{address.address}</p>
+              {address.nearby && <p className="text-xs text-gray-500 italic">Nearby: {address.nearby}</p>}
               <p className="text-sm">{address.city}, {address.zip}, {address.country}</p>
               <p className="text-sm mt-2">Phone: {address.phone}</p>
             </div>

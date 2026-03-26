@@ -29,8 +29,10 @@ const AddressModal = ({ isOpen, onClose, addresses, selectedAddress, onSelectAdd
               }`}
             >
               <p className="font-semibold">{address.name}</p>
-              <p>{address.address}, {address.city}</p>
-              <p>{address.state}, {address.country} - {address.zip}</p>
+              <p>{address.address}</p>
+              {address.nearby && <p className="text-sm text-gray-500 italic">Nearby: {address.nearby}</p>}
+              <p>{address.city}, {address.state}</p>
+              <p>{address.country} - {address.zip}</p>
               <p>Phone: {address.phone}</p>
             </div>
           ))}

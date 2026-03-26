@@ -504,6 +504,7 @@ export default function OrderDetailPage() {
               <div className="text-gray-600 space-y-1">
                 <p className="font-semibold text-gray-800">{order.address.name}</p>
                 <p className="text-sm">{order.address.address}</p>
+                {order.address.nearby && <p className="text-xs text-gray-500 italic">Nearby: {order.address.nearby}</p>}
                 <p className="text-sm">{order.address.city}, {order.address.zip}, {order.address.country}</p>
                 <p className="text-sm mt-2">Phone: {order.address.phone}</p>
               </div>

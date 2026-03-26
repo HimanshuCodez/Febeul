@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema({
     addresses: [{
         name: { type: String, required: true },
         address: { type: String, required: true },
+        nearby: { type: String },
         city: { type: String, required: true },
         zip: { type: String, required: true },
         state: { type: String, required: true },

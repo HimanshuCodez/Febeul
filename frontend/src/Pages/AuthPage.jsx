@@ -376,8 +376,8 @@ const AuthPage = () => {
                     <div>
                       <input
                         type="text"
-                        placeholder="Email or Mobile Number"
-                        {...register("identifier", { required: "Email or mobile number is required" })}
+                        placeholder="Email"
+                        {...register("identifier", { required: "Email is required" })}
                         className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
                       />
                       {errors.identifier && <p className="text-sm text-red-500 mt-1">{errors.identifier.message}</p>}

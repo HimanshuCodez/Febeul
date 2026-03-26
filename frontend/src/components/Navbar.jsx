@@ -22,6 +22,7 @@ import SearchBar from "./SearchBar";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
+import { toast } from "react-hot-toast";
 
 
 
@@ -98,35 +99,25 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [openMegaMenus, setOpenMegaMenus] = useState({}); // New state for accordions
   const [bestsellers, setBestsellers] = useState([]); // State for bestsellers
-  const { isAuthenticated, wishlistCount, cartCount } = useAuthStore();
+  const { isAuthenticated, wishlistCount, cartCount, user } = useAuthStore();
+  const navigate = useNavigate();
   const location = useLocation(); // Get location object
 
-  useEffect(() => {
-    const fetchBestsellers = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/product/bestsellers`);
-        if (response.data.success) {
-          setBestsellers(response.data.products);
-        }
-      } catch (error) {
-        console.error("Error fetching bestsellers for menu:", error);
-      }
-    };
-    fetchBestsellers();
-  }, []);
+  const isLuxeMember = user?.isLuxeMember;
 
-  useEffect(() => {
-    setIsSearchOpen(false); // Close search overlay on route change
-    setIsMenuOpen(false); // Close menu overlay on route change (good practice)
-    setOpenMegaMenus({}); // Close all accordions on route change
-  }, [location.pathname]);
-
-  const toggleMegaMenu = (index) => {
-    setOpenMegaMenus((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
+  const handleBestsellerClick = (product) => {
+    if (product.isLuxePrive && !isLuxeMember) {
+      navigate('/luxe');
+      toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
+      setIsMenuOpen(false);
+      return;
+    }
+    navigate(`/product/${product._id}`);
+    setIsMenuOpen(false);
   };
+// ... (fetchBestsellers useEffect)
+// ... (location useEffect)
+// ... (toggleMegaMenu)
 
   const navigation = [
     {
@@ -189,16 +180,16 @@ export default function Header() {
       //   Offers: ["FLAT 20% OFF", "BABYDOLL BUY 3 GET 1 FREE"],
       // },
     },
-       {
-         title: "LUXE PRIVE SALE",
-         // megaMenu: {
-         //   Type: ["Satin"],
-         // },
-       },
-      //  {
-      //    title: "BESTSELLERS",
-      //  },
-     ];
+    {
+      title: "LUXE PRIVE SALE",
+      // megaMenu: {
+      //   Type: ["Satin"],
+      // },
+    },
+    {
+      title: "BESTSELLERS",
+    },
+  ];
   return (
     <header className="w-full  sticky top-0 z-40 bg-white shadow-md">
       {/* Top Banner */}
@@ -414,11 +405,10 @@ export default function Header() {
                     <div className="flex overflow-x-auto gap-4 px-3 pb-4 no-scrollbar">
                       {bestsellers.length > 0 ? (
                         bestsellers.map((product) => (
-                          <Link 
+                          <div 
                             key={product._id} 
-                            to={`/product/${product._id}`}
-                            onClick={() => setIsMenuOpen(false)}
-                            className="flex-shrink-0 w-32 group"
+                            onClick={() => handleBestsellerClick(product)}
+                            className="flex-shrink-0 w-32 group cursor-pointer"
                           >
                             <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-sm">
                               <img 
@@ -433,7 +423,7 @@ export default function Header() {
                             <p className="text-xs font-bold text-pink-600 px-1">
                               ₹{product.variations?.[0]?.sizes?.[0]?.price}
                             </p>
-                          </Link>
+                          </div>
                         ))
                       ) : (
                         <p className="px-3 text-xs text-gray-400">Loading top picks...</p>
