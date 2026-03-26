@@ -11,6 +11,8 @@ const Support = () => {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [searchTerm, setSearchTerm] = useState(""); // New state for search
     const [formData, setFormData] = useState({ subject: "", description: "", message: "", images: [] });
@@ -50,12 +52,14 @@ const Support = () => {
     };
 
     const handleSendMessage = async (ticketId) => {
-        if (!currentMessage.trim() && currentAttachments.length === 0) return; // Allow sending only attachments
+        if (!currentMessage.trim() && currentAttachments.length === 0) return;
+        if (isSending) return;
         if (!token) {
             toast.error("You must be logged in to send a message.");
             return;
         }
 
+        setIsSending(true);
         const messageFormData = new FormData();
         messageFormData.append("ticketId", ticketId);
         messageFormData.append("message", currentMessage);
@@ -77,24 +81,23 @@ const Support = () => {
 
             if (response.data.success) {
                 toast.success("Message sent!");
-                // Update the messages in the selected ticket locally
                 setSelectedTicket(prev => {
-                    const newMsgImages = response.data.newImages || []; // Assuming backend returns URLs of uploaded images
+                    const newMsgImages = response.data.newImages || [];
                     const newMessage = {
                         message: currentMessage,
                         sender: 'user',
                         createdAt: new Date().toISOString(),
-                        images: newMsgImages, // Store image URLs
+                        images: newMsgImages,
                     };
                     return {
                         ...prev,
                         messages: [...prev.messages, newMessage]
                     };
                 });
-                setCurrentMessage(''); // Clear the input field
-                setCurrentAttachments([]); // Clear attachments
+                setCurrentMessage('');
+                setCurrentAttachments([]);
                 if (fileInputRef.current) {
-                    fileInputRef.current.value = ""; // Clear file input
+                    fileInputRef.current.value = "";
                 }
             } else {
                 toast.error(response.data.message);
@@ -102,6 +105,8 @@ const Support = () => {
         } catch (error) {
             toast.error("Failed to send message.");
             console.error(error);
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -109,7 +114,7 @@ const Support = () => {
         const files = Array.from(e.target.files);
         setFormData((prev) => {
             const currentImages = [...prev.images];
-            const newImages = [...currentImages, ...files].slice(0, 2); // Limit to max 2 images
+            const newImages = [...currentImages, ...files].slice(0, 2);
             return { ...prev, images: newImages };
         });
     };
@@ -124,10 +129,10 @@ const Support = () => {
     const handleCurrentAttachmentsChange = (e) => {
         const files = Array.from(e.target.files);
         setCurrentAttachments((prev) => {
-            const newAttachments = [...prev, ...files].slice(0, 2); // Limit to max 2 attachments for chat replies
+            const newAttachments = [...prev, ...files].slice(0, 2);
             return newAttachments;
         });
-        e.target.value = ''; // Clear file input after selection
+        e.target.value = '';
     };
 
     const handleRemoveCurrentAttachment = (indexToRemove) => {
@@ -138,11 +143,13 @@ const Support = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         if (!token) {
             toast.error("You must be logged in to create a ticket.");
             return;
         }
 
+        setIsSubmitting(true);
         const submitFormData = new FormData();
         submitFormData.append("subject", formData.subject);
         submitFormData.append("description", formData.description);
@@ -169,6 +176,8 @@ const Support = () => {
         } catch (error) {
             toast.error("Failed to create ticket.");
             console.error(error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
@@ -255,9 +264,13 @@ const Support = () => {
                                         ))}
                                     </div>
                                 </div>
-                                <button type="submit" className="w-full bg-pink-500 text-white py-3 rounded-md font-semibold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center space-x-2">
-                                    <Send size={20} />
-                                    <span>Create Ticket</span>
+                                <button type="submit" disabled={isSubmitting} className="w-full bg-pink-500 text-white py-3 rounded-md font-semibold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-pink-300 disabled:cursor-not-allowed">
+                                    {isSubmitting ? (
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                    ) : (
+                                        <Send size={20} />
+                                    )}
+                                    <span>{isSubmitting ? 'Creating Ticket...' : 'Create Ticket'}</span>
                                 </button>
                             </form>
                         </motion.div>
@@ -372,10 +385,15 @@ const Support = () => {
                                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                                         />
                                         <button
+                                            disabled={isSending}
                                             onClick={() => handleSendMessage(selectedTicket._id)}
-                                            className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600 transition-colors"
+                                            className="bg-pink-500 text-white p-2 rounded-md hover:bg-pink-600 transition-colors disabled:bg-pink-300 disabled:cursor-not-allowed"
                                         >
-                                            <Send size={20} />
+                                            {isSending ? (
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                            ) : (
+                                                <Send size={20} />
+                                            )}
                                         </button>
                                     </div>
                                 </div>
