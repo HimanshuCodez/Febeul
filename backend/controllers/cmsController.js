@@ -1,4 +1,5 @@
 import cmsModel from '../models/cmsModel.js';
+import { v2 as cloudinary } from 'cloudinary';
 
 // @desc    Get CMS content by name
 // @route   GET /api/cms/:name
@@ -35,4 +36,21 @@ const updateCmsContent = async (req, res) => {
     }
 };
 
-export { getCmsContent, updateCmsContent };
+// @desc    Upload image for CMS
+// @route   POST /api/cms/upload
+// @access  Private/Admin
+const uploadCmsImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        const result = await cloudinary.uploader.upload(req.file.path, { resource_type: 'image' });
+        res.json({ success: true, imageUrl: result.secure_url });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: 'Error uploading image', error });
+    }
+};
+
+export { getCmsContent, updateCmsContent, uploadCmsImage };

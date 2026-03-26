@@ -1,13 +1,30 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 const Hero = () => {
-  const slides = [
-      "./purple.jpg",
-    "./red.jpg",
-    "black.jpg",
-  
-  ];
+  const [slides, setSlides] = useState([
+    { image: "./purple.jpg", link: "" },
+    { image: "./red.jpg", link: "" },
+    { image: "black.jpg", link: "" },
+  ]);
+
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const fetchCarouselData = async () => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/cms/hero_carousel`);
+      if (response.data.success && response.data.content && response.data.content.length > 0) {
+        setSlides(response.data.content);
+      }
+    } catch (error) {
+      console.error("Error fetching carousel data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCarouselData();
+  }, []);
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const sliderRef = useRef(null);
@@ -23,15 +40,17 @@ const Hero = () => {
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 3000);
-    return () => clearInterval(interval);
+    if (slides.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
   }, [slides.length]);
 
   useEffect(() => {
     goToSlide(currentSlide);
-  }, [currentSlide]);
+  }, [currentSlide, slides.length]);
 
   return (
     <div className="w-full">
@@ -40,14 +59,23 @@ const Hero = () => {
           className="flex transition-transform duration-500 ease-in-out h-full"
           ref={sliderRef}
         >
-          {slides.map((src, i) => (
+          {slides.map((slide, i) => (
             <div key={i} className="w-full h-full flex-shrink-0 relative">
-              <img
-                src={src}
-                alt={`Slide ${i + 1}`}
-                className="w-full h-full object-cover object-top"
-              />
-            
+              {slide.link ? (
+                <Link to={slide.link} className="block w-full h-full">
+                  <img
+                    src={slide.image}
+                    alt={`Slide ${i + 1}`}
+                    className="w-full h-full object-cover object-top"
+                  />
+                </Link>
+              ) : (
+                <img
+                  src={slide.image}
+                  alt={`Slide ${i + 1}`}
+                  className="w-full h-full object-cover object-top"
+                />
+              )}
             </div>
           ))}
         </div>

@@ -12,6 +12,7 @@ import PolicyUpdate from './pages/PolicyUpdate' // Import the PolicyUpdate compo
 import Coupons from './pages/Coupons' // Import the Coupons component
 import Tickets from './pages/Tickets' // Import the Tickets component
 import ReviewsAdmin from './pages/ReviewsAdmin' // Import the ReviewsAdmin component
+import Images from './pages/Images/Images' // Import the Images component
 import Cms from './pages/Texts/Cms' // Import the Cms component
 import FebeulDashboard from './pages/Dashboard' // Import the Dashboard component
 import Login from './components/Login'
@@ -69,6 +70,7 @@ const App = () => {
                 {isAllowed('/tickets') && <Route path='/tickets' element={<Tickets token={token} />} />}
                 {isAllowed('/reviews') && <Route path='/reviews' element={<ReviewsAdmin token={token} />} />}
                 {isAllowed('/cms') && <Route path='/cms' element={<Cms token={token} />} />}
+                {isAllowed('/images') && <Route path='/images' element={<Images token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}
