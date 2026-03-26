@@ -9,8 +9,44 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 // Hardcoded data for Indian states and cities (for demonstration)
 const statesAndCities = {
-// ... (statesAndCities content)
+    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool"],
+    "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro", "Pasighat"],
+    "Assam": ["Guwahati", "Dibrugarh", "Silchar", "Jorhat"],
+    "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur"],
+    "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba"],
+    "Goa": ["Panaji", "Margao", "Vasco da Gama"],
+    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar"],
+    "Haryana": ["Faridabad", "Gurgaon", "Panipat", "Ambala"],
+    "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala", "Solan"],
+    "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro"],
+    "Karnataka": ["Bangalore", "Mysore", "Hubli", "Mangalore", "Belgaum"],
+    "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur"],
+    "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain"],
+    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
+    "Manipur": ["Imphal", "Churachandpur"],
+    "Meghalaya": ["Shillong", "Tura"],
+    "Mizoram": ["Aizawl", "Lunglei"],
+    "Nagaland": ["Kohima", "Dimapur"],
+    "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur"],
+    "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner"],
+    "Sikkim": ["Gangtok", "Namchi"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem"],
+    "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar"],
+    "Tripura": ["Agartala", "Udaipur"],
+    "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Varanasi", "Meerut", "Noida"],
+    "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani"],
+    "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri"],
+    "Delhi": ["New Delhi", "North Delhi", "South Delhi", "East Delhi", "West Delhi"],
+    "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla"],
+    "Ladakh": ["Leh", "Kargil"],
+    "Puducherry": ["Puducherry", "Karaikal"],
+    "Chandigarh": ["Chandigarh"],
+    "Andaman and Nicobar Islands": ["Port Blair"],
+    "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Silvassa"],
+    "Lakshadweep": ["Kavaratti"]
 };
+
 
 const countries = [
     "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -77,7 +113,7 @@ const Address = () => {
     }, []);
 
     // Fetch City/State from Pincode
-// ... (fetchPincodeDetails useEffect)
+
     useEffect(() => {
         const fetchPincodeDetails = async () => {
             if (address.zip.length === 6 && address.country === 'India') {
@@ -259,7 +295,6 @@ const Address = () => {
                         </button>
                     </div>
                 </form>
-// ... (rest of the file)
                 <style jsx>{`
                     .form-input {
                         width: 100%;
@@ -281,24 +316,5 @@ const Address = () => {
 };
 
 export default Address;
-                <style jsx>{`
-                    .form-input {
-                        width: 100%;
-                        padding: 0.75rem;
-                        border: 1px solid #d1d5db;
-                        border-radius: 0.375rem;
-                        box-shadow: sm;
-                    }
-                    .form-input:focus {
-                        outline: 2px solid transparent;
-                        outline-offset: 2px;
-                        --tw-ring-color: #ec4899;
-                        border-color: #ec4899;
-                    }
-                `}</style>
-            </div>
-        </div>
-    );
-};
 
-export default Address;
+
