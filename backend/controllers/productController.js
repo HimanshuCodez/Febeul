@@ -86,31 +86,40 @@ const addProduct = async (req, res) => {
 // function for list product
 const listProducts = async (req, res) => {
     try {
-        const { category, type, search, isLuxePrive } = req.query; // Extract query parameters
+        const { category, type, fabric, search, isLuxePrive } = req.query; // Extract query parameters
         let filter = {};
 
         if (category) {
-            filter.category = { $regex: new RegExp(category.replace(/-/g, ' '), 'i') }; // Case-insensitive match, handle kebab-case
+            const normalizedCategory = category.replace(/-/g, ' ').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filter.category = { $regex: new RegExp(`^${normalizedCategory}$`, 'i') };
         }
+        
         if (type) {
-            // Convert incoming "above knee b doll" to "above-knee-b-doll" for matching
-            const normalizedType = type.replace(/\s/g, '-').replace(/'/g, '').toLowerCase();
-            filter.type = { $regex: new RegExp(normalizedType, 'i') };
+            // Match exactly, treating hyphens and spaces as interchangeable
+            const pattern = `^${type.replace(/[- ]/g, '[- ]')}$`;
+            filter.type = { $regex: new RegExp(pattern, 'i') };
+        }
+
+        if (fabric) {
+            // Match exactly, treating hyphens and spaces as interchangeable
+            const pattern = `^${fabric.replace(/[- ]/g, '[- ]')}$`;
+            filter.fabric = { $regex: new RegExp(pattern, 'i') };
         }
 
         if (search) {
+            const searchRegex = { $regex: search, $options: 'i' };
             filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } },
-                { category: { $regex: search, $options: 'i' } },
-                { fabric: { $regex: search, $options: 'i' } },
-                { type: { $regex: search, $options: 'i' } },
-                { pattern: { $regex: search, $options: 'i' } },
-                { sleeveStyle: { $regex: search, $options: 'i' } },
-                { sleeveLength: { $regex: search, $options: 'i' } },
-                { neck: { $regex: search, $options: 'i' } },
-                { materialComposition: { $regex: search, $options: 'i' } },
-                { genericName: { $regex: search, $options: 'i' } },
+                { name: searchRegex },
+                { description: searchRegex },
+                { category: searchRegex },
+                { fabric: searchRegex },
+                { type: searchRegex },
+                { pattern: searchRegex },
+                { sleeveStyle: searchRegex },
+                { sleeveLength: searchRegex },
+                { neck: searchRegex },
+                { materialComposition: searchRegex },
+                { genericName: searchRegex },
                 { keywords: { $in: [new RegExp(search, "i")] } }
             ];
         }

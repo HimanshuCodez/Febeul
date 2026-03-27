@@ -381,9 +381,10 @@ const Update = ({ token }) => {
                         <option value="above-knee-b-doll">Above knee B'doll</option>
                         <option value="knee-length-b-doll">Knee Length B'doll</option>
                         <option value="one-piece-b-doll">One piece B'doll</option>
-                        <option value="two-piece-b-doll">Two Piece B'doll</option>
+                        <option value="two-piece-b-doll">Two Piece B-doll</option>
                         <option value="teddy-choker-lingz">Teddy Choker Lingz</option>
-                        <option value="bra-panty-lingz-silk-satin">Bra Panty Lingz Slik Satin</option>
+                        <option value="bra-panty-lingz">Bra Panty Lingz</option>
+                        <option value="silk-satin">Silk Satin</option>
                         <option value="sheer-mesh">Sheer Mesh</option>
                     </select>
                 </div>
