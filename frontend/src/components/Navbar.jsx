@@ -115,9 +115,32 @@ export default function Header() {
     navigate(`/product/${product._id}`);
     setIsMenuOpen(false);
   };
-// ... (fetchBestsellers useEffect)
-// ... (location useEffect)
-// ... (toggleMegaMenu)
+
+  useEffect(() => {
+    const fetchBestsellers = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/product/bestsellers`);
+        if (response.data.success) {
+          setBestsellers(response.data.products.slice(0, 4));
+        }
+      } catch (error) {
+        console.error("Error fetching bestsellers:", error);
+      }
+    };
+    fetchBestsellers();
+  }, []);
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setOpenMegaMenus({});
+  }, [location]);
+
+  const toggleMegaMenu = (index) => {
+    setOpenMegaMenus((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
 
   const navigation = [
     {
@@ -134,14 +157,6 @@ export default function Header() {
           "Bra Panty Lingz",
           
         ],
-        // Waist: ["High waist", "Low waist", "Mid waist"],
-        // Fabric: ["Cotton", "Lace", "Polyamide", "Modal"],
-        // Offers: [
-        //   "4 Panties @599",
-        //   "3 Panties @599",
-        //   "3 Panties @999",
-        //   "Panties Combo Packs New",
-        // ],
       },
     },
     {
@@ -152,41 +167,24 @@ export default function Header() {
           "Sheer Mesh",
          
         ],
-        // Waist: ["High waist", "Low waist", "Mid waist"],
-        // Fabric: ["Cotton", "Lace", "Polyamide", "Modal"],
-        // Offers: [
-        //   "4 Panties @599",
-        //   "3 Panties @599",
-        //   "3 Panties @999",
-        //   "Panties Combo Packs New",
-        // ],
       },
     },
     {
       title: "PAJAMAS",
-      // megaMenu: {
-      //   Type: ["Satin"],
-      // },
     },
     {
       title: "NEW & NOW",
-      // megaMenu: {
-      //   Type: ["Satin"],
-      // },
     },
     {
       title: "GIFT WRAP 🎁",
-      // megaMenu: {
-      //   Offers: ["FLAT 20% OFF", "BABYDOLL BUY 3 GET 1 FREE"],
-      // },
     },
     {
       title: "LUXE PRIVE SALE",
-      // megaMenu: {
-      //   Type: ["Satin"],
-      // },
     },
-   
+    
+    {
+      title: "BESTSELLERS",
+    },
   ];
   return (
     <header className="w-full  sticky top-0 z-40 bg-white shadow-md">
