@@ -268,7 +268,7 @@ export default function Header() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-5 hidden md:block"> {/* Only show on desktop */}
                   <div className="flex items-center justify-center md:justify-between h-14">
                     <div className="pl-2 gap-10 flex items-center space-x-12">
-                      {navigation.map((item, index) => (
+                      {navigation.filter(item => item.title !== "BESTSELLERS").map((item, index) => (
                         <div key={index} className="relative group">
                           <Link
                             to={item.megaMenu ? "#" : (
