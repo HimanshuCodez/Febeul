@@ -186,9 +186,7 @@ export default function Header() {
       //   Type: ["Satin"],
       // },
     },
-    {
-      title: "BESTSELLERS",
-    },
+   
   ];
   return (
     <header className="w-full  sticky top-0 z-40 bg-white shadow-md">
@@ -400,7 +398,7 @@ export default function Header() {
                       onClick={() => setIsMenuOpen(false)}
                       className="px-3 py-2 text-sm font-bold text-gray-800 uppercase tracking-wider block hover:text-pink-600"
                     >
-                      Our Bestsellers
+                      Our Bestseller
                     </Link>
                     <div className="flex overflow-x-auto gap-4 px-3 pb-4 no-scrollbar">
                       {bestsellers.length > 0 ? (
