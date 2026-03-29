@@ -66,12 +66,12 @@ const Footer = () => {
                 SUPPORT
               </h3>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/order-tracking" className="hover:text-white">Order Tracking</Link></li>
-                <li><Link to="/ReturnRefund" className="hover:text-white">Return & Refund</Link></li>
-                <li><Link to="/GrievanceRedressals" className="hover:text-white">Grievance Redressals</Link></li>
-                <li><Link to="/PaymentPolicy" className="hover:text-white">Payment Policy</Link></li>
-                <li><Link to="/Faq" className="hover:text-white">FAQs</Link></li>
-                <li><Link to="/contact" className="hover:text-white">Contact Us</Link></li>
+                <li><Link to="/order-tracking" target="_blank" rel="noopener noreferrer" className="hover:text-white">Order Tracking</Link></li>
+                <li><Link to="/ReturnRefund" target="_blank" rel="noopener noreferrer" className="hover:text-white">Return & Refund</Link></li>
+                <li><Link to="/GrievanceRedressals" target="_blank" rel="noopener noreferrer" className="hover:text-white">Grievance Redressals</Link></li>
+                <li><Link to="/PaymentPolicy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Payment Policy</Link></li>
+                <li><Link to="/Faq" target="_blank" rel="noopener noreferrer" className="hover:text-white">FAQs</Link></li>
+                <li><Link to="/contact" target="_blank" rel="noopener noreferrer" className="hover:text-white">Contact Us</Link></li>
               </ul>
             </div>
 
@@ -81,11 +81,11 @@ const Footer = () => {
                 Policies
               </h3>
               <ul className="space-y-2 text-sm mb-6">
-                <li><Link to="/ReviewRating" className="hover:text-white">Review & Rating</Link></li>
-                <li><Link to="/TermsConditions" className="hover:text-white">Terms & Conditions</Link></li>
-                <li><Link to="/DataPrivacy" className="hover:text-white">Data Privacy</Link></li>
-                <li><Link to="/LuxePolicy" className="hover:text-white">Luxe membership policy</Link></li>
-                <li><Link to="/GiftWrapPolicy" className="hover:text-white">Gift Wrap Policy</Link></li>
+                <li><Link to="/ReviewRating" target="_blank" rel="noopener noreferrer" className="hover:text-white">Review & Rating</Link></li>
+                <li><Link to="/TermsConditions" target="_blank" rel="noopener noreferrer" className="hover:text-white">Terms & Conditions</Link></li>
+                <li><Link to="/DataPrivacy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Data Privacy</Link></li>
+                <li><Link to="/LuxePolicy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Luxe membership policy</Link></li>
+                <li><Link to="/GiftWrapPolicy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Gift Wrap Policy</Link></li>
               </ul>
             </div>
           </div>
