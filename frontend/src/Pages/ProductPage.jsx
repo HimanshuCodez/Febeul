@@ -587,14 +587,14 @@ const ProductDetailPage = () => {
                   </p>
                   <p className="flex items-center gap-1 mt-2">
                     <MapPin size={14} />
-                    {isAuthenticated && user && user.addresses && user.addresses.length > 0 ? (
+                    {isAuthenticated ? (
                       <button onClick={() => setIsAddressModalOpen(true)} className="text-blue-600 hover:text-orange-600 text-left">
                         {selectedAddress ? `Deliver to ${selectedAddress.name} - ${selectedAddress.city} ${selectedAddress.zip}` : "Select delivery location"}
                       </button>
                     ) : (
-                      <a href="/auth" className="text-blue-600 hover:text-orange-600">
+                      <button onClick={() => navigate("/auth")} className="text-blue-600 hover:text-orange-600">
                         Select delivery location
-                      </a>
+                      </button>
                     )}
                   </p>
                 </div>

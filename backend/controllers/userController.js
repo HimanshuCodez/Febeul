@@ -1,6 +1,7 @@
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
+import axios from 'axios';
 import userModel from "../models/userModel.js";
 import { Resend } from 'resend';
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
@@ -395,6 +396,41 @@ const addAddress = async (req, res) => {
     }
 }
 
+// Proxy Pincode API with Fallback and Retry Logic
+const pincodeProxy = async (req, res) => {
+    const { zip } = req.params;
+    
+    // Attempt 1: Try postalpincode.in (High Detail)
+    try {
+        const response = await axios.get(`https://api.postalpincode.in/pincode/${zip}`, { 
+            timeout: 5000,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        if (response.data && response.data[0].Status === 'Success') {
+            return res.json(response.data);
+        }
+    } catch (error) {
+        console.error("Primary Pincode API failed, trying fallback...", error.message);
+    }
+
+    // Attempt 2: Try zippopotam.us (Highly Reliable Fallback)
+    try {
+        const response = await axios.get(`https://api.zippopotam.us/in/${zip}`, { timeout: 5000 });
+        // Format zippopotam response to match frontend expectations
+        const formattedData = [{
+            Status: 'Success',
+            PostOffice: response.data.places.map(place => ({
+                District: place['place name'],
+                State: place['state']
+            }))
+        }];
+        return res.json(formattedData);
+    } catch (error) {
+        console.error("Fallback Pincode API failed:", error.message);
+        return res.status(500).json({ success: false, message: "All pincode services unavailable" });
+    }
+}
+
 // Get all users
 const getAllUsers = async (req, res) => {
     try {
@@ -498,4 +534,4 @@ const updateStaffPermissions = async (req, res) => {
 };
 
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions }
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions }

@@ -119,10 +119,10 @@ const Address = () => {
             if (address.zip.length === 6 && address.country === 'India') {
                 setPincodeLoading(true);
                 try {
-                    const response = await axios.get(`https://api.postalpincode.in/pincode/${address.zip}`);
-                    const data = response.data[0];
+                  const response = await axios.get(`${backendUrl}/api/user/pincode-check/${address.zip}`);
+                  const data = response.data[0];
+                  if (data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
 
-                    if (data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
                         const { District, State } = data.PostOffice[0];
                         setAddress(prev => ({
                             ...prev,
@@ -217,28 +217,42 @@ const Address = () => {
                         
                         <div className="grid grid-cols-2 gap-4 mt-2">
                             {/* State Selection */}
-                            {address.country === 'India' ? (
-                                <select name="state" value={address.state} onChange={handleChange} required className="form-input">
-                                    <option value="">Select State</option>
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    name="state"
+                                    list="states-list"
+                                    placeholder="State/Province" 
+                                    value={address.state} 
+                                    onChange={handleChange} 
+                                    required 
+                                    className="form-input" 
+                                />
+                                <datalist id="states-list">
                                     {Object.keys(statesAndCities).map((stateName) => (
-                                        <option key={stateName} value={stateName}>{stateName}</option>
+                                        <option key={stateName} value={stateName} />
                                     ))}
-                                </select>
-                            ) : (
-                                <input type="text" name="state" placeholder="State/Province" value={address.state} onChange={handleChange} required className="form-input" />
-                            )}
+                                </datalist>
+                            </div>
 
                             {/* City Selection */}
-                            {address.country === 'India' && address.state && statesAndCities[address.state] ? (
-                                <select name="city" value={address.city} onChange={handleChange} required className="form-input">
-                                    <option value="">Select City</option>
-                                    {statesAndCities[address.state].map((cityName) => (
-                                        <option key={cityName} value={cityName}>{cityName}</option>
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    name="city"
+                                    list="cities-list"
+                                    placeholder="City" 
+                                    value={address.city} 
+                                    onChange={handleChange} 
+                                    required 
+                                    className="form-input" 
+                                />
+                                <datalist id="cities-list">
+                                    {address.state && statesAndCities[address.state]?.map((cityName) => (
+                                        <option key={cityName} value={cityName} />
                                     ))}
-                                </select>
-                            ) : (
-                                <input type="text" name="city" placeholder="City" value={address.city} onChange={handleChange} required className="form-input" />
-                            )}
+                                </datalist>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mt-2">

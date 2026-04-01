@@ -8,7 +8,9 @@ import {
   FaCheck,
   FaChevronRight,
   FaEdit,
-  FaTimes
+  FaTimes,
+  FaSearch,
+  FaChevronDown
 } from 'react-icons/fa';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
@@ -20,6 +22,72 @@ import CouponCodeInput from '../components/CouponCodeInput';
 import CouponShows from '../components/CouponShows';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+const statesAndCities = {
+  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool"],
+  "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro", "Pasighat"],
+  "Assam": ["Guwahati", "Dibrugarh", "Silchar", "Jorhat"],
+  "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur"],
+  "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba"],
+  "Goa": ["Panaji", "Margao", "Vasco da Gama"],
+  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar"],
+  "Haryana": ["Faridabad", "Gurgaon", "Panipat", "Ambala"],
+  "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala", "Solan"],
+  "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro"],
+  "Karnataka": ["Bangalore", "Mysore", "Hubli", "Mangalore", "Belgaum"],
+  "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur"],
+  "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain"],
+  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
+  "Manipur": ["Imphal", "Churachandpur"],
+  "Meghalaya": ["Shillong", "Tura"],
+  "Mizoram": ["Aizawl", "Lunglei"],
+  "Nagaland": ["Kohima", "Dimapur"],
+  "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur"],
+  "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala"],
+  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner"],
+  "Sikkim": ["Gangtok", "Namchi"],
+  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem"],
+  "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar"],
+  "Tripura": ["Agartala", "Udaipur"],
+  "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Varanasi", "Meerut", "Noida"],
+  "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani"],
+  "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri"],
+  "Delhi": ["New Delhi", "North Delhi", "South Delhi", "East Delhi", "West Delhi"],
+  "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla"],
+  "Ladakh": ["Leh", "Kargil"],
+  "Puducherry": ["Puducherry", "Karaikal"],
+  "Chandigarh": ["Chandigarh"],
+  "Andaman and Nicobar Islands": ["Port Blair"],
+  "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Silvassa"],
+  "Lakshadweep": ["Kavaratti"]
+};
+
+const countries = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+  "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
+  "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic",
+  "Denmark", "Djibouti", "Dominica", "Dominican Republic",
+  "East Timor", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+  "Fiji", "Finland", "France",
+  "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+  "Haiti", "Honduras", "Hungary",
+  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast",
+  "Jamaica", "Japan", "Jordan",
+  "Kazakhstan", "Kenya", "Kiribati", "Korea, North", "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan",
+  "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+  "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar",
+  "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway",
+  "Oman",
+  "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+  "Qatar",
+  "Romania", "Russia", "Rwanda",
+  "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+  "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
+  "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
+  "Yemen",
+  "Zambia", "Zimbabwe"
+];
 
 export default function CheckoutPage() {
   const { user, token, isAuthenticated, getProfile } = useAuthStore();
@@ -43,20 +111,41 @@ export default function CheckoutPage() {
   // Address Form State
   const [addressName, setAddressName] = useState('');
   const [addressLine, setAddressLine] = useState('');
+  const [addressNearby, setAddressNearby] = useState('');
   const [addressCity, setAddressCity] = useState('');
   const [addressZip, setAddressZip] = useState('');
-  const [addressCountry, setAddressCountry] = useState('');
+  const [addressCountry, setAddressCountry] = useState('India');
   const [addressPhone, setAddressPhone] = useState('');
   const [addressState, setAddressState] = useState('');
   const [isPincodeLoading, setPincodeLoading] = useState(false);
 
+  // Searchable Country States
+  const [countrySearch, setCountrySearch] = useState("");
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const countryDropdownRef = React.useRef(null);
+
+  const filteredCountries = countries.filter(c => 
+      c.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+      const handleClickOutside = (event) => {
+          if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target)) {
+              setIsCountryDropdownOpen(false);
+          }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Fetch City/State from Pincode in Checkout
   useEffect(() => {
     const fetchPincodeDetails = async () => {
-      if (addressZip.length === 6) {
+      if (addressZip.length === 6 && addressCountry === 'India') {
         setPincodeLoading(true);
         try {
-          const response = await axios.get(`https://api.postalpincode.in/pincode/${addressZip}`);
+          const response = await axios.get(`${backendUrl}/api/user/pincode-check/${addressZip}`);
           const data = response.data[0];
 
           if (data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
@@ -77,7 +166,7 @@ export default function CheckoutPage() {
     };
 
     fetchPincodeDetails();
-  }, [addressZip]);
+  }, [addressZip, addressCountry]);
 
   // Fetch Razorpay Key
   useEffect(() => {
@@ -130,11 +219,18 @@ export default function CheckoutPage() {
     }
   }, [user, showAddressForm]);
 
+  const handleCountrySelect = (c) => {
+    setAddressCountry(c);
+    setCountrySearch("");
+    setIsCountryDropdownOpen(false);
+  };
+
   const handleAddAddress = async (e) => {
     e.preventDefault();
     const newAddress = { 
         name: addressName, 
         address: addressLine, 
+        nearby: addressNearby,
         city: addressCity, 
         zip: addressZip, 
         state: addressState,
@@ -435,13 +531,98 @@ export default function CheckoutPage() {
                 showAddressForm ? (
                     <form onSubmit={handleAddAddress} className="space-y-4">
                         <h3 className='font-semibold text-lg'>Add a new address</h3>
-                        <input type="text" placeholder="Full Name" value={addressName} onChange={e => setAddressName(e.target.value)} className="w-full p-2 border rounded" required />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <input type="text" placeholder="Full Name" value={addressName} onChange={e => setAddressName(e.target.value)} className="w-full p-2 border rounded" required />
+                          <input type="tel" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                        </div>
                         <input type="text" placeholder="Address Line" value={addressLine} onChange={e => setAddressLine(e.target.value)} className="w-full p-2 border rounded" required />
-                        <input type="text" placeholder="City" value={addressCity} onChange={e => setAddressCity(e.target.value)} className="w-full p-2 border rounded" required />
-                        <input type="text" placeholder="ZIP Code" value={addressZip} onChange={e => setAddressZip(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{6}" title="ZIP Code must be 6 digits." />
-                        <input type="text" placeholder="State" value={addressState} onChange={e => setAddressState(e.target.value)} className="w-full p-2 border rounded" required />
-                        <input type="text" placeholder="Country" value={addressCountry} onChange={e => setAddressCountry(e.target.value)} className="w-full p-2 border rounded" required />
-                        <input type="text" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                        <input type="text" placeholder="Nearby Landmark (Optional)" value={addressNearby} onChange={e => setAddressNearby(e.target.value)} className="w-full p-2 border rounded" />
+                        
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                            {/* State Input/Select */}
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    list="states-list"
+                                    placeholder="State" 
+                                    value={addressState} 
+                                    onChange={e => { setAddressState(e.target.value); setAddressCity(''); }} 
+                                    required 
+                                    className="w-full p-2 border rounded" 
+                                />
+                                <datalist id="states-list">
+                                    {Object.keys(statesAndCities).map((stateName) => (
+                                        <option key={stateName} value={stateName} />
+                                    ))}
+                                </datalist>
+                            </div>
+
+                            {/* City Input/Select */}
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    list="cities-list"
+                                    placeholder="City" 
+                                    value={addressCity} 
+                                    onChange={e => setAddressCity(e.target.value)} 
+                                    required 
+                                    className="w-full p-2 border rounded" 
+                                />
+                                <datalist id="cities-list">
+                                    {addressState && statesAndCities[addressState]?.map((cityName) => (
+                                        <option key={cityName} value={cityName} />
+                                    ))}
+                                </datalist>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                            <input type="text" placeholder="ZIP Code" value={addressZip} onChange={e => setAddressZip(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{6}" title="ZIP Code must be 6 digits." />
+                            
+                            {/* Searchable Country Dropdown */}
+                            <div className="relative" ref={countryDropdownRef}>
+                                <div 
+                                    className="w-full p-2 border rounded flex items-center justify-between cursor-pointer bg-white"
+                                    onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                                >
+                                    <span className="truncate">{addressCountry || "Select Country"}</span>
+                                    <FaChevronDown size={14} className={`transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''} text-gray-400`} />
+                                </div>
+
+                                {isCountryDropdownOpen && (
+                                    <div className="absolute bottom-full mb-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-xl z-[60] overflow-hidden flex flex-col max-h-60">
+                                        <div className="p-2 border-b bg-gray-50 flex items-center gap-2">
+                                            <FaSearch size={12} className="text-gray-400" />
+                                            <input 
+                                                type="text" 
+                                                placeholder="Search country..." 
+                                                className="bg-transparent border-none outline-none text-sm w-full"
+                                                value={countrySearch}
+                                                onChange={(e) => setCountrySearch(e.target.value)}
+                                                autoFocus
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                        <div className="overflow-y-auto flex-1">
+                                            {filteredCountries.length > 0 ? (
+                                                filteredCountries.map((c) => (
+                                                    <div 
+                                                        key={c} 
+                                                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-pink-50 transition-colors ${addressCountry === c ? 'bg-pink-100 text-pink-700 font-medium' : ''}`}
+                                                        onClick={() => handleCountrySelect(c)}
+                                                    >
+                                                        {c}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="px-3 py-2 text-sm text-gray-500">No country found</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <button type="submit" className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4">Save Address</button>
                     </form>
                 ) : (
@@ -462,7 +643,9 @@ export default function CheckoutPage() {
                         <div className="flex-1">
                           <p className="font-bold text-gray-800">{addr.name}</p>
                           <p className="text-gray-600 text-sm mt-1">{addr.address}</p>
-                          <p className="text-gray-600 text-sm">{addr.city}, {addr.zip}, {addr.country}</p>
+                          {addr.nearby && <p className="text-gray-500 text-xs italic">Nearby: {addr.nearby}</p>}
+                          <p className="text-gray-600 text-sm">{addr.city}, {addr.state}</p>
+                          <p className="text-gray-600 text-sm">{addr.zip}, {addr.country}</p>
                           <p className="text-gray-600 text-sm mt-1">Phone: {addr.phone}</p>
                         </div>
                         {selectedAddress === idx && (
@@ -497,7 +680,9 @@ export default function CheckoutPage() {
                 >
                   <p className="font-bold text-gray-800">{addresses[selectedAddress].name}</p>
                   <p className="text-gray-600 text-sm mt-1">{addresses[selectedAddress].address}</p>
-                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].city}, {addresses[selectedAddress].zip}, {addresses[selectedAddress].country}</p>
+                  {addresses[selectedAddress].nearby && <p className="text-gray-500 text-xs italic">Nearby: {addresses[selectedAddress].nearby}</p>}
+                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].city}, {addresses[selectedAddress].state}</p>
+                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].zip}, {addresses[selectedAddress].country}</p>
                   <p className="text-gray-600 text-sm mt-1">Phone: {addresses[selectedAddress].phone}</p>
                 </motion.div>
               )}

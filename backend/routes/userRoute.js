@@ -1,13 +1,19 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
 
 const userRouter = express.Router();
 
+// Pincode Proxy Route (Must be public)
+userRouter.get('/pincode-check/:zip', pincodeProxy)
+
+// Auth Routes
 userRouter.post('/register', registerUser)
 userRouter.post('/login', loginUser)
 userRouter.post('/google-login', googleLogin)
 userRouter.post('/admin', adminLogin)
+
+// Protected Routes
 userRouter.get('/profile', authUser, getProfile)
 userRouter.post('/add-address', authUser, addAddress)
 userRouter.get('/allusers', authUser, getAllUsers)
