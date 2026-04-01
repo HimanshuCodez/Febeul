@@ -118,6 +118,7 @@ export default function CheckoutPage() {
   const [addressPhone, setAddressPhone] = useState('');
   const [addressState, setAddressState] = useState('');
   const [isPincodeLoading, setPincodeLoading] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
 
   // Searchable Country States
   const [countrySearch, setCountrySearch] = useState("");
@@ -225,9 +226,34 @@ export default function CheckoutPage() {
     setIsCountryDropdownOpen(false);
   };
 
+  const clearAddressForm = () => {
+    setAddressName('');
+    setAddressLine('');
+    setAddressNearby('');
+    setAddressCity('');
+    setAddressZip('');
+    setAddressState('');
+    setAddressCountry('India');
+    setAddressPhone('');
+    setEditingAddressId(null);
+  }
+
+  const handleEditAddress = (addr) => {
+    setAddressName(addr.name);
+    setAddressLine(addr.address);
+    setAddressNearby(addr.nearby || '');
+    setAddressCity(addr.city);
+    setAddressZip(addr.zip);
+    setAddressState(addr.state);
+    setAddressCountry(addr.country);
+    setAddressPhone(addr.phone);
+    setEditingAddressId(addr._id);
+    setShowAddressForm(true);
+  }
+
   const handleAddAddress = async (e) => {
     e.preventDefault();
-    const newAddress = { 
+    const addressData = { 
         name: addressName, 
         address: addressLine, 
         nearby: addressNearby,
@@ -237,22 +263,33 @@ export default function CheckoutPage() {
         country: addressCountry, 
         phone: addressPhone 
     };
+
     try {
-        const response = await axios.post(`${backendUrl}/api/user/add-address`, 
-            { userId: user._id, address: newAddress },
-            { headers: { token } }
-        );
+        let response;
+        if (editingAddressId) {
+            response = await axios.post(`${backendUrl}/api/user/update-address`, 
+                { userId: user._id, addressId: editingAddressId, address: addressData },
+                { headers: { token } }
+            );
+        } else {
+            response = await axios.post(`${backendUrl}/api/user/add-address`, 
+                { userId: user._id, address: addressData },
+                { headers: { token } }
+            );
+        }
+
         if(response.data.success) {
-            toast.success("Address added!");
+            toast.success(editingAddressId ? "Address updated!" : "Address added!");
             await getProfile();
             setShowAddressForm(false);
+            clearAddressForm();
         } else {
             toast.error(response.data.message);
         }
     } catch (error) {
-        toast.error("Failed to add address.");
+        toast.error(editingAddressId ? "Failed to update address." : "Failed to add address.");
     }
-    }
+  }
     const subtotal = cartItems.reduce((sum, item) => {
         const selectedVariation = item.variations?.find(
             (v) => v.color === item.color
@@ -530,7 +567,16 @@ export default function CheckoutPage() {
               {step === 1 ? (
                 showAddressForm ? (
                     <form onSubmit={handleAddAddress} className="space-y-4">
-                        <h3 className='font-semibold text-lg'>Add a new address</h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className='font-semibold text-lg'>{editingAddressId ? 'Update Address' : 'Add a new address'}</h3>
+                            <button 
+                                type="button" 
+                                onClick={() => { setShowAddressForm(false); clearAddressForm(); }}
+                                className="text-gray-500 hover:text-gray-700 flex items-center text-sm"
+                            >
+                                <FaTimes className="mr-1" /> Back
+                            </button>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <input type="text" placeholder="Full Name" value={addressName} onChange={e => setAddressName(e.target.value)} className="w-full p-2 border rounded" required />
                           <input type="tel" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{10}" title="Phone number must be 10 digits." />
@@ -623,7 +669,7 @@ export default function CheckoutPage() {
                             </div>
                         </div>
 
-                        <button type="submit" className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4">Save Address</button>
+                        <button type="submit" className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4">{editingAddressId ? 'Update Address' : 'Save Address'}</button>
                     </form>
                 ) : (
                 <div className="space-y-3">
@@ -648,19 +694,27 @@ export default function CheckoutPage() {
                           <p className="text-gray-600 text-sm">{addr.zip}, {addr.country}</p>
                           <p className="text-gray-600 text-sm mt-1">Phone: {addr.phone}</p>
                         </div>
-                        {selectedAddress === idx && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="w-6 h-6 bg-[#e8767a] rounded-full flex items-center justify-center"
-                          >
-                            <FaCheck className="text-white text-xs" />
-                          </motion.div>
-                        )}
+                        <div className="flex flex-col items-end gap-2">
+                            {selectedAddress === idx && (
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-6 h-6 bg-[#e8767a] rounded-full flex items-center justify-center"
+                            >
+                                <FaCheck className="text-white text-xs" />
+                            </motion.div>
+                            )}
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleEditAddress(addr); }}
+                                className="text-[#e8767a] hover:text-[#d5666a] text-xs font-semibold underline"
+                            >
+                                Edit
+                            </button>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
-                  <button onClick={() => setShowAddressForm(true)} className="text-blue-600 mt-2">Add a new address</button>
+                  <button onClick={() => { clearAddressForm(); setShowAddressForm(true); }} className="text-blue-600 mt-2">Add a new address</button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

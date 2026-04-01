@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
 
 const userRouter = express.Router();
@@ -16,6 +16,7 @@ userRouter.post('/admin', adminLogin)
 // Protected Routes
 userRouter.get('/profile', authUser, getProfile)
 userRouter.post('/add-address', authUser, addAddress)
+userRouter.post('/update-address', authUser, updateAddress)
 userRouter.get('/allusers', authUser, getAllUsers)
 
 // Password Reset Routes

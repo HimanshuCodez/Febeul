@@ -396,6 +396,29 @@ const addAddress = async (req, res) => {
     }
 }
 
+// Update address for user
+const updateAddress = async (req, res) => {
+    try {
+        const { userId, addressId, address } = req.body;
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === addressId);
+        if (addressIndex === -1) {
+            return res.json({ success: false, message: "Address not found" });
+        }
+
+        user.addresses[addressIndex] = { ...user.addresses[addressIndex], ...address };
+        await user.save();
+        res.json({ success: true, message: "Address updated" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error updating address" });
+    }
+}
+
 // Proxy Pincode API with Fallback and Retry Logic
 const pincodeProxy = async (req, res) => {
     const { zip } = req.params;
@@ -534,4 +557,4 @@ const updateStaffPermissions = async (req, res) => {
 };
 
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions }
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions }
