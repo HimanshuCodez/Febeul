@@ -12,6 +12,7 @@ const NewAndNow = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
       try {
         const response = await axios.get(`${backendUrl}/api/product/list`);
         if (response.data.success) {
@@ -21,7 +22,9 @@ const NewAndNow = () => {
       } catch (error) {
         console.error("Error fetching products:", error);
       } finally {
-        setLoading(false);
+        setTimeout(() => {
+          setLoading(false);
+        }, 2000);
       }
     };
 
@@ -43,6 +46,7 @@ const NewAndNow = () => {
 
   return (
     <div className="py-12 bg-white">
+      {loading && <Loader />}
       <div className="container mx-auto px-4">
         <div className="flex justify-center items-center gap-4 mb-2">
           <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800">New Arrivals</h1>
@@ -60,15 +64,13 @@ const NewAndNow = () => {
             <option value="price-high">Price: High to Low</option>
           </select>
         </div>
-        {loading ? (
-          <Loader />
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {sortedProducts.map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        )}
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {sortedProducts.map((product) => (
+            <ProductCard key={product._id} product={product} />
+          ))}
+        </div>
+        
         {products.length === 0 && !loading && (
           <p className="text-center text-gray-500">No new products found.</p>
         )}

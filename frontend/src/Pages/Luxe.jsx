@@ -29,7 +29,9 @@ export default function FebeulLuxe() {
     } catch (error) {
       console.error("Failed to fetch Luxe Prive products", error);
     } finally {
-      setLoadingProducts(false);
+      setTimeout(() => {
+        setLoadingProducts(false);
+      }, 2000);
     }
   };
 
@@ -153,22 +155,19 @@ export default function FebeulLuxe() {
   if (isAuthenticated && user?.isLuxeMember) {
     return (
       <section className="w-full bg-[#f8b7b7] py-12 px-6 min-h-screen">
+        {loadingProducts && <Loader />}
         <div className="text-center mb-10 flex items-center justify-center gap-2">
        
           <h1 className="text-4xl font-serif text-black">LUXE PRIVE SALE</h1>
         </div>
 
-        {loadingProducts ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader size={48} className="text-pink-500" />
-          </div>
-        ) : luxeProducts.length > 0 ? (
+        {luxeProducts.length > 0 ? (
           <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {luxeProducts.map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>
-        ) : (
+        ) : !loadingProducts && (
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">No Luxe Prive Sale Products Available</h2>
             <p className="text-gray-700">Check back later for exclusive deals!</p>
