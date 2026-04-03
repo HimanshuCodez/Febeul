@@ -28,12 +28,15 @@ const userSchema = new mongoose.Schema({
     addresses: [{
         name: { type: String, required: true },
         address: { type: String, required: true },
-        nearby: { type: String },
+        locality: { type: String },
+        landmark: { type: String },
         city: { type: String, required: true },
         zip: { type: String, required: true },
         state: { type: String, required: true },
         country: { type: String, required: true },
         phone: { type: String, required: true },
+        alternatePhone: { type: String },
+        addressType: { type: String, enum: ['Home', 'Business', 'Other'], default: 'Home' },
     }],
     role: { type: String, default: 'user' },
     permissions: [{ type: String }]

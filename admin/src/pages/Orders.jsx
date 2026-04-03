@@ -217,10 +217,18 @@ const Orders = ({ token }) => {
                       </div>
                       <p className='font-semibold text-gray-700 mt-4 mb-2 flex items-center gap-2'><MapPin size={16}/> Shipping Address</p>
                       <address className='text-xs text-gray-600 not-italic space-y-1'>
-                        <p>{order.address.name}</p>
-                        <p>{order.address.address},</p>
-                        {order.address.nearby && <p className="italic text-gray-500">Nearby: {order.address.nearby}</p>}
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold">{order.address.name}</p>
+                          {order.address.addressType && (
+                            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded uppercase font-bold border">
+                                {order.address.addressType === 'Home' ? 'House' : order.address.addressType}
+                            </span>
+                          )}
+                        </div>
+                        <p>{order.address.address}, {order.address.locality}</p>
+                        {order.address.landmark && <p className="italic text-gray-500">Landmark: {order.address.landmark}</p>}
                         <p>{order.address.city}, {order.address.state}, {order.address.country} - {order.address.zip}</p>
+                        <p className="mt-1 font-medium">Phone: {order.address.phone}{order.address.alternatePhone ? `, ${order.address.alternatePhone}` : ''}</p>
                       </address>
                     </div>
 

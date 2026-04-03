@@ -82,12 +82,15 @@ const Address = () => {
     const [address, setAddress] = useState({
         name: '',
         phone: '',
-        address: '', // Changed from street to address
-        nearby: '',
+        alternatePhone: '',
+        address: '', // House No., Building Name
+        locality: '', // Road name, Area, Colony
+        landmark: '',
         city: '',
         state: '',
         zip: '',
         country: 'India', // Default to India
+        addressType: 'Home', // Home, Business, Other
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isPincodeLoading, setPincodeLoading] = useState(false);
@@ -143,7 +146,6 @@ const Address = () => {
     }, [address.zip, address.country]);
 
     const handleChange = (e) => {
-// ... (handleChange implementation)
         const { name, value } = e.target;
         setAddress((prev) => {
             if (name === 'state') {
@@ -160,7 +162,6 @@ const Address = () => {
     };
 
     const handleSave = async (e) => {
-// ... (handleSave implementation)
         e.preventDefault();
         setIsSaving(true);
         try {
@@ -207,13 +208,17 @@ const Address = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Contact Details</label>
                         <input type="text" name="name" placeholder="Full Name" value={address.name} onChange={handleChange} required className="form-input" />
-                        <input type="tel" name="phone" placeholder="Phone Number" value={address.phone} onChange={handleChange} required className="form-input mt-2" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                            <input type="tel" name="phone" placeholder="Phone Number" value={address.phone} onChange={handleChange} required className="form-input" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                            <input type="tel" name="alternatePhone" placeholder="Alt. Phone (Optional)" value={address.alternatePhone} onChange={handleChange} className="form-input" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                        </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                        <input type="text" name="address" placeholder="Street Address, House No." value={address.address} onChange={handleChange} required className="form-input" />
-                        <input type="text" name="nearby" placeholder="Nearby Landmark (Optional)" value={address.nearby} onChange={handleChange} className="form-input mt-2" />
+                        <input type="text" name="address" placeholder="House No., Building Name" value={address.address} onChange={handleChange} required className="form-input" />
+                        <input type="text" name="locality" placeholder="Road name, Area, Colony" value={address.locality} onChange={handleChange} required className="form-input mt-2" />
+                        <input type="text" name="landmark" placeholder="Nearby Landmark (Optional)" value={address.landmark} onChange={handleChange} className="form-input mt-2" />
                         
                         <div className="grid grid-cols-2 gap-4 mt-2">
                             {/* State Selection */}
@@ -300,6 +305,31 @@ const Address = () => {
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Address Type</label>
+                        <div className="flex gap-4">
+                            {['Home', 'Business', 'Other'].map((type) => (
+                                <label key={type} className="flex items-center cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="addressType"
+                                        value={type}
+                                        checked={address.addressType === type}
+                                        onChange={handleChange}
+                                        className="sr-only"
+                                    />
+                                    <div className={`px-4 py-2 rounded-full border text-sm transition-colors ${
+                                        address.addressType === type 
+                                            ? 'bg-pink-500 border-pink-500 text-white' 
+                                            : 'bg-white border-gray-300 text-gray-700 hover:border-pink-500'
+                                    }`}>
+                                        {type === 'Home' ? 'House/Apartment' : type}
+                                    </div>
+                                </label>
+                            ))}
                         </div>
                     </div>
                     

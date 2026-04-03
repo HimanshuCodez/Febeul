@@ -111,12 +111,15 @@ export default function CheckoutPage() {
   // Address Form State
   const [addressName, setAddressName] = useState('');
   const [addressLine, setAddressLine] = useState('');
-  const [addressNearby, setAddressNearby] = useState('');
+  const [addressLocality, setAddressLocality] = useState('');
+  const [addressLandmark, setAddressLandmark] = useState('');
   const [addressCity, setAddressCity] = useState('');
   const [addressZip, setAddressZip] = useState('');
   const [addressCountry, setAddressCountry] = useState('India');
   const [addressPhone, setAddressPhone] = useState('');
+  const [addressAlternatePhone, setAddressAlternatePhone] = useState('');
   const [addressState, setAddressState] = useState('');
+  const [addressType, setAddressType] = useState('Home');
   const [isPincodeLoading, setPincodeLoading] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
 
@@ -229,24 +232,30 @@ export default function CheckoutPage() {
   const clearAddressForm = () => {
     setAddressName('');
     setAddressLine('');
-    setAddressNearby('');
+    setAddressLocality('');
+    setAddressLandmark('');
     setAddressCity('');
     setAddressZip('');
     setAddressState('');
     setAddressCountry('India');
     setAddressPhone('');
+    setAddressAlternatePhone('');
+    setAddressType('Home');
     setEditingAddressId(null);
   }
 
   const handleEditAddress = (addr) => {
     setAddressName(addr.name);
     setAddressLine(addr.address);
-    setAddressNearby(addr.nearby || '');
+    setAddressLocality(addr.locality || '');
+    setAddressLandmark(addr.landmark || '');
     setAddressCity(addr.city);
     setAddressZip(addr.zip);
     setAddressState(addr.state);
     setAddressCountry(addr.country);
     setAddressPhone(addr.phone);
+    setAddressAlternatePhone(addr.alternatePhone || '');
+    setAddressType(addr.addressType || 'Home');
     setEditingAddressId(addr._id);
     setShowAddressForm(true);
   }
@@ -256,12 +265,15 @@ export default function CheckoutPage() {
     const addressData = { 
         name: addressName, 
         address: addressLine, 
-        nearby: addressNearby,
+        locality: addressLocality,
+        landmark: addressLandmark,
         city: addressCity, 
         zip: addressZip, 
         state: addressState,
         country: addressCountry, 
-        phone: addressPhone 
+        phone: addressPhone,
+        alternatePhone: addressAlternatePhone,
+        addressType: addressType
     };
 
     try {
@@ -579,10 +591,14 @@ export default function CheckoutPage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <input type="text" placeholder="Full Name" value={addressName} onChange={e => setAddressName(e.target.value)} className="w-full p-2 border rounded" required />
-                          <input type="tel" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input type="tel" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                            <input type="tel" placeholder="Alt. Phone" value={addressAlternatePhone} onChange={e => setAddressAlternatePhone(e.target.value)} className="w-full p-2 border rounded" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                          </div>
                         </div>
-                        <input type="text" placeholder="Address Line" value={addressLine} onChange={e => setAddressLine(e.target.value)} className="w-full p-2 border rounded" required />
-                        <input type="text" placeholder="Nearby Landmark (Optional)" value={addressNearby} onChange={e => setAddressNearby(e.target.value)} className="w-full p-2 border rounded" />
+                        <input type="text" placeholder="House No., Building Name" value={addressLine} onChange={e => setAddressLine(e.target.value)} className="w-full p-2 border rounded" required />
+                        <input type="text" placeholder="Road name, Area, Colony" value={addressLocality} onChange={e => setAddressLocality(e.target.value)} className="w-full p-2 border rounded" required />
+                        <input type="text" placeholder="Nearby Landmark (Optional)" value={addressLandmark} onChange={e => setAddressLandmark(e.target.value)} className="w-full p-2 border rounded" />
                         
                         <div className="grid grid-cols-2 gap-4 mt-2">
                             {/* State Input/Select */}
@@ -669,6 +685,31 @@ export default function CheckoutPage() {
                             </div>
                         </div>
 
+                        <div className="mt-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Address Type</label>
+                            <div className="flex gap-4">
+                                {['Home', 'Business', 'Other'].map((type) => (
+                                    <label key={type} className="flex items-center cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="addressType"
+                                            value={type}
+                                            checked={addressType === type}
+                                            onChange={e => setAddressType(e.target.value)}
+                                            className="sr-only"
+                                        />
+                                        <div className={`px-4 py-2 rounded-full border text-sm transition-colors ${
+                                            addressType === type 
+                                                ? 'bg-[#e8767a] border-[#e8767a] text-white' 
+                                                : 'bg-white border-gray-300 text-gray-700 hover:border-[#e8767a]'
+                                        }`}>
+                                            {type === 'Home' ? 'House' : type}
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
                         <button type="submit" className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4">{editingAddressId ? 'Update Address' : 'Save Address'}</button>
                     </form>
                 ) : (
@@ -687,12 +728,17 @@ export default function CheckoutPage() {
                     >
                        <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-bold text-gray-800">{addr.name}</p>
-                          <p className="text-gray-600 text-sm mt-1">{addr.address}</p>
-                          {addr.nearby && <p className="text-gray-500 text-xs italic">Nearby: {addr.nearby}</p>}
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-gray-800">{addr.name}</p>
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border">
+                                {addr.addressType === 'Home' ? 'House' : addr.addressType}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 text-sm">{addr.address}, {addr.locality}</p>
+                          {addr.landmark && <p className="text-gray-500 text-xs italic">Landmark: {addr.landmark}</p>}
                           <p className="text-gray-600 text-sm">{addr.city}, {addr.state}</p>
                           <p className="text-gray-600 text-sm">{addr.zip}, {addr.country}</p>
-                          <p className="text-gray-600 text-sm mt-1">Phone: {addr.phone}</p>
+                          <p className="text-gray-600 text-sm mt-1">Phone: {addr.phone}{addr.alternatePhone ? `, ${addr.alternatePhone}` : ''}</p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                             {selectedAddress === idx && (
@@ -732,12 +778,17 @@ export default function CheckoutPage() {
                   animate={{ opacity: 1 }}
                   className="border-2 border-[#e8767a] bg-[#fff5f5] rounded-lg p-4"
                 >
-                  <p className="font-bold text-gray-800">{addresses[selectedAddress].name}</p>
-                  <p className="text-gray-600 text-sm mt-1">{addresses[selectedAddress].address}</p>
-                  {addresses[selectedAddress].nearby && <p className="text-gray-500 text-xs italic">Nearby: {addresses[selectedAddress].nearby}</p>}
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-bold text-gray-800">{addresses[selectedAddress].name}</p>
+                    <span className="px-2 py-0.5 bg-white text-[#e8767a] text-[10px] rounded-full uppercase font-bold border border-[#e8767a]">
+                        {addresses[selectedAddress].addressType === 'Home' ? 'House' : addresses[selectedAddress].addressType}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].address}, {addresses[selectedAddress].locality}</p>
+                  {addresses[selectedAddress].landmark && <p className="text-gray-500 text-xs italic">Landmark: {addresses[selectedAddress].landmark}</p>}
                   <p className="text-gray-600 text-sm">{addresses[selectedAddress].city}, {addresses[selectedAddress].state}</p>
                   <p className="text-gray-600 text-sm">{addresses[selectedAddress].zip}, {addresses[selectedAddress].country}</p>
-                  <p className="text-gray-600 text-sm mt-1">Phone: {addresses[selectedAddress].phone}</p>
+                  <p className="text-gray-600 text-sm mt-1">Phone: {addresses[selectedAddress].phone}{addresses[selectedAddress].alternatePhone ? `, ${addresses[selectedAddress].alternatePhone}` : ''}</p>
                 </motion.div>
               )}
             </motion.div>

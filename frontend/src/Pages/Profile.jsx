@@ -280,7 +280,7 @@ const ProfileInfo = ({ user, editedUser, isEditing, setIsEditing, handleInputCha
 const ProfileDetails = ({ user }) => {
   const primaryAddress = user.addresses?.[0];
   const formattedAddress = primaryAddress
-    ? `${primaryAddress.address}, ${primaryAddress.city}, ${primaryAddress.country} - ${primaryAddress.zip}`
+    ? `${primaryAddress.address}, ${primaryAddress.locality ? primaryAddress.locality + ', ' : ''}${primaryAddress.city}, ${primaryAddress.country} - ${primaryAddress.zip}`
     : 'Not provided';
   const phoneNumber = primaryAddress?.phone || 'Not provided';
 
@@ -327,13 +327,18 @@ const ManageAddresses = ({ addresses, cardStyles }) => {
                     <div>
                         <div className="flex items-center space-x-3 mb-2">
                           <MapPin className="w-5 h-5 text-gray-500"/> 
-                          <h3 className="font-semibold text-gray-700">{addr.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-700">{addr.name}</h3>
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border">
+                                {addr.addressType === 'Home' ? 'House' : addr.addressType}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600 ml-8">{addr.address}</p>
-                        {addr.nearby && <p className="text-sm text-gray-400 italic ml-8">Nearby: {addr.nearby}</p>}
+                        <p className="text-sm text-gray-600 ml-8">{addr.address}, {addr.locality}</p>
+                        {addr.landmark && <p className="text-sm text-gray-400 italic ml-8">Landmark: {addr.landmark}</p>}
                         <p className="text-sm text-gray-600 ml-8">{addr.city}, {addr.state}</p>
                         <p className="text-sm text-gray-600 ml-8">{addr.country} - {addr.zip}</p>
-                        <p className="text-sm text-gray-600 ml-8 mt-1">Phone: {addr.phone}</p>
+                        <p className="text-sm text-gray-600 ml-8 mt-1">Phone: {addr.phone}{addr.alternatePhone ? `, ${addr.alternatePhone}` : ''}</p>
                     </div>
                     </div>
                 ))}

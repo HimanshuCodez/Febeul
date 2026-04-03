@@ -28,12 +28,17 @@ const AddressModal = ({ isOpen, onClose, addresses, selectedAddress, onSelectAdd
                   : 'border-gray-300 hover:border-orange-400'
               }`}
             >
-              <p className="font-semibold">{address.name}</p>
-              <p>{address.address}</p>
-              {address.nearby && <p className="text-sm text-gray-500 italic">Nearby: {address.nearby}</p>}
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-semibold">{address.name}</p>
+                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border">
+                    {address.addressType === 'Home' ? 'House' : address.addressType}
+                </span>
+              </div>
+              <p>{address.address}, {address.locality}</p>
+              {address.landmark && <p className="text-sm text-gray-500 italic">Landmark: {address.landmark}</p>}
               <p>{address.city}, {address.state}</p>
               <p>{address.country} - {address.zip}</p>
-              <p>Phone: {address.phone}</p>
+              <p>Phone: {address.phone}{address.alternatePhone ? `, ${address.alternatePhone}` : ''}</p>
             </div>
           ))}
         </div>
