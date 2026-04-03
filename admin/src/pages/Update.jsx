@@ -13,6 +13,7 @@ const availableSizes = ["S", "M", "L", "XL", "XXL", "Free Size"];
 const Update = ({ token }) => {
     const { productId } = useParams();
     const navigate = useNavigate();
+    const role = localStorage.getItem('role');
 
     const [variations, setVariations] = useState([]); // Updated variations state
     const [name, setName] = useState("");
@@ -270,7 +271,9 @@ const Update = ({ token }) => {
                                         <p className='text-sm mb-1'>Stock</p>
                                         <input name='stock' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.stock} className='w-full max-w-[100px] px-2 py-1 border rounded-md' type="number" placeholder='Stock' required/>
                                     </div>
-                                    <button type='button' onClick={()=>removeSize(v_index, s_index)} className='bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit'>-</button>
+                                    {role !== 'staff' && (
+                                        <button type='button' onClick={()=>removeSize(v_index, s_index)} className='bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit'>-</button>
+                                    )}
                                 </div>
                             ))}
                             <div className='flex gap-2 mt-3 flex-wrap'>
@@ -293,7 +296,9 @@ const Update = ({ token }) => {
                                 {variation.images.map((image, i_index)=>(
                                     <div key={i_index} className='relative'>
                                         <img className='w-20 object-cover' src={typeof image === 'string' ? image : URL.createObjectURL(image)} alt="" />
-                                        <p onClick={()=>removeImage(v_index,i_index)} className='absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs'>x</p>
+                                        {role !== 'staff' && (
+                                            <p onClick={()=>removeImage(v_index,i_index)} className='absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs'>x</p>
+                                        )}
                                     </div>
                                 ))}
                                 <label className='cursor-pointer'>
@@ -303,7 +308,7 @@ const Update = ({ token }) => {
                             </div>
                         </div>
                     </div>
-                    {variations.length > 1 && (
+                    {variations.length > 1 && role !== 'staff' && (
                       <button type='button' onClick={()=>removeVariation(v_index)} className='absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm'>Remove Variation</button>
                     )}
                 </div>

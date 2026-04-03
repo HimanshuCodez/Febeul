@@ -9,6 +9,7 @@ const ManageGiftWraps = ({ token }) => {
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
     const [image, setImage] = useState(null);
+    const role = localStorage.getItem('role');
 
     const fetchGiftWraps = async () => {
         try {
@@ -96,7 +97,9 @@ const ManageGiftWraps = ({ token }) => {
                             <img src={item.image} alt={item.name} className='w-full h-auto aspect-square object-cover rounded-md' />
                             <p className='mt-2 font-semibold'>{item.name}</p>
                             <p>₹{item.price}</p>
-                            <p onClick={() => handleRemove(item._id)} className='absolute top-2 right-2 cursor-pointer bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center'>x</p>
+                            {role !== 'staff' && (
+                                <p onClick={() => handleRemove(item._id)} className='absolute top-2 right-2 cursor-pointer bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center'>x</p>
+                            )}
                         </div>
                     ))}
                 </div>

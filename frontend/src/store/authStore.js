@@ -9,6 +9,7 @@ const useAuthStore = create((set, get) => ({
   isAuthenticated: !!localStorage.getItem('token'),
   wishlistCount: 0,
   cartCount: 0,
+  cartItems: [],
 
   fetchWishlistCount: async () => {
     const { user, token, isAuthenticated } = get();
@@ -32,7 +33,7 @@ const useAuthStore = create((set, get) => ({
   fetchCartCount: async () => {
     const { user, token, isAuthenticated } = get();
     if (!isAuthenticated || !user) {
-      set({ cartCount: 0 });
+      set({ cartCount: 0, cartItems: [] });
       return;
     }
     try {
@@ -40,14 +41,22 @@ const useAuthStore = create((set, get) => ({
         headers: { token }
       });
       if (response.data.success) {
-        const totalQuantity = response.data.cartItems.reduce((sum, item) => sum + item.quantity, 0);
-        set({ cartCount: totalQuantity });
+        const items = response.data.cartItems || [];
+        const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+        set({ cartCount: totalQuantity, cartItems: items });
       }
     } catch (error) {
       console.error("Failed to fetch cart count", error);
-      set({ cartCount: 0 });
+      set({ cartCount: 0, cartItems: [] });
     }
   },
+
+  setCartItems: (items) => {
+    const totalQuantity = (items || []).reduce((sum, item) => sum + item.quantity, 0);
+    set({ cartItems: items, cartCount: totalQuantity });
+  },
+
+  setCartCount: (count) => set({ cartCount: count }),
 
   getProfile: async () => {
     const token = get().token;
@@ -61,7 +70,6 @@ const useAuthStore = create((set, get) => ({
         get().fetchWishlistCount();
         get().fetchCartCount();
       } else {
-        // If the profile fetch is not successful (e.g. invalid token), log the user out.
         get().logout();
       }
     } catch (error) {
@@ -78,7 +86,8 @@ const useAuthStore = create((set, get) => ({
         const { token, user } = response.data;
         localStorage.setItem('token', token);
         set({ token, user, loading: false, isAuthenticated: true });
-        // The getProfile call is no longer needed here as user data is returned on login
+        get().fetchCartCount();
+        get().fetchWishlistCount();
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -95,6 +104,8 @@ const useAuthStore = create((set, get) => ({
         const { token, user } = response.data;
         localStorage.setItem('token', token);
         set({ token, user, loading: false, isAuthenticated: true });
+        get().fetchCartCount();
+        get().fetchWishlistCount();
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -111,6 +122,8 @@ const useAuthStore = create((set, get) => ({
         const { token, user } = response.data;
         localStorage.setItem('token', token);
         set({ token, user, loading: false, isAuthenticated: true });
+        get().fetchCartCount();
+        get().fetchWishlistCount();
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -168,13 +181,12 @@ const useAuthStore = create((set, get) => ({
 
   logout: () => {
     localStorage.removeItem('token');
-    set({ token: null, user: null, isAuthenticated: false, wishlistCount: 0, cartCount: 0 });
+    set({ token: null, user: null, isAuthenticated: false, wishlistCount: 0, cartCount: 0, cartItems: [] });
   },
 
   clearError: () => set({ error: null }),
 }));
 
-// Fetch profile on initial load if token exists
 if (localStorage.getItem('token')) {
   useAuthStore.getState().getProfile();
 }

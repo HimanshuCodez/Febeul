@@ -12,6 +12,7 @@ const ReviewsAdmin = ({ token }) => {
 
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
+    const role = localStorage.getItem('role');
 
     useEffect(() => {
         if (token) { // Only fetch if a valid token is provided
@@ -202,12 +203,14 @@ const ReviewsAdmin = ({ token }) => {
                                                     Reject
                                                 </button>
                                             )}
-                                            <button
-                                                onClick={() => handleDeleteReview(review._id)}
-                                                className="text-red-600 hover:text-red-900 bg-red-50 px-2 py-1 rounded"
-                                            >
-                                                Delete
-                                            </button>
+                                            {role !== 'staff' && (
+                                                <button
+                                                    onClick={() => handleDeleteReview(review._id)}
+                                                    className="text-red-600 hover:text-red-900 bg-red-50 px-2 py-1 rounded"
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

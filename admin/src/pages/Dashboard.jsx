@@ -38,7 +38,8 @@ const FebeulDashboard = ({ token }) => {
   const role = localStorage.getItem("role");
 
   useEffect(() => {
-    if (role !== "admin") {
+    const permissions = JSON.parse(localStorage.getItem('permissions') || '[]');
+    if (role !== "admin" && !permissions.includes('/')) {
       navigate("/list");
     }
   }, [role, navigate]);

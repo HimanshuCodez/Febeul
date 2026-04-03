@@ -13,6 +13,7 @@ const List = ({ token }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [expandedProductId, setExpandedProductId] = useState(null);
+  const role = localStorage.getItem('role');
 
   const fetchList = async () => {
     try {
@@ -153,7 +154,7 @@ const List = ({ token }) => {
 
         {/* ------- List Table Title ---------- */}
 
-        <div className='hidden md:grid grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center py-1 px-2 border bg-gray-100 text-sm'>
+        <div className={`hidden md:grid grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr${role !== 'staff' ? '_1fr' : ''}] items-center py-1 px-2 border bg-gray-100 text-sm`}>
           <input
             type="checkbox"
             onChange={handleSelectAll}
@@ -167,7 +168,7 @@ const List = ({ token }) => {
           <b>MRP</b>
           <b>Stock</b>
           <b className='text-center'>Edit</b>
-          <b className='text-center'>Action</b>
+          {role !== 'staff' && <b className='text-center'>Action</b>}
         </div>
 
         {/* ------ Product List ------ */}
@@ -176,7 +177,7 @@ const List = ({ token }) => {
           filteredList.map((item, index) => (
             <div key={index} className='border rounded-lg overflow-hidden bg-white'>
               <div 
-                className='grid grid-cols-[auto_1fr_3fr_1fr] md:grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2 px-2 cursor-pointer hover:bg-gray-50 transition-colors'
+                className={`grid grid-cols-[auto_1fr_3fr_1fr] md:grid-cols-[auto_1fr_3fr_1fr_1fr_1fr_1fr_1fr_1fr${role !== 'staff' ? '_1fr' : ''}] items-center gap-2 py-2 px-2 cursor-pointer hover:bg-gray-50 transition-colors`}
                 onClick={() => setExpandedProductId(expandedProductId === item._id ? null : item._id)}
               >
                 <div onClick={(e) => e.stopPropagation()}>
@@ -198,9 +199,11 @@ const List = ({ token }) => {
                 <div onClick={(e) => e.stopPropagation()} className='text-center'>
                   <Link to={`/update/${item._id}`} className='text-indigo-600 hover:text-indigo-900 font-medium'>Edit</Link>
                 </div>
-                <div onClick={(e) => { e.stopPropagation(); confirmDelete(item._id); }} className='text-right md:text-center'>
-                  <p className='text-red-500 hover:text-red-700 cursor-pointer font-bold text-lg'>×</p>
-                </div>
+                {role !== 'staff' && (
+                  <div onClick={(e) => { e.stopPropagation(); confirmDelete(item._id); }} className='text-right md:text-center'>
+                    <p className='text-red-500 hover:text-red-700 cursor-pointer font-bold text-lg'>×</p>
+                  </div>
+                )}
               </div>
 
               {/* Accordion Content: Variations */}

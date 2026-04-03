@@ -6,6 +6,7 @@ import { backendUrl } from '../App'; // Assuming backendUrl is available from Ap
 const Coupons = ({ token }) => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const role = localStorage.getItem('role');
   const [newCoupon, setNewCoupon] = useState({
     code: '',
     description: '',
@@ -356,7 +357,7 @@ const Coupons = ({ token }) => {
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Expires On</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>User Type</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
+                  {role !== 'staff' && <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>}
                 </tr>
               </thead>
               <tbody className='bg-white divide-y divide-gray-200'>
@@ -395,14 +396,16 @@ const Coupons = ({ token }) => {
                       </span>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.userType ? coupon.userType.charAt(0).toUpperCase() + coupon.userType.slice(1) : 'N/A'}</td>
-                    <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                      <button
-                        onClick={() => handleDeleteCoupon(coupon._id)}
-                        className='text-red-600 hover:text-red-900 ml-4'
-                      >
-                        Delete
-                      </button>
-                    </td>
+                    {role !== 'staff' && (
+                      <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
+                        <button
+                          onClick={() => handleDeleteCoupon(coupon._id)}
+                          className='text-red-600 hover:text-red-900 ml-4'
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

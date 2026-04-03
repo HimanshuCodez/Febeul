@@ -12,6 +12,7 @@ const Cms = ({ token }) => {
     buttonText: "JOIN NOW"
   });
   const [loading, setLoading] = useState(false);
+  const role = localStorage.getItem('role');
 
   const API_BASE_URL = `${backendUrl}/api/cms`;
 
@@ -142,13 +143,15 @@ const Cms = ({ token }) => {
                   placeholder="Enter message text..."
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => removeMessage(index)}
-                  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <FiTrash2 size={20} />
-                </button>
+                {role !== 'staff' && (
+                  <button
+                    type="button"
+                    onClick={() => removeMessage(index)}
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <FiTrash2 size={20} />
+                  </button>
+                )}
               </div>
             ))}
           </div>

@@ -9,18 +9,17 @@ import { toast } from "react-hot-toast";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState([]);
   const [giftWrap, setGiftWrap] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { user, token, isAuthenticated, fetchCartCount } = useAuthStore();
+  const { user, token, isAuthenticated, cartItems, fetchCartCount, setCartItems } = useAuthStore();
 
-  const fetchCart = async () => {
+  const fetchCart = async (showLoading = true) => {
     if (!isAuthenticated || !user) {
       setLoading(false);
       return;
     }
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await axios.get(
         `${backendUrl}/api/cart/get`,
         { headers: { token } }
@@ -33,7 +32,7 @@ const Cart = () => {
       toast.error("Failed to fetch cart items.");
       console.error(error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -43,6 +42,8 @@ const Cart = () => {
 
   const handleQuantityChange = async (itemId, size, color, delta) => {
     const item = cartItems.find(item => item._id === itemId && item.size === size && item.color === color);
+    if (!item) return;
+    
     const newQuantity = (item.quantity || 0) + delta;
 
     if (newQuantity < 1) {
@@ -50,23 +51,36 @@ const Cart = () => {
         return;
     }
 
+    // Optimistic update
+    const updatedItems = cartItems.map(i => 
+        (i._id === itemId && i.size === size && i.color === color) 
+        ? { ...i, quantity: newQuantity } 
+        : i
+    );
+    setCartItems(updatedItems);
+
     try {
         const response = await axios.post(`${backendUrl}/api/cart/update`, 
             { userId: user._id, itemId, size, color, quantity: newQuantity },
             { headers: { token } }
         );
-        if (response.data.success) {
-            fetchCart(); // Refetch cart to ensure data is in sync
-            fetchCartCount(); // Update cart count in store
-        } else {
+        if (!response.data.success) {
             toast.error("Failed to update cart.");
+            fetchCart(false); // Rollback
         }
     } catch (error) {
         toast.error("Failed to update cart.");
+        fetchCart(false); // Rollback
     }
   };
 
   const handleRemove = async (itemId, size, color) => {
+    // Optimistic update
+    const updatedItems = cartItems.filter(i => 
+        !(i._id === itemId && i.size === size && i.color === color)
+    );
+    setCartItems(updatedItems);
+
     try {
         const response = await axios.post(`${backendUrl}/api/cart/remove`, 
             { userId: user._id, itemId, size, color },
@@ -74,13 +88,16 @@ const Cart = () => {
         );
         if (response.data.success) {
             toast.success("Item removed from cart.");
-            fetchCart();
-            fetchCartCount(); // Update cart count in store
+            // Gift wrap might have changed if cart became empty or something
+            if (updatedItems.length === 0) setGiftWrap(null);
+            else fetchCart(false); // Refresh to be sure
         } else {
             toast.error("Failed to remove item.");
+            fetchCart(false); // Rollback
         }
     } catch (error) {
         toast.error("Failed to remove item.");
+        fetchCart(false); // Rollback
     }
   };
 

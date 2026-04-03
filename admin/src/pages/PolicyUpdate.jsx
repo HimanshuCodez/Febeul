@@ -21,6 +21,7 @@ const PolicyUpdate = ({ token }) => {
   const [pageTitle, setPageTitle] = useState('');
   const [sections, setSections] = useState([]); // [{ title: '', content: [{ type: 'paragraph', text: '' }] }]
   const [loading, setLoading] = useState(false);
+  const role = localStorage.getItem('role');
 
   const API_BASE_URL = `${backendUrl}/api/policy`;
 
@@ -187,7 +188,9 @@ const PolicyUpdate = ({ token }) => {
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={() => moveSection(sIndex, -1)} className="p-1 hover:text-pink-500"><FiChevronUp /></button>
                     <button type="button" onClick={() => moveSection(sIndex, 1)} className="p-1 hover:text-pink-500"><FiChevronDown /></button>
-                    <button type="button" onClick={() => removeSection(sIndex)} className="p-1 hover:text-red-500 ml-2"><FiTrash2 /></button>
+                    {role !== 'staff' && (
+                      <button type="button" onClick={() => removeSection(sIndex)} className="p-1 hover:text-red-500 ml-2"><FiTrash2 /></button>
+                    )}
                   </div>
                 </div>
 
@@ -212,13 +215,15 @@ const PolicyUpdate = ({ token }) => {
                         placeholder={`Enter ${item.type} text...`}
                       />
                       
-                      <button
-                        type="button"
-                        onClick={() => removeContentItem(sIndex, cIndex)}
-                        className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
+                      {role !== 'staff' && (
+                        <button
+                          type="button"
+                          onClick={() => removeContentItem(sIndex, cIndex)}
+                          className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   ))}
                   

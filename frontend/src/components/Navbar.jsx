@@ -99,7 +99,12 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [openMegaMenus, setOpenMegaMenus] = useState({}); // New state for accordions
   const [bestsellers, setBestsellers] = useState([]); // State for bestsellers
-  const { isAuthenticated, wishlistCount, cartCount, user } = useAuthStore();
+  
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const wishlistCount = useAuthStore(state => state.wishlistCount);
+  const cartCount = useAuthStore(state => state.cartCount);
+  const user = useAuthStore(state => state.user);
+
   const navigate = useNavigate();
   const location = useLocation(); // Get location object
 
