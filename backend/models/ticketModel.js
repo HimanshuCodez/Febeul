@@ -11,6 +11,7 @@ const ticketSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
     subject: { type: String, required: true },
     description: { type: String, required: true },
+    contactInfo: { type: String }, // Email or Phone Number
     status: { type: String, enum: ['open', 'pending', 'closed'], default: 'open' },
     ticketNumber: { type: String, required: true, unique: true }, // Added numeric ticket ID
     messages: [messageSchema],

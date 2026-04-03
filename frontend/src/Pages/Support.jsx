@@ -13,9 +13,10 @@ const Support = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const isSendingRef = useRef(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [searchTerm, setSearchTerm] = useState(""); // New state for search
-    const [formData, setFormData] = useState({ subject: "", description: "", message: "", images: [] });
+    const [formData, setFormData] = useState({ subject: "", description: "", contactInfo: "", message: "", images: [] });
     const [currentMessage, setCurrentMessage] = useState(''); // New state for message input
     const [currentAttachments, setCurrentAttachments] = useState([]); // New state for chat attachments
     const fileInputRef = useRef(null); // Ref for file input
@@ -53,12 +54,13 @@ const Support = () => {
 
     const handleSendMessage = async (ticketId) => {
         if (!currentMessage.trim() && currentAttachments.length === 0) return;
-        if (isSending) return;
+        if (isSendingRef.current) return;
         if (!token) {
             toast.error("You must be logged in to send a message.");
             return;
         }
 
+        isSendingRef.current = true;
         setIsSending(true);
         const messageFormData = new FormData();
         messageFormData.append("ticketId", ticketId);
@@ -107,6 +109,7 @@ const Support = () => {
             console.error(error);
         } finally {
             setIsSending(false);
+            isSendingRef.current = false;
         }
     };
 
@@ -153,6 +156,7 @@ const Support = () => {
         const submitFormData = new FormData();
         submitFormData.append("subject", formData.subject);
         submitFormData.append("description", formData.description);
+        submitFormData.append("contactInfo", formData.contactInfo);
         submitFormData.append("message", formData.message);
         formData.images.forEach((image) => {
             submitFormData.append("images", image);
@@ -167,7 +171,7 @@ const Support = () => {
             });
             if (response.data.success) {
                 toast.success("Ticket created successfully!");
-                setFormData({ subject: "", description: "", message: "", images: [] });
+                setFormData({ subject: "", description: "", contactInfo: "", message: "", images: [] });
                 setIsCreating(false);
                 fetchUserTickets();
             } else {
@@ -235,6 +239,7 @@ const Support = () => {
                             <form onSubmit={handleSubmit} className="space-y-4 p-6 bg-gray-50 rounded-lg">
                                 <FormInput label="Subject" name="subject" value={formData.subject} onChange={handleChange} placeholder="e.g., Issue with my order" required />
                                 <FormInput label="Description" name="description" value={formData.description} onChange={handleChange} placeholder="A brief summary of your issue" required />
+                                <FormInput label="Enter Email or Phone Number" name="contactInfo" value={formData.contactInfo} onChange={handleChange} placeholder="Enter email or phone number" required />
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                                     <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Please provide all the details here..." rows="5" required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-pink-500 focus:border-pink-500 sm:text-sm"></textarea>

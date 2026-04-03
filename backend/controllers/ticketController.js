@@ -5,7 +5,7 @@ import { v2 as cloudinary } from 'cloudinary'; // Import cloudinary
 // User: Create a new ticket
 export const createTicket = async (req, res) => {
     // When using multer for multipart/form-data, text fields are in req.body and files in req.files
-    const { subject, description, message } = req.body;
+    const { subject, description, message, contactInfo } = req.body;
     const files = req.files; // This will contain the uploaded image files
 
     console.log("req.userId in createTicket:", req.userId); // Debugging line
@@ -47,6 +47,7 @@ export const createTicket = async (req, res) => {
             user: req.userId,
             subject,
             description,
+            contactInfo,
             ticketNumber, // Store the numeric ID
             messages: [{ sender: 'user', message }],
             images: imageUrls, // Store the uploaded image URLs

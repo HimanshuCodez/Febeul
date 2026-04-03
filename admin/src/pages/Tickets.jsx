@@ -13,6 +13,7 @@ const Tickets = ({ token }) => {
   const [searchTerm, setSearchTerm] = useState(''); // New state for search
   const [adminMessage, setAdminMessage] = useState(''); // New state for admin message
   const [adminAttachments, setAdminAttachments] = useState([]); // New state for admin chat attachments
+  const [isSending, setIsSending] = useState(false);
   const adminFileInputRef = useRef(null); // Ref for admin file input
 
   const fetchTickets = async () => {
@@ -54,11 +55,13 @@ const Tickets = ({ token }) => {
 
   const sendAdminReply = async (ticketId) => {
     if (!adminMessage.trim() && adminAttachments.length === 0) return; // Allow sending only attachments
+    if (isSending) return;
     if (!token) {
       toast.error("Authentication token missing.");
       return;
     }
 
+    setIsSending(true);
     const replyFormData = new FormData();
     replyFormData.append("ticketId", ticketId);
     replyFormData.append("message", adminMessage);
@@ -105,6 +108,8 @@ const Tickets = ({ token }) => {
     } catch (error) {
       toast.error("Failed to send reply.");
       console.error(error);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -300,6 +305,10 @@ const Tickets = ({ token }) => {
                 </div>
               </div>
               <div>
+                <p className='text-sm font-medium text-gray-700 border-b pb-1 mb-2'>Contact Info:</p>
+                <div className='bg-gray-50 p-2 rounded-lg border border-gray-100 text-gray-800 text-sm mb-4'>
+                  {selectedTicket.contactInfo || 'Not provided'}
+                </div>
                 <p className='text-sm font-medium text-gray-700 border-b pb-1 mb-2'>Description:</p>
                 <div className='bg-gray-50 p-3 rounded-lg border border-gray-100 italic text-gray-800 text-sm'>
                   {selectedTicket.description}
@@ -385,10 +394,15 @@ const Tickets = ({ token }) => {
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                         />
                         <button
+                            disabled={isSending}
                             onClick={() => sendAdminReply(selectedTicket._id)}
-                            className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors"
+                            className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors disabled:bg-pink-300 disabled:cursor-not-allowed flex items-center justify-center min-w-[70px]"
                         >
-                            Send
+                            {isSending ? (
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            ) : (
+                                'Send'
+                            )}
                         </button>
                     </div>
                 </div>
