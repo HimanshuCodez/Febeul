@@ -375,9 +375,15 @@ const AuthPage = () => {
                   <>
                     <div>
                       <input
-                        type="text"
-                        placeholder="Email"
-                        {...register("identifier", { required: "Email is required" })}
+                        type="email"
+                        placeholder="Email Address"
+                        {...register("identifier", { 
+                          required: "Email is required",
+                          pattern: {
+                            value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                            message: "Please enter a valid email address"
+                          }
+                        })}
                         className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
                       />
                       {errors.identifier && <p className="text-sm text-red-500 mt-1">{errors.identifier.message}</p>}

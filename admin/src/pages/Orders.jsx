@@ -106,6 +106,29 @@ const Orders = ({ token }) => {
     }
   }
 
+  const downloadInvoice = async (orderId) => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/order/invoice/${orderId}`, {
+        headers: { token },
+        responseType: 'blob'
+      });
+
+      // Create a URL for the blob and trigger download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice_${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Invoice downloading...");
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      toast.error("Failed to download invoice");
+    }
+  };
+
   useEffect(() => {
     fetchAllOrders();
   }, [token])
@@ -162,6 +185,13 @@ const Orders = ({ token }) => {
                 </div>
 
                 <div className='flex items-center gap-3'>
+                  <button
+                    onClick={() => downloadInvoice(order._id)}
+                    className="p-2 rounded-full bg-white hover:bg-gray-100 transition-colors text-pink-500"
+                    title="Download Invoice"
+                  >
+                    <FileText size={20} />
+                  </button>
                   <StatusBadge status={order.orderStatus} />
                   <button
                     onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
@@ -244,6 +274,13 @@ const Orders = ({ token }) => {
                         {order.giftWrap && order.giftWrap.price > 0 && <p>Gift Wrap: <span className="font-medium">{currency}{order.giftWrap.price.toFixed(2)}</span></p>}
                         <p className="text-base font-bold text-gray-800 mt-2">Total: {currency}{order.orderTotal.toFixed(2)}</p>
                       </div>
+
+                      <button
+                        onClick={() => downloadInvoice(order._id)}
+                        className="mt-4 flex items-center gap-2 bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors text-sm font-medium w-fit"
+                      >
+                        <FileText size={16} /> Download Invoice
+                      </button>
 
                       {order.shiprocket && (
                         <div className='mt-5'>
