@@ -14,6 +14,8 @@ const Tickets = ({ token }) => {
   const [adminMessage, setAdminMessage] = useState(''); // New state for admin message
   const [adminAttachments, setAdminAttachments] = useState([]); // New state for admin chat attachments
   const [isSending, setIsSending] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const adminFileInputRef = useRef(null); // Ref for admin file input
 
   const fetchTickets = async () => {
@@ -141,6 +143,14 @@ const Tickets = ({ token }) => {
     return matchesStatus && matchesSearch;
   });
 
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  const paginatedTickets = filteredTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'open': return 'bg-green-100 text-green-800';
@@ -202,62 +212,110 @@ const Tickets = ({ token }) => {
 
       {/* Tickets List */}
       <div className='bg-white rounded-lg shadow-md p-8 mb-8'>
-        <h3 className='text-xl font-bold text-gray-700 mb-6'>All Tickets</h3>
+        <div className='flex justify-between items-center mb-6'>
+          <h3 className='text-xl font-bold text-gray-700'>All Tickets ({filteredTickets.length})</h3>
+          {totalPages > 1 && (
+            <span className='text-sm text-gray-500 font-medium'>Page {currentPage} of {totalPages}</span>
+          )}
+        </div>
         {loading ? (
           <p>Loading tickets...</p>
         ) : tickets.length === 0 ? (
           <p>No tickets found.</p>
         ) : (
-          <div className='overflow-x-auto'>
-            <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
-                <tr>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>ID</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Subject</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Customer</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Last Updated</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
-                </tr>
-              </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
-                {filteredTickets.map((ticket) => (
-                  <tr key={ticket._id} className='hover:bg-gray-50'>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{ticket.ticketNumber || ticket._id.slice(-6)}</td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{ticket.subject}</td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      <div className='flex flex-col gap-1'>
-                        <span className='font-medium text-gray-900'>{ticket.user?.name || 'N/A'}</span>
-                        <span className='text-xs'>{ticket.user?.email}</span>
-                        {ticket.user?.isLuxeMember && (
-                          <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit'>
-                            <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
-                            Luxe Member
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ticket.status)} capitalize`}>
-                        {ticket.status}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                      <button
-                        onClick={() => setSelectedTicket(ticket)}
-                        className='text-indigo-600 hover:text-indigo-900'
-                      >
-                        View Details
-                      </button>
-                    </td>
+          <>
+            <div className='overflow-x-auto'>
+              <table className='min-w-full divide-y divide-gray-200'>
+                <thead className='bg-gray-50'>
+                  <tr>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>ID</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Subject</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Customer</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Last Updated</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className='bg-white divide-y divide-gray-200'>
+                  {paginatedTickets.map((ticket) => (
+                    <tr key={ticket._id} className='hover:bg-gray-50'>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{ticket.ticketNumber || ticket._id.slice(-6)}</td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{ticket.subject}</td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        <div className='flex flex-col gap-1'>
+                          <span className='font-medium text-gray-900'>{ticket.user?.name || 'N/A'}</span>
+                          <span className='text-xs'>{ticket.user?.email}</span>
+                          {ticket.user?.isLuxeMember && (
+                            <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit'>
+                              <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
+                              Luxe Member
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ticket.status)} capitalize`}>
+                          {ticket.status}
+                        </span>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        {new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
+                        <button
+                          onClick={() => setSelectedTicket(ticket)}
+                          className='text-indigo-600 hover:text-indigo-900'
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className='flex justify-center items-center gap-2 mt-8'>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className='px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                >
+                  Previous
+                </button>
+                
+                <div className='flex gap-1'>
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-10 h-10 rounded-md text-sm font-bold transition-all ${currentPage === pageNum ? 'bg-pink-500 text-white shadow-md' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                      return <span key={pageNum} className='flex items-end px-1 text-gray-400 font-bold'>...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className='px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

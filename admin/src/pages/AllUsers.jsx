@@ -17,6 +17,8 @@ const AllUsers = ({ token }) => {
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const permissionOptions = [
     { label: 'Dashboard', path: '/' },
@@ -110,6 +112,14 @@ const AllUsers = ({ token }) => {
     return matchesSearch && matchesRole;
   });
 
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter]);
+
   if (loading) {
     return <p className="p-4">Loading users...</p>;
   }
@@ -121,7 +131,12 @@ const AllUsers = ({ token }) => {
   return (
     <div className='p-4 relative'>
       <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4'>
-        <h2 className='text-2xl font-bold'>All Users</h2>
+        <div className='flex items-center gap-4'>
+          <h2 className='text-2xl font-bold'>All Users</h2>
+          <span className='bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold'>
+            {filteredUsers.length} Users
+          </span>
+        </div>
         <div className='flex flex-col sm:flex-row gap-3 w-full md:w-auto'>
           <input 
             type="text" 
@@ -213,49 +228,93 @@ const AllUsers = ({ token }) => {
         </div>
       )}
 
-      {filteredUsers.length > 0 ? (
-        <div className='overflow-x-auto border border-gray-200 rounded-lg'>
-          <table className='min-w-full bg-white divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
-              <tr>
-                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Name</th>
-                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Email</th>
-                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Phone</th>
-                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Role</th>
-                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Luxe</th>
-                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Gift Wraps</th>
-                <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Actions</th>
-              </tr>
-            </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
-              {filteredUsers.map((user) => (
-                <tr key={user._id} className='hover:bg-gray-50 transition-colors'>
-                  <td className='py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900'>{user.name || 'N/A'}</td>
-                  <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.email}</td>
-                  <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.mobile || 'N/A'}</td>
-                  <td className='py-3 px-4 whitespace-nowrap text-sm'>
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      user.role === 'admin' ? 'bg-red-100 text-red-700' : 
-                      user.role === 'staff' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.isLuxeMember ? 'Yes' : 'No'}</td>
-                  <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.giftWrapsLeft}</td>
-                  <td className='py-3 px-4 whitespace-nowrap text-sm'>
-                    <button 
-                      onClick={() => openPermissionsModal(user)}
-                      className='text-blue-600 hover:text-blue-800 font-medium underline'
-                    >
-                      View Permissions
-                    </button>
-                  </td>
+      {paginatedUsers.length > 0 ? (
+        <>
+          <div className='overflow-x-auto border border-gray-200 rounded-lg'>
+            <table className='min-w-full bg-white divide-y divide-gray-200'>
+              <thead className='bg-gray-50'>
+                <tr>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Name</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Email</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Phone</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Role</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Luxe</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Gift Wraps</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className='bg-white divide-y divide-gray-200'>
+                {paginatedUsers.map((user) => (
+                  <tr key={user._id} className='hover:bg-gray-50 transition-colors'>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900'>{user.name || 'N/A'}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.email}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.mobile || 'N/A'}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm'>
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        user.role === 'admin' ? 'bg-red-100 text-red-700' : 
+                        user.role === 'staff' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.isLuxeMember ? 'Yes' : 'No'}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.giftWrapsLeft}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm'>
+                      <button 
+                        onClick={() => openPermissionsModal(user)}
+                        className='text-blue-600 hover:text-blue-800 font-medium underline'
+                      >
+                        View Permissions
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className='flex flex-wrap justify-center items-center gap-2 mt-8 mb-4'>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className='px-4 py-2 border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+              >
+                Previous
+              </button>
+              
+              <div className='flex gap-1'>
+                {[...Array(totalPages)].map((_, i) => {
+                  const pageNum = i + 1;
+                  // Only show first, last, and pages around current
+                  if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-10 h-10 border rounded-md text-sm font-bold transition-all ${currentPage === pageNum ? 'bg-black text-white border-black shadow-md scale-105' : 'border-gray-300 hover:bg-gray-50 text-gray-600'}`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  } else if (pageNum === currentPage - 3 || pageNum === currentPage + 3) {
+                    return <span key={pageNum} className='flex items-end px-1 text-gray-400'>...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className='px-4 py-2 border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <p className='p-4 text-gray-500'>No users found matching your search.</p>
       )}
