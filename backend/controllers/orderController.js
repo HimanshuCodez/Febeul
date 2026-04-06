@@ -808,7 +808,7 @@ const allOrders = async (req,res) => {
     try {
         
         const orders = await orderModel.find({})
-            .populate('userId', 'name email') // Populate user name and email
+            .populate('userId', 'name email isLuxeMember') // Populate user name, email and luxe status
             .populate('items.productId', 'name variations'); // Populate product name and variations
 
         res.json({success:true,orders})
@@ -860,7 +860,7 @@ const generateInvoice = async (req, res) => {
     try {
         const { orderId } = req.params;
         // Populate userId for email and items.productId for product details (especially price)
-        const order = await orderModel.findById(orderId).populate('userId', 'email');
+        const order = await orderModel.findById(orderId).populate('userId', 'email isLuxeMember');
 
         if (!order) {
             return res.json({ success: false, message: 'Order not found.' });

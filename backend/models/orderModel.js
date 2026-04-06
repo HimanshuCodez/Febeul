@@ -29,6 +29,7 @@ const orderSchema = new mongoose.Schema({
     date: {type: Number, required:true},
     couponCode: { type: String },
     couponDiscount: { type: Number, default: 0 },
+    isLuxeMemberAtTimeOfOrder: { type: Boolean, default: false },
     invoiceNumber: { type: Number },
     taxableValue: { type: Number, default: 0 },
     cgstAmount: { type: Number, default: 0 },

@@ -332,11 +332,11 @@ export default function CheckoutPage() {
     const discountedAmount = subtotal - totalProductDiscount - couponDiscount;
     const total = parseFloat((subtotal - totalProductDiscount + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
     
-    // GST Breakdown Calculation (Inclusive 5%)
+    // GST Breakdown Calculation (Inclusive 5%) - Now excludes shipping/cod
     const selectedAddr = user?.addresses?.[selectedAddress];
     const isDelhi = selectedAddr?.state?.trim().toLowerCase() === 'delhi';
-    const taxableValue = total / 1.05;
-    const totalGst = total - taxableValue;
+    const taxableValue = discountedAmount / 1.05;
+    const totalGst = discountedAmount - taxableValue;
     const cgst = totalGst / 2;
     const sgst = totalGst / 2;
     const igst = totalGst;

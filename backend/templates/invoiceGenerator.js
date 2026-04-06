@@ -105,6 +105,18 @@ const buildInvoicePDF = (order, res) => {
         doc.fillColor(primaryColor).fontSize(9).font('Helvetica-Bold').text('Billing Address:', 30, currentAddressY);
         doc.font('Helvetica').fontSize(8).fillColor(secondaryColor);
         doc.text(order.address.name, 30, doc.y + 2);
+
+        // Luxe Member Tag
+        if (order.isLuxeMemberAtTimeOfOrder || order.userId?.isLuxeMember) {
+            const tagX = 30;
+            const tagY = doc.y + 2;
+            doc.save();
+            doc.fillColor('#FFF8E1').rect(tagX, tagY, 70, 12).fill();
+            doc.fillColor('#FF8F00').fontSize(7).font('Helvetica-Bold').text('LUXE MEMBER', tagX + 6, tagY + 3);
+            doc.restore();
+            doc.moveDown(1.5);
+        }
+
         doc.text(`${order.address.address}`, 30, doc.y + 1, { width: colWidth - 20 });
         if (order.address.nearby) doc.text(`Nearby: ${order.address.nearby}`, 30, doc.y + 1);
         doc.text(`${order.address.city}, ${order.address.state} - ${order.address.zip}`, 30, doc.y + 1);
@@ -201,7 +213,11 @@ const buildInvoicePDF = (order, res) => {
         if (order.giftWrap?.price > 0) addTotalRow('Gift Wrap:', `INR ${order.giftWrap.price.toFixed(2)}`);
         
         // Tax breakdown
-        const totalTax = order.orderTotal - (order.taxableValue || (subtotal / 1.05));
+        const discountedSubtotal = subtotal - (order.couponDiscount || 0);
+        const calculatedTaxable = discountedSubtotal / 1.05;
+        const finalTaxableValue = order.taxableValue || calculatedTaxable;
+        const totalTax = discountedSubtotal - finalTaxableValue;
+        
         addTotalRow('Total Tax (GST):', `INR ${totalTax.toFixed(2)}`);
 
         doc.moveDown(0.5);

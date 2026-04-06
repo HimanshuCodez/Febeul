@@ -141,7 +141,7 @@ const AuthPage = () => {
 
     try {
       const url = isEmail ? 'https://febeul.onrender.com/api/otp/send-email-otp' : 'https://febeul.onrender.com/api/otp/send-otp';
-      const payload = isEmail ? { email: identifier } : { mobile: identifier };
+      const payload = isEmail ? { email: identifier, purpose: 'login' } : { mobile: identifier, purpose: 'login' };
       const response = await axios.post(url, payload);
 
       if (response.data.success) {
@@ -170,7 +170,7 @@ const AuthPage = () => {
   const sendSignupOtp = async () => {
     const email = getValues("email").toLowerCase();
     try {
-      const response = await axios.post('https://febeul.onrender.com/api/otp/send-email-otp', { email });
+      const response = await axios.post('https://febeul.onrender.com/api/otp/send-email-otp', { email, purpose: 'signup' });
       if (response.data.success) {
         toast.success(`OTP sent to ${email}`);
         setStep(2);
@@ -261,8 +261,8 @@ const AuthPage = () => {
                     {...register("email", {
                       required: "Email is required",
                       pattern: {
-                        value: /^\S+@\S+$/i,
-                        message: "Enter a valid email",
+                        value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                        message: "Please enter a valid email address",
                       },
                     })}
                     className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
@@ -291,8 +291,18 @@ const AuthPage = () => {
                     {...register("password", {
                       required: "Password is required",
                       minLength: {
-                        value: 6,
-                        message: "Password must be at least 6 characters",
+                        value: 8,
+                        message: "Password must be at least 8 characters",
+                      },
+                      validate: {
+                        hasUpperCase: (value) =>
+                          /[A-Z]/.test(value) || "At least one uppercase letter",
+                        hasLowerCase: (value) =>
+                          /[a-z]/.test(value) || "At least one lowercase letter",
+                        hasNumber: (value) =>
+                          /\d/.test(value) || "At least one number",
+                        hasSpecialChar: (value) =>
+                          /[!@#$%^&*(),.?":{}|<>]/.test(value) || "At least one special character",
                       },
                     })}
                     className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
@@ -378,10 +388,10 @@ const AuthPage = () => {
                         type="email"
                         placeholder="Email Address"
                         {...register("identifier", { 
-                          required: "Email is required",
+                          required: "Email or Mobile is required",
                           pattern: {
-                            value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                            message: "Please enter a valid email address"
+                            value: /^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|[0-9]{10})$/,
+                            message: "Please enter a valid email or 10-digit mobile number"
                           }
                         })}
                         className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"

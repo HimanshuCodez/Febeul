@@ -340,6 +340,13 @@ const ManageAddresses = ({ addresses, cardStyles }) => {
                         <p className="text-sm text-gray-600 ml-8">{addr.country} - {addr.zip}</p>
                         <p className="text-sm text-gray-600 ml-8 mt-1">Phone: {addr.phone}{addr.alternatePhone ? `, ${addr.alternatePhone}` : ''}</p>
                     </div>
+                    <button 
+                        onClick={() => navigate('/address', { state: { address: addr } })}
+                        className="text-pink-500 hover:text-pink-700 p-2"
+                        title="Edit Address"
+                    >
+                        <Edit size={18} />
+                    </button>
                     </div>
                 ))}
                 </div>

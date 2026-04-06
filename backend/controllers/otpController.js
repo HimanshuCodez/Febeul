@@ -11,7 +11,7 @@ const createToken = (id) => {
 
 const sendOTP = async (req, res) => {
     try {
-        const { mobile } = req.body;
+        const { mobile, purpose } = req.body;
         if (!mobile || !/^\d{10}$/.test(mobile)) {
             return res.json({ success: false, message: "Invalid mobile number" });
         }
@@ -21,18 +21,40 @@ const sendOTP = async (req, res) => {
 
         let user = await userModel.findOne({ mobile });
 
-        if (!user) {
-            // To prevent creating a new user for a mobile that might be associated with an email account
-            return res.json({ success: false, message: "User with this mobile number not found." });
+        if (purpose === 'signup') {
+            if (user && user.password && user.name !== 'Temporary OTP User') {
+                return res.json({ success: false, message: "User already registered. Please login." });
+            }
+        } else if (purpose === 'login') {
+            if (!user) {
+                return res.json({ success: false, message: "User not found. Please sign up." });
+            }
         }
 
-        user.otp = otp;
-        user.otp_expiry = otp_expiry;
-        await user.save();
+        if (!user && purpose === 'signup') {
+             const tempPassword = Math.random().toString(36).slice(-8); 
+             const hashedPassword = await bcrypt.hash(tempPassword, 10); 
+             user = new userModel({ 
+                 mobile,
+                 email: `temp_${mobile}@febeul.com`, // Temporary email for schema
+                 name: 'Temporary OTP User', 
+                 password: hashedPassword 
+             });
+        }
 
-        // Mock sending OTP
-        console.log(`OTP for ${mobile} is ${otp}`);
-        res.json({ success: true, message: "OTP sent successfully" });
+        if (user) {
+            user.otp = otp;
+            user.otp_expiry = otp_expiry;
+            if (user.name === 'Temporary OTP User') {
+                await user.save({ validateBeforeSave: false });
+            } else {
+                await user.save();
+            }
+            console.log(`OTP for ${mobile} is ${otp}`);
+            res.json({ success: true, message: "OTP sent successfully" });
+        } else {
+             res.json({ success: false, message: "User not found." });
+        }
 
     } catch (error) {
         console.log(error);
@@ -42,7 +64,7 @@ const sendOTP = async (req, res) => {
 
 const sendEmailOTP = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, purpose } = req.body;
         if (!email) {
             return res.json({ success: false, message: "Email is required" });
         }
@@ -51,13 +73,23 @@ const sendEmailOTP = async (req, res) => {
         const otp_expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
         let user = await userModel.findOne({ email });
-        const isNewUser = !user; // Flag to identify if it's a new user for OTP
+
+        if (purpose === 'signup') {
+            // Check if user exists and is fully registered
+            if (user && (user.password || user.googleId) && user.name !== 'Temporary OTP User') {
+                return res.json({ success: false, message: "User already exists with this email. Please login." });
+            }
+        } else if (purpose === 'login') {
+             if (!user) {
+                return res.json({ success: false, message: "User not found. Please sign up." });
+             }
+        }
+
+        const isNewUser = !user; 
 
         if (isNewUser) {
-            // If user doesn't exist, create a temporary one for OTP verification during signup
-            // Provide placeholder name and hashed password to satisfy schema validation
-            const tempPassword = Math.random().toString(36).slice(-8); // Generate a random string
-            const hashedPassword = await bcrypt.hash(tempPassword, 10); // Hash it with 10 rounds
+            const tempPassword = Math.random().toString(36).slice(-8); 
+            const hashedPassword = await bcrypt.hash(tempPassword, 10); 
             user = new userModel({ 
                 email,
                 name: 'Temporary OTP User', 
@@ -68,8 +100,7 @@ const sendEmailOTP = async (req, res) => {
         user.otp = otp;
         user.otp_expiry = otp_expiry;
         
-        // Conditionally save: bypass validation for new temporary users
-        if (isNewUser) {
+        if (user.name === 'Temporary OTP User') {
             await user.save({ validateBeforeSave: false });
         } else {
             await user.save();

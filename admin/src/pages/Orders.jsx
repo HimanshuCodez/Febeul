@@ -161,23 +161,24 @@ const Orders = ({ token }) => {
             {paginatedOrders.map((order) => (
               <div className='bg-white rounded-xl shadow-md overflow-hidden border border-gray-100' key={order._id}>
                 {/* Order Summary Header */}
-                <div className='flex flex-col lg:flex-row justify-between items-center p-5 bg-gray-50 border-b border-gray-100'>
-                  <div className="flex items-center gap-4 mb-3 lg:mb-0">
-                    <Package size={24} className="text-pink-500" />
+                <div className='flex flex-col lg:flex-row justify-between items-start p-5 bg-gray-50 border-b border-gray-100'>
+                  <div className="flex items-start gap-4 mb-3 lg:mb-0">
+                    <Package size={24} className="text-pink-500 mt-1" />
                     <div>
                       <p className='text-sm font-medium text-gray-500'>Order ID</p>
                       <p className='text-md font-semibold text-gray-800'>#{order._id}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 mb-3 lg:mb-0">
-                    <User size={24} className="text-pink-500" />
+                  <div className="flex items-start gap-4 mb-3 lg:mb-0">
+                    <User size={24} className="text-pink-500 mt-1" />
                     <div>
                       <p className='text-sm font-medium text-gray-500'>Customer</p>
                       <div className='flex flex-col'>
-                        <p className='text-md font-semibold text-gray-800'>{order.userId?.name || order.userId?.email || 'N/A'}</p>
+                        <p className='text-md font-semibold text-gray-800'>{order.userId?.name || 'N/A'}</p>
+                        <p className='text-xs text-gray-500'>{order.userId?.email || 'N/A'}</p>
                         {order.userId?.isLuxeMember && (
-                          <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit mt-0.5'>
+                          <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit mt-1'>
                             <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
                             Luxe Member
                           </span>
@@ -185,24 +186,24 @@ const Orders = ({ token }) => {
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-4 mb-3 lg:mb-0">
-                    <Calendar size={24} className="text-pink-500" />
+                  <div className="flex items-start gap-4 mb-3 lg:mb-0">
+                    <Calendar size={24} className="text-pink-500 mt-1" />
                     <div>
                       <p className='text-sm font-medium text-gray-500'>Order Date</p>
                       <p className='text-md font-semibold text-gray-800'>{new Date(order.date).toLocaleDateString()}</p>
+                      <p className='text-xs text-gray-500'>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <DollarSign size={24} className="text-pink-500" />
+                  <div className="flex items-start gap-4">
+                    <DollarSign size={24} className="text-pink-500 mt-1" />
                     <div>
                       <p className='text-sm font-medium text-gray-500'>Total Amount</p>
                       <p className='text-md font-semibold text-gray-800'>{currency}{order.orderTotal.toFixed(2)}</p>
                     </div>
                   </div>
 
-                  <div className='flex items-center gap-3'>
+                  <div className='flex items-center gap-3 mt-4 lg:mt-0'>
                     <button
                       onClick={() => downloadInvoice(order._id)}
                       className="p-2 rounded-full bg-white hover:bg-gray-100 transition-colors text-pink-500"
@@ -250,20 +251,19 @@ const Orders = ({ token }) => {
                       {/* Customer Details */}
                       <div>
                         <p className='font-semibold text-gray-700 mb-3 flex items-center gap-2'><User size={16}/> Customer Info</p>
-                        <div className='space-y-1 text-sm text-gray-600'>
-                          <div className='flex items-center gap-2'>
-                            <User size={14}/> 
-                            <span>{order.userId?.name || 'N/A'}</span>
+                        <div className='space-y-2 text-sm text-gray-600'>
+                          <div className='flex flex-col'>
+                            <p className='font-bold text-gray-800 text-base'>{order.userId?.name || 'N/A'}</p>
+                            <p className='text-xs text-gray-500 flex items-center gap-1'><Mail size={12}/> {order.userId?.email || 'N/A'}</p>
                             {order.userId?.isLuxeMember && (
-                              <span className='ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider'>
-                                Luxe
+                              <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit mt-1.5 shadow-sm'>
+                                <span className='w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5 animate-pulse'></span>
+                                Luxe Member
                               </span>
                             )}
                           </div>
-                          <p className='flex items-center gap-2'><Mail size={14}/> {order.userId?.email || 'N/A'}</p>
-                          <p className='flex items-center gap-2'><Phone size={14}/> {order.address.phone}</p>
-                        </div>
-                        <p className='font-semibold text-gray-700 mt-4 mb-2 flex items-center gap-2'><MapPin size={16}/> Shipping Address</p>
+                          <p className='flex items-center gap-2 mt-2'><Phone size={14} className="text-gray-400"/> {order.address.phone}</p>
+                        </div>                        <p className='font-semibold text-gray-700 mt-4 mb-2 flex items-center gap-2'><MapPin size={16}/> Shipping Address</p>
                         <address className='text-xs text-gray-600 not-italic space-y-1'>
                           <div className="flex items-center gap-2">
                             <p className="font-bold">{order.address.name}</p>
