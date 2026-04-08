@@ -18,6 +18,9 @@ const List = ({ token }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Reduced for visibility
 
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+
   const fetchList = async () => {
     try {
 
@@ -136,8 +139,8 @@ const List = ({ token }) => {
     }));
 
   const columnLayout = role !== 'staff' 
-    ? "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_60px_40px]" 
-    : "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_60px]";
+    ? "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_60px_40px]" 
+    : "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_60px]";
 
   return (
     <>
@@ -188,6 +191,7 @@ const List = ({ token }) => {
           <p>Price</p>
           <p className='hidden md:block'>MRP</p>
           <p className='hidden md:block'>Stock</p>
+          <p className='hidden lg:block'>Listed By</p>
           <p className='text-center'>Edit</p>
           {role !== 'staff' && <p className='text-center'>Action</p>}
         </div>
@@ -217,6 +221,20 @@ const List = ({ token }) => {
                 <p className={`hidden md:block text-xs ${calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
                   {calculateTotalStock(item) === 0 ? 'Out' : calculateTotalStock(item)}
                 </p>
+                <div onClick={(e) => e.stopPropagation()} className='hidden lg:block'>
+                  {item.creator?.role === 'staff' ? (
+                    <p 
+                      onClick={() => { setSelectedStaff(item.creator); setShowStaffModal(true); }}
+                      className='text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold uppercase cursor-pointer hover:bg-blue-200 inline-block'
+                    >
+                      Staff Listed
+                    </p>
+                  ) : (
+                    <p className='text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-bold uppercase inline-block'>
+                      Admin
+                    </p>
+                  )}
+                </div>
                 <div onClick={(e) => e.stopPropagation()} className='text-center'>
                   <Link to={`/update/${item._id}`} className='text-blue-600 hover:text-blue-800 font-bold text-xs'>Edit</Link>
                 </div>
@@ -226,6 +244,7 @@ const List = ({ token }) => {
                   </div>
                 )}
               </div>
+
 
               {/* Accordion Content: Variations */}
               {expandedProductId === item._id && (
@@ -335,6 +354,36 @@ const List = ({ token }) => {
                 className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium'
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Details Modal */}
+      {showStaffModal && selectedStaff && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4'>
+          <div className='bg-white p-6 rounded-lg shadow-xl max-w-sm w-full'>
+            <div className='flex justify-between items-center mb-4'>
+              <h2 className='text-xl font-bold text-gray-800'>Staff Details</h2>
+              <button onClick={() => setShowStaffModal(false)} className='text-gray-500 hover:text-gray-700 font-bold text-xl'>×</button>
+            </div>
+            <div className='space-y-3'>
+              <div className='flex flex-col'>
+                <span className='text-xs font-semibold text-gray-500 uppercase'>Name</span>
+                <span className='text-sm font-medium text-gray-800'>{selectedStaff.name || 'N/A'}</span>
+              </div>
+              <div className='flex flex-col'>
+                <span className='text-xs font-semibold text-gray-500 uppercase'>Email</span>
+                <span className='text-sm font-medium text-gray-800'>{selectedStaff.email}</span>
+              </div>
+            </div>
+            <div className='mt-6 flex justify-end'>
+              <button
+                onClick={() => setShowStaffModal(false)}
+                className='px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium text-sm'
+              >
+                Close
               </button>
             </div>
           </div>

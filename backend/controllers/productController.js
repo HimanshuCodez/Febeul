@@ -49,7 +49,13 @@ const addProduct = async (req, res) => {
                         bestseller: bestseller === "true" ? true : false,
                         isLuxePrive: isLuxePrive === "true" ? true : false,
                         variations: processedVariations,
-                        date: Date.now(),            styleCode,
+                        date: Date.now(),
+                        creator: {
+                            name: req.userName || 'Admin',
+                            email: req.userEmail || '',
+                            role: req.role || 'admin'
+                        },
+            styleCode,
             countryOfOrigin,
             manufacturer,
             packer,

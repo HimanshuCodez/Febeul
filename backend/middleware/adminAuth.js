@@ -9,9 +9,12 @@ const adminAuth = async (req, res, next) => {
         const token_decode = jwt.verify(token, process.env.JWT_SECRET);
         
         // 1. Check Primary Admin (ENV)
-        const adminCredentials = process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD;
-        if (token_decode === adminCredentials) {
+        const adminEmailEnv = process.env.ADMIN_EMAIL;
+        const adminPassEnv = process.env.ADMIN_PASSWORD;
+        if (token_decode === (adminEmailEnv + adminPassEnv)) {
             req.role = 'admin';
+            req.userEmail = adminEmailEnv;
+            req.userName = 'Primary Admin';
             return next();
         }
 
@@ -22,12 +25,16 @@ const adminAuth = async (req, res, next) => {
         for (let i = 0; i < staffEmails.length; i++) {
             if (token_decode === (staffEmails[i] + staffPasswords[i])) {
                 isStaffEnv = true;
+                req.userEmail = staffEmails[i];
+                req.userName = 'Staff Member (ENV)';
                 break;
             }
         }
         // Legacy single staff check
         if (!isStaffEnv && token_decode === (process.env.STAFF_EMAIL + process.env.STAFF_PASSWORD)) {
             isStaffEnv = true;
+            req.userEmail = process.env.STAFF_EMAIL;
+            req.userName = 'Staff (Legacy ENV)';
         }
 
         if (isStaffEnv) {
@@ -44,6 +51,8 @@ const adminAuth = async (req, res, next) => {
             const user = await userModel.findById(token_decode);
             if (user && (user.role === 'staff' || user.role === 'admin')) {
                 req.role = user.role;
+                req.userEmail = user.email;
+                req.userName = user.name;
                 req.permissions = user.permissions;
                 
                 // If they are database-staff, still restrict /api/admin if that's the policy

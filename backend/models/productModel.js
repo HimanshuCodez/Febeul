@@ -41,7 +41,12 @@ const productSchema = new mongoose.Schema({
     keywords: { type: [String], default: [] },
     averageRating: { type: Number, default: 0 },
     numOfReviews: { type: Number, default: 0 },
-    isLuxePrive: { type: Boolean, default: false }
+    isLuxePrive: { type: Boolean, default: false },
+    creator: {
+        name: { type: String },
+        email: { type: String },
+        role: { type: String }
+    }
 })
 
 const productModel  = mongoose.models.product || mongoose.model("product",productSchema);
