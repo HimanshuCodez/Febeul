@@ -93,9 +93,7 @@ export default function OrderSuccess() {
   // --- Replace mock data with real data ---
     const orderNumber = order?._id;
   
-    const estimatedDelivery = order && order.date 
-    ? "Jan " + new Date(order.date).getDate() + "-" + new Date(new Date(order.date).setDate(new Date(order.date).getDate() + 5)).getDate() + ", " + new Date(order.date).getFullYear()
-    : 'Not available'; // Simple estimation
+    const estimatedDelivery = "5 to 7 days";
   
   // Use pricing details if available, otherwise calculate
   const subtotal = pricingDetails?.subtotal ?? order.productAmount ?? 0;

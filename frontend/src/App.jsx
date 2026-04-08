@@ -43,6 +43,7 @@ import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
 import MaintenancePage from "./Pages/Maintenance";
 import SwipingMessages from "./components/SwippingMsgs";
 import FebeulLoader from "./components/Loader";
+import ScrollToTop from "./components/ScrollToTop";
 
 const AppContent = () => {
   const location = useLocation();
@@ -52,6 +53,7 @@ const AppContent = () => {
 
   return (
     <div>
+      <ScrollToTop />
       <Toaster />
       <SwipingMessages className="mobile-only"/>
       {showHeaderFooter && <Header />}

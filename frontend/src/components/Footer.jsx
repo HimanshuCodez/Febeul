@@ -51,11 +51,11 @@ const Footer = () => {
               </h3>
               <ul className="space-y-2 text-sm">
                 <li><Link to="/" className="hover:text-white">Home</Link></li>
-                <li><Link to="/explore" className="hover:text-white">Explore</Link></li>
-                <li><Link to="/babydoll" className="hover:text-white">Babydoll</Link></li>
-                <li><Link to="/lingerie" className="hover:text-white">Lingerie</Link></li>
-                <li><Link to="/pajamas" className="hover:text-white">Pajamas</Link></li>
-                <li><Link to="/nighty" className="hover:text-white">Nighty</Link></li>
+                
+                <li><Link to="/products/babydoll/type/above-knee-b-doll" className="hover:text-white">Babydoll</Link></li>
+                <li><Link to="/products/lingerie/type/teddy-choker-lingz" className="hover:text-white">Lingerie</Link></li>
+                <li><Link to="/products/pajamas" className="hover:text-white">Pajamas</Link></li>
+                <li><Link to="/products/nighty/type/silk-satin" className="hover:text-white">Nighty</Link></li>
                 <li><Link to="/bestsellers" className="hover:text-white">Bestseller</Link></li>
               </ul>
             </div>
@@ -66,12 +66,12 @@ const Footer = () => {
                 SUPPORT
               </h3>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/order-tracking" target="_blank" rel="noopener noreferrer" className="hover:text-white">Order Tracking</Link></li>
+                <li><Link to="/Profile" state={{ activeTab: "orders" }} className="hover:text-white">My Orders</Link></li>
                 <li><Link to="/ReturnRefund" target="_blank" rel="noopener noreferrer" className="hover:text-white">Return & Refund</Link></li>
                 <li><Link to="/GrievanceRedressals" target="_blank" rel="noopener noreferrer" className="hover:text-white">Grievance Redressals</Link></li>
                 <li><Link to="/PaymentPolicy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Payment Policy</Link></li>
                 <li><Link to="/Faq" target="_blank" rel="noopener noreferrer" className="hover:text-white">FAQs</Link></li>
-                <li><Link to="/contact" target="_blank" rel="noopener noreferrer" className="hover:text-white">Contact Us</Link></li>
+                <li><Link to="/support" target="_blank" rel="noopener noreferrer" className="hover:text-white">Contact Us</Link></li>
               </ul>
             </div>
 

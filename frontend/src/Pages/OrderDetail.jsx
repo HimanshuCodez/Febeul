@@ -484,7 +484,7 @@ export default function OrderDetailPage() {
             >
               <div className="flex items-center text-[#e8767a]">
                 <FaCalendarAlt className="mr-2" />
-                <p className="font-semibold">Estimated Delivery: {estimatedDelivery}</p>
+                <p className="font-semibold">{order.deliveredAt ? 'Delivered on' : 'Expected Delivery'}: {estimatedDelivery}</p>
               </div>
             </motion.div>
           </motion.div>
