@@ -8,46 +8,6 @@ import { Save, ArrowLeft, Search, ChevronDown } from 'lucide-react';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 // Hardcoded data for Indian states and cities (for demonstration)
-const statesAndCities = {
-    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool"],
-    "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro", "Pasighat"],
-    "Assam": ["Guwahati", "Dibrugarh", "Silchar", "Jorhat"],
-    "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur"],
-    "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba"],
-    "Goa": ["Panaji", "Margao", "Vasco da Gama"],
-    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar"],
-    "Haryana": ["Faridabad", "Gurgaon", "Panipat", "Ambala"],
-    "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala", "Solan"],
-    "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro"],
-    "Karnataka": ["Bangalore", "Mysore", "Hubli", "Mangalore", "Belgaum"],
-    "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur"],
-    "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain"],
-    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
-    "Manipur": ["Imphal", "Churachandpur"],
-    "Meghalaya": ["Shillong", "Tura"],
-    "Mizoram": ["Aizawl", "Lunglei"],
-    "Nagaland": ["Kohima", "Dimapur"],
-    "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur"],
-    "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala"],
-    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner"],
-    "Sikkim": ["Gangtok", "Namchi"],
-    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem"],
-    "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar"],
-    "Tripura": ["Agartala", "Udaipur"],
-    "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Varanasi", "Meerut", "Noida"],
-    "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani"],
-    "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri"],
-    "Delhi": ["New Delhi", "North Delhi", "South Delhi", "East Delhi", "West Delhi"],
-    "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla"],
-    "Ladakh": ["Leh", "Kargil"],
-    "Puducherry": ["Puducherry", "Karaikal"],
-    "Chandigarh": ["Chandigarh"],
-    "Andaman and Nicobar Islands": ["Port Blair"],
-    "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Silvassa"],
-    "Lakshadweep": ["Kavaratti"]
-};
-
-
 const countries = [
     "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
     "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
@@ -226,18 +186,12 @@ const Address = () => {
                                 <input 
                                     type="text" 
                                     name="state"
-                                    list="states-list"
                                     placeholder="State/Province" 
                                     value={address.state} 
                                     onChange={handleChange} 
                                     required 
                                     className="form-input" 
                                 />
-                                <datalist id="states-list">
-                                    {Object.keys(statesAndCities).map((stateName) => (
-                                        <option key={stateName} value={stateName} />
-                                    ))}
-                                </datalist>
                             </div>
 
                             {/* City Selection */}
@@ -245,18 +199,12 @@ const Address = () => {
                                 <input 
                                     type="text" 
                                     name="city"
-                                    list="cities-list"
                                     placeholder="City" 
                                     value={address.city} 
                                     onChange={handleChange} 
                                     required 
                                     className="form-input" 
                                 />
-                                <datalist id="cities-list">
-                                    {address.state && statesAndCities[address.state]?.map((cityName) => (
-                                        <option key={cityName} value={cityName} />
-                                    ))}
-                                </datalist>
                             </div>
                         </div>
 

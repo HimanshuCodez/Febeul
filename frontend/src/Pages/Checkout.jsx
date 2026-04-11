@@ -23,45 +23,6 @@ import CouponShows from '../components/CouponShows';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const statesAndCities = {
-  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool"],
-  "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro", "Pasighat"],
-  "Assam": ["Guwahati", "Dibrugarh", "Silchar", "Jorhat"],
-  "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur"],
-  "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba"],
-  "Goa": ["Panaji", "Margao", "Vasco da Gama"],
-  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar"],
-  "Haryana": ["Faridabad", "Gurgaon", "Panipat", "Ambala"],
-  "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala", "Solan"],
-  "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro"],
-  "Karnataka": ["Bangalore", "Mysore", "Hubli", "Mangalore", "Belgaum"],
-  "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur"],
-  "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain"],
-  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
-  "Manipur": ["Imphal", "Churachandpur"],
-  "Meghalaya": ["Shillong", "Tura"],
-  "Mizoram": ["Aizawl", "Lunglei"],
-  "Nagaland": ["Kohima", "Dimapur"],
-  "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur"],
-  "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala"],
-  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner"],
-  "Sikkim": ["Gangtok", "Namchi"],
-  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem"],
-  "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar"],
-  "Tripura": ["Agartala", "Udaipur"],
-  "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Varanasi", "Meerut", "Noida"],
-  "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani"],
-  "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri"],
-  "Delhi": ["New Delhi", "North Delhi", "South Delhi", "East Delhi", "West Delhi"],
-  "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla"],
-  "Ladakh": ["Leh", "Kargil"],
-  "Puducherry": ["Puducherry", "Karaikal"],
-  "Chandigarh": ["Chandigarh"],
-  "Andaman and Nicobar Islands": ["Port Blair"],
-  "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Silvassa"],
-  "Lakshadweep": ["Kavaratti"]
-};
-
 const countries = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
   "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
@@ -601,40 +562,28 @@ export default function CheckoutPage() {
                         <input type="text" placeholder="Nearby Landmark (Optional)" value={addressLandmark} onChange={e => setAddressLandmark(e.target.value)} className="w-full p-2 border rounded" />
                         
                         <div className="grid grid-cols-2 gap-4 mt-2">
-                            {/* State Input/Select */}
+                            {/* State Input */}
                             <div className="relative">
                                 <input 
                                     type="text" 
-                                    list="states-list"
                                     placeholder="State" 
                                     value={addressState} 
                                     onChange={e => { setAddressState(e.target.value); setAddressCity(''); }} 
                                     required 
                                     className="w-full p-2 border rounded" 
                                 />
-                                <datalist id="states-list">
-                                    {Object.keys(statesAndCities).map((stateName) => (
-                                        <option key={stateName} value={stateName} />
-                                    ))}
-                                </datalist>
                             </div>
 
-                            {/* City Input/Select */}
+                            {/* City Input */}
                             <div className="relative">
                                 <input 
                                     type="text" 
-                                    list="cities-list"
                                     placeholder="City" 
                                     value={addressCity} 
                                     onChange={e => setAddressCity(e.target.value)} 
                                     required 
                                     className="w-full p-2 border rounded" 
                                 />
-                                <datalist id="cities-list">
-                                    {addressState && statesAndCities[addressState]?.map((cityName) => (
-                                        <option key={cityName} value={cityName} />
-                                    ))}
-                                </datalist>
                             </div>
                         </div>
 
