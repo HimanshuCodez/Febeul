@@ -242,7 +242,7 @@ const buildInvoicePDF = (order, res) => {
         // TERMS & FOOTER
         // ===================================
         
-        const footerY = doc.page.height - 85;
+        const footerY = doc.page.height - 105;
         
         doc.fontSize(8).font('Helvetica-Bold').fillColor(primaryColor).text('Terms & Conditions:', 30, footerY);
         doc.fontSize(7).font('Helvetica').fillColor(secondaryColor);
@@ -253,9 +253,7 @@ const buildInvoicePDF = (order, res) => {
         doc.strokeColor(borderColor).lineWidth(0.5).moveTo(30, footerY + 45).lineTo(doc.page.width - 30, footerY + 45).stroke();
         
         doc.fontSize(9).font('Helvetica-Bold').fillColor(primaryColor)
-           .text('Thank you for shopping with FEBEUL!', 30, footerY + 55, { align: 'center', width: doc.page.width - 60 });
-        doc.fontSize(8).font('Helvetica').fillColor(secondaryColor)
-           .text('support@febeul.com | www.febeul.com', 30, doc.y + 2, { align: 'center', width: doc.page.width - 60 });
+           .text('Thank you for shopping with FEBEUL! | support@febeul.com | www.febeul.com', 30, footerY + 55, { align: 'center', width: doc.page.width - 60 });
 
     } catch (pdfGenError) {
         console.error("Error during PDF generation:", pdfGenError);
