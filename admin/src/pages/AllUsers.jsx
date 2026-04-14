@@ -189,7 +189,6 @@ const AllUsers = ({ token }) => {
               >
                 <option value="user">User</option>
                 <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
               </select>
             </div>
 
