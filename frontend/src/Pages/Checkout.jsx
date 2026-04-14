@@ -81,6 +81,9 @@ export default function CheckoutPage() {
   const [addressAlternatePhone, setAddressAlternatePhone] = useState('');
   const [addressState, setAddressState] = useState('');
   const [addressType, setAddressType] = useState('Home');
+  const [saturdayDelivery, setSaturdayDelivery] = useState(true);
+  const [sundayDelivery, setSundayDelivery] = useState(true);
+  const [isWeekendAccordionOpen, setIsWeekendAccordionOpen] = useState(false);
   const [isPincodeLoading, setPincodeLoading] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
 
@@ -202,6 +205,8 @@ export default function CheckoutPage() {
     setAddressPhone('');
     setAddressAlternatePhone('');
     setAddressType('Home');
+    setSaturdayDelivery(true);
+    setSundayDelivery(true);
     setEditingAddressId(null);
   }
 
@@ -217,6 +222,8 @@ export default function CheckoutPage() {
     setAddressPhone(addr.phone);
     setAddressAlternatePhone(addr.alternatePhone || '');
     setAddressType(addr.addressType || 'Home');
+    setSaturdayDelivery(addr.saturdayDelivery !== undefined ? addr.saturdayDelivery : true);
+    setSundayDelivery(addr.sundayDelivery !== undefined ? addr.sundayDelivery : true);
     setEditingAddressId(addr._id);
     setShowAddressForm(true);
   }
@@ -234,7 +241,9 @@ export default function CheckoutPage() {
         country: addressCountry, 
         phone: addressPhone,
         alternatePhone: addressAlternatePhone,
-        addressType: addressType
+        addressType: addressType,
+        saturdayDelivery,
+        sundayDelivery
     };
 
     try {
@@ -652,11 +661,71 @@ export default function CheckoutPage() {
                                                 ? 'bg-[#e8767a] border-[#e8767a] text-white' 
                                                 : 'bg-white border-gray-300 text-gray-700 hover:border-[#e8767a]'
                                         }`}>
-                                            {type === 'Home' ? 'House' : type}
+                                            {type === 'Home' ? 'House/Apartment' : type}
                                         </div>
                                     </label>
                                 ))}
                             </div>
+                        </div>
+
+                        <div className="mt-4 border rounded-lg overflow-hidden">
+                            <button 
+                                type="button"
+                                onClick={() => setIsWeekendAccordionOpen(!isWeekendAccordionOpen)}
+                                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+                            >
+                                <div className="text-left">
+                                    <label className="block text-sm font-bold text-gray-700">Weekend Deliveries</label>
+                                    <p className="text-[10px] text-gray-500">Can you receive deliveries at this address on weekends?</p>
+                                </div>
+                                <FaChevronDown size={14} className={`text-gray-400 transition-transform ${isWeekendAccordionOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            
+                            {isWeekendAccordionOpen && (
+                                <div className="p-3 bg-white border-t space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex items-center justify-between p-2.5 border rounded-lg bg-gray-50/50">
+                                            <span className="text-xs font-medium text-gray-700">Saturdays</span>
+                                            <div className="flex bg-white rounded-md border p-1 shadow-sm">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setSaturdayDelivery(true)}
+                                                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${saturdayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    YES
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setSaturdayDelivery(false)}
+                                                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${!saturdayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    NO
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-2.5 border rounded-lg bg-gray-50/50">
+                                            <span className="text-xs font-medium text-gray-700">Sundays</span>
+                                            <div className="flex bg-white rounded-md border p-1 shadow-sm">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setSundayDelivery(true)}
+                                                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${sundayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    YES
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setSundayDelivery(false)}
+                                                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${!sundayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    NO
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <button type="submit" className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4">{editingAddressId ? 'Update Address' : 'Save Address'}</button>
@@ -680,7 +749,7 @@ export default function CheckoutPage() {
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-bold text-gray-800">{addr.name}</p>
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border">
-                                {addr.addressType === 'Home' ? 'House' : addr.addressType}
+                                {addr.addressType === 'Home' ? 'House/Apartment' : addr.addressType}
                             </span>
                           </div>
                           <p className="text-gray-600 text-sm">{addr.address}, {addr.locality}</p>
@@ -730,9 +799,8 @@ export default function CheckoutPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <p className="font-bold text-gray-800">{addresses[selectedAddress].name}</p>
                     <span className="px-2 py-0.5 bg-white text-[#e8767a] text-[10px] rounded-full uppercase font-bold border border-[#e8767a]">
-                        {addresses[selectedAddress].addressType === 'Home' ? 'House' : addresses[selectedAddress].addressType}
-                    </span>
-                  </div>
+                        {addresses[selectedAddress].addressType === 'Home' ? 'House/Apartment' : addresses[selectedAddress].addressType}
+                    </span>                  </div>
                   <p className="text-gray-600 text-sm">{addresses[selectedAddress].address}, {addresses[selectedAddress].locality}</p>
                   {addresses[selectedAddress].landmark && <p className="text-gray-500 text-xs italic">Landmark: {addresses[selectedAddress].landmark}</p>}
                   <p className="text-gray-600 text-sm">{addresses[selectedAddress].city}, {addresses[selectedAddress].state}</p>

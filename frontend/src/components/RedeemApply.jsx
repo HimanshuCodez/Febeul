@@ -286,9 +286,11 @@ export default function RedeemPopup({ open, handleClose, coupon }) {
                 }}>
                   {coupon.discountType === 'percentage' ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue} OFF`}
                 </p>
-                <p style={{ fontSize: 11, color: "#c98a8b", marginTop: 4 }}>
-                  {coupon.description || 'Enjoy your special discount!'}
-                </p>
+                {coupon.description && (
+                  <p style={{ fontSize: 11, color: "#c98a8b", marginTop: 4 }}>
+                    {coupon.description}
+                  </p>
+                )}
               </div>
             </div>
 

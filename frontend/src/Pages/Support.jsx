@@ -16,7 +16,7 @@ const Support = () => {
     const isSendingRef = useRef(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [searchTerm, setSearchTerm] = useState(""); // New state for search
-    const [formData, setFormData] = useState({ subject: "", description: "", contactInfo: "", message: "", images: [] });
+    const [formData, setFormData] = useState({ subject: "", message: "", images: [] });
     const [currentMessage, setCurrentMessage] = useState(''); // New state for message input
     const [currentAttachments, setCurrentAttachments] = useState([]); // New state for chat attachments
     const fileInputRef = useRef(null); // Ref for file input
@@ -155,8 +155,6 @@ const Support = () => {
         setIsSubmitting(true);
         const submitFormData = new FormData();
         submitFormData.append("subject", formData.subject);
-        submitFormData.append("description", formData.description);
-        submitFormData.append("contactInfo", formData.contactInfo);
         submitFormData.append("message", formData.message);
         formData.images.forEach((image) => {
             submitFormData.append("images", image);
@@ -238,8 +236,6 @@ const Support = () => {
                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-8">
                             <form onSubmit={handleSubmit} className="space-y-4 p-6 bg-gray-50 rounded-lg">
                                 <FormInput label="Subject" name="subject" value={formData.subject} onChange={handleChange} placeholder="e.g., Issue with my order" required />
-                                <FormInput label="Description" name="description" value={formData.description} onChange={handleChange} placeholder="A brief summary of your issue" required />
-                                <FormInput label="Enter Email or Phone Number" name="contactInfo" value={formData.contactInfo} onChange={handleChange} placeholder="Enter email or phone number" required />
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                                     <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Please provide all the details here..." rows="5" required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-pink-500 focus:border-pink-500 sm:text-sm"></textarea>
@@ -315,7 +311,6 @@ const Support = () => {
                         </div>
                         <div className="p-6 space-y-4">
                             <div><p><strong>Subject:</strong> {selectedTicket.subject}</p></div>
-                            <div><p><strong>Description:</strong> {selectedTicket.description}</p></div>
                             <div className='space-y-2'>
                                 {selectedTicket.messages.map((msg, index) => (
                                     <div key={index} className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-100 ml-auto' : 'bg-gray-100'} max-w-[80%] flex flex-col`}>

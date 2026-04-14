@@ -52,7 +52,7 @@ const buildInvoicePDF = (order, res) => {
            .font('Helvetica')
            .text('(Original for Recipient)', 150, 55, { align: 'right' });
 
-        doc.moveDown(2);
+        doc.moveDown(1);
         const headerBottom = doc.y;
 
         // ===================================
@@ -64,7 +64,7 @@ const buildInvoicePDF = (order, res) => {
         // Left: Sold By
         doc.fillColor(primaryColor).fontSize(9).font('Helvetica-Bold').text('Sold By:', 30, headerBottom);
         doc.font('Helvetica').fontSize(8).fillColor(secondaryColor);
-        doc.text('FEBEUL', 30, doc.y + 2);
+        doc.text('FEBEUL', 30, doc.y + 1);
         doc.text('H. no 89, Blk-D1 Bhalswa Resettlement Colony,', 30, doc.y + 1);
         doc.text('New Swaroop Nagar, Near Govt. Dispensary, Delhi - 110042', 30, doc.y + 1);
         doc.text('GSTIN: 07BGQPY8326L1ZC', 30, doc.y + 1);
@@ -83,13 +83,13 @@ const buildInvoicePDF = (order, res) => {
             doc.font('Helvetica').fillColor(secondaryColor).text(value, rightColX + 80, y);
         };
 
-        drawInfoRow('Invoice No:', `#INV-${sequentialInvoice}`, headerBottom + 12);
+        drawInfoRow('Invoice No:', `#INV-${sequentialInvoice}`, headerBottom + 10);
         drawInfoRow('Invoice Date:', invoiceDate, doc.y + 1);
         drawInfoRow('Order ID:', `#${order._id.toString().toUpperCase()}`, doc.y + 1);
         drawInfoRow('Order Date:', invoiceDate, doc.y + 1);
         drawInfoRow('Payment Method:', order.paymentMethod, doc.y + 1);
 
-        doc.moveDown(2);
+        doc.moveDown(1);
         const addressY = doc.y;
 
         // ===================================
@@ -97,24 +97,24 @@ const buildInvoicePDF = (order, res) => {
         // ===================================
         
         doc.strokeColor(borderColor).lineWidth(0.5).moveTo(30, addressY).lineTo(doc.page.width - 30, addressY).stroke();
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         const currentAddressY = doc.y;
         
         // Billing
         doc.fillColor(primaryColor).fontSize(9).font('Helvetica-Bold').text('Billing Address:', 30, currentAddressY);
         doc.font('Helvetica').fontSize(8).fillColor(secondaryColor);
-        doc.text(order.address.name, 30, doc.y + 2);
+        doc.text(order.address.name, 30, doc.y + 1);
 
         // Luxe Member Tag
         if (order.isLuxeMemberAtTimeOfOrder || order.userId?.isLuxeMember) {
             const tagX = 30;
-            const tagY = doc.y + 2;
+            const tagY = doc.y + 1;
             doc.save();
-            doc.fillColor('#FFF8E1').rect(tagX, tagY, 70, 12).fill();
-            doc.fillColor('#FF8F00').fontSize(7).font('Helvetica-Bold').text('LUXE MEMBER', tagX + 6, tagY + 3);
+            doc.fillColor('#FFF8E1').rect(tagX, tagY, 70, 10).fill();
+            doc.fillColor('#FF8F00').fontSize(7).font('Helvetica-Bold').text('LUXE MEMBER', tagX + 6, tagY + 2);
             doc.restore();
-            doc.moveDown(1.5);
+            doc.moveDown(1.2);
         }
 
         doc.text(`${order.address.address}`, 30, doc.y + 1, { width: colWidth - 20 });
@@ -125,13 +125,23 @@ const buildInvoicePDF = (order, res) => {
         // Shipping
         doc.fillColor(primaryColor).fontSize(9).font('Helvetica-Bold').text('Shipping Address:', rightColX, currentAddressY);
         doc.font('Helvetica').fontSize(8).fillColor(secondaryColor);
-        doc.text(order.address.name, rightColX, doc.y + 2);
+        doc.text(order.address.name, rightColX, doc.y + 1);
         doc.text(`${order.address.address}`, rightColX, doc.y + 1, { width: colWidth - 20 });
         if (order.address.nearby) doc.text(`Nearby: ${order.address.nearby}`, rightColX, doc.y + 1);
         doc.text(`${order.address.city}, ${order.address.state} - ${order.address.zip}`, rightColX, doc.y + 1);
         doc.text(`Phone: ${order.address.phone}`, rightColX, doc.y + 1);
+        
+        // Weekend Deliveries
+        if (order.address.saturdayDelivery !== undefined || order.address.sundayDelivery !== undefined) {
+            doc.moveDown(0.3);
+            doc.fontSize(7).font('Helvetica-Bold').fillColor(primaryColor).text('Weekend Deliveries:', rightColX);
+            doc.font('Helvetica').fillColor(secondaryColor);
+            const sat = order.address.saturdayDelivery ? 'YES' : 'NO';
+            const sun = order.address.sundayDelivery ? 'YES' : 'NO';
+            doc.text(`Sat: ${sat}, Sun: ${sun}`, rightColX, doc.y + 1);
+        }
 
-        doc.moveDown(2);
+        doc.moveDown(1.2);
 
         // ===================================
         // ITEMS TABLE
@@ -145,19 +155,19 @@ const buildInvoicePDF = (order, res) => {
         const totalCol = 510;
 
         // Header
-        doc.fillColor(tableHeaderBg).rect(30, tableTop, doc.page.width - 60, 20).fill();
+        doc.fillColor(tableHeaderBg).rect(30, tableTop, doc.page.width - 60, 18).fill();
         doc.fillColor(primaryColor).fontSize(8).font('Helvetica-Bold');
-        doc.text('Description', itemCol + 5, tableTop + 6);
-        doc.text('Qty', qtyCol, tableTop + 6, { width: 40, align: 'center' });
-        doc.text('Unit Price', priceCol, tableTop + 6, { width: 60, align: 'right' });
-        doc.text('Taxable', taxCol, tableTop + 6, { width: 50, align: 'right' });
-        doc.text('Total', totalCol, tableTop + 6, { width: 55, align: 'right' });
+        doc.text('Description', itemCol + 5, tableTop + 5);
+        doc.text('Qty', qtyCol, tableTop + 5, { width: 40, align: 'center' });
+        doc.text('Unit Price', priceCol, tableTop + 5, { width: 60, align: 'right' });
+        doc.text('Taxable', taxCol, tableTop + 5, { width: 50, align: 'right' });
+        doc.text('Total', totalCol, tableTop + 5, { width: 55, align: 'right' });
 
-        let currentY = tableTop + 20;
+        let currentY = tableTop + 18;
 
         // Rows
         order.items.forEach((item, index) => {
-            const itemHeight = doc.heightOfString(item.name, { width: qtyCol - itemCol - 10 }) + 15;
+            const itemHeight = doc.heightOfString(item.name, { width: qtyCol - itemCol - 10 }) + 10;
             
             // Draw border
             doc.strokeColor(borderColor).lineWidth(0.5)
@@ -166,7 +176,7 @@ const buildInvoicePDF = (order, res) => {
             doc.font('Helvetica').fontSize(8).fillColor(primaryColor);
             
             // Description with wrap handling
-            doc.text(item.name, itemCol + 5, currentY + 5, { width: qtyCol - itemCol - 10 });
+            doc.text(item.name, itemCol + 5, currentY + 4, { width: qtyCol - itemCol - 10 });
             if (item.sku) {
                 doc.fontSize(7).fillColor(secondaryColor).text(`SKU: ${item.sku}`, itemCol + 5, doc.y + 1);
             }
@@ -176,12 +186,12 @@ const buildInvoicePDF = (order, res) => {
             const taxable = total / 1.05; // Assuming 5% GST for calculation if not provided
 
             doc.fontSize(8).fillColor(primaryColor);
-            doc.text(item.quantity.toString(), qtyCol, currentY + 5, { width: 40, align: 'center' });
-            doc.text(`INR ${unitPrice.toFixed(2)}`, priceCol, currentY + 5, { width: 60, align: 'right' });
-            doc.text(`INR ${taxable.toFixed(2)}`, taxCol, currentY + 5, { width: 50, align: 'right' });
-            doc.text(`INR ${total.toFixed(2)}`, totalCol, currentY + 5, { width: 55, align: 'right' });
+            doc.text(item.quantity.toString(), qtyCol, currentY + 4, { width: 40, align: 'center' });
+            doc.text(`INR ${unitPrice.toFixed(2)}`, priceCol, currentY + 4, { width: 60, align: 'right' });
+            doc.text(`INR ${taxable.toFixed(2)}`, taxCol, currentY + 4, { width: 50, align: 'right' });
+            doc.text(`INR ${total.toFixed(2)}`, totalCol, currentY + 4, { width: 55, align: 'right' });
 
-            currentY += Math.max(itemHeight, 25);
+            currentY += Math.max(itemHeight, 20);
         });
 
         // Table Bottom Border
@@ -191,7 +201,7 @@ const buildInvoicePDF = (order, res) => {
         // TOTALS SECTION
         // ===================================
         
-        const totalsY = currentY + 10;
+        const totalsY = currentY + 8;
         const totalsLabelX = 380;
         const totalsValX = 500;
 
@@ -199,7 +209,7 @@ const buildInvoicePDF = (order, res) => {
             doc.font(isBold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9).fillColor(primaryColor);
             doc.text(label, totalsLabelX, doc.y, { width: 110, align: 'right' });
             doc.text(value, totalsValX, doc.y - 9, { width: 65, align: 'right' });
-            doc.moveDown(0.5);
+            doc.moveDown(0.4);
         };
 
         doc.y = totalsY;
@@ -220,9 +230,9 @@ const buildInvoicePDF = (order, res) => {
         
         addTotalRow('Total Tax (GST):', `INR ${totalTax.toFixed(2)}`);
 
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
         doc.strokeColor(primaryColor).lineWidth(1).moveTo(totalsLabelX + 20, doc.y).lineTo(doc.page.width - 30, doc.y).stroke();
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
         
         doc.fontSize(11).font('Helvetica-Bold');
         doc.text('Grand Total:', totalsLabelX, doc.y, { width: 110, align: 'right' });
@@ -232,7 +242,7 @@ const buildInvoicePDF = (order, res) => {
         // TERMS & FOOTER
         // ===================================
         
-        const footerY = doc.page.height - 100;
+        const footerY = doc.page.height - 85;
         
         doc.fontSize(8).font('Helvetica-Bold').fillColor(primaryColor).text('Terms & Conditions:', 30, footerY);
         doc.fontSize(7).font('Helvetica').fillColor(secondaryColor);

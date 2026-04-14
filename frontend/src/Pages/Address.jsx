@@ -51,9 +51,12 @@ const Address = () => {
         zip: '',
         country: 'India', // Default to India
         addressType: 'Home', // Home, Business, Other
+        saturdayDelivery: true,
+        sundayDelivery: true,
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isPincodeLoading, setPincodeLoading] = useState(false);
+    const [isWeekendAccordionOpen, setIsWeekendAccordionOpen] = useState(false);
 
     // Searchable Country States
     const [countrySearch, setCountrySearch] = useState("");
@@ -156,79 +159,97 @@ const Address = () => {
 
     return (
         <div className="min-h-screen bg-pink-50/50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-8">
-                <div className="flex items-center mb-6">
-                    <button onClick={() => navigate(-1)} className="mr-4 text-gray-600 hover:text-pink-500">
+            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div className="flex items-center p-6 md:p-8 bg-white border-b">
+                    <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full text-black hover:text-pink-500 hover:bg-pink-50 transition-all">
                         <ArrowLeft size={24} />
                     </button>
-                    <h1 className="text-2xl font-bold text-gray-800">Add New Address</h1>
+                    <h1 className="text-2xl font-bold text-black">Add New Address</h1>
                 </div>
 
-                <form onSubmit={handleSave} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Details</label>
-                        <input type="text" name="name" placeholder="Full Name" value={address.name} onChange={handleChange} required className="form-input" />
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                            <input type="tel" name="phone" placeholder="Phone Number" value={address.phone} onChange={handleChange} required className="form-input" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
-                            <input type="tel" name="alternatePhone" placeholder="Alt. Phone (Optional)" value={address.alternatePhone} onChange={handleChange} className="form-input" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                <form onSubmit={handleSave} className="p-6 md:p-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        {/* Contact Section */}
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                                <div className="w-1 h-5 bg-pink-500 rounded-full"></div>
+                                <h2 className="text-lg font-bold text-black">Contact Details</h2>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">Full Name</label>
+                                <input type="text" name="name" placeholder="Full Name" value={address.name} onChange={handleChange} required className="form-input" />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">Phone Number</label>
+                                    <input type="tel" name="phone" placeholder="10-digit number" value={address.phone} onChange={handleChange} required className="form-input" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">Alt. Phone (Optional)</label>
+                                    <input type="tel" name="alternatePhone" placeholder="10-digit number" value={address.alternatePhone} onChange={handleChange} className="form-input" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Address Section */}
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                                <div className="w-1 h-5 bg-pink-500 rounded-full"></div>
+                                <h2 className="text-lg font-bold text-black">Address Details</h2>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">House No., Building Name</label>
+                                <input type="text" name="address" placeholder="e.g. Flat 101, Sunshine Apts" value={address.address} onChange={handleChange} required className="form-input" />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">Road name, Area, Colony</label>
+                                <input type="text" name="locality" placeholder="e.g. MG Road, HSR Layout" value={address.locality} onChange={handleChange} required className="form-input" />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">Nearby Landmark (Optional)</label>
+                                <input type="text" name="landmark" placeholder="e.g. Near Apollo Hospital" value={address.landmark} onChange={handleChange} className="form-input" />
+                            </div>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                        <input type="text" name="address" placeholder="House No., Building Name" value={address.address} onChange={handleChange} required className="form-input" />
-                        <input type="text" name="locality" placeholder="Road name, Area, Colony" value={address.locality} onChange={handleChange} required className="form-input mt-2" />
-                        <input type="text" name="landmark" placeholder="Nearby Landmark (Optional)" value={address.landmark} onChange={handleChange} className="form-input mt-2" />
-                        
-                        <div className="grid grid-cols-2 gap-4 mt-2">
-                            {/* State Selection */}
-                            <div className="relative">
-                                <input 
-                                    type="text" 
-                                    name="state"
-                                    placeholder="State/Province" 
-                                    value={address.state} 
-                                    onChange={handleChange} 
-                                    required 
-                                    className="form-input" 
-                                />
-                            </div>
-
-                            {/* City Selection */}
-                            <div className="relative">
-                                <input 
-                                    type="text" 
-                                    name="city"
-                                    placeholder="City" 
-                                    value={address.city} 
-                                    onChange={handleChange} 
-                                    required 
-                                    className="form-input" 
-                                />
-                            </div>
+                    {/* Location Selection Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                        <div className="col-span-1">
+                            <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">ZIP Code</label>
+                            <input type="text" name="zip" placeholder="ZIP" value={address.zip} onChange={handleChange} required className="form-input" />
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4 mt-2">
-                            <input type="text" name="zip" placeholder="ZIP Code" value={address.zip} onChange={handleChange} required className="form-input" />
-                            
-                            {/* Searchable Country Dropdown */}
+                        <div className="col-span-1">
+                            <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">City</label>
+                            <input type="text" name="city" placeholder="City" value={address.city} onChange={handleChange} required className="form-input" />
+                        </div>
+                        <div className="col-span-1">
+                            <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">State</label>
+                            <input type="text" name="state" placeholder="State" value={address.state} onChange={handleChange} required className="form-input" />
+                        </div>
+                        <div className="col-span-1">
+                            <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">Country</label>
                             <div className="relative" ref={countryDropdownRef}>
                                 <div 
                                     className="form-input flex items-center justify-between cursor-pointer"
                                     onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
                                 >
-                                    <span className="truncate">{address.country || "Select Country"}</span>
-                                    <ChevronDown size={16} className={`transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
+                                    <span className="truncate">{address.country || "Country"}</span>
+                                    <ChevronDown size={14} className={`text-black transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
                                 </div>
 
                                 {isCountryDropdownOpen && (
-                                    <div className="absolute bottom-full mb-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-xl z-[60] overflow-hidden flex flex-col max-h-60">
+                                    <div className="absolute bottom-full mb-1 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-[60] overflow-hidden flex flex-col max-h-60">
                                         <div className="p-2 border-b bg-gray-50 flex items-center gap-2">
-                                            <Search size={14} className="text-gray-400" />
+                                            <Search size={14} className="text-black" />
                                             <input 
                                                 type="text" 
-                                                placeholder="Search country..." 
-                                                className="bg-transparent border-none outline-none text-sm w-full"
+                                                placeholder="Search..." 
+                                                className="bg-transparent border-none outline-none text-xs w-full"
                                                 value={countrySearch}
                                                 onChange={(e) => setCountrySearch(e.target.value)}
                                                 autoFocus
@@ -240,14 +261,14 @@ const Address = () => {
                                                 filteredCountries.map((c) => (
                                                     <div 
                                                         key={c} 
-                                                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-pink-50 transition-colors ${address.country === c ? 'bg-pink-100 text-pink-700 font-medium' : ''}`}
+                                                        className={`px-3 py-2 text-xs cursor-pointer hover:bg-pink-50 transition-colors ${address.country === c ? 'bg-pink-100 text-pink-700 font-medium' : ''}`}
                                                         onClick={() => handleCountrySelect(c)}
                                                     >
                                                         {c}
                                                     </div>
                                                 ))
                                             ) : (
-                                                <div className="px-3 py-2 text-sm text-gray-500">No country found</div>
+                                                <div className="px-3 py-2 text-xs text-gray-500">Not found</div>
                                             )}
                                         </div>
                                     </div>
@@ -256,50 +277,130 @@ const Address = () => {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Address Type</label>
-                        <div className="flex gap-4">
-                            {['Home', 'Business', 'Other'].map((type) => (
-                                <label key={type} className="flex items-center cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="addressType"
-                                        value={type}
-                                        checked={address.addressType === type}
-                                        onChange={handleChange}
-                                        className="sr-only"
-                                    />
-                                    <div className={`px-4 py-2 rounded-full border text-sm transition-colors ${
-                                        address.addressType === type 
-                                            ? 'bg-pink-500 border-pink-500 text-white' 
-                                            : 'bg-white border-gray-300 text-gray-700 hover:border-pink-500'
-                                    }`}>
-                                        {type === 'Home' ? 'House/Apartment' : type}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 pt-6 border-t border-gray-100">
+                        {/* Address Type Section */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 pb-1">
+                                <h2 className="text-sm font-bold text-black">Save Address As</h2>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                                {['Home', 'Business', 'Other'].map((type) => (
+                                    <label key={type} className="flex items-center cursor-pointer group">
+                                        <input
+                                            type="radio"
+                                            name="addressType"
+                                            value={type}
+                                            checked={address.addressType === type}
+                                            onChange={handleChange}
+                                            className="sr-only"
+                                        />
+                                        <div className={`px-5 py-2.5 rounded-xl border-2 text-sm font-bold transition-all duration-200 ${
+                                            address.addressType === type 
+                                                ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
+                                                : 'bg-white border-gray-100 text-black hover:border-pink-200 hover:text-pink-400'
+                                        }`}>
+                                            {type === 'Home' ? 'House/Apartment' : type}
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Weekend Delivery Section */}
+                        <div className="space-y-4">
+                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsWeekendAccordionOpen(!isWeekendAccordionOpen)}
+                                    className="w-full flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-100/50 transition-colors"
+                                >
+                                    <div className="text-left">
+                                        <label className="block text-sm font-bold text-black">Weekend Deliveries</label>
+                                        <p className="text-[10px] text-black font-medium tracking-tight">Prefer deliveries on Saturdays or Sundays?</p>
                                     </div>
-                                </label>
-                            ))}
+                                    <ChevronDown size={18} className={`text-black transition-transform duration-300 ${isWeekendAccordionOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {isWeekendAccordionOpen && (
+                                    <div className="p-4 bg-white border-t border-gray-50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="flex flex-col gap-2">
+                                                <span className="text-[10px] font-bold text-black uppercase tracking-wider ml-1">Saturdays</span>
+                                                <div className="flex bg-gray-50 rounded-lg p-1 border border-gray-100">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setAddress(prev => ({ ...prev, saturdayDelivery: true }))}
+                                                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${address.saturdayDelivery ? 'bg-white text-pink-500 shadow-sm' : 'text-black'}`}
+                                                    >
+                                                        YES
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setAddress(prev => ({ ...prev, saturdayDelivery: false }))}
+                                                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${!address.saturdayDelivery ? 'bg-white text-pink-500 shadow-sm' : 'text-black'}`}
+                                                    >
+                                                        NO
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-2">
+                                                <span className="text-[10px] font-bold text-black uppercase tracking-wider ml-1">Sundays</span>
+                                                <div className="flex bg-gray-50 rounded-lg p-1 border border-gray-100">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setAddress(prev => ({ ...prev, sundayDelivery: true }))}
+                                                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${address.sundayDelivery ? 'bg-white text-pink-500 shadow-sm' : 'text-black'}`}
+                                                    >
+                                                        YES
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setAddress(prev => ({ ...prev, sundayDelivery: false }))}
+                                                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${!address.sundayDelivery ? 'bg-white text-pink-500 shadow-sm' : 'text-black'}`}
+                                                    >
+                                                        NO
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                     
-                    <div className="pt-4">
-                        <button type="submit" disabled={isSaving} className="w-full bg-pink-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-pink-600 transition-colors flex items-center justify-center disabled:bg-pink-300">
-                            {isSaving ? 'Saving...' : <><Save size={18} className="mr-2"/> Save Address</>}
+                    <div className="pt-8 flex justify-end border-t border-gray-100">
+                        <button type="submit" disabled={isSaving} className="w-full md:w-auto min-w-[240px] bg-pink-500 hover:bg-pink-600 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-pink-200 transition-all hover:-translate-y-1 active:translate-y-0 disabled:bg-pink-300 disabled:shadow-none flex items-center justify-center">
+                            {isSaving ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span>Saving...</span>
+                                </div>
+                            ) : (
+                                <><Save size={20} className="mr-2"/> Save Address</>
+                            )}
                         </button>
                     </div>
                 </form>
                 <style jsx>{`
                     .form-input {
                         width: 100%;
-                        padding: 0.75rem;
-                        border: 1px solid #d1d5db;
-                        border-radius: 0.375rem;
-                        box-shadow: sm;
+                        padding: 0.875rem 1rem;
+                        background-color: #f9fafb;
+                        border: 1px solid #f3f4f6;
+                        border-radius: 0.75rem;
+                        font-size: 0.875rem;
+                        transition: all 0.2s;
+                    }
+                    .form-input:hover {
+                        background-color: #f3f4f6;
                     }
                     .form-input:focus {
-                        outline: 2px solid transparent;
-                        outline-offset: 2px;
-                        --tw-ring-color: #ec4899;
+                        outline: none;
+                        background-color: white;
                         border-color: #ec4899;
+                        box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
                     }
                 `}</style>
             </div>

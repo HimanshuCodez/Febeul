@@ -330,7 +330,7 @@ const ManageAddresses = ({ addresses, cardStyles }) => {
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-gray-700">{addr.name}</h3>
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border">
-                                {addr.addressType === 'Home' ? 'House' : addr.addressType}
+                                {addr.addressType === 'Home' ? 'House/Apartment' : addr.addressType}
                             </span>
                           </div>
                         </div>

@@ -269,7 +269,7 @@ const Orders = ({ token }) => {
                             <p className="font-bold">{order.address.name}</p>
                             {order.address.addressType && (
                               <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded uppercase font-bold border">
-                                  {order.address.addressType === 'Home' ? 'House' : order.address.addressType}
+                                  {order.address.addressType === 'Home' ? 'House/Apartment' : order.address.addressType}
                               </span>
                             )}
                           </div>
@@ -277,6 +277,21 @@ const Orders = ({ token }) => {
                           {order.address.landmark && <p className="italic text-gray-500">Landmark: {order.address.landmark}</p>}
                           <p>{order.address.city}, {order.address.state}, {order.address.country} - {order.address.zip}</p>
                           <p className="mt-1 font-medium">Phone: {order.address.phone}{order.address.alternatePhone ? `, ${order.address.alternatePhone}` : ''}</p>
+                          {(order.address.saturdayDelivery !== undefined || order.address.sundayDelivery !== undefined) && (
+                            <div className="mt-3 pt-2 border-t border-gray-100">
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Weekend Deliveries</p>
+                              <div className="flex gap-4">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                                  <span className="text-gray-600">Sat: <span className={order.address.saturdayDelivery ? "text-green-600 font-bold" : "text-red-600 font-bold"}>{order.address.saturdayDelivery ? 'YES' : 'NO'}</span></span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                                  <span className="text-gray-600">Sun: <span className={order.address.sundayDelivery ? "text-green-600 font-bold" : "text-red-600 font-bold"}>{order.address.sundayDelivery ? 'YES' : 'NO'}</span></span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </address>
                       </div>
 

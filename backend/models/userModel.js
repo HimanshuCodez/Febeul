@@ -37,6 +37,8 @@ const userSchema = new mongoose.Schema({
         phone: { type: String, required: true },
         alternatePhone: { type: String },
         addressType: { type: String, enum: ['Home', 'Business', 'Other'], default: 'Home' },
+        saturdayDelivery: { type: Boolean, default: true },
+        sundayDelivery: { type: Boolean, default: true },
     }],
     role: { type: String, default: 'user' },
     permissions: [{ type: String }]

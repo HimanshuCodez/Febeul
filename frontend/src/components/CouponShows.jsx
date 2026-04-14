@@ -57,20 +57,18 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
     return <div className="my-4 text-center text-red-600">{error}</div>;
   }
 
-  if (coupons.length === 0) {
-    return <div className="my-4 text-center text-gray-600">No coupons available at the moment.</div>;
-  }
+  const applicableCoupons = coupons.filter(coupon => 
+    coupon.applicableSKUs.length === 0 || 
+    productSKUs.some(sku => coupon.applicableSKUs.includes(sku))
+  );
+
+  if (applicableCoupons.length === 0) return null;
 
   return (
     <div className="my-4">
       <h2 className="text-lg font-bold text-gray-800 mb-3">Available Coupons</h2>
       <div className="grid grid-cols-1 gap-4">
-        {coupons.map((coupon) => {
-          const isSKUApplicable = coupon.applicableSKUs.length === 0 || 
-                                 productSKUs.some(sku => coupon.applicableSKUs.includes(sku));
-          
-          if (!isSKUApplicable) return null;
-
+        {applicableCoupons.map((coupon) => {
           const isApplied = appliedCoupon && appliedCoupon.code === coupon.code;
           const isLuxeRestricted = coupon.userType === 'luxe' && !user?.isLuxeMember;
 
@@ -84,7 +82,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
                 </div>
                 <div>
                   <h3 className={`font-semibold ${isLuxeRestricted ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
-                  <p className="text-sm text-gray-600">{coupon.description || 'No description available.'}</p>
+                  {coupon.description && <p className="text-sm text-gray-600">{coupon.description}</p>}
                   <div className="mt-2 text-xs text-gray-500">
                     {coupon.minOrderAmount > 0 && <p>Min. Order: ₹{coupon.minOrderAmount}</p>}
                     {coupon.discountType === 'percentage' ? (

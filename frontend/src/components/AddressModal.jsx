@@ -31,7 +31,7 @@ const AddressModal = ({ isOpen, onClose, addresses, selectedAddress, onSelectAdd
               <div className="flex items-center gap-2 mb-1">
                 <p className="font-semibold">{address.name}</p>
                 <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border">
-                    {address.addressType === 'Home' ? 'House' : address.addressType}
+                    {address.addressType === 'Home' ? 'House/Apartment' : address.addressType}
                 </span>
               </div>
               <p>{address.address}, {address.locality}</p>
