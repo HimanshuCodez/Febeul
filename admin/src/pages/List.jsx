@@ -222,16 +222,23 @@ const List = ({ token }) => {
                   {calculateTotalStock(item) === 0 ? 'Out' : calculateTotalStock(item)}
                 </p>
                 <div onClick={(e) => e.stopPropagation()} className='hidden lg:block'>
-                  {item.creator?.role === 'staff' ? (
-                    <p 
-                      onClick={() => { setSelectedStaff(item.creator); setShowStaffModal(true); }}
-                      className='text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold uppercase cursor-pointer hover:bg-blue-200 inline-block'
-                    >
-                      Staff Listed
-                    </p>
+                  {item.creator ? (
+                    <div className='flex flex-col gap-0.5'>
+                      <p 
+                        onClick={() => { if(item.creator.role === 'staff') { setSelectedStaff(item.creator); setShowStaffModal(true); } }}
+                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
+                      >
+                        {item.creator.role || 'Admin'}
+                      </p>
+                      {item.creator.email && (
+                        <p className='text-[9px] text-gray-600 font-medium truncate max-w-[120px]' title={item.creator.email}>
+                          {item.creator.email}
+                        </p>
+                      )}
+                    </div>
                   ) : (
-                    <p className='text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-bold uppercase inline-block'>
-                      Admin
+                    <p className='text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase inline-block w-fit'>
+                      System
                     </p>
                   )}
                 </div>
