@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
 import {
@@ -115,6 +115,8 @@ const FullScreenGallery = ({ images, initialIndex, onClose }) => {
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
+  const [searchParams] = useSearchParams();
+  const colorParam = searchParams.get('color');
   const navigate = useNavigate();
   const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount } = useAuthStore();
 
@@ -201,11 +203,23 @@ const ProductDetailPage = () => {
         });
         if (data.success) {
           setProduct(data.product);
-          // Initialize selected size from the first variation's first size
-          if (data.product.variations && data.product.variations.length > 0 && 
-              data.product.variations[0].sizes && data.product.variations[0].sizes.length > 0) {
-            setSelectedSizeValue(data.product.variations[0].sizes[0].size);
+          
+          let initialVariationIndex = 0;
+          if (colorParam) {
+            const index = data.product.variations.findIndex(v => v.color?.toLowerCase() === colorParam.toLowerCase());
+            if (index !== -1) {
+              initialVariationIndex = index;
+            }
           }
+          
+          setSelectedVariationIndex(initialVariationIndex);
+
+          // Initialize selected size from the selected variation's first size
+          const selectedVar = data.product.variations[initialVariationIndex];
+          if (selectedVar && selectedVar.sizes && selectedVar.sizes.length > 0) {
+            setSelectedSizeValue(selectedVar.sizes[0].size);
+          }
+          
           // Set average rating and number of reviews
           setAverageRating(data.product.averageRating || 0);
           setNumOfReviews(data.product.numOfReviews || 0);
@@ -221,7 +235,7 @@ const ProductDetailPage = () => {
       }
     };
     fetchProduct();
-  }, [productId]);
+  }, [productId, colorParam]);
 
   useEffect(() => {
     const checkWishlist = async () => {
@@ -475,6 +489,10 @@ const ProductDetailPage = () => {
                               setSelectedSizeValue(variation.sizes[0].size);
                             } else {
                               setSelectedSizeValue(null);
+                            }
+                            // Update URL with selected color
+                            if (variation.color) {
+                              navigate(`/product/${productId}?color=${encodeURIComponent(variation.color)}`, { replace: true });
                             }
                           }}
                           className={`p-1 border-2 rounded-md cursor-pointer transition-all relative ${

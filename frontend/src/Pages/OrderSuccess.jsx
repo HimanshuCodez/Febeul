@@ -103,9 +103,12 @@ export default function OrderSuccess() {
   const total = subtotal - totalDiscount + shipping + cod;
   
   const discountedAmount = subtotal - totalDiscount;
-  const taxableValue = discountedAmount / 1.18;
-  const cgst = (discountedAmount - taxableValue) / 2;
-  const sgst = (discountedAmount - taxableValue) / 2;
+  const taxableValue = discountedAmount / 1.05;
+  const totalGst = discountedAmount - taxableValue;
+  const cgst = totalGst / 2;
+  const sgst = totalGst / 2;
+  const igst = totalGst;
+  const isDelhi = address?.state?.trim().toLowerCase() === 'delhi';
   // --- End of mock data replacement ---
 
   const checkIconVariants = {

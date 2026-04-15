@@ -182,16 +182,23 @@ const buildInvoicePDF = (order, res) => {
             }
 
             const unitPrice = item.price || 0;
-            const total = unitPrice * item.quantity;
-            const taxable = total / 1.05; // Assuming 5% GST for calculation if not provided
+            const grossTotal = unitPrice * item.quantity;
+            const itemDiscount = item.discountAmount || 0;
+            const netTotal = grossTotal - itemDiscount;
+            
+            const taxable = netTotal / 1.05; // 5% GST on net item total
 
             doc.fontSize(8).fillColor(primaryColor);
             doc.text(item.quantity.toString(), qtyCol, currentY + 4, { width: 40, align: 'center' });
             doc.text(`INR ${unitPrice.toFixed(2)}`, priceCol, currentY + 4, { width: 60, align: 'right' });
             doc.text(`INR ${taxable.toFixed(2)}`, taxCol, currentY + 4, { width: 50, align: 'right' });
-            doc.text(`INR ${total.toFixed(2)}`, totalCol, currentY + 4, { width: 55, align: 'right' });
+            doc.text(`INR ${netTotal.toFixed(2)}`, totalCol, currentY + 4, { width: 55, align: 'right' });
 
-            currentY += Math.max(itemHeight, 20);
+            if (itemDiscount > 0) {
+                doc.fontSize(6).fillColor('#155724').text(`Incl. Discount: INR ${itemDiscount.toFixed(2)}`, itemCol + 5, doc.y + 1);
+            }
+
+            currentY += Math.max(itemHeight, 22);
         });
 
         // Table Bottom Border
@@ -222,6 +229,17 @@ const buildInvoicePDF = (order, res) => {
         if (order.codCharge > 0) addTotalRow('COD Charges:', `INR ${order.codCharge.toFixed(2)}`);
         if (order.giftWrap?.price > 0) addTotalRow('Gift Wrap:', `INR ${order.giftWrap.price.toFixed(2)}`);
         
+        // Add Gift Message / Wrap Style Note
+        if (order.giftWrap && order.giftWrap.name) {
+            doc.moveDown(1);
+            doc.strokeColor(borderColor).lineWidth(0.5).moveTo(30, doc.y).lineTo(doc.page.width - 30, doc.y).stroke();
+            doc.moveDown(0.5);
+            doc.fontSize(8).font('Helvetica-Bold').fillColor(primaryColor).text(`Gift Wrap Style: ${order.giftWrap.name}`, 30);
+            if (order.giftWrap.message) {
+                doc.font('Helvetica').fillColor(secondaryColor).text(`Gift Message: "${order.giftWrap.message}"`, 30, doc.y + 2, { italic: true });
+            }
+        }
+
         // Tax breakdown
         const discountedSubtotal = subtotal - (order.couponDiscount || 0);
         const calculatedTaxable = discountedSubtotal / 1.05;

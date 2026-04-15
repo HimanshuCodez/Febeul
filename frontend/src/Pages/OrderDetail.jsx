@@ -621,10 +621,18 @@ export default function OrderDetailPage() {
                       <span>₹{codCharge.toFixed(2)}</span>
                   </div>
               )}
-              {order.giftWrap && order.giftWrap.price > 0 && (
-                  <div className="flex justify-between text-gray-600">
-                      <span>Gift Wrap ({order.giftWrap.name})</span>
-                      <span>₹{order.giftWrap.price.toFixed(2)}</span>
+              {order.giftWrap && order.giftWrap.name && (
+                  <div className="p-3 bg-pink-50 rounded-lg border border-pink-100 mt-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        {order.giftWrap.image && <img src={order.giftWrap.image} className="w-10 h-10 object-cover rounded shadow-sm" alt="" />}
+                        <div>
+                          <p className="text-sm font-bold text-gray-800">Gift Wrap: {order.giftWrap.name}</p>
+                          {order.giftWrap.message && <p className="text-xs text-gray-600 italic mt-1">"{order.giftWrap.message}"</p>}
+                        </div>
+                      </div>
+                      <span className="text-gray-600 font-medium">₹{order.giftWrap.price.toFixed(2)}</span>
+                    </div>
                   </div>
               )}
               <div className="border-t pt-3 flex justify-between text-xl font-bold">

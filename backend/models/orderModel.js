@@ -56,6 +56,12 @@ const orderSchema = new mongoose.Schema({
     // To prevent double refunds or conflicting operations
     isRefundable: { type: Boolean, default: true }, 
     isCancelled: { type: Boolean, default: false },
+    giftWrap: {
+        name: { type: String },
+        image: { type: String },
+        price: { type: Number, default: 0 },
+        message: { type: String }
+    },
     shiprocket: {
         ourOrderId: { type: String }, // Our internal order ID sent to Shiprocket
         srOrderId: { type: String }, // Shiprocket's internal order ID (integer from their response)

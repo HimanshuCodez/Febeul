@@ -304,7 +304,23 @@ const Orders = ({ token }) => {
                           {order.couponDiscount > 0 && <p>Coupon Discount: <span className="font-medium text-green-600">-{currency}{order.couponDiscount.toFixed(2)}</span></p>}
                           {order.shippingCharge > 0 && <p>Shipping: <span className="font-medium">{currency}{order.shippingCharge.toFixed(2)}</span></p>}
                           {order.codCharge > 0 && <p>COD Charge: <span className="font-medium">{currency}{order.codCharge.toFixed(2)}</span></p>}
-                          {order.giftWrap && order.giftWrap.price > 0 && <p>Gift Wrap: <span className="font-medium">{currency}{order.giftWrap.price.toFixed(2)}</span></p>}
+                          {order.giftWrap && order.giftWrap.name && (
+                            <div className="mt-3 p-2 bg-pink-50 rounded-lg border border-pink-100">
+                              <p className="text-[10px] font-bold text-pink-400 uppercase tracking-wider mb-1">Gift Wrap Details</p>
+                              <div className="flex items-center gap-2">
+                                {order.giftWrap.image && <img src={order.giftWrap.image} className="w-8 h-8 object-cover rounded shadow-sm" alt="" />}
+                                <div>
+                                  <p className="text-xs font-bold text-gray-700">{order.giftWrap.name}</p>
+                                  <p className="text-[10px] text-pink-600 font-medium">{currency}{order.giftWrap.price.toFixed(2)}</p>
+                                </div>
+                              </div>
+                              {order.giftWrap.message && (
+                                <div className="mt-1.5 pt-1.5 border-t border-pink-100">
+                                  <p className="text-[10px] text-gray-500 italic">"{order.giftWrap.message}"</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
                           <p className="text-base font-bold text-gray-800 mt-2">Total: {currency}{order.orderTotal.toFixed(2)}</p>
                         </div>
 
