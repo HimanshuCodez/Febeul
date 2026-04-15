@@ -66,23 +66,14 @@ const AuthPage = () => {
   const onSubmit = async (data) => {
     if (isLogin) {
       if (step === 1) { // Password login
-        const identifier = data.identifier;
-        const isEmail = /^\S+@\S+$/.test(identifier);
-        const processedIdentifier = isEmail ? identifier.toLowerCase() : identifier;
-        await login({ email: processedIdentifier, password: data.password });
+        const email = data.identifier.toLowerCase();
+        await login({ email, password: data.password });
       } else { // step === 2, OTP login
         try {
-          const identifier = getValues('identifier');
+          const email = getValues('identifier').toLowerCase();
           const otp = data.loginOtp;
-          const isEmail = /^\S+@\S+$/.test(identifier);
-          const processedIdentifier = isEmail ? identifier.toLowerCase() : identifier;
 
-          let response;
-          if (isEmail) {
-            response = await axios.post('https://febeul.onrender.com/api/otp/verify-email-login-otp', { email: processedIdentifier, otp: otp });
-          } else { // mobile
-            response = await axios.post('https://febeul.onrender.com/api/otp/verify-otp', { mobile: processedIdentifier, otp: otp });
-          }
+          const response = await axios.post('https://febeul.onrender.com/api/otp/verify-email-login-otp', { email: email, otp: otp });
 
           if (response.data.success) {
             const { token } = response.data;
@@ -129,23 +120,22 @@ const AuthPage = () => {
 
   const sendLoginOtp = async () => {
     const identifierRaw = getValues("identifier");
-    const isEmail = /^\S+@\S+$/.test(identifierRaw);
-    const isMobile = /^\d{10}$/.test(identifierRaw);
+    const isEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(identifierRaw);
 
-    if (!isEmail && !isMobile) {
-      toast.error("Please enter a valid email or 10-digit mobile number.");
+    if (!isEmail) {
+      toast.error("Please enter a valid email address.");
       return;
     }
 
-    const identifier = isEmail ? identifierRaw.toLowerCase() : identifierRaw;
+    const email = identifierRaw.toLowerCase();
 
     try {
-      const url = isEmail ? 'https://febeul.onrender.com/api/otp/send-email-otp' : 'https://febeul.onrender.com/api/otp/send-otp';
-      const payload = isEmail ? { email: identifier, purpose: 'login' } : { mobile: identifier, purpose: 'login' };
+      const url = 'https://febeul.onrender.com/api/otp/send-email-otp';
+      const payload = { email, purpose: 'login' };
       const response = await axios.post(url, payload);
 
       if (response.data.success) {
-        toast.success(`OTP sent to ${identifier}`);
+        toast.success(`OTP sent to ${email}`);
         setStep(2);
         setIsTimerActive(true);
         setTimer(60);
@@ -388,10 +378,10 @@ const AuthPage = () => {
                         type="email"
                         placeholder="Email Address"
                         {...register("identifier", { 
-                          required: "Email or Mobile is required",
+                          required: "Email is required",
                           pattern: {
-                            value: /^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|[0-9]{10})$/,
-                            message: "Please enter a valid email or 10-digit mobile number"
+                            value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                            message: "Please enter a valid email address"
                           }
                         })}
                         className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
