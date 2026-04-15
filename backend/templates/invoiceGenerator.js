@@ -246,7 +246,14 @@ const buildInvoicePDF = (order, res) => {
         const finalTaxableValue = order.taxableValue || calculatedTaxable;
         const totalTax = discountedSubtotal - finalTaxableValue;
         
-        addTotalRow('Total Tax (GST):', `INR ${totalTax.toFixed(2)}`);
+        const isDelhi = order.address.state && order.address.state.toLowerCase() === 'delhi';
+        if (isDelhi) {
+            addTotalRow('SGST (5%):', `INR ${totalTax.toFixed(2)}`);
+        } else {
+            const splitTax = totalTax / 2;
+            addTotalRow('IGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
+            addTotalRow('CGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
+        }
 
         doc.moveDown(0.3);
         doc.strokeColor(primaryColor).lineWidth(1).moveTo(totalsLabelX + 20, doc.y).lineTo(doc.page.width - 30, doc.y).stroke();
