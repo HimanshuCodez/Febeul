@@ -217,7 +217,7 @@ const Coupons = ({ token }) => {
               onChange={handleInputChange}
               className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
             >
-              <option value='normal'>Normal Users</option>
+              <option value='normal'>All Users</option>
               <option value='luxe'>Luxe Members</option>
             </select>
           </div>
