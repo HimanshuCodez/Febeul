@@ -162,14 +162,13 @@ const ProductCard = ({ product, onWishlistToggle }) => {
           {/* Luxe Exclusive Badge */}
           {product.isLuxePrive && (
             <div className="absolute bottom-3 left-3 z-10 w-16 h-16 pointer-events-none">
-              <img 
-                src="luxeprive.png" 
-                alt="Luxe Exclusive" 
-                className="w-full h-full object-contain drop-shadow-lg" 
+              <img
+                src="/luxeprive.png"
+                alt="Luxe "
+                className="w-full h-full object-contain drop-shadow-lg"
               />
             </div>
-          )}
-        </div>
+          )}        </div>
 
         {/* Product Details */}
         <div className="space-y-2">
