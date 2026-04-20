@@ -44,6 +44,34 @@ const Update = ({ token }) => {
     const [netQuantity, setNetQuantity] = useState("");
     const [genericName, setGenericName] = useState("");
     const [keywords, setKeywords] = useState("");
+    const [existingSkus, setExistingSkus] = useState([]);
+
+    useEffect(() => {
+        const fetchExistingSkus = async () => {
+            try {
+                const response = await axios.get(backendUrl + "/api/product/list");
+                if (response.data.success) {
+                    const skus = response.data.products
+                        .filter(p => p._id !== productId) // Exclude current product
+                        .flatMap(p => p.variations.map(v => v.sku))
+                        .filter(sku => sku);
+                    setExistingSkus(skus);
+                }
+            } catch (error) {
+                console.error("Error fetching SKUs:", error);
+            }
+        };
+        fetchExistingSkus();
+    }, [productId]);
+
+    const isSkuDuplicate = (sku, index) => {
+        if (!sku) return false;
+        const skuLower = sku.toLowerCase().trim();
+        // Check against existing products in DB (excluding current one)
+        if (existingSkus.some(s => s?.toLowerCase().trim() === skuLower)) return true;
+        // Check against other variations in current form
+        return variations.some((v, idx) => v.sku?.toLowerCase().trim() === skuLower && idx !== index);
+    };
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -154,6 +182,37 @@ const Update = ({ token }) => {
         }, 500); // Update every 500ms (adjust as needed)
 
         try {
+            // Validate variations: must have at least one size with price and mrp
+            for (const variation of variations) {
+                if (!variation.sizes || variation.sizes.length === 0) {
+                    toast.error(`Variation with color '${variation.color || "N/A"}' must have at least one size.`);
+                    setLoading(false);
+                    clearInterval(interval);
+                    setUploadProgress(0);
+                    return;
+                }
+                for (const size of variation.sizes) {
+                    if (!size.price || !size.mrp || parseFloat(size.price) <= 0 || parseFloat(size.mrp) <= 0) {
+                        toast.error(`Size '${size.size}' in variation with color '${variation.color || "N/A"}' must have valid positive Price and MRP.`);
+                        setLoading(false);
+                        clearInterval(interval);
+                        setUploadProgress(0);
+                        return;
+                    }
+                }
+            }
+
+            // Validate SKUs
+            for (let i = 0; i < variations.length; i++) {
+                if (isSkuDuplicate(variations[i].sku, i)) {
+                    toast.error(`SKU '${variations[i].sku}' is already listed or duplicated. Please use another.`);
+                    setLoading(false);
+                    clearInterval(interval);
+                    setUploadProgress(0);
+                    return;
+                }
+            }
+
             const formData = new FormData();
             formData.append("productId", productId);
             formData.append("name", name);
@@ -245,8 +304,13 @@ const Update = ({ token }) => {
                         </div>
 
                         <div className="flex-1 min-w-[200px]">
-                            <p className='mb-2'>SKU</p>
-                            <input name='sku' onChange={(e)=>handleVariationChange(v_index,e)} value={variation.sku} className='w-full px-3 py-2 border rounded-md' type="text" placeholder='e.g. S-110'/>
+                            <p className='mb-2 flex items-center gap-2'>
+                                SKU
+                                {isSkuDuplicate(variation.sku, v_index) && (
+                                    <span className="text-red-500 text-[10px] font-bold">sku already listed try another</span>
+                                )}
+                            </p>
+                            <input name='sku' onChange={(e)=>handleVariationChange(v_index,e)} value={variation.sku} className={`w-full px-3 py-2 border rounded-md ${isSkuDuplicate(variation.sku, v_index) ? 'border-red-500 bg-red-50' : ''}`} type="text" placeholder='e.g. S-110'/>
                         </div>
                     </div>
 

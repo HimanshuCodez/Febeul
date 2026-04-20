@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { assets } from "../assets/assets";
 import axios from "axios";
 import { backendUrl } from "../App";
@@ -39,8 +39,35 @@ const Add = ({ token }) => {
   const [netQuantity, setNetQuantity] = useState("");
   const [genericName, setGenericName] = useState("");
   const [keywords, setKeywords] = useState("");
+  const [existingSkus, setExistingSkus] = useState([]);
 
   const availableSizes = ["S", "M", "L", "XL", "XXL", "Free Size"];
+
+  useEffect(() => {
+    const fetchExistingSkus = async () => {
+      try {
+        const response = await axios.get(backendUrl + "/api/product/list");
+        if (response.data.success) {
+          const skus = response.data.products.flatMap(p => 
+            p.variations.map(v => v.sku)
+          ).filter(sku => sku);
+          setExistingSkus(skus);
+        }
+      } catch (error) {
+        console.error("Error fetching SKUs:", error);
+      }
+    };
+    fetchExistingSkus();
+  }, []);
+
+  const isSkuDuplicate = (sku, index) => {
+    if (!sku) return false;
+    const skuLower = sku.toLowerCase().trim();
+    // Check against existing products in DB
+    if (existingSkus.some(s => s?.toLowerCase().trim() === skuLower)) return true;
+    // Check against other variations in current form
+    return variations.some((v, idx) => v.sku?.toLowerCase().trim() === skuLower && idx !== index);
+  };
 
   const handleVariationChange = (index, event) => {
     const newVariations = [...variations];
@@ -124,6 +151,17 @@ const Add = ({ token }) => {
         }
       }
 
+      // Validate SKUs
+      for (let i = 0; i < variations.length; i++) {
+        if (isSkuDuplicate(variations[i].sku, i)) {
+          toast.error(`SKU '${variations[i].sku}' is already listed or duplicated. Please use another.`);
+          setLoading(false);
+          clearInterval(interval);
+          setUploadProgress(0);
+          return;
+        }
+      }
+
       const formData = new FormData();
 
       formData.append("name", name);
@@ -185,7 +223,7 @@ const Add = ({ token }) => {
         toast.success(response.data.message);
         setName("");
         setDescription("");
-        setVariations([{ color: "", images: [], sizes: [] }]);
+        setVariations([{ color: "", images: [], sizes: [], sku: "" }]);
         setBestseller(false);
         setIsLuxePrive(false);
         setCountryOfOrigin("");
@@ -209,6 +247,11 @@ const Add = ({ token }) => {
         setGenericName("");
         setKeywords("");
         setLoading(false);
+        // Refresh existing SKUs after adding
+        const updatedSkusResponse = await axios.get(backendUrl + "/api/product/list");
+        if (updatedSkusResponse.data.success) {
+          setExistingSkus(updatedSkusResponse.data.products.flatMap(p => p.variations.map(v => v.sku)).filter(sku => sku));
+        }
       } else {
         toast.error(response.data.message);
         setLoading(false);
@@ -249,12 +292,17 @@ const Add = ({ token }) => {
             </div>
 
             <div className="flex-1 min-w-[200px]">
-              <p className="mb-2">SKU</p>
+              <p className="mb-2 flex items-center gap-2">
+                SKU 
+                {isSkuDuplicate(variation.sku, v_index) && (
+                  <span className="text-red-500 text-[10px] font-bold">sku already listed try another</span>
+                )}
+              </p>
               <input
                 name="sku"
                 onChange={(e) => handleVariationChange(v_index, e)}
                 value={variation.sku}
-                className="w-full px-3 py-2 border rounded-md"
+                className={`w-full px-3 py-2 border rounded-md ${isSkuDuplicate(variation.sku, v_index) ? 'border-red-500 bg-red-50' : ''}`}
                 type="text"
                 placeholder="e.g. S-110"
               />
