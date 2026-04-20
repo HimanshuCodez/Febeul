@@ -13,6 +13,7 @@ adminRouter.get('/recent-orders', adminAuth, adminController.getRecentOrders);
 adminRouter.get('/sku-sales', adminAuth, adminController.getSkuSales);
 adminRouter.get('/sku-stocks', adminAuth, adminController.getSkuStocks);
 adminRouter.get('/export-report', adminAuth, adminController.exportReport);
+adminRouter.post('/send-marketing-mail', adminAuth, adminController.sendMarketingMail);
 adminRouter.post('/update-permissions', adminAuth, updateStaffPermissions);
 
 export default adminRouter;

@@ -3,6 +3,50 @@ import orderModel from '../models/orderModel.js';
 import productModel from '../models/productModel.js';
 import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
+import { sendEmail } from '../utils/sendEmail.js';
+
+// Controller to send marketing/marketing emails to all users
+export const sendMarketingMail = async (req, res) => {
+    try {
+        const { subject, htmlContent } = req.body;
+
+        if (!subject || !htmlContent) {
+            return res.status(400).json({ success: false, message: "Subject and content are required." });
+        }
+
+        // Fetch all users with valid email addresses
+        const users = await userModel.find({ email: { $exists: true, $ne: "" } }).select('email');
+
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: "No users found to send email." });
+        }
+
+        // We'll send emails in chunks to avoid overwhelming the service if there are many users
+        const batchSize = 10;
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < users.length; i += batchSize) {
+            const batch = users.slice(i, i + batchSize);
+            const emailPromises = batch.map(user => sendEmail(user.email, subject, htmlContent));
+            const results = await Promise.all(emailPromises);
+            
+            results.forEach(res => {
+                if (res.success) successCount++;
+                else failCount++;
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Broadcasting complete. Sent: ${successCount}, Failed: ${failCount}` 
+        });
+
+    } catch (error) {
+        console.error('Error in sendMarketingMail:', error);
+        res.status(500).json({ success: false, message: 'Internal server error while sending emails.' });
+    }
+};
 
 // Helper function to calculate date ranges
 const getDateRange = (range, customStart, customEnd) => {

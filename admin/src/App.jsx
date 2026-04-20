@@ -15,6 +15,7 @@ import ReviewsAdmin from './pages/ReviewsAdmin' // Import the ReviewsAdmin compo
 import Images from './pages/Images/Images' // Import the Images component
 import Cms from './pages/Texts/Cms' // Import the Cms component
 import FebeulDashboard from './pages/Dashboard' // Import the Dashboard component
+import NewUserMail from './pages/NewUserMail' // Import the NewUserMail component
 import Login from './components/Login'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -71,6 +72,7 @@ const App = () => {
                 {isAllowed('/reviews') && <Route path='/reviews' element={<ReviewsAdmin token={token} />} />}
                 {isAllowed('/cms') && <Route path='/cms' element={<Cms token={token} />} />}
                 {isAllowed('/images') && <Route path='/images' element={<Images token={token} />} />}
+                {isAllowed('/send-mail') && <Route path='/send-mail' element={<NewUserMail token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}
