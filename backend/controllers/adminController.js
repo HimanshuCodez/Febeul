@@ -530,20 +530,37 @@ export const getRecentOrders = async (req, res) => {
             .sort({ date: -1 })
             .limit(10)
             .populate('userId', 'name email') // Populate user details
-            .select('_id orderTotal orderStatus date userId') // Select relevant fields
+            .populate('items.productId', 'variations') // Populate product variations for SKU fallback
+            .select('_id orderTotal orderStatus date userId items') // Select relevant fields including items
 
         const formattedOrders = recentOrders.map(order => {
             const orderDate = order.date ? new Date(order.date) : new Date();
             const isValidDate = !isNaN(orderDate.getTime());
-            
+
+            // Extract SKUs from items with fallback logic
+            const skus = order.items && order.items.length > 0 
+                ? order.items.map(item => {
+                    if (item.sku) return item.sku;
+                    
+                    // Fallback: try to find SKU in populated productInfo variations
+                    if (item.productId && item.productId.variations) {
+                        const variation = item.productId.variations.find(v => 
+                            v.images && v.images.includes(item.image)
+                        );
+                        if (variation) return variation.sku;
+                    }
+                    return 'N/A';
+                }).join(', ')
+                : 'N/A';
+
             return {
-                id: `#${order._id.toString().slice(-5)}`, // Short ID
-                customer: order.userId ? order.userId.name || order.userId.email : 'Guest',
+                id: `#${order._id}`, // Full ID as in Orders.jsx
+                skus: skus, // Replace customer with skus
                 amount: order.orderTotal,
                 status: order.orderStatus,
                 date: isValidDate ? orderDate.toLocaleDateString() : new Date().toLocaleDateString(),
-                time: isValidDate 
-                    ? `${Math.round((Date.now() - orderDate.getTime()) / (1000 * 60 * 60))} hours ago` 
+                time: isValidDate
+                    ? `${Math.round((Date.now() - orderDate.getTime()) / (1000 * 60 * 60))} hours ago`
                     : 'Recently'
             };
         });
@@ -555,7 +572,6 @@ export const getRecentOrders = async (req, res) => {
         res.json({ success: false, message: 'Error fetching recent orders.' });
     }
 };
-
 export const getSkuSales = async (req, res) => {
     try {
         const { range, startDate: customStart, endDate: customEnd } = req.query;

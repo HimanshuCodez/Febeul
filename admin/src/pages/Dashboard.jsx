@@ -257,32 +257,32 @@ const FebeulDashboard = ({ token }) => {
       ]);
       setRecentOrdersList([
         {
-          id: "#12845",
-          customer: "Sarah Johnson",
+          id: "#60d5ecb8b3b1c8e1e8e8e8e8",
+          skus: "SKU-123, SKU-456",
           amount: 245,
           status: "Completed",
           date: new Date(Date.now() - 2 * 3600000).toLocaleDateString(),
           time: "2 hours ago",
         },
         {
-          id: "#12844",
-          customer: "Mike Davis",
+          id: "#60d5ecb8b3b1c8e1e8e8e8e9",
+          skus: "SKU-789",
           amount: 189,
           status: "Processing",
           date: new Date(Date.now() - 4 * 3600000).toLocaleDateString(),
           time: "4 hours ago",
         },
         {
-          id: "#12843",
-          customer: "Emma Wilson",
+          id: "#60d5ecb8b3b1c8e1e8e8e8f0",
+          skus: "SKU-111",
           amount: 432,
           status: "Shipped",
           date: new Date(Date.now() - 6 * 3600000).toLocaleDateString(),
           time: "6 hours ago",
         },
         {
-          id: "#12842",
-          customer: "James Brown",
+          id: "#60d5ecb8b3b1c8e1e8e8e8f1",
+          skus: "SKU-222",
           amount: 156,
           status: "Pending",
           date: new Date(Date.now() - 8 * 3600000).toLocaleDateString(),
@@ -395,8 +395,8 @@ const FebeulDashboard = ({ token }) => {
 
     return (
       <div className="grid grid-cols-5 gap-4 p-4 bg-gray-50 rounded-xl items-center text-sm hover:bg-gray-100 transition-all duration-200 hover:translate-x-1">
-        <div className="font-semibold text-gray-900">{order.id}</div>
-        <div className="text-gray-700">{order.customer}</div>
+        <div className="font-semibold text-gray-900 truncate pr-2" title={order.id}>{order.id}</div>
+        <div className="text-gray-700 font-mono text-xs truncate" title={order.skus}>{order.skus}</div>
         <div className="font-bold text-gray-900">
           {currency}
           {order.amount?.toFixed(2)}
@@ -781,7 +781,7 @@ const FebeulDashboard = ({ token }) => {
           {/* Header */}
           <div className="grid grid-cols-5 gap-4 px-4 pb-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
             <div>Order ID</div>
-            <div>Customer</div>
+            <div>SKU</div>
             <div>Amount</div>
             <div>Status</div>
             <div>Date & Time</div>

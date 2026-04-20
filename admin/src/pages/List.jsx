@@ -139,8 +139,8 @@ const List = ({ token }) => {
     }));
 
   const columnLayout = role !== 'staff' 
-    ? "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_60px_40px]" 
-    : "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_60px]";
+    ? "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px_40px]" 
+    : "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px]";
 
   return (
     <>
@@ -191,6 +191,7 @@ const List = ({ token }) => {
           <p>Price</p>
           <p className='hidden md:block'>MRP</p>
           <p className='hidden md:block'>Stock</p>
+          <p className='hidden lg:block'>Date</p>
           <p className='hidden lg:block'>Listed By</p>
           <p className='text-center'>Edit</p>
           {role !== 'staff' && <p className='text-center'>Action</p>}
@@ -221,6 +222,9 @@ const List = ({ token }) => {
                 <p className={`hidden md:block text-xs ${calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
                   {calculateTotalStock(item) === 0 ? 'Out' : calculateTotalStock(item)}
                 </p>
+                <p className='hidden lg:block text-[10px] text-gray-500 font-medium'>
+                  {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </p>
                 <div onClick={(e) => e.stopPropagation()} className='hidden lg:block'>
                   {item.creator ? (
                     <div className='flex flex-col gap-0.5'>
@@ -230,11 +234,6 @@ const List = ({ token }) => {
                       >
                         {item.creator.role || 'Admin'}
                       </p>
-                      {item.creator.email && (
-                        <p className='text-[9px] text-gray-600 font-medium truncate max-w-[120px]' title={item.creator.email}>
-                          {item.creator.email}
-                        </p>
-                      )}
                     </div>
                   ) : (
                     <p className='text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase inline-block w-fit'>
