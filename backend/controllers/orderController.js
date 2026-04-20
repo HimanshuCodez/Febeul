@@ -184,16 +184,20 @@ const constructEmailHtml = (order, templateHtml) => {
         const itemPrice = parseFloat(item.price || 0); 
         const itemQuantity = parseFloat(item.quantity || 0);
         const itemTotal = parseFloat(itemPrice * itemQuantity || 0);
+        
+        // Taxable calculation matching invoiceGenerator.js: Base = Inclusive / 1.05
+        const itemTaxable = itemTotal / 1.05;
 
         itemRowsHtml += `
-            <tr>
-                <td>
-                    ${item.name}
-                    ${item.sku ? `<br><small>SKU: ${item.sku}</small>` : ''}
+            <tr style="border-bottom: 1px solid #eeeeee;">
+                <td style="padding: 12px 8px; vertical-align: top;">
+                    <div style="font-weight: 600; color: #333333;">${item.name}</div>
+                    ${item.sku ? `<div style="font-size: 11px; color: #666666; margin-top: 4px;">SKU: ${item.sku}</div>` : ''}
                 </td>
-                <td>${itemQuantity}</td>
-                <td>₹${itemPrice.toFixed(2)}</td>
-                <td>₹${itemTotal.toFixed(2)}</td>
+                <td style="padding: 12px 8px; text-align: center; vertical-align: top; color: #666666;">${itemQuantity}</td>
+                <td style="padding: 12px 8px; text-align: right; vertical-align: top; color: #666666;">₹${itemPrice.toFixed(2)}</td>
+                <td style="padding: 12px 8px; text-align: right; vertical-align: top; color: #666666;">₹${itemTaxable.toFixed(2)}</td>
+                <td style="padding: 12px 8px; text-align: right; vertical-align: top; font-weight: 600; color: #333333;">₹${itemTotal.toFixed(2)}</td>
             </tr>
         `;
     });
@@ -215,20 +219,20 @@ const constructEmailHtml = (order, templateHtml) => {
     let gstRowsHtml = '';
     if (emailIgst > 0) {
         gstRowsHtml = `
-            <tr class="tax-row">
-                <td colspan="3" style="text-align:right;">IGST (5%):</td>
-                <td>₹${emailIgst.toFixed(2)}</td>
+            <tr>
+                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">IGST (5%):</td>
+                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailIgst.toFixed(2)}</td>
             </tr>
         `;
     } else {
         gstRowsHtml = `
-            <tr class="tax-row">
-                <td colspan="3" style="text-align:right;">CGST (2.5%):</td>
-                <td>₹${emailCgst.toFixed(2)}</td>
+            <tr>
+                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">CGST (2.5%):</td>
+                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailCgst.toFixed(2)}</td>
             </tr>
-            <tr class="tax-row">
-                <td colspan="3" style="text-align:right;">SGST (2.5%):</td>
-                <td>₹${emailSgst.toFixed(2)}</td>
+            <tr>
+                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">SGST (2.5%):</td>
+                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailSgst.toFixed(2)}</td>
             </tr>
         `;
     }
@@ -236,9 +240,9 @@ const constructEmailHtml = (order, templateHtml) => {
     let giftWrapRowHtml = '';
     if (emailGiftWrapPrice > 0) {
         giftWrapRowHtml = `
-            <tr class="tax-row">
-                <td colspan="3" style="text-align:right;">Gift Wrap:</td>
-                <td>₹${emailGiftWrapPrice.toFixed(2)}</td>
+            <tr>
+                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">Gift Wrap:</td>
+                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailGiftWrapPrice.toFixed(2)}</td>
             </tr>
         `;
     }
@@ -246,9 +250,9 @@ const constructEmailHtml = (order, templateHtml) => {
     let codChargeRowHtml = '';
     if (emailCodCharge > 0) {
         codChargeRowHtml = `
-            <tr class="tax-row">
-                <td colspan="3" style="text-align:right;">COD Charges:</td>
-                <td>₹${emailCodCharge.toFixed(2)}</td>
+            <tr>
+                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">COD Charges:</td>
+                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailCodCharge.toFixed(2)}</td>
             </tr>
         `;
     }
@@ -256,9 +260,9 @@ const constructEmailHtml = (order, templateHtml) => {
     let couponDiscountRowHtml = '';
     if (emailCouponDiscount > 0) {
         couponDiscountRowHtml = `
-            <tr class="tax-row">
-                <td colspan="3" style="text-align:right; color: #155724; font-weight: 600;">Coupon Discount:</td>
-                <td style="text-align:right; color: #155724; font-weight: 600;">- ₹${emailCouponDiscount.toFixed(2)}</td>
+            <tr>
+                <td style="text-align: right; font-weight: bold; color: #155724; padding: 5px 10px; font-size: 11px;">Coupon Discount:</td>
+                <td style="text-align: right; color: #155724; font-weight: bold; padding: 5px 10px; font-size: 11px;">- ₹${emailCouponDiscount.toFixed(2)}</td>
             </tr>
         `;
     }

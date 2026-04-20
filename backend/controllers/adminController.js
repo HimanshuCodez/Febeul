@@ -107,7 +107,16 @@ export const exportReport = async (req, res) => {
         ]);
 
         // Create PDF
-        const doc = new PDFDocument({ margin: 50 });
+        const doc = new PDFDocument({ 
+            margin: 50,
+            size: 'A4',
+            bufferPages: false, // Ensure we write directly to the stream
+            info: {
+                Title: 'Febeul Sales Report',
+                Author: 'Febeul Admin'
+            }
+        });
+
         const dateString = range === 'custom' ? `${customStart}_to_${customEnd}` : range;
         const filename = `Febeul_Sales_Report_${dateString}_${new Date().toISOString().split('T')[0]}.pdf`;
 
@@ -116,69 +125,123 @@ export const exportReport = async (req, res) => {
 
         doc.pipe(res);
 
-        // Header
-        doc.fillColor('#f9aeaf').fontSize(25).text('FEBEUL', { align: 'center' });
-        doc.fillColor('#444444').fontSize(15).text('Sales Performance Report', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(10).text(`Reporting Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`, { align: 'center' });
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
-        doc.moveDown();
+        // --- Helper: Draw Background ---
+        const drawBackground = () => {
+            doc.save();
+            doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f9fafb');
+            doc.restore();
+        };
 
-        // Line
-        doc.moveTo(50, 150).lineTo(550, 150).strokeColor('#cccccc').stroke();
-        doc.moveDown();
+        // Initial Background
+        drawBackground();
 
-        // Summary Statistics
-        doc.fillColor('#333333').fontSize(16).text('Summary Statistics', { underline: true });
-        doc.moveDown(0.5);
-        doc.fontSize(12).text(`Total Users Acquired: ${totalUsers}`);
-        doc.text(`Total Orders Placed: ${totalOrders}`);
-        doc.text(`Total Revenue: ₹${revenue.toLocaleString()}`);
-        doc.text(`Average Order Value: ₹${avgOrderValue.toFixed(2)}`);
-        doc.moveDown();
+        // --- Header ---
+        doc.fillColor('#f9aeaf').font('Helvetica-Bold').fontSize(28).text('FEBEUL', 50, 40);
+        doc.fillColor('#4b5563').font('Helvetica').fontSize(10).text('SALES PERFORMANCE REPORT', 50, 72);
+        
+        // Date Range & Generation Info
+        doc.fillColor('#9ca3af').fontSize(8);
+        doc.text(`Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`, 50, 45, { align: 'right' });
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 50, 56, { align: 'right' });
 
-        // Category Sales
+        doc.moveTo(50, 90).lineTo(545, 90).strokeColor('#e5e7eb').lineWidth(0.5).stroke();
+
+        // --- Summary Cards ---
+        const drawCard = (x, y, width, height, title, value, color1) => {
+            doc.save();
+            doc.roundedRect(x, y, width, height, 8).fillColor('#ffffff').fill();
+            doc.roundedRect(x, y, 4, height, 2).fillColor(color1).fill(); // Left border accent (fixed radius)
+            
+            doc.fillColor('#6b7280').font('Helvetica-Bold').fontSize(7).text(title.toUpperCase(), x + 12, y + 15);
+            doc.fillColor('#111827').font('Helvetica-Bold').fontSize(14).text(value, x + 12, y + 30);
+            doc.restore();
+        };
+
+        const cardWidth = 118;
+        const cardHeight = 60;
+        const cardY = 105;
+        const gap = 8;
+
+        drawCard(50, cardY, cardWidth, cardHeight, 'Total Users', (totalUsers || 0).toLocaleString(), '#f9aeaf');
+        drawCard(50 + cardWidth + gap, cardY, cardWidth, cardHeight, 'Total Orders', (totalOrders || 0).toLocaleString(), '#e88b8d');
+        drawCard(50 + (cardWidth + gap) * 2, cardY, cardWidth, cardHeight, 'Revenue', `₹${(revenue || 0).toLocaleString()}`, '#d66a6c');
+        drawCard(50 + (cardWidth + gap) * 3, cardY, cardWidth, cardHeight, 'Avg Order', `₹${(avgOrderValue || 0).toFixed(2)}`, '#c44a4d');
+
+        // --- Category Sales Section ---
+        let currentY = 185;
+        doc.fillColor('#111827').font('Helvetica-Bold').fontSize(12).text('Sales by Category', 50, currentY);
+        currentY += 20;
+
         if (categorySales.length > 0) {
-            doc.fontSize(16).text('Sales by Category', { underline: true });
-            doc.moveDown(0.5);
-            categorySales.forEach(cat => {
-                doc.fontSize(12).text(`${cat.name || 'Uncategorized'}: ₹${cat.value.toLocaleString()}`);
+            const maxValue = Math.max(...categorySales.map(c => c.value || 0));
+            categorySales.forEach((cat, index) => {
+                const barWidth = 380;
+                const progress = maxValue > 0 ? ((cat.value || 0) / maxValue) * barWidth : 0;
+
+                doc.fillColor('#4b5563').font('Helvetica').fontSize(9).text(cat.name || 'Uncategorized', 50, currentY);
+                doc.fillColor('#6b7280').font('Helvetica-Bold').text(`₹${(cat.value || 0).toLocaleString()}`, 450, currentY, { width: 95, align: 'right' });
+                
+                currentY += 12;
+                doc.roundedRect(50, currentY, barWidth, 4, 2).fillColor('#f3f4f6').fill();
+                if (progress > 0) {
+                    doc.roundedRect(50, currentY, progress, 4, 2).fillColor(index % 2 === 0 ? '#f9aeaf' : '#e88b8d').fill();
+                }
+                
+                currentY += 18;
             });
-            doc.moveDown();
+        } else {
+            doc.fillColor('#9ca3af').font('Helvetica-Oblique').fontSize(9).text('No category data available.', 50, currentY);
+            currentY += 20;
         }
 
-        // Sales by SKU Table
-        doc.fontSize(16).text('Sales by SKU', { underline: true });
-        doc.moveDown(0.5);
+        // --- SKU Sales Table ---
+        doc.fillColor('#111827').font('Helvetica-Bold').fontSize(12).text('Top 15 Selling SKUs', 50, currentY);
+        currentY += 20;
 
         // Table Header
-        const tableTop = doc.y;
-        doc.fontSize(10).font('Helvetica-Bold');
-        doc.text('SKU', 50, tableTop);
-        doc.text('Product Name', 150, tableTop);
-        doc.text('Sold', 350, tableTop, { width: 50, align: 'right' });
-        doc.text('Revenue', 450, tableTop, { width: 100, align: 'right' });
-        
-        doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-        doc.font('Helvetica').fontSize(10);
+        doc.save();
+        doc.roundedRect(50, currentY, 495, 20, 4).fillColor('#f9aeaf').fill();
+        doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8);
+        doc.text('SKU', 60, currentY + 6);
+        doc.text('PRODUCT NAME', 150, currentY + 6);
+        doc.text('SOLD', 380, currentY + 6, { width: 50, align: 'right' });
+        doc.text('REVENUE', 450, currentY + 6, { width: 85, align: 'right' });
+        doc.restore();
 
-        let y = tableTop + 25;
-        skuSales.forEach(item => {
-            if (y > 730) {
-                doc.addPage();
-                y = 50;
+        currentY += 25;
+
+        // Limit to Top 15
+        const topSkuSales = skuSales.slice(0, 15);
+
+        topSkuSales.forEach((item, index) => {
+            // Zebra Striping
+            if (index % 2 !== 0) {
+                doc.save();
+                doc.rect(50, currentY - 4, 495, 20).fillColor('#f9fafb').fill();
+                doc.restore();
             }
-            // Truncate name for a cleaner UI
-            const displayName = item.name && item.name.length > 40 
-                ? item.name.substring(0, 37) + '...' 
+
+            const displayName = item.name && item.name.length > 50 
+                ? item.name.substring(0, 47) + '...' 
                 : item.name || 'N/A';
 
-            doc.text(item.sku || 'N/A', 50, y);
-            doc.text(displayName, 150, y, { width: 180 });
-            doc.text(item.totalSold.toString(), 350, y, { width: 50, align: 'right' });
-            doc.text(`₹${item.revenue.toLocaleString()}`, 450, y, { width: 100, align: 'right' });
-            y += 20; 
+            doc.fillColor('#4b5563').font('Helvetica').fontSize(8);
+            doc.font('Helvetica-Bold').text(item.sku || 'N/A', 60, currentY);
+            doc.font('Helvetica').text(displayName, 150, currentY, { width: 220 });
+            doc.text(item.totalSold.toString(), 380, currentY, { width: 50, align: 'right' });
+            doc.fillColor('#111827').font('Helvetica-Bold').text(`₹${item.revenue.toLocaleString()}`, 450, currentY, { width: 85, align: 'right' });
+
+            currentY += 20;
         });
+
+        // --- Footer ---
+        doc.fillColor('#9ca3af').fontSize(7);
+        doc.text(
+            'Febeul Sales Summary | Confidential | www.febeul.com',
+            50,
+            doc.page.height - 30,
+            { align: 'center', width: doc.page.width - 100 }
+        );
 
         doc.end();
 

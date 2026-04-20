@@ -10,7 +10,12 @@ const Orders = ({ token }) => {
   const [orders, setOrders] = useState([])
   const [expandedOrderId, setExpandedOrderId] = useState(null); // State to manage expanded order
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   const StatusBadge = ({ status }) => {
     let colorClass = '';
@@ -143,12 +148,25 @@ const Orders = ({ token }) => {
     <div className='p-6 bg-gray-50 min-h-screen'>
       <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4'>
         <h3 className='text-3xl font-semibold text-gray-800'>All Customer Orders</h3>
-        <div className='flex items-center gap-3'>
+        <div className='flex items-center gap-4'>
+          <div className='flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100'>
+            <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Show</span>
+            <select 
+              value={itemsPerPage} 
+              onChange={handleItemsPerPageChange}
+              className='text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer'
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
           <span className='bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 text-sm font-bold text-gray-600'>
             {orders.length} Total Orders
           </span>
           {totalPages > 1 && (
-            <span className='text-sm text-gray-500'>Page {currentPage} of {totalPages}</span>
+            <span className='text-sm text-gray-500 hidden sm:inline'>Page {currentPage} of {totalPages}</span>
           )}
         </div>
       </div>
