@@ -13,6 +13,8 @@ const NewUserMail = ({ token }) => {
     const [buttonText, setButtonText] = useState('');
     const [buttonLink, setButtonLink] = useState('');
     const [imageUrl, setImageUrl] = useState('');
+    const [target, setTarget] = useState('all');
+    const [specificEmails, setSpecificEmails] = useState('');
     const [loading, setLoading] = useState(false);
 
     const emailPreviewHtml = `
@@ -65,6 +67,8 @@ const NewUserMail = ({ token }) => {
                     buttonText,
                     buttonLink,
                     imageUrl,
+                    target,
+                    specificEmails,
                     htmlContent: emailPreviewHtml
                 },
                 { headers: { token } }
@@ -78,6 +82,7 @@ const NewUserMail = ({ token }) => {
                 setButtonText('');
                 setButtonLink('');
                 setImageUrl('');
+                setSpecificEmails('');
             } else {
                 toast.error(response.data.message);
             }
@@ -115,6 +120,32 @@ const NewUserMail = ({ token }) => {
                             required
                         />
                     </div>
+
+                    <div className="flex flex-col gap-1">
+                        <label className="text-sm font-medium text-gray-700">Target Audience</label>
+                        <select
+                            value={target}
+                            onChange={(e) => setTarget(e.target.value)}
+                            className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all bg-white font-medium"
+                        >
+                            <option value="all">All Registered Users</option>
+                            <option value="luxe">Luxe Members Only</option>
+                            <option value="new">New Users (Joined in last 30 days)</option>
+                            <option value="specific">Specific Email IDs</option>
+                        </select>
+                    </div>
+
+                    {target === 'specific' && (
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm font-medium text-gray-700">Specific Email IDs (Comma separated)</label>
+                            <textarea
+                                value={specificEmails}
+                                onChange={(e) => setSpecificEmails(e.target.value)}
+                                className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all min-h-[100px]"
+                                placeholder="user1@example.com, user2@example.com, user3@example.com"
+                            />
+                        </div>
+                    )}
 
                     <div className="flex flex-col gap-1">
                         <label className="text-sm font-medium text-gray-700">Main Heading (Inside Email)</label>

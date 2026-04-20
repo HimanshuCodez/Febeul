@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema({
     }],
     role: { type: String, default: 'user' },
     permissions: [{ type: String }]
-}, { minimize: false })
+}, { minimize: false, timestamps: true })
 
 const userModel = mongoose.models.user || mongoose.model('user',userSchema);
 

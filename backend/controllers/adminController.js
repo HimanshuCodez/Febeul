@@ -8,17 +8,33 @@ import { sendEmail } from '../utils/sendEmail.js';
 // Controller to send marketing/marketing emails to all users
 export const sendMarketingMail = async (req, res) => {
     try {
-        const { subject, htmlContent } = req.body;
+        const { subject, htmlContent, target, specificEmails } = req.body;
 
-        if (!subject || !htmlContent) {
-            return res.status(400).json({ success: false, message: "Subject and content are required." });
+        if (!subject || !htmlContent || !target) {
+            return res.status(400).json({ success: false, message: "Subject, content, and target are required." });
         }
 
-        // Fetch all users with valid email addresses
-        const users = await userModel.find({ email: { $exists: true, $ne: "" } }).select('email');
+        let query = { email: { $exists: true, $ne: "" } };
+
+        if (target === 'luxe') {
+            query.isLuxeMember = true;
+        } else if (target === 'new') {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            query.createdAt = { $gte: thirtyDaysAgo };
+        } else if (target === 'specific') {
+            if (!specificEmails || specificEmails.trim() === "") {
+                return res.status(400).json({ success: false, message: "Specific email IDs are required for this target." });
+            }
+            const emailList = specificEmails.split(',').map(e => e.trim()).filter(e => e !== "");
+            query.email = { $in: emailList };
+        }
+
+        // Fetch users based on the query
+        const users = await userModel.find(query).select('email');
 
         if (users.length === 0) {
-            return res.status(404).json({ success: false, message: "No users found to send email." });
+            return res.status(404).json({ success: false, message: "No users found for the selected target." });
         }
 
         // We'll send emails in chunks to avoid overwhelming the service if there are many users
