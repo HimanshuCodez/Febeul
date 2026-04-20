@@ -27,6 +27,7 @@ const App = () => {
 
   const [token, setToken] = useState(localStorage.getItem('token')?localStorage.getItem('token'):'');
   const [role, setRole] = useState(localStorage.getItem('role')?localStorage.getItem('role'):'');
+  const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail')?localStorage.getItem('userEmail'):'');
   const permissions = JSON.parse(localStorage.getItem('permissions') || '[]');
 
   const isAllowed = (path) => {
@@ -38,15 +39,16 @@ const App = () => {
   useEffect(()=>{
     localStorage.setItem('token',token)
     localStorage.setItem('role',role)
-  },[token, role])
+    localStorage.setItem('userEmail',userEmail)
+  },[token, role, userEmail])
 
   return (
     <div className='bg-gray-50 min-h-screen'>
       <ToastContainer />
       {token === ""
-        ? <Login setToken={setToken} setRole={setRole} />
+        ? <Login setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} />
         : <>
-          <Navbar setToken={setToken} setRole={setRole} />
+          <Navbar setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} role={role} email={userEmail} />
           <hr />
           <div className='flex w-full'>
             <Sidebar role={role} />

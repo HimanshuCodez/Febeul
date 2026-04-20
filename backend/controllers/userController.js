@@ -290,7 +290,7 @@ const adminLogin = async (req, res) => {
 
         if (email === adminEmail && password === adminPass) {
             const token = jwt.sign(email + password, process.env.JWT_SECRET);
-            return res.json({ success: true, token, role: 'admin' })
+            return res.json({ success: true, token, role: 'admin', email })
         }
 
         // Check for staff members (supporting multiple)
@@ -312,7 +312,7 @@ const adminLogin = async (req, res) => {
             
             if (configuredPass === password) {
                 const token = jwt.sign(email + password, process.env.JWT_SECRET);
-                return res.json({ success: true, token, role: 'staff' })
+                return res.json({ success: true, token, role: 'staff', email })
             } else {
                 console.log("Result: Password mismatch!");
             }
@@ -324,7 +324,7 @@ const adminLogin = async (req, res) => {
 
         if (email && email === legacyStaffEmail && password === legacyStaffPass) {
             const token = jwt.sign(email + password, process.env.JWT_SECRET);
-            return res.json({ success: true, token, role: 'staff' })
+            return res.json({ success: true, token, role: 'staff', email })
         }
 
         // Check Database for Staff/Admin
@@ -336,7 +336,7 @@ const adminLogin = async (req, res) => {
             const isMatch = await bcrypt.compare(password, dbUser.password);
             if (isMatch) {
                 const token = jwt.sign(dbUser._id.toString(), process.env.JWT_SECRET);
-                return res.json({ success: true, token, role: dbUser.role, permissions: dbUser.permissions })
+                return res.json({ success: true, token, role: dbUser.role, permissions: dbUser.permissions, email: dbUser.email })
             }
         }
 

@@ -79,6 +79,16 @@ const List = ({ token }) => {
     }, 0) || 0;
   };
 
+  const getDisplayVariation = (item) => {
+    if (!searchQuery) return item.variations?.[0];
+    const searchLower = searchQuery.toLowerCase();
+    return item.variations?.find(v => 
+      v.sku?.toLowerCase().includes(searchLower) ||
+      v.color?.toLowerCase().includes(searchLower) ||
+      v.sizes?.some(s => s.size.toLowerCase().includes(searchLower))
+    ) || item.variations?.[0];
+  };
+
   const filteredList = list.filter(item => {
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -86,7 +96,8 @@ const List = ({ token }) => {
       item.category.toLowerCase().includes(searchLower) ||
       item.variations?.some(variation => 
         variation.sku?.toLowerCase().includes(searchLower) ||
-        variation.color?.toLowerCase().includes(searchLower)
+        variation.color?.toLowerCase().includes(searchLower) ||
+        variation.sizes?.some(size => size.size.toLowerCase().includes(searchLower))
       )
     );
   });
@@ -199,57 +210,59 @@ const List = ({ token }) => {
 
         {/* ------ Product List ------ */}
         {
-          paginatedList.map((item, index) => (
-            <div key={index} className='border rounded-lg overflow-hidden bg-white shadow-sm hover:bg-gray-50 transition-colors'>
-              <div 
-                className={`grid ${columnLayout} items-center gap-2 py-3 px-3 cursor-pointer`}
-                onClick={() => setExpandedProductId(expandedProductId === item._id ? null : item._id)}
-              >
-                <div onClick={(e) => e.stopPropagation()} className='flex items-center justify-center'>
-                  <input
-                    type="checkbox"
-                    className='cursor-pointer'
-                    checked={selectedProducts.includes(item._id)}
-                    onChange={() => handleProductSelect(item._id)}
-                  />
-                </div>
-                <img className='w-10 h-10 object-cover rounded shadow-sm' src={item.variations?.[0]?.images?.[0]} alt="" />
-                <p className='text-xs font-medium text-gray-800 truncate'>{item.name}</p>
-                <p className='hidden md:block text-xs text-gray-600 truncate'>{item.category}</p>
-                <p className='hidden md:block text-xs text-gray-600 truncate'>{item.variations?.[0]?.sku}</p>
-                <p className='text-xs font-bold text-gray-900'>{currency}{item.variations?.[0]?.sizes?.[0]?.price}</p>
-                <p className='hidden md:block text-xs text-gray-400 line-through'>{currency}{item.variations?.[0]?.sizes?.[0]?.mrp}</p>
-                <p className={`hidden md:block text-xs ${calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                  {calculateTotalStock(item) === 0 ? 'Out' : calculateTotalStock(item)}
-                </p>
-                <p className='hidden lg:block text-[10px] text-gray-500 font-medium'>
-                  {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </p>
-                <div onClick={(e) => e.stopPropagation()} className='hidden lg:block'>
-                  {item.creator ? (
-                    <div className='flex flex-col gap-0.5'>
-                      <p 
-                        onClick={() => { if(item.creator.role === 'staff') { setSelectedStaff(item.creator); setShowStaffModal(true); } }}
-                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
-                      >
-                        {item.creator.role || 'Admin'}
+          paginatedList.map((item, index) => {
+            const displayVariation = getDisplayVariation(item);
+            return (
+              <div key={index} className='border rounded-lg overflow-hidden bg-white shadow-sm hover:bg-gray-50 transition-colors'>
+                <div 
+                  className={`grid ${columnLayout} items-center gap-2 py-3 px-3 cursor-pointer`}
+                  onClick={() => setExpandedProductId(expandedProductId === item._id ? null : item._id)}
+                >
+                  <div onClick={(e) => e.stopPropagation()} className='flex items-center justify-center'>
+                    <input
+                      type="checkbox"
+                      className='cursor-pointer'
+                      checked={selectedProducts.includes(item._id)}
+                      onChange={() => handleProductSelect(item._id)}
+                    />
+                  </div>
+                  <img className='w-10 h-10 object-cover rounded shadow-sm' src={displayVariation?.images?.[0]} alt="" />
+                  <p className='text-xs font-medium text-gray-800 truncate'>{item.name}</p>
+                  <p className='hidden md:block text-xs text-gray-600 truncate'>{item.category}</p>
+                  <p className='hidden md:block text-xs text-gray-600 truncate'>{displayVariation?.sku}</p>
+                  <p className='text-xs font-bold text-gray-900'>{currency}{displayVariation?.sizes?.[0]?.price}</p>
+                  <p className='hidden md:block text-xs text-gray-400 line-through'>{currency}{displayVariation?.sizes?.[0]?.mrp}</p>
+                  <p className={`hidden md:block text-xs ${calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                    {calculateTotalStock(item) === 0 ? 'Out' : calculateTotalStock(item)}
+                  </p>
+                  <p className='hidden lg:block text-[10px] text-gray-500 font-medium'>
+                    {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                  <div onClick={(e) => e.stopPropagation()} className='hidden lg:block'>
+                    {item.creator ? (
+                      <div className='flex flex-col gap-0.5'>
+                        <p 
+                          onClick={() => { if(item.creator.role === 'staff') { setSelectedStaff(item.creator); setShowStaffModal(true); } }}
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
+                        >
+                          {item.creator.role || 'Admin'}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className='text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase inline-block w-fit'>
+                        System
                       </p>
+                    )}
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()} className='text-center'>
+                    <Link to={`/update/${item._id}`} className='text-blue-600 hover:text-blue-800 font-bold text-xs'>Edit</Link>
+                  </div>
+                  {role !== 'staff' && (
+                    <div onClick={(e) => { e.stopPropagation(); confirmDelete(item._id); }} className='text-center'>
+                      <p className='text-red-500 hover:text-red-700 cursor-pointer font-bold text-lg'>×</p>
                     </div>
-                  ) : (
-                    <p className='text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase inline-block w-fit'>
-                      System
-                    </p>
                   )}
                 </div>
-                <div onClick={(e) => e.stopPropagation()} className='text-center'>
-                  <Link to={`/update/${item._id}`} className='text-blue-600 hover:text-blue-800 font-bold text-xs'>Edit</Link>
-                </div>
-                {role !== 'staff' && (
-                  <div onClick={(e) => { e.stopPropagation(); confirmDelete(item._id); }} className='text-center'>
-                    <p className='text-red-500 hover:text-red-700 cursor-pointer font-bold text-lg'>×</p>
-                  </div>
-                )}
-              </div>
 
 
               {/* Accordion Content: Variations */}
@@ -296,8 +309,8 @@ const List = ({ token }) => {
                 </div>
               )}
             </div>
-          ))
-        }
+          );
+        })}
       </div>
 
       {/* Pagination Controls */}
