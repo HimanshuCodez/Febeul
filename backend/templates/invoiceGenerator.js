@@ -227,17 +227,29 @@ const buildInvoicePDF = (order, res) => {
         
         addTotalRow('Shipping Charges:', order.shippingCharge > 0 ? `INR ${order.shippingCharge.toFixed(2)}` : 'FREE');
         if (order.codCharge > 0) addTotalRow('COD Charges:', `INR ${order.codCharge.toFixed(2)}`);
-        if (order.giftWrap?.price > 0) addTotalRow('Gift Wrap:', `INR ${order.giftWrap.price.toFixed(2)}`);
         
-        // Add Gift Message / Wrap Style Note
-        if (order.giftWrap && order.giftWrap.name) {
-            doc.moveDown(1);
+        // Add Gift Wrap Style and Price (Aligned above the line)
+        if (order.giftWrap) {
+            const startY = doc.y;
+            
+            // Add pricing row on the right
+            if (order.giftWrap.price > 0) {
+                addTotalRow('Gift Wrap:', `INR ${order.giftWrap.price.toFixed(2)}`);
+            }
+            
+            // Add style on the left, aligned with the price
+            if (order.giftWrap.name) {
+                const endY = doc.y;
+                doc.y = startY;
+                doc.fontSize(8).font('Helvetica-Bold').fillColor(primaryColor)
+                   .text(`Gift Wrap Style: ${order.giftWrap.name}`, 30);
+                doc.y = Math.max(endY, doc.y);
+            }
+
+            // Line below the Gift Wrap info
+            doc.moveDown(0.5);
             doc.strokeColor(borderColor).lineWidth(0.5).moveTo(30, doc.y).lineTo(doc.page.width - 30, doc.y).stroke();
             doc.moveDown(0.5);
-            doc.fontSize(8).font('Helvetica-Bold').fillColor(primaryColor).text(`Gift Wrap Style: ${order.giftWrap.name}`, 30);
-            if (order.giftWrap.message) {
-                doc.font('Helvetica').fillColor(secondaryColor).text(`Gift Message: "${order.giftWrap.message}"`, 30, doc.y + 2, { italic: true });
-            }
         }
 
         // Tax breakdown
