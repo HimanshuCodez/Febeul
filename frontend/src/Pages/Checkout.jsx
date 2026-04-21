@@ -187,6 +187,19 @@ export default function CheckoutPage() {
     }
   }, [user, showAddressForm]);
 
+  // Handle Coupon Validation on Payment Method Change
+  useEffect(() => {
+    if (appliedCoupon && appliedCoupon.offerType && appliedCoupon.offerType !== 'none') {
+      if (appliedCoupon.offerType === 'prepaid' && selectedPayment && selectedPayment !== 'card') {
+        toast.error("Coupon removed: Only valid for prepaid orders.");
+        handleCouponApply(null);
+      } else if (appliedCoupon.offerType === 'cod' && selectedPayment && selectedPayment !== 'cod') {
+        toast.error("Coupon removed: Only valid for Cash on Delivery (COD) orders.");
+        handleCouponApply(null);
+      }
+    }
+  }, [selectedPayment, appliedCoupon]);
+
   const handleCountrySelect = (c) => {
     setAddressCountry(c);
     setCountrySearch("");
@@ -1001,7 +1014,7 @@ export default function CheckoutPage() {
 
                 return (
                   <>
-                    <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} />
+                    <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} selectedPayment={selectedPayment} />
                     <div className="mt-4 border-t pt-4">
                       <CouponShows productSKUs={productSKUs} onRedeem={handleRedeem} appliedCoupon={appliedCoupon} />
                     </div>

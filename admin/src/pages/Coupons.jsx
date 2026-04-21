@@ -18,6 +18,7 @@ const Coupons = ({ token }) => {
     expiryDate: '',
     isActive: true,
     userType: 'normal', // 'normal' or 'luxe'
+    offerType: 'none', // 'none', 'prepaid', 'cod'
     applicableSKUs: '', // Comma-separated SKUs
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +113,7 @@ const Coupons = ({ token }) => {
           expiryDate: '',
           isActive: true,
           userType: 'normal',
+          offerType: 'none',
           applicableSKUs: '',
         });
         fetchCoupons(); // Refresh the list
@@ -219,6 +221,21 @@ const Coupons = ({ token }) => {
             >
               <option value='normal'>All Users</option>
               <option value='luxe'>Luxe Members</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor='offerType' className='block text-sm font-medium text-gray-700 mb-1'>Offer Type</label>
+            <select
+              id='offerType'
+              name='offerType'
+              value={newCoupon.offerType}
+              onChange={handleInputChange}
+              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
+            >
+              <option value='none'>Regular Coupon</option>
+              <option value='prepaid'>Prepaid Offer</option>
+              <option value='cod'>COD Offer</option>
             </select>
           </div>
 
@@ -357,6 +374,7 @@ const Coupons = ({ token }) => {
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Expires On</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>User Type</th>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Offer Type</th>
                   {role !== 'staff' && <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>}
                 </tr>
               </thead>
@@ -396,6 +414,7 @@ const Coupons = ({ token }) => {
                       </span>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.userType ? coupon.userType.charAt(0).toUpperCase() + coupon.userType.slice(1) : 'N/A'}</td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.offerType ? coupon.offerType.charAt(0).toUpperCase() + coupon.offerType.slice(1) : 'None'}</td>
                     {role !== 'staff' && (
                       <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                         <button

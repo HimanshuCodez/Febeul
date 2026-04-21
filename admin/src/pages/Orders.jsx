@@ -319,7 +319,16 @@ const Orders = ({ token }) => {
                         <div className='space-y-1 text-sm text-gray-600'>
                           <p>Method: <span className="font-medium">{order.paymentMethod}</span></p>
                           <p>Status: <span className={`font-medium ${order.payment ? 'text-green-600' : 'text-red-600'}`}>{order.payment ? 'Paid' : 'Pending'}</span></p>
-                          {order.couponDiscount > 0 && <p>Coupon Discount: <span className="font-medium text-green-600">-{currency}{order.couponDiscount.toFixed(2)}</span></p>}
+                          {order.couponDiscount > 0 && (
+                            <div className='flex flex-col'>
+                              <p>Coupon Discount: <span className="font-medium text-green-600">-{currency}{order.couponDiscount.toFixed(2)}</span></p>
+                              {order.couponOfferType && order.couponOfferType !== 'none' && (
+                                <span className='text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 uppercase tracking-tighter w-fit'>
+                                  {order.couponOfferType === 'prepaid' ? 'Prepaid Offer' : 'COD Offer'}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           {order.shippingCharge > 0 && <p>Shipping: <span className="font-medium">{currency}{order.shippingCharge.toFixed(2)}</span></p>}
                           {order.codCharge > 0 && <p>COD Charge: <span className="font-medium">{currency}{order.codCharge.toFixed(2)}</span></p>}
                           {order.giftWrap && order.giftWrap.name && (

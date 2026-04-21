@@ -603,9 +603,16 @@ export default function OrderDetailPage() {
                 <span>₹{productAmount.toFixed(2)}</span>
               </div>
               {order.couponDiscount > 0 && (
-                  <div className="flex justify-between text-green-600 font-semibold">
-                      <span>Total Discount</span>
-                      <span>- ₹{order.couponDiscount.toFixed(2)}</span>
+                  <div className="flex flex-col border-b border-gray-100 pb-2">
+                    <div className="flex justify-between text-green-600 font-semibold">
+                        <span>Total Discount</span>
+                        <span>- ₹{order.couponDiscount.toFixed(2)}</span>
+                    </div>
+                    {order.couponOfferType && order.couponOfferType !== 'none' && (
+                      <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-100 uppercase tracking-wider w-fit mt-1 self-end">
+                        {order.couponOfferType === 'prepaid' ? 'Prepaid Offer' : 'COD Offer'} Applied
+                      </span>
+                    )}
                   </div>
               )}
               

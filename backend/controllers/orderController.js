@@ -70,7 +70,7 @@ const decreaseStock = async (items) => {
 };
 
 // Helper function to calculate all pricing components
-const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, couponDiscount = 0, userState = 'Delhi') => {
+const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, couponDiscount = 0, userState = 'Delhi', couponCode) => {
     let productAmount = 0;
     let totalItemDiscount = 0;
     const processedItems = await Promise.all(items.map(async (item) => {
@@ -135,6 +135,15 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
         giftWrapPrice = 0; // Luxe members get gift wrap for free
     }
 
+    // Calculate coupon offer type if couponCode is provided
+    let couponOfferType = 'none';
+    if (couponCode) {
+        const coupon = await couponModel.findOne({ code: couponCode.toUpperCase() });
+        if (coupon) {
+            couponOfferType = coupon.offerType || 'none';
+        }
+    }
+
     // Calculate shipping charge based on frontend logic
     // Calculate shipping based on discounted total
     const discountedProductAmount = productAmount - totalItemDiscount;
@@ -174,7 +183,7 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     const totalCombinedDiscount = totalItemDiscount + couponDiscount;
     const orderTotal = (productAmount - totalCombinedDiscount) + shippingCharge + codCharge + giftWrapPrice;
 
-    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, isDelhi };
+    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, isDelhi, couponOfferType };
 };
 
 const constructEmailHtml = (order, templateHtml) => {
@@ -265,6 +274,15 @@ const constructEmailHtml = (order, templateHtml) => {
                 <td style="text-align: right; color: #155724; font-weight: bold; padding: 5px 10px; font-size: 11px;">- ₹${emailCouponDiscount.toFixed(2)}</td>
             </tr>
         `;
+        if (order.couponOfferType && order.couponOfferType !== 'none') {
+            const offerLabel = order.couponOfferType === 'prepaid' ? 'Prepaid Offer' : 'COD Offer';
+            couponDiscountRowHtml += `
+                <tr>
+                    <td style="text-align: right; font-weight: bold; color: #155724; padding: 5px 10px; font-size: 10px;">(Applied ${offerLabel})</td>
+                    <td></td>
+                </tr>
+            `;
+        }
     }
 
     // Populate template placeholders
@@ -310,7 +328,7 @@ const placeOrder = async (req,res) => {
         
         const { userId, items, address, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount, address.state);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount, address.state, couponCode);
 
         const invoiceNumber = await getNextInvoiceNumber();
 
@@ -327,6 +345,7 @@ const placeOrder = async (req,res) => {
             date: Date.now(),
             giftWrap: giftWrapData,
             couponCode,
+            couponOfferType,
             couponDiscount: totalCombinedDiscount,
             invoiceNumber,
             taxableValue,
@@ -427,10 +446,10 @@ const placeOrder = async (req,res) => {
 const placeOrderStripe = async (req,res) => {
     try {
         
-        const { userId, items, address, currency, giftWrap: giftWrapData, couponDiscount } = req.body;
+        const { userId, items, address, currency, giftWrap: giftWrapData, couponDiscount, couponCode } = req.body;
         const { origin } = req.headers;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, taxableValue, cgstAmount, sgstAmount, igstAmount } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount, address.state);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount, address.state, couponCode);
 
         const invoiceNumber = await getNextInvoiceNumber();
 
@@ -447,7 +466,8 @@ const placeOrderStripe = async (req,res) => {
             date: Date.now(),
             giftWrap: giftWrapData,
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
-            couponCode: req.body.couponCode,
+            couponCode,
+            couponOfferType,
             couponDiscount,
             invoiceNumber,
             taxableValue,
@@ -629,7 +649,7 @@ const placeOrderRazorpay = async (req,res) => {
         
         const { userId, items, address, currency = "INR", giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount, address.state);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount, address.state, couponCode);
 
         const invoiceNumber = await getNextInvoiceNumber();
 
@@ -647,6 +667,7 @@ const placeOrderRazorpay = async (req,res) => {
             giftWrap: giftWrapData,
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
             couponCode,
+            couponOfferType,
             couponDiscount: totalCombinedDiscount,
             invoiceNumber,
             taxableValue,

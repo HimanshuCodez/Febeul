@@ -28,6 +28,7 @@ const orderSchema = new mongoose.Schema({
     paymentDetails: { type: Object },
     date: {type: Number, required:true},
     couponCode: { type: String },
+    couponOfferType: { type: String, enum: ['none', 'prepaid', 'cod'], default: 'none' },
     couponDiscount: { type: Number, default: 0 },
     isLuxeMemberAtTimeOfOrder: { type: Boolean, default: false },
     invoiceNumber: { type: Number },

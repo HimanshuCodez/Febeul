@@ -3,7 +3,7 @@ import couponModel from '../models/couponModel.js';
 // Admin: Add a new coupon
 export const addCoupon = async (req, res) => {
     try {
-        const { code, description, discountType, discountValue, minOrderAmount, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, applicableSKUs } = req.body;
+        const { code, description, discountType, discountValue, minOrderAmount, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs } = req.body;
 
         if (!code || !discountType || !discountValue || !expiryDate) {
             return res.status(400).json({ success: false, message: 'Required fields are missing.' });
@@ -25,6 +25,7 @@ export const addCoupon = async (req, res) => {
             expiryDate,
             isActive,
             userType,
+            offerType: offerType || 'none',
             applicableSKUs: applicableSKUs || []
         });
 
@@ -71,7 +72,7 @@ export const removeCoupon = async (req, res) => {
 // User: Apply a coupon
 export const applyCoupon = async (req, res) => {
     try {
-        const { code, items } = req.body; // Expecting items from cart
+        const { code, items, paymentMethod } = req.body; // Expecting items from cart
         const userId = req.body.userId;
 
         if (!code) {
@@ -89,6 +90,14 @@ export const applyCoupon = async (req, res) => {
 
         if (new Date(coupon.expiryDate) < new Date()) {
             return res.status(400).json({ success: false, message: 'Coupon has expired.' });
+        }
+
+        // Check Payment Method Restriction
+        if (coupon.offerType === 'prepaid' && paymentMethod && paymentMethod !== 'card') {
+            return res.status(400).json({ success: false, message: 'This coupon is only applicable for prepaid orders.' });
+        }
+        if (coupon.offerType === 'cod' && paymentMethod && paymentMethod !== 'cod') {
+            return res.status(400).json({ success: false, message: 'This coupon is only applicable for Cash on Delivery (COD) orders.' });
         }
 
         if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
@@ -141,6 +150,7 @@ export const applyCoupon = async (req, res) => {
             discountType: coupon.discountType,
             discountValue: coupon.discountValue,
             code: coupon.code,
+            offerType: coupon.offerType,
         });
 
     } catch (error) {
