@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { backendUrl } from '../App'
 import { toast } from 'react-toastify'
 
-const Login = ({setToken, setRole, setUserEmail}) => {
+const Login = ({setToken, setRole, setUserEmail, setPermissions}) => {
 
     const [email,setEmail] = useState('')
     const [password,setPassword] = useState('')
@@ -17,9 +17,9 @@ const Login = ({setToken, setRole, setUserEmail}) => {
                 setRole(response.data.role)
                 setUserEmail(response.data.email)
                 if (response.data.permissions) {
-                    localStorage.setItem('permissions', JSON.stringify(response.data.permissions))
+                    setPermissions(response.data.permissions)
                 } else {
-                    localStorage.removeItem('permissions')
+                    setPermissions([])
                 }
             } else {
                 toast.error(response.data.message)

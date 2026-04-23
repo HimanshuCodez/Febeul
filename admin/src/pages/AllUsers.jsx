@@ -32,6 +32,8 @@ const AllUsers = ({ token }) => {
     { label: 'Tickets', path: '/tickets' },
     { label: 'Reviews', path: '/reviews' },
     { label: 'CMS', path: '/cms' },
+    { label: 'Hero Images', path: '/images' },
+    { label: 'Email Marketing', path: '/send-mail' },
   ];
 
   const togglePermission = (path) => {

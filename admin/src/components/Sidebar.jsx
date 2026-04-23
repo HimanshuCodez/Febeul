@@ -1,16 +1,28 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { assets } from '../assets/assets'
+import { ChevronDown, ChevronRight, PackageSearch } from 'lucide-react'
 
-const Sidebar = ({ role }) => {
+const Sidebar = ({ role, permissions = [] }) => {
   const location = useLocation();
-  const permissions = JSON.parse(localStorage.getItem('permissions') || '[]');
+  
+  const [isProductListingOpen, setIsProductListingOpen] = useState(
+    location.pathname === '/add' || location.pathname === '/list' || location.pathname.includes('/update')
+  );
+
+  useEffect(() => {
+    if (location.pathname === '/add' || location.pathname === '/list' || location.pathname.includes('/update')) {
+      setIsProductListingOpen(true);
+    }
+  }, [location.pathname]);
 
   const isAllowed = (path) => {
     if (role === 'admin') return true;
     if (permissions.length === 0) return true; // Default behavior if no specific permissions set
     return permissions.includes(path);
   };
+
+  const showProductListing = isAllowed('/add') || isAllowed('/list');
 
   return (
     <div className='w-[18%] min-h-screen border-r-2'>
@@ -23,32 +35,54 @@ const Sidebar = ({ role }) => {
                 </NavLink>
             )}
 
-            {isAllowed('/allusers') && role === 'admin' && (
+            {isAllowed('/allusers') && (
                 <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/allusers">
                     <img className='w-5 h-5' src={assets.order_icon} alt="" />
                     <p className='hidden md:block'>All Users</p>
                 </NavLink>
             )}
 
-            {isAllowed('/add') && (
-                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/add">
-                    <img className='w-5 h-5' src={assets.add_icon} alt="" />
-                    <p className='hidden md:block'>Add Items</p>
-                </NavLink>
-            )}
+            {/* Product Listing Accordion */}
+            {showProductListing && (
+                <div className="flex flex-col">
+                    <div 
+                        onClick={() => setIsProductListingOpen(!isProductListingOpen)}
+                        className='flex items-center justify-between gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l cursor-pointer hover:bg-gray-50'
+                    >
+                        <div className="flex items-center gap-3">
+                            <PackageSearch size={20} className="text-gray-600" />
+                            <p className='hidden md:block font-medium'>Product Listing</p>
+                        </div>
+                        <div className='hidden md:block'>
+                            {isProductListingOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </div>
+                    </div>
+                    
+                    {isProductListingOpen && (
+                        <div className="flex flex-col gap-2 mt-2 ml-4">
+                            {isAllowed('/add') && (
+                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/add">
+                                    <img className='w-5 h-5' src={assets.add_icon} alt="" />
+                                    <p className='hidden md:block'>Add Items</p>
+                                </NavLink>
+                            )}
 
-            {isAllowed('/list') && (
-                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/list">
-                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                    <p className='hidden md:block'>List Items</p>
-                </NavLink>
-            )}
+                            {isAllowed('/list') && (
+                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/list">
+                                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
+                                    <p className='hidden md:block'>List Items</p>
+                                </NavLink>
+                            )}
 
-            {location.pathname.includes('/update') && isAllowed('/list') && (
-                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to={location.pathname}>
-                    <img className='w-5 h-5' src={assets.add_icon} alt="" />
-                    <p className='hidden md:block'>Update Item</p>
-                </NavLink>
+                            {location.pathname.includes('/update') && isAllowed('/list') && (
+                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to={location.pathname}>
+                                    <img className='w-5 h-5' src={assets.add_icon} alt="" />
+                                    <p className='hidden md:block'>Update Item</p>
+                                </NavLink>
+                            )}
+                        </div>
+                    )}
+                </div>
             )}
 
             {isAllowed('/orders') && (

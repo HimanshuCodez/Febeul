@@ -1,7 +1,7 @@
 import React from 'react'
 import {assets} from '../assets/assets'
 
-const Navbar = ({setToken, setRole, setUserEmail, role, email}) => {
+const Navbar = ({setToken, setRole, setUserEmail, setPermissions, role, email}) => {
   return (
     <div className='flex items-center bg-black justify-between py-2 px-4 sm:px-6 lg:px-8'>
         <img 
@@ -21,7 +21,7 @@ const Navbar = ({setToken, setRole, setUserEmail, role, email}) => {
                 )}
             </div>
             <button 
-                onClick={()=>{setToken(''); setRole(''); setUserEmail('');}} 
+                onClick={()=>{setToken(''); setRole(''); setUserEmail(''); setPermissions([]);}} 
                 className='bg-red-500 text-white px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-red-600 transition-colors'>
                 Logout
             </button>

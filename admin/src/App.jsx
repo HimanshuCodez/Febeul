@@ -28,11 +28,15 @@ const App = () => {
   const [token, setToken] = useState(localStorage.getItem('token')?localStorage.getItem('token'):'');
   const [role, setRole] = useState(localStorage.getItem('role')?localStorage.getItem('role'):'');
   const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail')?localStorage.getItem('userEmail'):'');
-  const permissions = JSON.parse(localStorage.getItem('permissions') || '[]');
+  const [permissions, setPermissions] = useState(JSON.parse(localStorage.getItem('permissions') || '[]'));
 
   const isAllowed = (path) => {
     if (role === 'admin') return true;
-    if (permissions.length === 0) return true;
+    // For staff, if no permissions are set, they might have none or all depending on system design.
+    // Based on Sidebar.jsx, permissions.length === 0 means default behavior (allowed if no specific permissions set)
+    // but usually for staff we want explicit permissions.
+    // Given the current implementation in Sidebar.jsx, let's stick to it but pass permissions state.
+    if (permissions.length === 0) return true; 
     return permissions.includes(path);
   };
 
@@ -40,18 +44,19 @@ const App = () => {
     localStorage.setItem('token',token)
     localStorage.setItem('role',role)
     localStorage.setItem('userEmail',userEmail)
-  },[token, role, userEmail])
+    localStorage.setItem('permissions', JSON.stringify(permissions))
+  },[token, role, userEmail, permissions])
 
   return (
     <div className='bg-gray-50 min-h-screen'>
       <ToastContainer />
       {token === ""
-        ? <Login setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} />
+        ? <Login setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} setPermissions={setPermissions} />
         : <>
-          <Navbar setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} role={role} email={userEmail} />
+          <Navbar setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} role={role} email={userEmail} setPermissions={setPermissions} />
           <hr />
           <div className='flex w-full'>
-            <Sidebar role={role} />
+            <Sidebar role={role} permissions={permissions} />
             <div className='w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'>
               <Routes>
                 {/* Dashboard / Root */}
@@ -66,7 +71,7 @@ const App = () => {
                 {isAllowed('/list') && <Route path='/list' element={<List token={token} />} />}
                 {isAllowed('/orders') && <Route path='/orders' element={<Orders token={token} />} />}
                 {isAllowed('/update') && <Route path='/update/:productId' element={<Update token={token} />} />}
-                {isAllowed('/allusers') && role === 'admin' && <Route path='/allusers' element={<AllUsers token={token} />} />}
+                {isAllowed('/allusers') && <Route path='/allusers' element={<AllUsers token={token} />} />}
                 {isAllowed('/gift-wraps') && <Route path='/gift-wraps' element={<ManageGiftWraps token={token} />} />}
                 {isAllowed('/policy-update') && <Route path='/policy-update' element={<PolicyUpdate token={token} />} />}
                 {isAllowed('/coupons') && <Route path='/coupons' element={<Coupons token={token} />} />}
