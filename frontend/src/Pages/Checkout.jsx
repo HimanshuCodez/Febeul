@@ -584,32 +584,6 @@ export default function CheckoutPage() {
                         <input type="text" placeholder="Nearby Landmark (Optional)" value={addressLandmark} onChange={e => setAddressLandmark(e.target.value)} className="w-full p-2 border rounded" />
                         
                         <div className="grid grid-cols-2 gap-4 mt-2">
-                            {/* State Input */}
-                            <div className="relative">
-                                <input 
-                                    type="text" 
-                                    placeholder="State" 
-                                    value={addressState} 
-                                    onChange={e => { setAddressState(e.target.value); setAddressCity(''); }} 
-                                    required 
-                                    className="w-full p-2 border rounded" 
-                                />
-                            </div>
-
-                            {/* City Input */}
-                            <div className="relative">
-                                <input 
-                                    type="text" 
-                                    placeholder="City" 
-                                    value={addressCity} 
-                                    onChange={e => setAddressCity(e.target.value)} 
-                                    required 
-                                    className="w-full p-2 border rounded" 
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mt-2">
                             <input type="text" placeholder="ZIP Code" value={addressZip} onChange={e => setAddressZip(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{6}" title="ZIP Code must be 6 digits." />
                             
                             {/* Searchable Country Dropdown */}
@@ -653,6 +627,32 @@ export default function CheckoutPage() {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                            {/* State Input */}
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    placeholder="State" 
+                                    value={addressState} 
+                                    onChange={e => { setAddressState(e.target.value); setAddressCity(''); }} 
+                                    required 
+                                    className="w-full p-2 border rounded" 
+                                />
+                            </div>
+
+                            {/* City Input */}
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    placeholder="City" 
+                                    value={addressCity} 
+                                    onChange={e => setAddressCity(e.target.value)} 
+                                    required 
+                                    className="w-full p-2 border rounded" 
+                                />
                             </div>
                         </div>
 
@@ -767,8 +767,8 @@ export default function CheckoutPage() {
                           </div>
                           <p className="text-gray-600 text-sm">{addr.address}, {addr.locality}</p>
                           {addr.landmark && <p className="text-gray-500 text-xs italic">Landmark: {addr.landmark}</p>}
-                          <p className="text-gray-600 text-sm">{addr.city}, {addr.state}</p>
-                          <p className="text-gray-600 text-sm">{addr.zip}, {addr.country}</p>
+                          <p className="text-gray-600 text-sm">{addr.zip}, {addr.city}</p>
+                          <p className="text-gray-600 text-sm">{addr.state}, {addr.country}</p>
                           <p className="text-gray-600 text-sm mt-1">Phone: {addr.phone}{addr.alternatePhone ? `, ${addr.alternatePhone}` : ''}</p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -816,8 +816,8 @@ export default function CheckoutPage() {
                     </span>                  </div>
                   <p className="text-gray-600 text-sm">{addresses[selectedAddress].address}, {addresses[selectedAddress].locality}</p>
                   {addresses[selectedAddress].landmark && <p className="text-gray-500 text-xs italic">Landmark: {addresses[selectedAddress].landmark}</p>}
-                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].city}, {addresses[selectedAddress].state}</p>
-                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].zip}, {addresses[selectedAddress].country}</p>
+                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].zip}, {addresses[selectedAddress].city}</p>
+                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].state}, {addresses[selectedAddress].country}</p>
                   <p className="text-gray-600 text-sm mt-1">Phone: {addresses[selectedAddress].phone}{addresses[selectedAddress].alternatePhone ? `, ${addresses[selectedAddress].alternatePhone}` : ''}</p>
                 </motion.div>
               )}

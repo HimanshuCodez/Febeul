@@ -218,20 +218,20 @@ const Address = () => {
                     </div>
 
                     {/* Location Selection Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-                        <div className="col-span-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+                        <div>
                             <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">ZIP Code</label>
                             <input type="text" name="zip" placeholder="ZIP" value={address.zip} onChange={handleChange} required className="form-input" />
                         </div>
-                        <div className="col-span-1">
+                        <div>
                             <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">City</label>
                             <input type="text" name="city" placeholder="City" value={address.city} onChange={handleChange} required className="form-input" />
                         </div>
-                        <div className="col-span-1">
+                        <div>
                             <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">State</label>
                             <input type="text" name="state" placeholder="State" value={address.state} onChange={handleChange} required className="form-input" />
                         </div>
-                        <div className="col-span-1">
+                        <div>
                             <label className="block text-xs font-bold text-black uppercase mb-1.5 ml-1">Country</label>
                             <div className="relative" ref={countryDropdownRef}>
                                 <div 

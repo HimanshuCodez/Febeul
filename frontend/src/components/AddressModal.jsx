@@ -36,8 +36,8 @@ const AddressModal = ({ isOpen, onClose, addresses, selectedAddress, onSelectAdd
               </div>
               <p>{address.address}, {address.locality}</p>
               {address.landmark && <p className="text-sm text-gray-500 italic">Landmark: {address.landmark}</p>}
-              <p>{address.city}, {address.state}</p>
-              <p>{address.country} - {address.zip}</p>
+              <p>{address.zip}, {address.city}</p>
+              <p>{address.state}, {address.country}</p>
               <p>Phone: {address.phone}{address.alternatePhone ? `, ${address.alternatePhone}` : ''}</p>
             </div>
           ))}
