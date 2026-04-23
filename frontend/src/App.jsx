@@ -1,11 +1,13 @@
 // App.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   useLocation,
 } from "react-router-dom";
+import axios from "axios";
+import useAuthStore from "./store/authStore";
 import Home from "./Pages/Home";
 import "./index.css";
 import Profile from "./Pages/Profile";
@@ -47,9 +49,45 @@ import ScrollToTop from "./components/ScrollToTop";
 
 const AppContent = () => {
   const location = useLocation();
+  const { user, token } = useAuthStore();
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkMaintenanceMode = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/settings`);
+        if (response.data.success && response.data.content) {
+          setIsMaintenanceMode(response.data.content.maintenanceMode || false);
+        }
+      } catch (error) {
+        console.error("Error checking maintenance mode:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkMaintenanceMode();
+  }, []);
+
   const showHeaderFooter = !["/auth", "/forgot-password"].includes(
     location.pathname
   );
+
+  // Check if we are waiting for user profile to load (if token exists)
+  const isAuthLoading = !!token && !user;
+
+  // Show loader while fetching maintenance settings OR waiting for auth profile
+  if (isLoading || isAuthLoading) {
+    return <FebeulLoader />;
+  }
+
+  // If maintenance mode is on and user is NOT an admin/staff, show maintenance page
+  const showMaintenance = isMaintenanceMode && user?.role !== 'admin' && user?.role !== 'staff';
+
+  if (showMaintenance) {
+    return <MaintenancePage />;
+  }
 
   return (
     <div>
