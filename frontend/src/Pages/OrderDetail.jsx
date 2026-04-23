@@ -270,21 +270,9 @@ export default function OrderDetailPage() {
 
   // Use pricing details from the order object
   const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
-  let shippingCharge = order.shippingCharge || 0;
-  let codCharge = order.codCharge || 0;
-  const orderTotal = (productAmount - (order.couponDiscount || 0) + shippingCharge + codCharge + (order.giftWrap?.price || 0));
-
-  // If payment method is COD and the total seems to include a 50rs charge that isn't accounted for, assume it's the COD charge.
-  if (order.paymentMethod === 'COD' && codCharge === 0) {
-      const unaccountedAmount = orderTotal - (productAmount + shippingCharge + (order.giftWrap?.price || 0));
-      if (unaccountedAmount > 49 && unaccountedAmount < 51) {
-          codCharge = unaccountedAmount;
-          // If the unaccounted amount was hiding in shipping, remove it from there.
-          if (shippingCharge === unaccountedAmount) {
-              shippingCharge = 0;
-          }
-      }
-  }
+  const shippingCharge = order.shippingCharge || 0;
+  const codCharge = order.codCharge || 0;
+  const orderTotal = order.orderTotal || (productAmount - (order.couponDiscount || 0) + shippingCharge + codCharge + (order.giftWrap?.price || 0));
 
   const orderNumberToDisplay = order?._id;
   

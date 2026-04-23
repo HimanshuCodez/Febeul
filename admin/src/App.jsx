@@ -18,6 +18,7 @@ import FebeulDashboard from './pages/Dashboard' // Import the Dashboard componen
 import NewUserMail from './pages/NewUserMail' // Import the NewUserMail component
 import MaintenanceMode from './pages/Settings/MaintenanceMode'
 import Configurations from './pages/Settings/Configurations'
+import ImageOptimize from './pages/Settings/ImageOptimize'
 import Login from './components/Login'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -84,6 +85,7 @@ const App = () => {
                 {isAllowed('/send-mail') && <Route path='/send-mail' element={<NewUserMail token={token} />} />}
                 {isAllowed('/maintenance') && <Route path='/maintenance' element={<MaintenanceMode token={token} />} />}
                 {isAllowed('/configurations') && <Route path='/configurations' element={<Configurations token={token} />} />}
+                {isAllowed('/image-optimize') && <Route path='/image-optimize' element={<ImageOptimize token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}

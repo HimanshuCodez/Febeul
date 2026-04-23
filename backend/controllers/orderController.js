@@ -73,15 +73,27 @@ const decreaseStock = async (items) => {
 const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, couponDiscount = 0, userState = 'Delhi', couponCode) => {
     let productAmount = 0;
     let totalItemDiscount = 0;
+
+    // Fetch dynamic site settings
+    const cmsModel = (await import('../models/cmsModel.js')).default;
+    const siteSettingsDoc = await cmsModel.findOne({ name: 'siteSettings' });
+    const siteSettings = siteSettingsDoc?.content || {
+        membershipPrice: 129,
+        shippingThreshold: 499,
+        defaultShippingCharge: 50,
+        codCharge: 50
+    };
+
     const processedItems = await Promise.all(items.map(async (item) => {
         if (item.name === "Febeul Luxe Membership") {
-            productAmount += (item.price || 129) * item.quantity;
+            const mPrice = siteSettings.membershipPrice || 129;
+            productAmount += mPrice * item.quantity;
             return {
                 productId: "60d5ecb8b3b1c8e1e8e8e8e8", // Dummy valid ObjectId for membership
                 quantity: item.quantity,
                 name: item.name,
                 image: "https://res.cloudinary.com/dv5p6v6jx/image/upload/v1715414841/membership_icon.png", // Default image or handle in frontend
-                price: item.price || 129,
+                price: mPrice,
                 sku: "LUXE-MEMBERSHIP",
                 discountAmount: 0
             };
@@ -126,7 +138,7 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     
     // Determine COD charge based on paymentMethod
     if (paymentMethod === 'COD') {
-        codCharge = COD_CHARGE_AMOUNT;
+        codCharge = siteSettings.codCharge || 50;
     }
     const user = await userModel.findById(userId); // Fetch user to check luxe status
     const isLuxeMember = user?.isLuxeMember || false;
@@ -150,8 +162,8 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
 
     const isMembershipOrder = items.every(item => item.name === "Febeul Luxe Membership");
 
-    if (!isMembershipOrder && paymentMethod !== 'COD' && !isLuxeMember && discountedProductAmount < SHIPPING_CHARGE_THRESHOLD) {
-        shippingCharge = DEFAULT_SHIPPING_CHARGE;
+    if (!isMembershipOrder && paymentMethod !== 'COD' && !isLuxeMember && discountedProductAmount < (siteSettings.shippingThreshold || 499)) {
+        shippingCharge = siteSettings.defaultShippingCharge || 50;
     }
     
     if (isMembershipOrder) {

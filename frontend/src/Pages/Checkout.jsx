@@ -65,9 +65,26 @@ export default function CheckoutPage() {
   const [isGiftWrapModalOpen, setIsGiftWrapModalOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
+  const [siteSettings, setSiteSettings] = useState({
+    shippingThreshold: 499,
+    defaultShippingCharge: 50,
+    codCharge: 50,
+    expectedDeliveryDays: "5 to 7 Days"
+  });
 
-  const STANDARD_SHIPPING_CHARGE = 0; // Changed to 0 as per user request
-  const COD_SHIPPING_CHARGE = 50.00; // Assuming 50 rs is 50.00 in current currency
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/api/cms/siteSettings`);
+        if (response.data.success) {
+          setSiteSettings(response.data.content);
+        }
+      } catch (error) {
+        console.error("Error fetching site settings:", error);
+      }
+    };
+    fetchSiteSettings();
+  }, []);
 
   // Address Form State
   const [addressName, setAddressName] = useState('');
@@ -304,11 +321,11 @@ export default function CheckoutPage() {
     const isLuxeMember = user?.isLuxeMember && (user?.giftWrapsLeft > 0);
     
     let shippingCharge = 0;
-    if (selectedPayment !== 'cod' && !user?.isLuxeMember && (subtotal - totalProductDiscount) < 499) {
-        shippingCharge = 50.00;
+    if (selectedPayment !== 'cod' && !user?.isLuxeMember && (subtotal - totalProductDiscount) < (siteSettings.shippingThreshold || 499)) {
+        shippingCharge = siteSettings.defaultShippingCharge || 50.00;
     }
 
-    const codCharge = selectedPayment === 'cod' ? COD_SHIPPING_CHARGE : 0;
+    const codCharge = selectedPayment === 'cod' ? (siteSettings.codCharge || 50.00) : 0;
     
     const giftWrapPrice = selectedGiftWrap ? (isLuxeMember ? 0 : selectedGiftWrap.price) : 0;
     

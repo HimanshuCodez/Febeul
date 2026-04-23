@@ -261,17 +261,21 @@ const buildInvoicePDF = (order, res) => {
 
         // Tax breakdown
         const discountedSubtotal = subtotal - (order.couponDiscount || 0);
-        const calculatedTaxable = discountedSubtotal / 1.05;
-        const finalTaxableValue = order.taxableValue || calculatedTaxable;
+        
+        // Use stored GST values if they exist, otherwise calculate based on 5%
+        const finalTaxableValue = order.taxableValue || (discountedSubtotal / 1.05);
         const totalTax = discountedSubtotal - finalTaxableValue;
         
         const isDelhi = order.address.state && order.address.state.toLowerCase() === 'delhi';
+        
         if (isDelhi) {
-            addTotalRow('SGST (5%):', `INR ${totalTax.toFixed(2)}`);
-        } else {
+            // Intra-state (Delhi to Delhi): CGST + SGST
             const splitTax = totalTax / 2;
-            addTotalRow('IGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
             addTotalRow('CGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
+            addTotalRow('SGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
+        } else {
+            // Inter-state: IGST
+            addTotalRow('IGST (5%):', `INR ${totalTax.toFixed(2)}`);
         }
 
         doc.moveDown(0.3);

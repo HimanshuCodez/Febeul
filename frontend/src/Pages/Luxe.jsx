@@ -3,7 +3,7 @@ import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCrown, FaBusAlt } from "react-icons/fa";
+import { FaCrown, FaBusAlt, FaCheckCircle, FaStar, FaShieldAlt } from "react-icons/fa";
 import ProductCard from "../components/ProductCard";
 import Loader from "../components/Loader";
 
@@ -12,9 +12,27 @@ export default function FebeulLuxe() {
   const [razorpayKey, setRazorpayKey] = useState("");
   const navigate = useNavigate();
   const [showPromo, setShowPromo] = useState(true);
+  const [siteSettings, setSiteSettings] = useState({ 
+    membershipPrice: 129, 
+    membershipPriceOriginal: 152 
+  });
 
   const [luxeProducts, setLuxeProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/siteSettings`);
+        if (response.data.success) {
+          setSiteSettings(response.data.content);
+        }
+      } catch (error) {
+        console.error("Error fetching site settings:", error);
+      }
+    };
+    fetchSiteSettings();
+  }, []);
 
   const fetchLuxePriveProducts = async () => {
     setLoadingProducts(true);
@@ -51,7 +69,7 @@ export default function FebeulLuxe() {
     if (isAuthenticated && user?.isLuxeMember) {
       fetchLuxePriveProducts();
     } else {
-        setLoadingProducts(false); // If not a luxe member, no products to load
+        setLoadingProducts(false);
     }
   }, [isAuthenticated, user?.isLuxeMember, token]);
 
@@ -61,17 +79,16 @@ export default function FebeulLuxe() {
       return;
     }
 
-    const amount = 129;
+    const amount = siteSettings.membershipPrice || 129;
     const items = [
       {
-        productId: "60d5ecb8b3b1c8e1e8e8e8e8", // Dummy ID for membership
+        productId: "60d5ecb8b3b1c8e1e8e8e8e8",
         name: "Febeul Luxe Membership",
         price: amount,
         quantity: 1,
         description: "1 Month Febeul Luxe Membership",
       },
     ];
-    // Using a dummy address as it is required by the backend order schema
     const address = {
       street: "123 Luxe Lane",
       city: "Febeul",
@@ -121,7 +138,7 @@ export default function FebeulLuxe() {
 
             if (verifyResponse.data.success) {
               alert("Payment successful! Welcome to Febeul Luxe.");
-              await getProfile(); // Refresh user profile to get new membership status
+              await getProfile();
               navigate('/PrimeMember');
             } else {
               alert("Payment verification failed. Please contact support.");
@@ -140,7 +157,7 @@ export default function FebeulLuxe() {
           address: "Febeul Luxe Digital Membership",
         },
         theme: {
-          color: "#E11D48",
+          color: "#b87a7b",
         },
       };
 
@@ -154,11 +171,14 @@ export default function FebeulLuxe() {
 
   if (isAuthenticated && user?.isLuxeMember) {
     return (
-      <section className="w-full bg-[#f8b7b7] py-12 px-6 min-h-screen">
+      <section className="w-full bg-[#fdf5f5] py-12 px-6 min-h-screen">
+        <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,400&family=Raleway:wght@200;300;400;700&display=swap');
+        `}</style>
         {loadingProducts && <Loader />}
-        <div className="text-center mb-10 flex items-center justify-center gap-2">
-       
-          <h1 className="text-4xl font-serif text-black">LUXE PRIVE SALE</h1>
+        <div className="text-center mb-10 flex flex-col items-center gap-4">
+          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs">Member Exclusive</p>
+          <h1 className="text-5xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">LUXE PRIVE SALE</h1>
         </div>
 
         {luxeProducts.length > 0 ? (
@@ -168,9 +188,9 @@ export default function FebeulLuxe() {
             ))}
           </div>
         ) : !loadingProducts && (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">No Luxe Prive Sale Products Available</h2>
-            <p className="text-gray-700">Check back later for exclusive deals!</p>
+          <div className="text-center py-20">
+            <h2 className="text-2xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] mb-2 italic">New Arrivals Coming Soon</h2>
+            <p className="text-[#c98a8b] font-['Raleway'] text-sm">Check back later for your exclusive Luxe Prive collection.</p>
           </div>
         )}
       </section>
@@ -178,37 +198,41 @@ export default function FebeulLuxe() {
   }
 
   return (
-    <section className="w-full bg-[#f8b7b7] py-12 px-6">
+    <section className="w-full bg-[#fdf5f5] py-12 px-6 min-h-screen">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,400&family=Raleway:wght@200;300;400;700&display=swap');
+      `}</style>
       
-      <div className="text-center mb-10 flex items-center justify-center gap-2">
+      <div className="text-center mb-12 flex flex-col items-center gap-4">
         <Link to="/">
-          <img src="/removebgLogo.png" alt="Febeul Logo" className="h-12 w-auto" />
+          <img src="/removebgLogo.png" alt="Febeul Logo" className="h-16 w-auto" />
         </Link>
-        <h1 className="text-4xl font-serif text-black">LUXE</h1>
+        <div className="space-y-1">
+          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs font-light">Experience The Elite</p>
+          <h1 className="text-5xl md:text-6xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">Luxe Membership</h1>
+        </div>
       </div>
 
       {/* Promo Banner */}
       <AnimatePresence>
         {showPromo && (
           <motion.div
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            exit={{ y: -100 }}
-            className="text-white py-4 px-6 relative mb-8"
-            style={{ background: 'linear-gradient(135deg, #f47b7d 0%, #ff9a9c 100%)' }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="max-w-4xl mx-auto rounded-2xl overflow-hidden mb-12 shadow-sm"
           >
-            <div className="max-w-6xl mx-auto flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <FaCrown className="text-2xl" />
+            <div className="bg-[#b87a7b] text-white py-4 px-8 relative flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <FaCrown className="text-2xl text-yellow-300" />
                 <div>
-                  <p className="font-bold text-lg">Join Febeul Luxe Today!</p>
-                  <p className="text-sm font-mediuopacity-90">Unlock exclusive sales and premium benefits!</p>
-                  <p className="text-xs font-bold text-black mt-1 animate-pulse">Sale products only available after purchasing Luxe membership.</p>
+                  <p className="font-['Raleway'] font-bold text-sm tracking-widest uppercase">Join Febeul Luxe Today</p>
+                  <p className="text-xs font-light opacity-90 font-['Raleway']">Unlock exclusive sales and premium benefits instantly.</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowPromo(false)}
-                className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center"
+                className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
               >
                 ×
               </button>
@@ -218,78 +242,72 @@ export default function FebeulLuxe() {
       </AnimatePresence>
 
       {/* Features Grid */}
-      <div className="max-w-4xl mx-auto grid grid-cols-2 gap-y-7 gap-x-10 text-center">
-
-        {/* Item 1 */}
-        <div>
-         <img src="/2.png" className="mx-auto h-16 mb-4" />
-          <p className="font-bold text-black">FAST PRIORITY DELIVERY</p>
-        </div>
-
-        {/* Item 2 */}
-        <div>
-          {/* ICON HERE */}
-          <img src="/1.png" className="mx-auto h-16 mb-4" />
-          <p className="font-bold text-black">15 GIFT WRAPS</p>
-        </div>
-
-        {/* Item 3 */}
-        <div>
-          {/* ICON HERE */}
-          <img src="/3.png" className="mx-auto h-16 mb-4" />
-          <p className="font-bold text-black">LUXE PRIVE SALES</p>
-          <motion.p
-            className="text-sm text-gray-700 mt-1 px-2"
+      <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-8 text-center mb-16">
+        {[
+          { img: "/2.png", title: "PRIORITY DELIVERY", desc: "Fast-track shipping on every order" },
+          { img: "/1.png", title: "15 GIFT WRAPS", desc: "Premium packaging for your loved ones" },
+          { img: "/3.png", title: "LUXE PRIVE SALES", desc: "Exclusive access to boutique collections" },
+          { img: "/4.png", title: "EXCLUSIVE COUPONS", desc: "Vouchers included with every purchase" },
+          { img: "/5.png", title: "VIP SUPPORT", desc: "Dedicated concierge for all your needs" },
+          { img: "/6.png", title: "FREE SHIPPING", desc: "Zero delivery charges, nationwide" }
+        ].map((feature, i) => (
+          <motion.div 
+            key={i}
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.1 }}
+            className="flex flex-col items-center"
           >
-            Join to reveal exclusive sale products!
-          </motion.p>
-        </div>
-
-        {/* Item 4 */}
-        <div>
-          {/* ICON HERE */}
-          <img src="/4.png" className="mx-auto h-16 mb-4" />
-          <p className="font-bold text-black">COUPONS EVERY PURCHASE</p>
-        </div>
-
-        {/* Item 5 */}
-        <div>
-          {/* ICON HERE */}
-          <img src="/5.png" className="mx-auto h-16 mb-4" />
-          <p className="font-bold text-black">DEDICATED SUPPORT</p>
-        </div>
-
-        {/* Item 6 */}
-        <div>
-          {/* ICON HERE */}
-          <img src="/6.png" className="mx-auto h-20 mb-4" />
-          <p className="font-bold text-black">FREE DELIVERY</p>
-        </div>
-
+            <div className="h-24 flex items-center justify-center mb-4">
+              <img src={feature.img} alt={feature.title} className="max-h-full w-auto hover:scale-110 transition-transform duration-500" />
+            </div>
+            <h3 className="font-['Raleway'] font-bold text-xs tracking-[0.2em] text-[#b87a7b] uppercase mb-2">{feature.title}</h3>
+            <p className="text-[10px] text-[#c98a8b] font-['Raleway'] uppercase tracking-wider">{feature.desc}</p>
+          </motion.div>
+        ))}
       </div>
 
       {/* Bottom Card */}
-      <div className="max-w-md mx-auto mt-14 bg-white rounded-2xl shadow-lg px-6 py-5 text-center">
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <span className="text-gray-400 line-through">₹152</span>
-          <span className="text-black font-bold text-lg">₹129</span>
-          <span className="text-sm text-gray-500">per month</span>
+      <div className="max-w-md mx-auto bg-white rounded-3xl shadow-[0_20px_50px_rgba(249,174,175,0.2)] border border-[#f9aeaf]/20 px-8 py-10 text-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#f9aeaf] via-[#e07f82] to-[#f9aeaf]" />
+        
+        <div className="mb-6">
+            <span className="font-['Raleway'] tracking-widest text-[#c98a8b] uppercase text-[10px] font-bold">Limited Time Offer</span>
+        </div>
+
+        <div className="flex items-center justify-center gap-4 mb-8">
+          <span className="text-[#c98a8b] line-through text-xl font-light">₹{siteSettings.membershipPriceOriginal}</span>
+          <div className="flex flex-col items-start leading-none">
+            <span className="text-[#b87a7b] font-['Cormorant_Garamond'] font-bold text-5xl">₹{siteSettings.membershipPrice}</span>
+            <span className="text-[10px] text-[#c98a8b] font-['Raleway'] font-bold uppercase tracking-tighter mt-1">Per Month</span>
+          </div>
         </div>
 
         <button
           onClick={handlePayment}
           disabled={!isAuthenticated}
-          className="bg-yellow-400 hover:bg-yellow-500 transition text-black font-semibold px-6 py-3 rounded-full disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="w-full bg-[#b87a7b] hover:bg-[#a66b6c] transition-all text-white font-['Raleway'] font-bold tracking-widest py-4 rounded-2xl shadow-lg disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed uppercase text-sm"
         >
-          {isAuthenticated ? "Join Febeul Luxe" : "Login to Join"}
+          {isAuthenticated ? "Become a Member" : "Login to Join"}
         </button>
 
-        <p className="text-xs text-gray-500 mt-2">
-          By signing up for Luxe Membership, you agree to the Febeul Luxe Terms and Conditions
-        </p>
+        <div className="mt-8 pt-8 border-t border-gray-50 flex flex-col gap-4">
+            <div className="flex items-center justify-center gap-6">
+                <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
+                    <FaCheckCircle className="text-[#e07f82]" /> Secure SSL
+                </div>
+                <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
+                    <FaShieldAlt className="text-[#e07f82]" /> Safe Payment
+                </div>
+                <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
+                    <FaStar className="text-[#e07f82]" /> VIP Perks
+                </div>
+            </div>
+            <p className="text-[9px] text-[#c98a8b] opacity-60 leading-relaxed italic">
+                Membership benefits active for 30 days from purchase. Auto-renewal not active.
+            </p>
+        </div>
       </div>
 
     </section>

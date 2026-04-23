@@ -11,14 +11,14 @@ const Sidebar = ({ role, permissions = [] }) => {
   );
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(
-    location.pathname === '/maintenance' || location.pathname === '/configurations'
+    location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize'
   );
 
   useEffect(() => {
     if (location.pathname === '/add' || location.pathname === '/list' || location.pathname.includes('/update')) {
       setIsProductListingOpen(true);
     }
-    if (location.pathname === '/maintenance' || location.pathname === '/configurations') {
+    if (location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize') {
       setIsSettingsOpen(true);
     }
   }, [location.pathname]);
@@ -30,7 +30,7 @@ const Sidebar = ({ role, permissions = [] }) => {
   };
 
   const showProductListing = isAllowed('/add') || isAllowed('/list');
-  const showSettings = isAllowed('/maintenance') || isAllowed('/configurations');
+  const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize');
 
   return (
     <div className='w-[18%] min-h-screen border-r-2'>
@@ -185,6 +185,13 @@ const Sidebar = ({ role, permissions = [] }) => {
                                 <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/configurations">
                                     <img className='w-5 h-5' src={assets.order_icon} alt="" />
                                     <p className='hidden md:block'>Configurations</p>
+                                </NavLink>
+                            )}
+
+                            {isAllowed('/image-optimize') && (
+                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/image-optimize">
+                                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
+                                    <p className='hidden md:block'>Image Optimization</p>
                                 </NavLink>
                             )}
                         </div>

@@ -24,7 +24,7 @@ import CouponShows from "../components/CouponShows";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick }) => {
+const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings }) => {
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isZooming, setIsZooming] = useState(false);
 
@@ -35,20 +35,34 @@ const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick }) => {
     setZoomPos({ x, y });
   };
 
+  const maxHeight = settings?.productMainMaxHeight || 450;
+  const maxWidth = settings?.productMainMaxWidth || 100;
+  const aspectRatio = settings?.productAspectRatio || 'auto';
+  const zoomLevel = settings?.productZoomLevel || 250;
+  const objectFit = settings?.imageObjectFit || 'contain';
+
   return (
     <div 
-      className="relative w-full h-full overflow-hidden bg-gray-50 rounded-lg cursor-zoom-in"
+      className="relative mx-auto overflow-hidden bg-gray-50 rounded-lg cursor-zoom-in"
       onMouseMove={handleMouseMove}
       onMouseEnter={() => !isOutOfStock && setIsZooming(true)}
       onMouseLeave={() => setIsZooming(false)}
       onClick={onMobileClick}
+      style={{ 
+        height: `${maxHeight}px`,
+        width: `${maxWidth}%`,
+        aspectRatio: aspectRatio === 'auto' ? 'auto' : aspectRatio.replace('/', ' / ')
+      }}
     >
       <motion.img
         key={src}
         src={src}
         alt={alt}
-        className={`w-full h-full object-contain transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} ${isZooming ? 'lg:opacity-0' : 'opacity-100'}`}
-        style={{ maxHeight: "450px" }}
+        className={`w-full h-full transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} ${isZooming ? 'lg:opacity-0' : 'opacity-100'}`}
+        style={{ 
+          maxHeight: `${maxHeight}px`,
+          objectFit: objectFit
+        }}
         initial={{ opacity: 0.8 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
@@ -59,7 +73,7 @@ const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick }) => {
           style={{
             backgroundImage: `url(${src})`,
             backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
-            backgroundSize: '250%',
+            backgroundSize: `${zoomLevel}%`,
           }}
         />
       )}
@@ -122,6 +136,8 @@ const ProductDetailPage = () => {
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageSettings, setImageSettings] = useState(null);
+  const [siteSettings, setSiteSettings] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariationIndex, setSelectedVariationIndex] = useState(0);
   const [selectedSizeValue, setSelectedSizeValue] = useState(null); // Renamed selectedSize
@@ -134,6 +150,26 @@ const ProductDetailPage = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [appliedCoupon, setAppliedCoupon] = useState(null); // New state for applied coupon
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchAllSettings = async () => {
+      try {
+        const [imgRes, siteRes] = await Promise.all([
+          axios.get(`${backendUrl}/api/cms/imageSettings`),
+          axios.get(`${backendUrl}/api/cms/siteSettings`)
+        ]);
+        if (imgRes.data.success) {
+          setImageSettings(imgRes.data.content);
+        }
+        if (siteRes.data.success) {
+          setSiteSettings(siteRes.data.content);
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+      }
+    };
+    fetchAllSettings();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && user && user.addresses && user.addresses.length > 0) {
@@ -417,11 +453,15 @@ const ProductDetailPage = () => {
                       <div
                         key={idx}
                         onClick={() => setSelectedImage(idx)}
-                        className={`flex-shrink-0 w-16 h-16 rounded-md border-2 cursor-pointer overflow-hidden transition-all ${
+                        className={`flex-shrink-0 rounded-md border-2 cursor-pointer overflow-hidden transition-all ${
                           selectedImage === idx
                             ? "border-orange-500"
                             : "border-gray-300 hover:border-orange-400"
                         }`}
+                        style={{ 
+                          width: `${imageSettings?.thumbnailSize || 64}px`, 
+                          height: `${imageSettings?.thumbnailSize || 64}px` 
+                        }}
                       >
                         <img
                           src={img}
@@ -437,6 +477,7 @@ const ProductDetailPage = () => {
                       alt={product.name} 
                       isOutOfStock={isOutOfStock} 
                       onMobileClick={() => setIsGalleryOpen(true)}
+                      settings={imageSettings}
                     />
                   </div>
                 </div>
@@ -504,7 +545,11 @@ const ProductDetailPage = () => {
                           <img
                             src={variation.images[0]}
                             alt={`Color ${variation.color}`}
-                            className="w-12 h-12 object-cover rounded"
+                            className="object-cover rounded"
+                            style={{ 
+                              width: `${imageSettings?.variationSize || 48}px`, 
+                              height: `${imageSettings?.variationSize || 48}px` 
+                            }}
                           />
                           {isFullyOutOfStock && (
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -597,7 +642,7 @@ const ProductDetailPage = () => {
                   <div className="text-sm text-gray-600 mt-4">
                     <p>
                       <span className="font-semibold">Expected Delivery in</span>{" "}
-                     5 to 7 Days
+                     {siteSettings?.expectedDeliveryDays || "5 to 7 Days"}
                     </p>
                     <p className="flex items-center gap-1 mt-2">
                       <MapPin size={14} />
