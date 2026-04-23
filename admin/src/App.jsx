@@ -16,6 +16,8 @@ import Images from './pages/Images/Images' // Import the Images component
 import Cms from './pages/Texts/Cms' // Import the Cms component
 import FebeulDashboard from './pages/Dashboard' // Import the Dashboard component
 import NewUserMail from './pages/NewUserMail' // Import the NewUserMail component
+import MaintenanceMode from './pages/Settings/MaintenanceMode'
+import Configurations from './pages/Settings/Configurations'
 import Login from './components/Login'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -80,6 +82,8 @@ const App = () => {
                 {isAllowed('/cms') && <Route path='/cms' element={<Cms token={token} />} />}
                 {isAllowed('/images') && <Route path='/images' element={<Images token={token} />} />}
                 {isAllowed('/send-mail') && <Route path='/send-mail' element={<NewUserMail token={token} />} />}
+                {isAllowed('/maintenance') && <Route path='/maintenance' element={<MaintenanceMode token={token} />} />}
+                {isAllowed('/configurations') && <Route path='/configurations' element={<Configurations token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}

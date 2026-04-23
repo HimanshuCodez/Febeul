@@ -34,6 +34,8 @@ const AllUsers = ({ token }) => {
     { label: 'CMS', path: '/cms' },
     { label: 'Hero Images', path: '/images' },
     { label: 'Email Marketing', path: '/send-mail' },
+    { label: 'Maintenance Mode', path: '/maintenance' },
+    { label: 'Configurations', path: '/configurations' },
   ];
 
   const togglePermission = (path) => {

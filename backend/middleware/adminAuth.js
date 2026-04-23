@@ -1,5 +1,42 @@
 import jwt from 'jsonwebtoken';
 
+const getRequiredPermission = (fullPath) => {
+    if (fullPath.startsWith('/api/admin/dashboard-stats') || 
+        fullPath.startsWith('/api/admin/monthly-trends') || 
+        fullPath.startsWith('/api/admin/daily-trends') || 
+        fullPath.startsWith('/api/admin/category-sales') || 
+        fullPath.startsWith('/api/admin/recent-orders') || 
+        fullPath.startsWith('/api/admin/sku-sales') || 
+        fullPath.startsWith('/api/admin/sku-stocks') || 
+        fullPath.startsWith('/api/admin/export-report')) {
+        return '/';
+    }
+    if (fullPath.startsWith('/api/admin/send-marketing-mail')) return '/send-mail';
+    if (fullPath.startsWith('/api/product/add')) return '/add';
+    if (fullPath.startsWith('/api/product/remove') || fullPath.startsWith('/api/product/update')) return '/list';
+    if (fullPath.startsWith('/api/order')) return '/orders';
+    if (fullPath.startsWith('/api/giftwrap')) return '/gift-wraps';
+    if (fullPath.startsWith('/api/policy')) return '/policy-update';
+    if (fullPath.startsWith('/api/ticket')) return '/tickets';
+    if (fullPath.startsWith('/api/review')) return '/reviews';
+    if (fullPath.startsWith('/api/cms')) {
+        if (fullPath.includes('settings')) {
+            // Check if it's maintenance or configurations specifically? 
+            // For now, let's map it to their specific front-end paths if needed, 
+            // but the front-end sends 'name: settings'.
+            // Let's allow if they have either cms or maintenance/configs permission.
+            return '/cms'; 
+        }
+        return '/cms';
+    }
+    if (fullPath.startsWith('/api/coupon')) return '/coupons';
+    if (fullPath.includes('/maintenance')) return '/maintenance';
+    if (fullPath.includes('/configurations')) return '/configurations';
+    if (fullPath.startsWith('/api/admin/update-permissions')) return '/allusers';
+    
+    return null;
+};
+
 const adminAuth = async (req, res, next) => {
     const { token } = req.headers;
     if (!token) {
@@ -39,6 +76,8 @@ const adminAuth = async (req, res, next) => {
 
         if (isStaffEnv) {
             req.role = 'staff';
+            // ENV Staff typically have limited access, let's allow them except dashboard/sensitive stuff
+            // but for simplicity, if they are ENV staff, they might not have a dashboard.
             if (req.baseUrl.includes('/api/admin')) {
                 return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
             }
@@ -53,11 +92,29 @@ const adminAuth = async (req, res, next) => {
                 req.role = user.role;
                 req.userEmail = user.email;
                 req.userName = user.name;
-                req.permissions = user.permissions;
+                req.permissions = user.permissions || [];
                 
-                // If they are database-staff, still restrict /api/admin if that's the policy
-                if (user.role === 'staff' && req.baseUrl.includes('/api/admin')) {
-                    return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
+                if (user.role === 'staff') {
+                    const fullPath = (req.baseUrl + req.path).replace(/\/$/, "");
+                    
+                    // Strictly restrict permission updates to Admin only, 
+                    // or staff with explicit '/allusers' permission if that's desired.
+                    // Usually management of staff is Admin only.
+                    if (fullPath.includes('/update-permissions')) {
+                         return res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+                    }
+
+                    const permissionNeeded = getRequiredPermission(fullPath);
+                    
+                    // If we have a defined permission for this route, check it
+                    if (permissionNeeded) {
+                        if (!req.permissions.includes(permissionNeeded)) {
+                            return res.status(403).json({ success: false, message: `Access denied. Permission for '${permissionNeeded}' required.` });
+                        }
+                    } else if (req.baseUrl.includes('/api/admin')) {
+                        // Fallback for any other /api/admin route not explicitly mapped
+                        return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
+                    }
                 }
                 
                 return next();
