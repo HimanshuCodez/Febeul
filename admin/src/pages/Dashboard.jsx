@@ -543,7 +543,12 @@ const FebeulDashboard = ({ token }) => {
               <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
                 <span className="text-xs font-bold text-gray-400 mr-2 uppercase">Today</span>
                 <span className="text-lg font-black text-gray-900">
-                  {currency}{(dailyTrends[dailyTrends.length - 1]?.revenue || 0).toLocaleString()}
+                  {currency}
+                  {(() => {
+                    const todayStr = new Date().toISOString().split("T")[0];
+                    const lastTrend = dailyTrends[dailyTrends.length - 1];
+                    return (lastTrend && lastTrend.date === todayStr ? lastTrend.revenue : 0).toLocaleString();
+                  })()}
                 </span>
               </div>
             </div>
