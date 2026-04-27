@@ -173,13 +173,17 @@ const ReturnExchangeModal = ({ orderId, token, onClose, onSubmitted }) => {
 
 export default function OrderDetailPage() {
   const { orderId } = useParams();
-  const { token, isAuthenticated } = useAuthStore();
+  const { token, isAuthenticated, siteSettings, fetchSiteSettings } = useAuthStore();
   const navigate = useNavigate();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchSiteSettings();
+  }, []);
 
   const fetchOrderDetails = async () => {
     setLoading(true);
@@ -283,7 +287,9 @@ export default function OrderDetailPage() {
 
   const estimatedDelivery = order.deliveredAt 
     ? parsedDeliveredDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : (order.shippedAt ? `Est: ${new Date(new Date(order.shippedAt).setDate(new Date(order.shippedAt).getDate() + 5)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Not available');
+    : (order.shippedAt 
+        ? `Est: ${new Date(new Date(order.shippedAt).setDate(new Date(order.shippedAt).getDate() + 5)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` 
+        : (siteSettings.expectedDeliveryDays || '5 to 7 days'));
   
   const statusLevels = {
     'Order Placed': 1,
