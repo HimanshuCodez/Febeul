@@ -10,6 +10,25 @@ const useAuthStore = create((set, get) => ({
   wishlistCount: 0,
   cartCount: 0,
   cartItems: [],
+  siteSettings: {
+    membershipPrice: 129,
+    membershipPriceOriginal: 152,
+    shippingThreshold: 499,
+    defaultShippingCharge: 50,
+    codCharge: 50,
+    expectedDeliveryDays: "5 to 7 Days"
+  },
+
+  fetchSiteSettings: async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/siteSettings`);
+      if (response.data.success && response.data.content) {
+        set({ siteSettings: response.data.content });
+      }
+    } catch (error) {
+      console.error("Failed to fetch site settings", error);
+    }
+  },
 
   fetchWishlistCount: async () => {
     const { user, token, isAuthenticated } = get();
@@ -190,5 +209,6 @@ const useAuthStore = create((set, get) => ({
 if (localStorage.getItem('token')) {
   useAuthStore.getState().getProfile();
 }
+useAuthStore.getState().fetchSiteSettings();
 
 export default useAuthStore;

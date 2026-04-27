@@ -1,6 +1,8 @@
 import React from "react";
+import useAuthStore from "../store/authStore";
 
 export default function InfoBar() {
+  const { siteSettings } = useAuthStore();
   return (
     <div className="w-full bg-[#F4B8BE] py-6 px-4 flex flex-wrap items-center justify-around gap-y-4 md:gap-x-8 lg:gap-x-32 text-black text-sm sm:text-base">
       
@@ -25,7 +27,7 @@ export default function InfoBar() {
 
         <div>
           <div className="text-lg font-semibold">Free shipping</div>
-          <div className="text-base">on orders over ₹499</div>
+          <div className="text-base">on orders over ₹{siteSettings.shippingThreshold || 499}</div>
         </div>
       </div>
 

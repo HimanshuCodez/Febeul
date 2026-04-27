@@ -39,13 +39,23 @@ const calculateRefundAmount = async (order, returnReason, currentShiprocketStatu
     const shippingCharge = order.shippingCharge;
     const codCharge = order.codCharge;
 
+    // Fetch dynamic site settings
+    const cmsModel = (await import('../models/cmsModel.js')).default;
+    const siteSettingsDoc = await cmsModel.findOne({ name: 'siteSettings' });
+    const siteSettings = siteSettingsDoc?.content || {
+        membershipPrice: 129,
+        shippingThreshold: 499,
+        defaultShippingCharge: 50,
+        codCharge: 50
+    };
+
     switch (currentShiprocketStatus) {
         case 'NEW':
         case 'PICKUP SCHEDULED':
             // CASE 1: Cancel BEFORE shipping
             // Formula: productAmount - (shippingCharge if productAmount < 499) - (codCharge if COD)
             refund = productAmount;
-            if (productAmount < SHIPPING_CHARGE_THRESHOLD && order.paymentMethod !== 'COD') { // Only deduct shipping if it was initially applied and not COD
+            if (productAmount < (siteSettings.shippingThreshold || 499) && order.paymentMethod !== 'COD') { // Only deduct shipping if it was initially applied and not COD
                 refund -= shippingCharge; // This shippingCharge would be 50 if productAmount < 499
             }
             if (order.paymentMethod === 'COD') {

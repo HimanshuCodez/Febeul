@@ -51,7 +51,7 @@ const countries = [
 ];
 
 export default function CheckoutPage() {
-  const { user, token, isAuthenticated, getProfile } = useAuthStore();
+  const { user, token, isAuthenticated, getProfile, siteSettings, fetchSiteSettings } = useAuthStore();
   const navigate = useNavigate();
 
   const [cartItems, setCartItems] = useState([]);
@@ -65,24 +65,8 @@ export default function CheckoutPage() {
   const [isGiftWrapModalOpen, setIsGiftWrapModalOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
-  const [siteSettings, setSiteSettings] = useState({
-    shippingThreshold: 499,
-    defaultShippingCharge: 50,
-    codCharge: 50,
-    expectedDeliveryDays: "5 to 7 Days"
-  });
 
   useEffect(() => {
-    const fetchSiteSettings = async () => {
-      try {
-        const response = await axios.get(`${backendUrl}/api/cms/siteSettings`);
-        if (response.data.success) {
-          setSiteSettings(response.data.content);
-        }
-      } catch (error) {
-        console.error("Error fetching site settings:", error);
-      }
-    };
     fetchSiteSettings();
   }, []);
 

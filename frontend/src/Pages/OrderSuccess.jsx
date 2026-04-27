@@ -21,8 +21,12 @@ export default function OrderSuccess() {
   const location = useLocation();
   // Ensure state exists before destructuring
   const { order: initialOrder, items, address, pricingDetails } = location.state || {};
-  const { token } = useAuthStore(); // Get token here
+  const { token, siteSettings, fetchSiteSettings } = useAuthStore(); // Get token and siteSettings here
   const [order, setOrder] = useState(initialOrder);
+
+  useEffect(() => {
+    fetchSiteSettings();
+  }, []);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -93,7 +97,7 @@ export default function OrderSuccess() {
   // --- Replace mock data with real data ---
     const orderNumber = order?._id;
   
-    const estimatedDelivery = "5 to 7 days";
+    const estimatedDelivery = siteSettings.expectedDeliveryDays || "5 to 7 days";
   
   // Use pricing details if available, otherwise calculate
   const subtotal = pricingDetails?.subtotal ?? order.productAmount ?? 0;

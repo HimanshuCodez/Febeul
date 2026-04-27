@@ -11,7 +11,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Cart = () => {
   const [giftWrap, setGiftWrap] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { user, token, isAuthenticated, cartItems, fetchCartCount, setCartItems } = useAuthStore();
+  const { user, token, isAuthenticated, cartItems, fetchCartCount, setCartItems, siteSettings, fetchSiteSettings } = useAuthStore();
 
   const fetchCart = async (showLoading = true) => {
     if (!isAuthenticated || !user) {
@@ -38,6 +38,7 @@ const Cart = () => {
 
   useEffect(() => {
     fetchCart();
+    fetchSiteSettings();
   }, [isAuthenticated, user]);
 
   const handleQuantityChange = async (itemId, size, color, delta) => {
@@ -133,7 +134,7 @@ const Cart = () => {
 
   const shipping = (isAuthenticated && user?.isLuxeMember)
     ? 0 // Luxe members get free shipping here (COD is handled in Checkout)
-    : (subtotal - totalDiscount > 499 ? 0 : 50); // Shipping calculated on discounted total
+    : (subtotal - totalDiscount > (siteSettings.shippingThreshold || 499) ? 0 : (siteSettings.defaultShippingCharge || 50)); // Shipping calculated on discounted total
   
   const total = (subtotal - totalDiscount) + shipping + giftWrapPrice;
 
