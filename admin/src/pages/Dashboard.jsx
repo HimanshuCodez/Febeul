@@ -22,14 +22,13 @@ import {
   FiUsers,
   FiShoppingBag,
   FiTrendingUp,
-  FiDollarSign,
-  FiPackage,
   FiClock,
   FiActivity,
   FiArrowUp,
   FiArrowDown,
   FiDownload,
 } from "react-icons/fi";
+import { FaRupeeSign } from "react-icons/fa";
 import { backendUrl, currency } from "../App"; // Import backendUrl and currency
 import { useNavigate } from "react-router-dom";
 
@@ -460,7 +459,7 @@ const FebeulDashboard = ({ token }) => {
               disabled={exporting}
               className={`flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] shadow-sm ${exporting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              <FiDownload size={18} />
+              <FaRupeeSign size={18} />
               {exporting ? "Exporting..." : "Export Report"}
             </button>
             <select
@@ -497,7 +496,7 @@ const FebeulDashboard = ({ token }) => {
           gradient="bg-gradient-to-br from-[#e88b8d] to-[#d66a6c]"
         />
         <StatCard
-          icon={FiDollarSign}
+          icon={FaRupeeSign}
           title="Revenue"
           value={dashboardStats.revenue.value}
           change={dashboardStats.revenue.change}
@@ -505,7 +504,7 @@ const FebeulDashboard = ({ token }) => {
           gradient="bg-gradient-to-br from-[#d66a6c] to-[#c44a4d]"
         />
         <StatCard
-          icon={FiPackage}
+          icon={FaRupeeSign}
           title="Avg Order Value"
           value={dashboardStats.avgOrderValue.value}
           change={dashboardStats.avgOrderValue.change}
@@ -525,7 +524,7 @@ const FebeulDashboard = ({ token }) => {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="p-1.5 bg-pink-50 rounded-lg">
-                  <FiDollarSign className="text-[#f9aeaf]" size={16} />
+                  <FaRupeeSign className="text-[#f9aeaf]" size={16} />
                 </span>
                 <h3 className="text-2xl font-black text-gray-900 tracking-tight">
                   Revenue Intelligence
@@ -593,7 +592,7 @@ const FebeulDashboard = ({ token }) => {
                         </p>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d] flex items-center justify-center shadow-lg shadow-pink-200">
-                            <FiDollarSign className="text-white" size={18} />
+                            <FaRupeeSign className="text-white" size={18} />
                           </div>
                           <div>
                             <p className="text-xs font-bold text-gray-500 uppercase leading-none">Revenue</p>

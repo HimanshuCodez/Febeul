@@ -224,8 +224,8 @@ export const exportReport = async (req, res) => {
 
         drawCard(50, cardY, cardWidth, cardHeight, 'Total Users', (totalUsers || 0).toLocaleString(), '#f9aeaf');
         drawCard(50 + cardWidth + gap, cardY, cardWidth, cardHeight, 'Total Orders', (totalOrders || 0).toLocaleString(), '#e88b8d');
-        drawCard(50 + (cardWidth + gap) * 2, cardY, cardWidth, cardHeight, 'Revenue', `₹${(revenue || 0).toLocaleString()}`, '#d66a6c');
-        drawCard(50 + (cardWidth + gap) * 3, cardY, cardWidth, cardHeight, 'Avg Order', `₹${(avgOrderValue || 0).toFixed(2)}`, '#c44a4d');
+        drawCard(50 + (cardWidth + gap) * 2, cardY, cardWidth, cardHeight, 'Revenue', `Rs.${(revenue || 0).toLocaleString()}`, '#d66a6c');
+        drawCard(50 + (cardWidth + gap) * 3, cardY, cardWidth, cardHeight, 'Avg Order', `Rs.${(avgOrderValue || 0).toFixed(2)}`, '#c44a4d');
 
         // --- Category Sales Section ---
         let currentY = 185;
@@ -239,7 +239,7 @@ export const exportReport = async (req, res) => {
                 const progress = maxValue > 0 ? ((cat.value || 0) / maxValue) * barWidth : 0;
 
                 doc.fillColor('#4b5563').font('Helvetica').fontSize(9).text(cat.name || 'Uncategorized', 50, currentY);
-                doc.fillColor('#6b7280').font('Helvetica-Bold').text(`₹${(cat.value || 0).toLocaleString()}`, 450, currentY, { width: 95, align: 'right' });
+                doc.fillColor('#6b7280').font('Helvetica-Bold').text(`Rs.${(cat.value || 0).toLocaleString()}`, 450, currentY, { width: 95, align: 'right' });
                 
                 currentY += 12;
                 doc.roundedRect(50, currentY, barWidth, 4, 2).fillColor('#f3f4f6').fill();
@@ -289,7 +289,7 @@ export const exportReport = async (req, res) => {
             doc.font('Helvetica-Bold').text(item.sku || 'N/A', 60, currentY);
             doc.font('Helvetica').text(displayName, 150, currentY, { width: 220 });
             doc.text(item.totalSold.toString(), 380, currentY, { width: 50, align: 'right' });
-            doc.fillColor('#111827').font('Helvetica-Bold').text(`₹${item.revenue.toLocaleString()}`, 450, currentY, { width: 85, align: 'right' });
+            doc.fillColor('#111827').font('Helvetica-Bold').text(`Rs.${item.revenue.toLocaleString()}`, 450, currentY, { width: 85, align: 'right' });
 
             currentY += 20;
         });
