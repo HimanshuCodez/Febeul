@@ -26,7 +26,12 @@ export const addCoupon = async (req, res) => {
             isActive,
             userType,
             offerType: offerType || 'none',
-            applicableSKUs: applicableSKUs || []
+            applicableSKUs: applicableSKUs || [],
+            creator: {
+                name: req.userName || 'Admin',
+                email: req.userEmail || '',
+                role: req.role || 'admin'
+            }
         });
 
         await newCoupon.save();
@@ -66,6 +71,21 @@ export const removeCoupon = async (req, res) => {
     } catch (error) {
         console.error('Error deleting coupon:', error);
         res.status(500).json({ success: false, message: 'Failed to delete coupon.' });
+    }
+};
+
+// Admin: Get users who used a specific coupon
+export const getCouponUsage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const coupon = await couponModel.findById(id).populate('usersWhoUsed.userId', 'name email');
+        if (!coupon) {
+            return res.status(404).json({ success: false, message: 'Coupon not found.' });
+        }
+        res.json({ success: true, users: coupon.usersWhoUsed });
+    } catch (error) {
+        console.error('Error fetching coupon usage:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch coupon usage.' });
     }
 };
 

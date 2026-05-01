@@ -14,6 +14,11 @@ const couponSchema = new mongoose.Schema({
     userType: { type: String, enum: ['normal', 'luxe'], default: 'normal' }, // For specific user groups
     offerType: { type: String, enum: ['none', 'prepaid', 'cod'], default: 'none' }, // For prepaid or COD offers
     applicableSKUs: { type: [String], default: [] }, // For specific products by SKU
+    creator: {
+        name: { type: String },
+        email: { type: String },
+        role: { type: String }
+    },
     usersWhoUsed: [{ 
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     }]

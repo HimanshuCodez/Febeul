@@ -760,6 +760,17 @@ const verifyRazorpay = async (req,res) => {
                 } else {
                     await userModel.findByIdAndUpdate(userId, { cartData: [] });
 
+                    // Update coupon usage
+                    if (order.couponCode) {
+                        await couponModel.updateOne(
+                            { code: order.couponCode },
+                            { 
+                                $inc: { usageCount: 1 },
+                                $push: { usersWhoUsed: { userId } }
+                            }
+                        );
+                    }
+
                     // Decrease stock
                     await decreaseStock(order.items);
 

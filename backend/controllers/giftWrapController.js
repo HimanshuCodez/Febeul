@@ -31,6 +31,11 @@ const addGiftWrap = async (req, res) => {
             name,
             price: Number(price),
             image: imageUpload.secure_url,
+            creator: {
+                name: req.userName || 'Admin',
+                email: req.userEmail || '',
+                role: req.role || 'admin'
+            }
         });
 
         await newGiftWrap.save();

@@ -9,6 +9,11 @@ const cmsSchema = new mongoose.Schema({
     content: {
         type: mongoose.Schema.Types.Mixed,
         required: true
+    },
+    creator: {
+        name: { type: String },
+        email: { type: String },
+        role: { type: String }
     }
 }, { timestamps: true });
 

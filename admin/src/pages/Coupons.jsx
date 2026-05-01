@@ -22,6 +22,11 @@ const Coupons = ({ token }) => {
     applicableSKUs: '', // Comma-separated SKUs
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [showUsageModal, setShowUsageModal] = useState(false);
+  const [usageList, setUsageList] = useState([]);
+  const [selectedCouponCode, setSelectedCouponCode] = useState('');
 
   const fetchCoupons = async () => {
     if (!token) return;
@@ -38,6 +43,22 @@ const Coupons = ({ token }) => {
       toast.error('Failed to fetch coupons.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCouponUsage = async (couponId, code) => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/coupon/usage/${couponId}`, { headers: { token } });
+      if (response.data.success) {
+        setUsageList(response.data.users);
+        setSelectedCouponCode(code);
+        setShowUsageModal(true);
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching coupon usage:', error);
+      toast.error('Failed to fetch coupon usage.');
     }
   };
 
@@ -91,15 +112,16 @@ const Coupons = ({ token }) => {
 
     setIsSubmitting(true);
     try {
-              const payload = {
-              ...newCoupon,
-              description: newCoupon.description || undefined,
-              discountValue: parseFloat(newCoupon.discountValue),
-              minOrderAmount: newCoupon.minOrderAmount ? parseFloat(newCoupon.minOrderAmount) : undefined,
-              usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : undefined,
-              usageLimitPerUser: newCoupon.usageLimitPerUser ? parseInt(newCoupon.usageLimitPerUser) : undefined,
-              applicableSKUs: newCoupon.applicableSKUs ? newCoupon.applicableSKUs.split(',').map(s => s.trim()).filter(s => s) : [],
-            };      const response = await axios.post(`${backendUrl}/api/coupon/add`, payload, { headers: { token } });
+      const payload = {
+        ...newCoupon,
+        description: newCoupon.description || undefined,
+        discountValue: parseFloat(newCoupon.discountValue),
+        minOrderAmount: newCoupon.minOrderAmount ? parseFloat(newCoupon.minOrderAmount) : undefined,
+        usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : undefined,
+        usageLimitPerUser: newCoupon.usageLimitPerUser ? parseInt(newCoupon.usageLimitPerUser) : undefined,
+        applicableSKUs: newCoupon.applicableSKUs ? newCoupon.applicableSKUs.split(',').map(s => s.trim()).filter(s => s) : [],
+      };
+      const response = await axios.post(`${backendUrl}/api/coupon/add`, payload, { headers: { token } });
       if (response.data.success) {
         toast.success('Coupon added successfully!');
         setNewCoupon({
@@ -373,6 +395,7 @@ const Coupons = ({ token }) => {
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Created At</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Expires On</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Listed By</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>User Type</th>
                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Offer Type</th>
                   {role !== 'staff' && <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>}
@@ -381,7 +404,7 @@ const Coupons = ({ token }) => {
               <tbody className='bg-white divide-y divide-gray-200'>
                 {coupons.map((coupon) => (
                   <tr key={coupon._id}>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{coupon.code}</td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-pink-600 cursor-pointer hover:underline' onClick={() => fetchCouponUsage(coupon._id, coupon.code)}>{coupon.code}</td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.description || 'N/A'}</td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                       {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue.toFixed(2)}`}
@@ -413,6 +436,20 @@ const Coupons = ({ token }) => {
                         {new Date(coupon.expiryDate) < new Date() ? 'Expired' : coupon.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm'>
+                      {coupon.creator ? (
+                        <p 
+                          onClick={() => { if(coupon.creator.role === 'staff') { setSelectedStaff(coupon.creator); setShowStaffModal(true); } }}
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${coupon.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
+                        >
+                          {coupon.creator.role || 'Admin'}
+                        </p>
+                      ) : (
+                        <p className='text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase inline-block w-fit'>
+                          System
+                        </p>
+                      )}
+                    </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.userType ? coupon.userType.charAt(0).toUpperCase() + coupon.userType.slice(1) : 'N/A'}</td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.offerType ? coupon.offerType.charAt(0).toUpperCase() + coupon.offerType.slice(1) : 'None'}</td>
                     {role !== 'staff' && (
@@ -432,6 +469,74 @@ const Coupons = ({ token }) => {
           </div>
         )}
       </div>
+
+      {/* Staff Details Modal */}
+      {showStaffModal && selectedStaff && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4'>
+          <div className='bg-white p-6 rounded-lg shadow-xl max-w-sm w-full'>
+            <div className='flex justify-between items-center mb-4'>
+              <h2 className='text-xl font-bold text-gray-800'>Staff Details</h2>
+              <button onClick={() => setShowStaffModal(false)} className='text-gray-500 hover:text-gray-700 font-bold text-xl'>×</button>
+            </div>
+            <div className='space-y-3'>
+              <div className='flex flex-col'>
+                <span className='text-xs font-semibold text-gray-500 uppercase'>Name</span>
+                <span className='text-sm font-medium text-gray-800'>{selectedStaff.name || 'N/A'}</span>
+              </div>
+              <div className='flex flex-col'>
+                <span className='text-xs font-semibold text-gray-500 uppercase'>Email</span>
+                <span className='text-sm font-medium text-gray-800'>{selectedStaff.email}</span>
+              </div>
+            </div>
+            <div className='mt-6 flex justify-end'>
+              <button
+                onClick={() => setShowStaffModal(false)}
+                className='px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium text-sm'
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coupon Usage Modal */}
+      {showUsageModal && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4'>
+          <div className='bg-white p-6 rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col'>
+            <div className='flex justify-between items-center mb-4'>
+              <div>
+                <h2 className='text-xl font-bold text-gray-800'>Coupon Usage</h2>
+                <p className='text-sm text-pink-600 font-semibold'>{selectedCouponCode}</p>
+              </div>
+              <button onClick={() => setShowUsageModal(false)} className='text-gray-500 hover:text-gray-700 font-bold text-xl'>×</button>
+            </div>
+            <div className='overflow-y-auto flex-1'>
+              {usageList.length === 0 ? (
+                <p className='text-center py-4 text-gray-500'>No users have used this coupon yet.</p>
+              ) : (
+                <div className='space-y-3'>
+                  <p className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'>Users who successfully placed orders</p>
+                  {usageList.map((usage, index) => (
+                    <div key={index} className='flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-100'>
+                      <span className='text-sm font-bold text-gray-800'>{usage.userId?.name || 'Unknown User'}</span>
+                      <span className='text-xs text-gray-500'>{usage.userId?.email || 'N/A'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className='mt-6 flex justify-end'>
+              <button
+                onClick={() => setShowUsageModal(false)}
+                className='px-6 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors font-medium text-sm'
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

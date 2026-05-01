@@ -8,7 +8,7 @@ const getCmsContent = async (req, res) => {
     try {
         const content = await cmsModel.findOne({ name: req.params.name });
         if (content) {
-            res.json({ success: true, content: content.content });
+            res.json({ success: true, content: content.content, creator: content.creator });
         } else {
             res.json({ success: false, message: 'Content not found' });
         }
@@ -26,7 +26,14 @@ const updateCmsContent = async (req, res) => {
 
         const updatedContent = await cmsModel.findOneAndUpdate(
             { name },
-            { content },
+            { 
+                content,
+                creator: {
+                    name: req.userName || 'Admin',
+                    email: req.userEmail || '',
+                    role: req.role || 'admin'
+                }
+            },
             { new: true, upsert: true, runValidators: true }
         );
 

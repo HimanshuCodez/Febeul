@@ -37,7 +37,15 @@ const createOrUpdatePolicy = async (req, res) => {
 
         const policy = await policyModel.findOneAndUpdate(
             { policyName },
-            { content, pageTitle },
+            { 
+                content, 
+                pageTitle,
+                creator: {
+                    name: req.userName || 'Admin',
+                    email: req.userEmail || '',
+                    role: req.role || 'admin'
+                }
+            },
             { new: true, upsert: true, runValidators: true }
         );
 

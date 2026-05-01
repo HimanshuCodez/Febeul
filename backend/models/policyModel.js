@@ -13,6 +13,11 @@ const policySchema = new mongoose.Schema({
     pageTitle: {
         type: String,
         required: true
+    },
+    creator: {
+        name: { type: String },
+        email: { type: String },
+        role: { type: String }
     }
 }, { timestamps: true });
 
