@@ -108,7 +108,11 @@ export default function GiftWrapPage() {
                     {isLuxeMember ? (
                       <>
                         <p className="font-semibold text-sm">Welcome Luxe Member!</p>
-                        <p className="text-xs opacity-90">You have {giftWrapsLeft} out of 15 free gift wraps left this month.</p>
+                        {giftWrapsLeft > 0 ? (
+                          <p className="text-xs opacity-90">You have {giftWrapsLeft} out of 15 free gift wraps left this month.</p>
+                        ) : (
+                          <p className="text-xs opacity-90">You've used all 15 free gift wraps this month. Enjoy regular pricing for your next gift!</p>
+                        )}
                       </>
                     ) : (
                       <>

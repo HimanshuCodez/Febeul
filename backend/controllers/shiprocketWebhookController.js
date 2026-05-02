@@ -38,20 +38,24 @@ export const handleWebhook = async (req, res) => {
         }
 
         // --- Status Mapping Logic ---
-        const shiprocketToInternalStatus = {
+        // Normalized status lookup (keys should be UPPERCASE)
+        const statusMap = {
             "NEW": { orderStatus: "Processing", shiprocketStatus: "NEW" },
             "PICKUP SCHEDULED": { orderStatus: "Processing", shiprocketStatus: "PICKUP SCHEDULED" },
-            "Shipped": { orderStatus: "Shipped", shiprocketStatus: "SHIPPED" },
-            "In Transit": { orderStatus: "Shipped", shiprocketStatus: "IN_TRANSIT" },
-            "Out For Delivery": { orderStatus: "Out for delivery", shiprocketStatus: "IN_TRANSIT" },
-            "Delivered": { orderStatus: "Delivered", shiprocketStatus: "DELIVERED" },
-            "Cancelled": { orderStatus: "Cancelled", shiprocketStatus: "CANCELLED" },
+            "PICKUP GENERATED": { orderStatus: "Processing", shiprocketStatus: "PICKUP SCHEDULED" },
+            "PICKED UP": { orderStatus: "Shipped", shiprocketStatus: "SHIPPED" },
+            "SHIPPED": { orderStatus: "Shipped", shiprocketStatus: "SHIPPED" },
+            "IN TRANSIT": { orderStatus: "Shipped", shiprocketStatus: "IN_TRANSIT" },
+            "OUT FOR DELIVERY": { orderStatus: "Out for delivery", shiprocketStatus: "IN_TRANSIT" },
+            "DELIVERED": { orderStatus: "Delivered", shiprocketStatus: "DELIVERED" },
+            "CANCELLED": { orderStatus: "Cancelled", shiprocketStatus: "CANCELLED" },
             "RTO INITIATED": { orderStatus: "Returned", shiprocketStatus: "RTO" },
             "RTO DELIVERED": { orderStatus: "Returned", shiprocketStatus: "RTO" },
             "UNDELIVERED": { orderStatus: "Failed", shiprocketStatus: "UNKNOWN" },
         };
 
-        const newStatus = shiprocketToInternalStatus[current_status];
+        const normalizedStatus = current_status ? current_status.toUpperCase() : "";
+        const newStatus = statusMap[normalizedStatus];
 
         let statusChanged = false;
         if (newStatus) {

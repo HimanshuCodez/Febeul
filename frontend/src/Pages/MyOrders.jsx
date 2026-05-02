@@ -97,15 +97,20 @@ const MyOrders = () => {
                                 DISCOUNT APPLIED
                             </span>
                         )}
+                        {order.items.some(item => item.name === "Febeul Luxe Membership") && (
+                            <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                <Package size={10} /> LUXE MEMBER
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center space-x-2">
                         <span className={`text-xs font-medium px-3 py-1 rounded-full capitalize ${
                             order.orderStatus === "Processing" ? "bg-yellow-100 text-yellow-700" :
                             order.orderStatus === "Shipped" || order.orderStatus === "Out for delivery" ? "bg-blue-100 text-blue-700" :
-                            order.orderStatus === "Delivered" ? "bg-green-100 text-green-700" :
+                            (order.orderStatus === "Delivered" || (order.items.some(item => item.name === "Febeul Luxe Membership") && order.payment)) ? "bg-green-100 text-green-700" :
                             "bg-gray-100 text-gray-700"
                         }`}>
-                            {order.orderStatus}
+                            {order.items.some(item => item.name === "Febeul Luxe Membership") && order.payment ? "Delivered" : order.orderStatus}
                         </span>
                         <button onClick={() => handleViewOrderDetails(order._id)} className="text-pink-500 hover:text-pink-700">
                             <ArrowRight size={20} />

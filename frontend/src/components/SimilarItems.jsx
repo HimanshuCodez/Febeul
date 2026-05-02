@@ -66,11 +66,22 @@ const SimilarItems = ({ productId, token }) => {
               onClick={() => handleProductClick(product)}
               className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
             >
-              <img
-                src={product.variations?.[0]?.images?.[0]}
-                alt={product.name}
-                className="w-full h-48 object-cover"
-              />
+              <div className="relative">
+                <img
+                  src={product.variations?.[0]?.images?.[0]}
+                  alt={product.name}
+                  className="w-full h-48 object-cover"
+                />
+                {product.isLuxePrive && (
+                  <div className="absolute bottom-2 left-2 z-10 w-12 h-12 pointer-events-none">
+                    <img
+                      src="/luxeprive.png"
+                      alt="Luxe"
+                      className="w-full h-full object-contain drop-shadow-lg"
+                    />
+                  </div>
+                )}
+              </div>
               <div className="p-3">
                 <h3 className="text-sm font-semibold text-gray-800 truncate">
                   {product.name}

@@ -64,4 +64,24 @@ const removeGiftWrap = async (req, res) => {
     }
 }
 
-export { listGiftWraps, addGiftWrap, removeGiftWrap };
+// Get gift wrap usage details
+const getGiftWrapUsage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const giftWrap = await giftWrapModel.findById(id).populate({
+            path: 'usersWhoUsed.userId',
+            select: 'name email'
+        });
+
+        if (!giftWrap) {
+            return res.json({ success: false, message: "Gift wrap not found" });
+        }
+
+        res.json({ success: true, users: giftWrap.usersWhoUsed });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error fetching gift wrap usage" });
+    }
+}
+
+export { listGiftWraps, addGiftWrap, removeGiftWrap, getGiftWrapUsage };

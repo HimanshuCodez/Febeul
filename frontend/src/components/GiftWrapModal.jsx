@@ -57,25 +57,6 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
       const finalPrice = getCalculatedPrice(selectedWrap);
       onSelect({ ...selectedWrap, price: finalPrice, message: giftMessage });
       onClose();
-
-      if (isLuxeMember && giftWrapsLeft > 0) {
-        try {
-          const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
-          const response = await axios.post(
-            `${backendUrl}/api/user/giftwrap/decrement`,
-            {},
-            { headers: { token } }
-          );
-          if (response.data.success) {
-            getProfile(); // Refresh user profile to get updated giftWrapsLeft
-          } else {
-            toast.error(response.data.message);
-          }
-        } catch (error) {
-          console.error("Error decrementing gift wraps:", error);
-          toast.error("Failed to update gift wrap count.");
-        }
-      }
     }
   };
 
@@ -87,7 +68,16 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
         className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl"
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-800">Choose Gift Wrap</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Choose Gift Wrap</h2>
+            {isLuxeMember && (
+              <p className="text-sm text-pink-500 font-medium">
+                {giftWrapsLeft > 0 
+                  ? `Luxe Member: ${giftWrapsLeft} free wraps remaining` 
+                  : "Luxe Member: Free wraps exhausted for this month"}
+              </p>
+            )}
+          </div>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
             <FaTimes size={24} />
           </button>

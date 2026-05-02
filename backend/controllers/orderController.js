@@ -6,6 +6,7 @@ import { shiprocketLogin, createShiprocketOrder } from '../utils/shiprocket.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
+import { luxeEmailTemplate } from '../templates/luxemail.js'; // Import luxeEmailTemplate
 import fs from 'fs'; // For reading email template
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -13,6 +14,7 @@ import path from 'path';
 import productModel from "../models/productModel.js";
 import couponModel from "../models/couponModel.js"; // Import couponModel
 import counterModel from "../models/counterModel.js"; // Import counterModel
+import giftWrapModel from "../models/giftWrapModel.js"; // Import giftWrapModel
 
 // Define pricing constants
 const SHIPPING_CHARGE_THRESHOLD = 499;
@@ -142,8 +144,9 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     }
     const user = await userModel.findById(userId); // Fetch user to check luxe status
     const isLuxeMember = user?.isLuxeMember || false;
+    const giftWrapsLeft = user?.giftWrapsLeft || 0;
 
-    if (isLuxeMember && giftWrapData) { // If user is luxe and gift wrap is requested
+    if (isLuxeMember && giftWrapData && giftWrapsLeft > 0) { // If user is luxe and has free wraps left
         giftWrapPrice = 0; // Luxe members get gift wrap for free
     }
 
@@ -379,6 +382,13 @@ const placeOrder = async (req,res) => {
             await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
         }
 
+        // Update gift wrap usage
+        if (giftWrapData && giftWrapData._id) {
+            await giftWrapModel.findByIdAndUpdate(giftWrapData._id, {
+                $push: { usersWhoUsed: { userId } }
+            });
+        }
+
         // Update coupon usage
         if (couponCode) {
             await couponModel.updateOne(
@@ -537,16 +547,6 @@ const placeOrderStripe = async (req,res) => {
             mode: 'payment',
         })
 
-        if (req.body.couponCode) {
-            await couponModel.updateOne(
-                { code: req.body.couponCode },
-                { 
-                    $inc: { usageCount: 1 },
-                    $push: { usersWhoUsed: { userId } }
-                }
-            );
-        }
-
         res.json({success:true,session_url:session.url});
     } catch (error) {
         console.log(error)
@@ -576,71 +576,115 @@ const verifyStripe = async (req,res) => {
             // Re-fetch the updated order for further processing
             const updatedOrder = await orderModel.findById(orderId).populate('userId');
 
-            await userModel.findByIdAndUpdate(userId, { cartData: [] });
+            // Check if this is a luxe membership purchase
+            const isLuxeOrder = updatedOrder.items.some(item => item.name === "Febeul Luxe Membership");
 
-            // Decrease stock
-            await decreaseStock(updatedOrder.items);
+            if (isLuxeOrder) {
+                const expiryDate = new Date();
+                expiryDate.setMonth(expiryDate.getMonth() + 1);
+                await userModel.findByIdAndUpdate(userId, {
+                    isLuxeMember: true,
+                    luxeMembershipExpires: expiryDate,
+                    giftWrapsLeft: 15, // Initialize gift wraps
+                    cartData: [] 
+                });
 
-            // Decrement giftWrapsLeft if Luxe member used a gift wrap
-            if (updatedOrder.isLuxeMemberAtTimeOfOrder && updatedOrder.giftWrap) {
-                await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
-            }
+                // Send Luxe Welcome Email
+                try {
+                    if (updatedOrder.userId && updatedOrder.userId.email) {
+                        const emailContent = luxeEmailTemplate(updatedOrder.userId.name || 'Luxe Member', expiryDate);
+                        await sendEmail(updatedOrder.userId.email, "Welcome to Febeul Luxe - Your Elite Membership is Active", emailContent);
+                    }
+                } catch (emailErr) {
+                    console.error("Error sending Luxe welcome email (Stripe):", emailErr);
+                }
+            } else {
+                await userModel.findByIdAndUpdate(userId, { cartData: [] });
 
-            // Shiprocket integration
-            try {
-                const shiprocketToken = await shiprocketLogin();
-                const shiprocketOrderData = {
-                    _id: updatedOrder._id,
-                    shippingAddress: { // Ensure this matches Shiprocket's expected structure
-                        name: updatedOrder.address.name.split(' ')[0] || '', // First name
-                        lastName: updatedOrder.address.name.split(' ').slice(1).join(' ') || '', // Last name
-                        address: updatedOrder.address.address,
-                        city: updatedOrder.address.city,
-                        pincode: updatedOrder.address.zip, // Use zip from frontend
-                        state: updatedOrder.address.state,
-                        country: "India",
-                        phone: updatedOrder.address.phone,
-                        email: updatedOrder.userId.email
-                    },
-                    user: updatedOrder.userId,
-                    items: updatedOrder.items,
-                    totalPrice: updatedOrder.productAmount, // Use productAmount for subtotal
-                    shippingCharge: updatedOrder.shippingCharge,
-                    codCharge: updatedOrder.codCharge
-                };
-                const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
+                // Decrease stock
+                await decreaseStock(updatedOrder.items);
 
-                updatedOrder.shiprocket = {
-                    ourOrderId: updatedOrder._id.toString(),
-                    srOrderId: shiprocketResponse.order_id,
-                    shipmentId: shiprocketResponse.shipment_id,
-                    awb: shiprocketResponse.awb_code,
-                    courier: shiprocketResponse.courier_name,
-                    trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
-                };
-                updatedOrder.orderStatus = "Confirmed"; // The order is paid and confirmed
-                updatedOrder.shiprocketStatus = "NEW"; // It's a new order for Shiprocket
-                updatedOrder.shippedAt = new Date(); // Set shippedAt timestamp
-                await updatedOrder.save(); // Save after all updates
-            } catch (error) {
-                console.log("Error with Shiprocket:", error.message);
-                // If shiprocket fails, update order status accordingly but don't fail the entire payment verification
-                await orderModel.findByIdAndUpdate(orderId, { orderStatus: 'Confirmed', shiprocketStatus: 'NEW' }); // Keep Confirmed status if Shiprocket fails
+                // Decrement giftWrapsLeft if Luxe member used a gift wrap
+                if (updatedOrder.isLuxeMemberAtTimeOfOrder && updatedOrder.giftWrap) {
+                    await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
+                }
+
+                // Update gift wrap usage
+                if (updatedOrder.giftWrap && updatedOrder.giftWrap._id) {
+                    await giftWrapModel.findByIdAndUpdate(updatedOrder.giftWrap._id, {
+                        $push: { usersWhoUsed: { userId } }
+                    });
+                }
+
+                // Update coupon usage
+                if (updatedOrder.couponCode) {
+                    await couponModel.updateOne(
+                        { code: updatedOrder.couponCode },
+                        { 
+                            $inc: { usageCount: 1 },
+                            $push: { usersWhoUsed: { userId } }
+                        }
+                    );
+                }
+
+                // Shiprocket integration
+                try {
+                    const shiprocketToken = await shiprocketLogin();
+                    const shiprocketOrderData = {
+                        _id: updatedOrder._id,
+                        shippingAddress: { // Ensure this matches Shiprocket's expected structure
+                            name: updatedOrder.address.name.split(' ')[0] || '', // First name
+                            lastName: updatedOrder.address.name.split(' ').slice(1).join(' ') || '', // Last name
+                            address: updatedOrder.address.address,
+                            city: updatedOrder.address.city,
+                            pincode: updatedOrder.address.zip, // Use zip from frontend
+                            state: updatedOrder.address.state,
+                            country: "India",
+                            phone: updatedOrder.address.phone,
+                            email: updatedOrder.userId.email
+                        },
+                        user: updatedOrder.userId,
+                        items: updatedOrder.items,
+                        totalPrice: updatedOrder.productAmount, // Use productAmount for subtotal
+                        shippingCharge: updatedOrder.shippingCharge,
+                        codCharge: updatedOrder.codCharge
+                    };
+                    const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
+
+                    updatedOrder.shiprocket = {
+                        ourOrderId: updatedOrder._id.toString(),
+                        srOrderId: shiprocketResponse.order_id,
+                        shipmentId: shiprocketResponse.shipment_id,
+                        awb: shiprocketResponse.awb_code,
+                        courier: shiprocketResponse.courier_name,
+                        trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
+                    };
+                    updatedOrder.orderStatus = "Confirmed"; // The order is paid and confirmed
+                    updatedOrder.shiprocketStatus = "NEW"; // It's a new order for Shiprocket
+                    updatedOrder.shippedAt = new Date(); // Set shippedAt timestamp
+                    await updatedOrder.save(); // Save after all updates
+                } catch (error) {
+                    console.log("Error with Shiprocket:", error.message);
+                    // If shiprocket fails, update order status accordingly but don't fail the entire payment verification
+                    await orderModel.findByIdAndUpdate(orderId, { orderStatus: 'Confirmed', shiprocketStatus: 'NEW' }); // Keep Confirmed status if Shiprocket fails
+                }
             }
 
             res.json({success: true});
 
-            // Send Order Confirmation Email
-            try {
-                const populatedOrder = await orderModel.findById(orderId).populate('userId');
-                if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
-                    const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
-                    let emailTemplate = fs.readFileSync(templatePath, 'utf8');
-                    const htmlContent = constructEmailHtml(populatedOrder, emailTemplate);
-                    await sendEmail(populatedOrder.userId.email, `Febeul Order Confirmed - #${populatedOrder._id.toString().slice(-8).toUpperCase()}`, htmlContent);
+            // Send Order Confirmation Email (only if NOT a membership order, as that has its own email)
+            if (!isLuxeOrder) {
+                try {
+                    const populatedOrder = await orderModel.findById(orderId).populate('userId');
+                    if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
+                        const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
+                        let emailTemplate = fs.readFileSync(templatePath, 'utf8');
+                        const htmlContent = constructEmailHtml(populatedOrder, emailTemplate);
+                        await sendEmail(populatedOrder.userId.email, `Febeul Order Confirmed - #${populatedOrder._id.toString().slice(-8).toUpperCase()}`, htmlContent);
+                    }
+                } catch (emailError) {
+                    console.error("Error sending order confirmation email for Stripe order:", emailError);
                 }
-            } catch (emailError) {
-                console.error("Error sending order confirmation email for Stripe order:", emailError);
             }
 
         } else {
@@ -690,16 +734,6 @@ const placeOrderRazorpay = async (req,res) => {
 
         const newOrder = new orderModel(orderData)
         await newOrder.save()
-
-        if (couponCode) {
-            await couponModel.updateOne(
-                { code: couponCode },
-                { 
-                    $inc: { usageCount: 1 },
-                    $push: { usersWhoUsed: { userId } }
-                }
-            );
-        }
 
         const options = {
             amount: Math.round(orderTotal * 100), // Use calculated orderTotal
@@ -757,6 +791,17 @@ const verifyRazorpay = async (req,res) => {
                         giftWrapsLeft: 15, // Initialize gift wraps
                         cartData: [] 
                     });
+
+                    // Send Luxe Welcome Email
+                    try {
+                        const luxeUser = await userModel.findById(userId);
+                        if (luxeUser && luxeUser.email) {
+                            const emailContent = luxeEmailTemplate(luxeUser.name || 'Luxe Member', expiryDate);
+                            await sendEmail(luxeUser.email, "Welcome to Febeul Luxe - Your Elite Membership is Active", emailContent);
+                        }
+                    } catch (emailErr) {
+                        console.error("Error sending Luxe welcome email:", emailErr);
+                    }
                 } else {
                     await userModel.findByIdAndUpdate(userId, { cartData: [] });
 
@@ -777,6 +822,13 @@ const verifyRazorpay = async (req,res) => {
                     // Decrement giftWrapsLeft if Luxe member used a gift wrap on a non-luxe order
                     if (order.isLuxeMemberAtTimeOfOrder && order.giftWrap) {
                         await userModel.findByIdAndUpdate(userId, { $inc: { giftWrapsLeft: -1 } });
+                    }
+
+                    // Update gift wrap usage
+                    if (order.giftWrap && order.giftWrap._id) {
+                        await giftWrapModel.findByIdAndUpdate(order.giftWrap._id, {
+                            $push: { usersWhoUsed: { userId } }
+                        });
                     }
 
                     // Shiprocket integration

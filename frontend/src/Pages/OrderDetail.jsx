@@ -305,11 +305,20 @@ export default function OrderDetailPage() {
   };
   const currentStatusLevel = statusLevels[order.orderStatus] || 1;
 
+  const isLuxeOrder = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
+
   // Function to get status icon and color
   const getStatusDisplay = (status, level) => {
     let icon = <FaCheckCircle />;
     let color = 'bg-gray-200';
     let textColor = 'text-gray-400';
+
+    if (isLuxeOrder && order.payment && status === 'Delivered') {
+      color = 'bg-green-500';
+      textColor = 'text-gray-800';
+      icon = <FaCheckCircle />;
+      return { icon, color, textColor };
+    }
 
     if (level <= currentStatusLevel && statusLevels[status] <= currentStatusLevel) {
         color = 'bg-[#e8767a]'; // Active color
@@ -375,7 +384,7 @@ export default function OrderDetailPage() {
               animate="visible"
               className="inline-block"
             >
-              <FaClipboardList className="text-7xl text-[#e8767a] mx-auto" />
+              {isLuxeOrder ? <FaCrown className="text-7xl text-yellow-500 mx-auto" /> : <FaClipboardList className="text-7xl text-[#e8767a] mx-auto" />}
             </motion.div>
             
             <motion.h1 
@@ -384,7 +393,7 @@ export default function OrderDetailPage() {
               transition={{ delay: 0.5 }}
               className="text-3xl font-bold text-gray-800 mt-4"
             >
-              Order Details
+              {isLuxeOrder ? 'Luxe Membership Active' : 'Order Details'}
             </motion.h1>
             
             <motion.p
@@ -393,7 +402,7 @@ export default function OrderDetailPage() {
               transition={{ delay: 0.6 }}
               className="text-gray-600 mt-2"
             >
-              Here are the details for your order.
+              {isLuxeOrder ? 'Thank you for joining the elite.' : 'Here are the details for your order.'}
             </motion.p>
 
             <motion.div
@@ -406,7 +415,7 @@ export default function OrderDetailPage() {
               <p className="text-2xl font-bold text-[#e8767a]">{orderNumberToDisplay}</p>
             </motion.div>
 
-            {order.shiprocket?.trackingUrl && (
+            {order.shiprocket?.trackingUrl && !isLuxeOrder && (
               <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -441,7 +450,7 @@ export default function OrderDetailPage() {
               variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }}}
               className="text-xl font-bold text-gray-800 mb-6"
             >
-              Order Status: {order.orderStatus}
+              Order Status: {isLuxeOrder && order.payment ? 'Delivered' : order.orderStatus}
             </motion.h2>
             
             <div className="space-y-4">
@@ -451,8 +460,11 @@ export default function OrderDetailPage() {
                 { status: 'Confirmed', label: 'Order Confirmed', description: 'Your order has been confirmed and is being processed', date: order.date ? new Date(order.date).toLocaleString() : null, level: 2.5 }, // Added for clarity
                 { status: 'Shipped', label: 'Shipped', description: 'On the way to you', date: order.shippedAt ? new Date(order.shippedAt).toLocaleString() : null, level: 3 },
                 { status: 'Out for delivery', label: 'Out for Delivery', description: 'Your package is out for delivery', date: order.shippedAt ? new Date(order.shippedAt).toLocaleString() : null, level: 3.5 }, // Added for clarity
-                { status: 'Delivered', label: 'Delivered', description: 'Package delivered', date: order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : null, level: 4 }
-              ].filter(s => s.statusLevels === 0 ? true : statusLevels[s.status] > 0).map((statusItem, index) => {
+                { status: 'Delivered', label: 'Delivered', description: isLuxeOrder ? 'Your Luxe Membership is now active' : 'Package delivered', date: order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : (isLuxeOrder && order.payment ? new Date(order.date).toLocaleString() : null), level: 4 }
+              ].filter(s => {
+                  if (isLuxeOrder) return s.status === 'Order Placed' || s.status === 'Delivered';
+                  return s.statusLevels === 0 ? true : statusLevels[s.status] > 0;
+              }).map((statusItem, index, array) => {
                   const { icon, color, textColor } = getStatusDisplay(statusItem.status, statusItem.level);
                   return (
                       <motion.div key={index} variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
@@ -460,7 +472,7 @@ export default function OrderDetailPage() {
                               <div className={`w-10 h-10 ${color} rounded-full flex items-center justify-center`}>
                                   {icon}
                               </div>
-                              {index < 5 && <div className={`w-1 h-16 ${statusItem.level < currentStatusLevel ? 'bg-[#f9aeaf]' : 'bg-gray-200'} mt-2`}></div>}
+                              {index < array.length - 1 && <div className={`w-1 h-16 ${statusItem.level < currentStatusLevel || (isLuxeOrder && order.payment) ? 'bg-[#f9aeaf]' : 'bg-gray-200'} mt-2`}></div>}
                           </div>
                           <div className="flex-1 pt-2">
                               <p className={`font-bold ${textColor}`}>{statusItem.label}</p>
@@ -472,15 +484,17 @@ export default function OrderDetailPage() {
               })}
             </div>
 
-            <motion.div 
-              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }}
-              className="mt-6 p-4 bg-[#fff5f5] rounded-lg border border-[#f9aeaf]"
-            >
-              <div className="flex items-center text-[#e8767a]">
-                <FaCalendarAlt className="mr-2" />
-                <p className="font-semibold">{order.deliveredAt ? 'Delivered on' : 'Expected Delivery'}: {estimatedDelivery}</p>
-              </div>
-            </motion.div>
+            {!isLuxeOrder && (
+              <motion.div 
+                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }}
+                className="mt-6 p-4 bg-[#fff5f5] rounded-lg border border-[#f9aeaf]"
+              >
+                <div className="flex items-center text-[#e8767a]">
+                  <FaCalendarAlt className="mr-2" />
+                  <p className="font-semibold">{order.deliveredAt ? 'Delivered on' : 'Expected Delivery'}: {estimatedDelivery}</p>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -493,14 +507,23 @@ export default function OrderDetailPage() {
             >
               <h3 className="text-lg font-bold text-gray-800 flex items-center mb-4">
                 <FaMapMarkerAlt className="mr-2 text-[#e8767a]" />
-                Delivery Address
+                {isLuxeOrder ? 'Membership Type' : 'Delivery Address'}
               </h3>
               <div className="text-gray-600 space-y-1">
-                <p className="font-semibold text-gray-800">{order.address.name}</p>
-                <p className="text-sm">{order.address.address}</p>
-                {order.address.nearby && <p className="text-xs text-gray-500 italic">Nearby: {order.address.nearby}</p>}
-                <p className="text-sm">{order.address.city}, {order.address.zip}, {order.address.country}</p>
-                <p className="text-sm mt-2">Phone: {order.address.phone}</p>
+                {isLuxeOrder ? (
+                  <>
+                    <p className="font-semibold text-gray-800">Febeul Luxe Digital Membership</p>
+                    <p className="text-sm">Valid for 30 days from purchase</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-gray-800">{order.address.name}</p>
+                    <p className="text-sm">{order.address.address}</p>
+                    {order.address.nearby && <p className="text-xs text-gray-500 italic">Nearby: {order.address.nearby}</p>}
+                    <p className="text-sm">{order.address.city}, {order.address.zip}, {order.address.country}</p>
+                    <p className="text-sm mt-2">Phone: {order.address.phone}</p>
+                  </>
+                )}
               </div>
             </motion.div>
 
@@ -650,26 +673,38 @@ export default function OrderDetailPage() {
             transition={{ delay: 0.8 }}
             className="flex flex-col sm:flex-row gap-4"
           >
-            <Link to="/" className="flex-1">
+            <Link to={isLuxeOrder ? "/luxe" : "/"} className="flex-1">
               <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+                  className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm"
               >
-                  <FaHome className="mr-2" />
-                  Go to Homepage
+                  {isLuxeOrder ? <FaCrown className="mr-2" /> : <FaHome className="mr-2" />}
+                  {isLuxeOrder ? 'View Luxe Products' : 'Go to Homepage'}
               </motion.button>
             </Link>
             
-            <motion.button
-                onClick={handleDownloadInvoice}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
-            >
-                <FaFileInvoice className="mr-2" />
-                Download Invoice
-            </motion.button>
+            {!isLuxeOrder ? (
+              <motion.button
+                  onClick={handleDownloadInvoice}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+              >
+                  <FaFileInvoice className="mr-2" />
+                  Download Invoice
+              </motion.button>
+            ) : (
+              <motion.button
+                  onClick={() => navigate('/support')}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm"
+              >
+                  <FaEnvelope className="mr-2" />
+                  VIP Support
+              </motion.button>
+            )}
           </motion.div>
 
           {/* Return/Exchange Button */}
