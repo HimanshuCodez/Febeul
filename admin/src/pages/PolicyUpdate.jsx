@@ -21,6 +21,8 @@ const PolicyUpdate = ({ token }) => {
   const [pageTitle, setPageTitle] = useState('');
   const [sections, setSections] = useState([]); // [{ title: '', content: [{ type: 'paragraph', text: '' }] }]
   const [loading, setLoading] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
   const role = localStorage.getItem('role');
 
   const API_BASE_URL = `${backendUrl}/api/policy`;
