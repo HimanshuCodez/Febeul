@@ -413,6 +413,9 @@ const Coupons = ({ token }) => {
                       {coupon.minOrderAmount ? `₹${coupon.minOrderAmount.toFixed(2)}` : 'N/A'}
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                      {coupon.minQuantity ? coupon.minQuantity : 'N/A'}
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                       {coupon.applicableSKUs && coupon.applicableSKUs.length > 0 ? coupon.applicableSKUs.join(', ') : 'All'}
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
@@ -527,6 +530,22 @@ const Coupons = ({ token }) => {
               )}
             </div>
             <div className='mt-6 flex justify-end'>
+              <button
+                onClick={() => setShowUsageModal(false)}
+                className='px-6 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors font-medium text-sm'
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Coupons;
+ex justify-end'>
               <button
                 onClick={() => setShowUsageModal(false)}
                 className='px-6 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors font-medium text-sm'

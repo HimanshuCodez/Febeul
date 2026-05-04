@@ -74,19 +74,55 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
           const isApplied = appliedCoupon && appliedCoupon.code === coupon.code;
           const isLuxeRestricted = coupon.userType === 'luxe' && !user?.isLuxeMember;
 
+          // Check if quantity condition is met
+          let currentQuantity = 0;
+          if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
+            currentQuantity = cartItems
+              .filter(item => coupon.applicableSKUs.includes(item.sku))
+              .reduce((sum, item) => sum + item.quantity, 0);
+          } else {
+            currentQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+          }
+
+          const isQuantityRestricted = coupon.minQuantity > 0 && currentQuantity < coupon.minQuantity;
+          const itemsNeeded = coupon.minQuantity - currentQuantity;
+
+          // Check if min order amount is met
+          let currentAmount = 0;
+          if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
+            currentAmount = cartItems
+              .filter(item => coupon.applicableSKUs.includes(item.sku))
+              .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+          } else {
+            currentAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+          }
+
+          const isAmountRestricted = coupon.minOrderAmount > 0 && currentAmount < coupon.minOrderAmount;
+
+          const isDisabled = isLuxeRestricted || isQuantityRestricted || isAmountRestricted;
+
           return (
             <div key={coupon._id} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 border rounded-lg transition-shadow ${
-              isLuxeRestricted ? 'bg-gray-50 border-gray-200 opacity-80' : 'bg-white border-blue-100 hover:shadow-md'
+              isDisabled ? 'bg-gray-50 border-gray-200 opacity-80' : 'bg-white border-blue-100 hover:shadow-md'
             }`}>
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
-                  <Tag size={24} className={isLuxeRestricted ? 'text-gray-400' : 'text-blue-600'} />
+                  <Tag size={24} className={isDisabled ? 'text-gray-400' : 'text-blue-600'} />
                 </div>
                 <div>
-                  <h3 className={`font-semibold ${isLuxeRestricted ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
+                  <h3 className={`font-semibold ${isDisabled ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
                   {coupon.description && <p className="text-sm text-gray-600">{coupon.description}</p>}
                   <div className="mt-2 text-xs text-gray-500">
-                    {coupon.minOrderAmount > 0 && <p>Min. Order: ₹{coupon.minOrderAmount}</p>}
+                    {coupon.minOrderAmount > 0 && (
+                      <p className={isAmountRestricted ? 'text-red-500' : 'text-green-600'}>
+                        Min. Order: ₹{coupon.minOrderAmount} {isAmountRestricted && `(Add ₹${(coupon.minOrderAmount - currentAmount).toFixed(2)} more)`}
+                      </p>
+                    )}
+                    {coupon.minQuantity > 0 && (
+                      <p className={isQuantityRestricted ? 'text-red-500' : 'text-green-600'}>
+                        Min. Quantity: {coupon.minQuantity} products {isQuantityRestricted && `(Add ${itemsNeeded} more to unlock)`}
+                      </p>
+                    )}
                     {coupon.discountType === 'percentage' ? (
                       <p>Discount: {coupon.discountValue}% off</p>
                     ) : (
@@ -102,14 +138,17 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
               </div>
               {!isApplied && (
                 <button
-                  onClick={() => handleRedeemClick(coupon)}
+                  onClick={() => !isDisabled && handleRedeemClick(coupon)}
+                  disabled={isDisabled && !isLuxeRestricted}
                   className={`ml-auto sm:ml-0 px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${
                     isLuxeRestricted 
                     ? 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200' 
+                    : isDisabled
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-500 text-white hover:bg-blue-600'
                   }`}
                 >
-                  {isLuxeRestricted ? 'Join Luxe' : 'Redeem'}
+                  {isLuxeRestricted ? 'Join Luxe' : isQuantityRestricted ? 'Locked' : isAmountRestricted ? 'Locked' : 'Redeem'}
                 </button>
               )}
               {isApplied && (

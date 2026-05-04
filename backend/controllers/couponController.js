@@ -3,7 +3,7 @@ import couponModel from '../models/couponModel.js';
 // Admin: Add a new coupon
 export const addCoupon = async (req, res) => {
     try {
-        const { code, description, discountType, discountValue, minOrderAmount, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs } = req.body;
+        const { code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs } = req.body;
 
         if (!code || !discountType || !discountValue || !expiryDate) {
             return res.status(400).json({ success: false, message: 'Required fields are missing.' });
@@ -20,6 +20,7 @@ export const addCoupon = async (req, res) => {
             discountType,
             discountValue,
             minOrderAmount,
+            minQuantity: minQuantity || 0,
             usageLimit,
             usageLimitPerUser,
             expiryDate,
@@ -259,6 +260,18 @@ export const applyProductCoupon = async (req, res) => {
         res.json({
             success: true,
             message: 'Coupon applied!',
+            discountAmount,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
+            code: coupon.code,
+        });
+
+    } catch (error) {
+        console.error('Error applying product coupon:', error);
+        res.status(500).json({ success: false, message: 'Error applying product coupon.' });
+    }
+};
+      message: 'Coupon applied!',
             discountAmount,
             discountType: coupon.discountType,
             discountValue: coupon.discountValue,
