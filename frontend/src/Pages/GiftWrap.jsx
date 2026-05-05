@@ -14,7 +14,7 @@ export default function GiftWrapPage() {
   const [selectedWrap, setSelectedWrap] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [showPromo, setShowPromo] = useState(true);
-  const { user, fetchCartCount, getProfile } = useAuthStore();
+  const { user, fetchCartCount, getProfile, cartItems } = useAuthStore();
 
   useEffect(() => {
     const fetchGiftWraps = async () => {
@@ -33,6 +33,7 @@ export default function GiftWrapPage() {
       }
     };
     fetchGiftWraps();
+    fetchCartCount(); // Ensure cart items are loaded
   }, []);
 
   const isLuxeMember = user?.isLuxeMember || false;
@@ -64,6 +65,11 @@ export default function GiftWrapPage() {
     
     if (!user) {
       toast.error("Please log in to add to cart.");
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      toast.error("Please add a product to your cart first to add a gift wrap.");
       return;
     }
 

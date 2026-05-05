@@ -271,15 +271,3 @@ export const applyProductCoupon = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error applying product coupon.' });
     }
 };
-      message: 'Coupon applied!',
-            discountAmount,
-            discountType: coupon.discountType,
-            discountValue: coupon.discountValue,
-            code: coupon.code,
-        });
-
-    } catch (error) {
-        console.error('Error applying product coupon:', error);
-        res.status(500).json({ success: false, message: 'Error applying product coupon.' });
-    }
-};
