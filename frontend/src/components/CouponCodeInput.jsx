@@ -37,6 +37,14 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment }) => {
             toast.error('Please enter a coupon code.');
             return;
         }
+
+        // Check if this coupon is already applied to any item
+        const alreadyApplied = items.some(item => item.appliedCoupon?.toUpperCase() === code);
+        if (alreadyApplied) {
+            toast.error('This coupon is already applied to an item in your cart.');
+            return;
+        }
+
         if (!token) {
             toast.error('You must be logged in to apply a coupon.');
             return;
@@ -166,9 +174,10 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment }) => {
                             >
                                 <div className="grid gap-3 mt-4">
                                     {offers.map((offer) => {
-                                        const isEligible = (offer.offerType === 'prepaid' && (selectedPayment === 'card' || selectedPayment === 'Razorpay' || selectedPayment === 'Stripe')) || 
+                                        const isAlreadyAppliedToItem = items.some(item => item.appliedCoupon?.toUpperCase() === offer.code.toUpperCase());
+                                        const isEligible = ((offer.offerType === 'prepaid' && (selectedPayment === 'card' || selectedPayment === 'Razorpay' || selectedPayment === 'Stripe')) || 
                                                          (offer.offerType === 'cod' && selectedPayment === 'COD') ||
-                                                         (offer.offerType === 'none');
+                                                         (offer.offerType === 'none')) && !isAlreadyAppliedToItem;
                                         
                                         return (
                                             <div 
@@ -189,6 +198,11 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment }) => {
                                                                 {offer.offerType} Only
                                                             </span>
                                                         )}
+                                                        {isAlreadyAppliedToItem && (
+                                                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter bg-green-50 text-green-600">
+                                                                Applied to Item
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {isEligible && !appliedCode && (
                                                         <button 
@@ -203,7 +217,11 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment }) => {
                                                 {!isEligible && (
                                                     <div className="mt-2 flex items-center gap-1 text-[9px] text-gray-400 font-medium">
                                                         <Info size={10} />
-                                                        <span>Switch to {offer.offerType === 'prepaid' ? 'Online Payment' : 'COD'} to use this</span>
+                                                        <span>
+                                                            {isAlreadyAppliedToItem 
+                                                                ? 'Already applied to an item in cart' 
+                                                                : `Switch to ${offer.offerType === 'prepaid' ? 'Online Payment' : 'COD'} to use this`}
+                                                        </span>
                                                     </div>
                                                 )}
                                                 

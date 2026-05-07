@@ -991,34 +991,14 @@ export default function CheckoutPage() {
                     return {
                         sku: selectedVariation?.sku,
                         price: item.price || itemPrice || 0,
-                        quantity: item.quantity
+                        quantity: item.quantity,
+                        appliedCoupon: item.appliedCoupon
                     };
                 });
-                const productSKUs = [...new Set(cartItemsForCoupon.map(i => i.sku).filter(Boolean))];
-
-                const handleRedeem = async (code) => {
-                  try {
-                      const response = await axios.post(`${backendUrl}/api/coupon/apply`, 
-                          { code, items: cartItemsForCoupon, userId: user?._id },
-                          { headers: { token } }
-                      );
-                      if (response.data.success) {
-                          toast.success(response.data.message);
-                          handleCouponApply(response.data);
-                      } else {
-                          toast.error(response.data.message);
-                      }
-                  } catch (error) {
-                      toast.error(error.response?.data?.message || 'Failed to apply coupon.');
-                  }
-                };
 
                 return (
                   <>
                     <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} selectedPayment={selectedPayment} />
-                    <div className="mt-4 border-t pt-4">
-                      <CouponShows productSKUs={productSKUs} onRedeem={handleRedeem} appliedCoupon={appliedCoupon} />
-                    </div>
                   </>
                 );
               })()}
@@ -1029,16 +1009,10 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
-                {totalProductDiscount > 0 && (
+                {(totalProductDiscount + couponDiscount) > 0 && (
                     <div className="flex justify-between text-green-600 font-semibold">
                         <span>Coupon Discount</span>
-                        <span>- ₹{totalProductDiscount.toFixed(2)}</span>
-                    </div>
-                )}
-                {couponDiscount > 0 && (
-                    <div className="flex justify-between text-green-600 font-semibold">
-                        <span>Coupon Discount</span>
-                        <span>- ₹{couponDiscount.toFixed(2)}</span>
+                        <span>- ₹{(totalProductDiscount + couponDiscount).toFixed(2)}</span>
                     </div>
                 )}
                 <div className="flex justify-between text-gray-600">
