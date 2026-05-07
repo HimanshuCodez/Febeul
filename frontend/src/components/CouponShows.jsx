@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = null }) => {
-  const { user } = useAuthStore();
+  const { user, cartItems } = useAuthStore();
   const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
