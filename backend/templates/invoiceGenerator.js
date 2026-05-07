@@ -167,38 +167,53 @@ const buildInvoicePDF = (order, res) => {
 
         // Rows
         order.items.forEach((item, index) => {
-            const itemHeight = doc.heightOfString(item.name, { width: qtyCol - itemCol - 10 }) + 10;
+            // Calculate item row height
+            doc.font('Helvetica').fontSize(8);
+            const nameHeight = doc.heightOfString(item.name, { width: qtyCol - itemCol - 10 });
+            let skuHeight = 0;
+            if (item.sku) {
+                doc.fontSize(7);
+                skuHeight = doc.heightOfString(`SKU: ${item.sku}`, { width: qtyCol - itemCol - 10 }) + 2;
+            }
+            let discountHeight = 0;
+            if (item.discountAmount > 0) {
+                doc.fontSize(6);
+                discountHeight = doc.heightOfString(`Incl. Discount: INR ${item.discountAmount.toFixed(2)}`, { width: qtyCol - itemCol - 10 }) + 2;
+            }
             
+            const totalItemContentHeight = nameHeight + skuHeight + discountHeight + 10;
+            const rowHeight = Math.max(totalItemContentHeight, 25);
+
             // Draw border
             doc.strokeColor(borderColor).lineWidth(0.5)
                .moveTo(30, currentY).lineTo(doc.page.width - 30, currentY).stroke();
 
+            // 1. Description column (Name, SKU, Discount)
             doc.font('Helvetica').fontSize(8).fillColor(primaryColor);
+            doc.text(item.name, itemCol + 5, currentY + 5, { width: qtyCol - itemCol - 10 });
             
-            // Description with wrap handling
-            doc.text(item.name, itemCol + 5, currentY + 4, { width: qtyCol - itemCol - 10 });
             if (item.sku) {
                 doc.fontSize(7).fillColor(secondaryColor).text(`SKU: ${item.sku}`, itemCol + 5, doc.y + 1);
             }
+            
+            if (item.discountAmount > 0) {
+                doc.fontSize(6).fillColor('#155724').text(`Incl. Discount: INR ${item.discountAmount.toFixed(2)}`, itemCol + 5, doc.y + 1);
+            }
 
+            // 2. Other columns (Qty, Price, Taxable, Total)
             const unitPrice = item.price || 0;
             const grossTotal = unitPrice * item.quantity;
             const itemDiscount = item.discountAmount || 0;
             const netTotal = grossTotal - itemDiscount;
-            
-            const taxable = netTotal / 1.05; // 5% GST on net item total
+            const taxable = netTotal / 1.05;
 
             doc.fontSize(8).fillColor(primaryColor);
-            doc.text(item.quantity.toString(), qtyCol, currentY + 4, { width: 40, align: 'center' });
-            doc.text(`INR ${unitPrice.toFixed(2)}`, priceCol, currentY + 4, { width: 60, align: 'right' });
-            doc.text(`INR ${taxable.toFixed(2)}`, taxCol, currentY + 4, { width: 50, align: 'right' });
-            doc.text(`INR ${netTotal.toFixed(2)}`, totalCol, currentY + 4, { width: 55, align: 'right' });
+            doc.text(item.quantity.toString(), qtyCol, currentY + 5, { width: 40, align: 'center' });
+            doc.text(`INR ${unitPrice.toFixed(2)}`, priceCol, currentY + 5, { width: 60, align: 'right' });
+            doc.text(`INR ${taxable.toFixed(2)}`, taxCol, currentY + 5, { width: 50, align: 'right' });
+            doc.text(`INR ${netTotal.toFixed(2)}`, totalCol, currentY + 5, { width: 55, align: 'right' });
 
-            if (itemDiscount > 0) {
-                doc.fontSize(6).fillColor('#155724').text(`Incl. Discount: INR ${itemDiscount.toFixed(2)}`, itemCol + 5, doc.y + 1);
-            }
-
-            currentY += Math.max(itemHeight, 22);
+            currentY += rowHeight;
         });
 
         // Table Bottom Border
