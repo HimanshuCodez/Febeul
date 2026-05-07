@@ -175,8 +175,9 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment }) => {
                                 <div className="grid gap-3 mt-4">
                                     {offers.map((offer) => {
                                         const isAlreadyAppliedToItem = items.some(item => item.appliedCoupon?.toUpperCase() === offer.code.toUpperCase());
-                                        const isEligible = ((offer.offerType === 'prepaid' && (selectedPayment === 'card' || selectedPayment === 'Razorpay' || selectedPayment === 'Stripe')) || 
-                                                         (offer.offerType === 'cod' && selectedPayment === 'COD') ||
+                                        const paymentMethodLower = (selectedPayment || '').toLowerCase();
+                                        const isEligible = ((offer.offerType === 'prepaid' && (paymentMethodLower === 'card' || paymentMethodLower === 'razorpay' || paymentMethodLower === 'stripe')) || 
+                                                         (offer.offerType === 'cod' && paymentMethodLower === 'cod') ||
                                                          (offer.offerType === 'none')) && !isAlreadyAppliedToItem;
                                         
                                         return (
