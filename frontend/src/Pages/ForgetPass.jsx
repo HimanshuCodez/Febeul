@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import useAuthStore from "../store/authStore";
 import { toast, Toaster } from 'react-hot-toast';
 import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Mail, Lock } from "lucide-react";
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1);
@@ -99,30 +100,41 @@ const ForgotPassword = () => {
       }
   };
   
-  // Handle OTP input paste
   const handleOtpPaste = (e) => {
     const paste = e.clipboardData.getData("text").slice(0, 6);
+    if (!/^\d+$/.test(paste)) return;
     const otpArray = paste.split("");
     otpArray.forEach((num, idx) => setValue(`otp_${idx + 1}`, num));
-    const lastInput = e.target.parentElement.children[otpArray.length - 1];
-    if(lastInput) lastInput.focus();
+    const lastIdx = Math.min(otpArray.length, 6);
+    document.getElementById(`otp-${lastIdx}`)?.focus();
+  };
+
+  const handleOtpInput = (e, num) => {
+    if (e.target.value && num < 6) {
+      document.getElementById(`otp-${num + 1}`)?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e, num) => {
+    if (e.key === "Backspace" && !e.target.value && num > 1) {
+      document.getElementById(`otp-${num - 1}`)?.focus();
+    }
   };
 
   return (
     <>
     <Toaster position="top-center" reverseOrder={false}/>
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-6">
-      {/* Floating hearts background */}
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-4 md:p-6">
       {[...Array(8)].map((_, i) => (
         <motion.div
           key={i}
-          className="absolute text-[#f47b7d]/20 text-4xl select-none"
-          initial={{ y: "100vh", x: Math.random() * window.innerWidth }}
+          className="absolute text-[#f47b7d]/20 text-4xl select-none pointer-events-none"
+          initial={{ y: "100vh", x: Math.random() * 100 + "vw" }}
           animate={{
             y: ["100vh", "-10vh"],
             x: [
-              Math.random() * window.innerWidth,
-              Math.random() * window.innerWidth,
+              Math.random() * 100 + "vw",
+              Math.random() * 100 + "vw",
             ],
           }}
           transition={{
@@ -135,183 +147,181 @@ const ForgotPassword = () => {
         </motion.div>
       ))}
 
-      {/* Card */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full max-w-md backdrop-blur-lg bg-white/60 rounded-3xl shadow-2xl p-8 border border-white/40"
+        className="w-full max-w-md backdrop-blur-lg bg-white/70 rounded-[2rem] shadow-2xl p-6 md:p-8 border border-white/40"
       >
-        <h2 className="text-3xl font-bold text-center mb-6 text-[#f47b7d]">
-          Forgot Password 💌
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 text-[#f47b7d]">
+          Reset Password 💌
         </h2>
 
         <AnimatePresence mode="wait">
-          {/* Step 1: Enter Email */}
           {step === 1 && (
             <motion.form
               key="step1"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.4 }}
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-4"
             >
-              <p className="text-center text-gray-600 text-sm mb-2">
-                Enter your registered email to receive OTP
+              <p className="text-center text-gray-600 text-sm mb-4">
+                Enter your registered email to receive an OTP
               </p>
-              <input
-                type="email"
-                placeholder="Email"
-                {...register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^\S+@\S+$/i,
-                    message: "Enter a valid email",
-                  },
-                })}
-                className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="email"
+                  placeholder="Email Address"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^\S+@\S+$/i,
+                      message: "Enter a valid email",
+                    },
+                  })}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#f9aeaf] focus:border-transparent outline-none transition-all"
+                />
+              </div>
               {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
+                <p className="text-xs text-red-500 ml-1">{errors.email.message}</p>
               )}
 
               <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
+                className="w-full py-3.5 bg-[#f47b7d] text-white font-bold rounded-xl shadow-lg shadow-[#f47b7d]/20 hover:bg-[#f68a8b] transition-all disabled:bg-gray-400 mt-4"
               >
                 {loading ? 'Sending...' : 'Send OTP'}
               </motion.button>
             </motion.form>
           )}
 
-          {/* Step 2: Enter OTP */}
           {step === 2 && (
             <motion.form
               key="step2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.4 }}
               onSubmit={handleSubmit(onSubmit)}
-              className="space-y-4"
+              className="space-y-6"
             >
-              <p className="text-center text-gray-600 text-sm mb-2">
-                Enter the 6-digit OTP sent to <span className="font-semibold text-black">{email}</span>
-              </p>
+              <div className="text-center">
+                <p className="text-gray-600 mb-1 text-sm">Verify your identity</p>
+                <p className="text-sm font-semibold text-gray-800">{email}</p>
+              </div>
 
               <div className="flex justify-between gap-2" onPaste={handleOtpPaste}>
                 {[1, 2, 3, 4, 5, 6].map((num) => (
                   <input
                     key={num}
+                    id={`otp-${num}`}
                     type="text"
                     maxLength={1}
                     {...register(`otp_${num}`, {
-                      required: "All OTP digits required",
-                      pattern: {
-                        value: /^[0-9]$/,
-                        message: "Only numbers allowed",
-                      },
+                      required: true,
+                      pattern: /^[0-9]$/,
                     })}
-                    onInput={(e) => {
-                      if (e.target.value) {
-                         const next = e.target.nextElementSibling;
-                         if (next) next.focus();
-                      }
-                    }}
-                    className="w-12 h-12 text-center rounded-xl border text-lg font-semibold focus:ring-2 focus:ring-[#f9aeaf] outline-none"
+                    onInput={(e) => handleOtpInput(e, num)}
+                    onKeyDown={(e) => handleOtpKeyDown(e, num)}
+                    className="w-10 h-12 md:w-12 md:h-14 text-center text-xl font-bold rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#f9aeaf] focus:border-transparent outline-none transition-all"
                   />
                 ))}
               </div>
 
-              {errors.otp_1 && (
-                <p className="text-sm text-red-500 text-center mt-1">
-                  Please enter a valid 6-digit OTP.
-                </p>
-              )}
-              
-              <div className="text-center text-sm mt-4">
+              <div className="text-center text-sm">
                   Didn't receive code?{" "}
-                  <button type="button" onClick={handleResendOtp} disabled={loading} className="text-[#f47b7d] font-semibold underline disabled:text-gray-400">
+                  <button type="button" onClick={handleResendOtp} disabled={loading} className="text-[#f47b7d] font-bold hover:underline disabled:text-gray-400">
                       Resend
                   </button>
               </div>
 
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
-              >
-                {loading ? 'Verifying...' : 'Verify OTP'}
-              </motion.button>
+              <div className="space-y-4">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-[#f47b7d] text-white font-bold rounded-xl shadow-lg shadow-[#f47b7d]/20 hover:bg-[#f68a8b] transition-all disabled:bg-gray-400"
+                >
+                  {loading ? 'Verifying...' : 'Verify OTP'}
+                </motion.button>
+                
+                <button 
+                  type="button" 
+                  onClick={() => setStep(1)}
+                  className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-[#f47b7d] transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Change Email
+                </button>
+              </div>
             </motion.form>
           )}
 
-          {/* Step 3: Reset Password */}
           {step === 3 && (
             <motion.form
               key="step3"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.4 }}
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-4"
             >
-              <p className="text-center text-gray-600 text-sm mb-2">
-                Set your new password
+              <p className="text-center text-gray-600 text-sm mb-4">
+                Set your new secure password
               </p>
 
-              <div>
-                <input
-                  type="password"
-                  placeholder="New Password"
-                  {...register("password", {
-                    required: "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "At least 6 characters",
-                    },
-                  })}
-                  className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
-                />
+              <div className="space-y-4">
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="password"
+                    placeholder="New Password"
+                    {...register("password", {
+                      required: "Password is required",
+                      minLength: {
+                        value: 8,
+                        message: "Minimum 8 characters",
+                      },
+                    })}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#f9aeaf] focus:border-transparent outline-none transition-all"
+                  />
+                </div>
                 {errors.password && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.password.message}
-                  </p>
+                  <p className="text-xs text-red-500 ml-1">{errors.password.message}</p>
                 )}
-              </div>
 
-              <div>
-                <input
-                  type="password"
-                  placeholder="Confirm Password"
-                  {...register("confirmPassword", {
-                    required: "Confirm your password",
-                    validate: (value) =>
-                      value === password || "Passwords do not match",
-                  })}
-                  className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#f9aeaf] outline-none"
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="password"
+                    placeholder="Confirm Password"
+                    {...register("confirmPassword", {
+                      required: "Confirm your password",
+                      validate: (value) =>
+                        value === password || "Passwords do not match",
+                    })}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#f9aeaf] focus:border-transparent outline-none transition-all"
+                  />
+                </div>
                 {errors.confirmPassword && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.confirmPassword.message}
-                  </p>
+                  <p className="text-xs text-red-500 ml-1">{errors.confirmPassword.message}</p>
                 )}
               </div>
 
               <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-[#f9aeaf] text-white font-semibold rounded-xl shadow-md hover:bg-[#f68a8b] transition disabled:bg-gray-400"
+                className="w-full py-3.5 bg-[#f47b7d] text-white font-bold rounded-xl shadow-lg shadow-[#f47b7d]/20 hover:bg-[#f68a8b] transition-all disabled:bg-gray-400 mt-4"
               >
                 {loading ? 'Resetting...' : 'Reset Password'}
               </motion.button>
@@ -319,10 +329,9 @@ const ForgotPassword = () => {
           )}
         </AnimatePresence>
 
-        {/* Footer */}
-        <div className="text-center mt-6 text-sm">
-          <Link to={"/auth"} className="text-[#f47b7d] font-semibold underline">
-            Back to Login
+        <div className="text-center mt-8 text-sm">
+          <Link to={"/auth"} className="text-gray-500 hover:text-[#f47b7d] font-semibold flex items-center justify-center gap-1 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to Login
           </Link>
         </div>
       </motion.div>
@@ -332,3 +341,4 @@ const ForgotPassword = () => {
 };
 
 export default ForgotPassword;
+
