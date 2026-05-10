@@ -79,7 +79,7 @@ export const removeCoupon = async (req, res) => {
 export const getCouponUsage = async (req, res) => {
     try {
         const { id } = req.params;
-        const coupon = await couponModel.findById(id).populate('usersWhoUsed.userId', 'name email');
+        const coupon = await couponModel.findById(id).populate('usersWhoUsed.userId', 'name email mobile');
         if (!coupon) {
             return res.status(404).json({ success: false, message: 'Coupon not found.' });
         }

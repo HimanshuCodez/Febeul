@@ -1,25 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { backendUrl } from '../App'; // Assuming backendUrl is available from App.jsx or similar shared context
+import { backendUrl } from '../App';
+import { CSVLink } from 'react-csv';
+import { Download, Search, FileText, Trash2, Plus, Calendar, Tag, User, Users, Info, ChevronRight } from 'lucide-react';
 
 const Coupons = ({ token }) => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const role = localStorage.getItem('role');
+  const [searchTerm, setSearchTerm] = useState('');
   const [newCoupon, setNewCoupon] = useState({
     code: '',
     description: '',
-    discountType: 'percentage', // 'percentage' or 'fixed'
+    discountType: 'percentage',
     discountValue: '',
     minOrderAmount: '',
-    usageLimit: '', // overall limit
+    usageLimit: '',
     usageLimitPerUser: '',
     expiryDate: '',
     isActive: true,
-    userType: 'normal', // 'normal' or 'luxe'
-    offerType: 'none', // 'none', 'prepaid', 'cod'
-    applicableSKUs: '', // Comma-separated SKUs
+    userType: 'normal',
+    offerType: 'none',
+    applicableSKUs: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
@@ -89,27 +92,7 @@ const Coupons = ({ token }) => {
       toast.error('Please fill in all required fields (Code, Discount Value, Expiry Date).');
       return;
     }
-    if (isNaN(parseFloat(newCoupon.discountValue)) || parseFloat(newCoupon.discountValue) <= 0) {
-      toast.error('Discount Value must be a positive number.');
-      return;
-    }
-    if (newCoupon.discountType === 'percentage' && parseFloat(newCoupon.discountValue) > 100) {
-      toast.error('Percentage discount cannot exceed 100.');
-      return;
-    }
-    if (newCoupon.minOrderAmount && isNaN(parseFloat(newCoupon.minOrderAmount))) {
-      toast.error('Minimum Order Amount must be a number.');
-      return;
-    }
-    if (newCoupon.usageLimit && isNaN(parseInt(newCoupon.usageLimit))) {
-      toast.error('Usage Limit must be an integer.');
-      return;
-    }
-    if (newCoupon.usageLimitPerUser && isNaN(parseInt(newCoupon.usageLimitPerUser))) {
-      toast.error('Usage Limit Per User must be an integer.');
-      return;
-    }
-
+    
     setIsSubmitting(true);
     try {
       const payload = {
@@ -138,7 +121,7 @@ const Coupons = ({ token }) => {
           offerType: 'none',
           applicableSKUs: '',
         });
-        fetchCoupons(); // Refresh the list
+        fetchCoupons();
       } else {
         toast.error(response.data.message);
       }
@@ -174,365 +157,456 @@ const Coupons = ({ token }) => {
     fetchCoupons();
   }, [token]);
 
+  const filteredCoupons = coupons.filter(coupon => 
+    coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (coupon.description && coupon.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const getGroupedUsageData = () => {
+    const grouped = usageList.reduce((acc, usage) => {
+      const user = usage.userId;
+      if (!user) return acc;
+      const key = user._id;
+      if (!acc[key]) {
+        acc[key] = {
+          name: user.name || 'Unknown User',
+          email: user.email || 'N/A',
+          mobile: user.mobile || 'N/A',
+          count: 0
+        };
+      }
+      acc[key].count += 1;
+      return acc;
+    }, {});
+    return Object.values(grouped);
+  };
+
+  const usageTableData = getGroupedUsageData();
+
+  const exportHeaders = [
+    { label: "User Name", key: "name" },
+    { label: "Email", key: "email" },
+    { label: "Mobile", key: "mobile" },
+    { label: "Usage Count", key: "count" }
+  ];
+
   return (
-    <div className='p-6 bg-gray-50 min-h-screen'>
-      <h2 className='text-3xl font-semibold text-gray-800 mb-8'>Coupon Management</h2>
-
-      {/* Add New Coupon Form */}
-      <div className='bg-white rounded-lg shadow-md p-8 mb-8'>
-        <h3 className='text-xl font-bold text-gray-700 mb-6'>Add New Coupon</h3>
-        <form onSubmit={handleAddCoupon} className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          <div>
-            <label htmlFor='code' className='block text-sm font-medium text-gray-700 mb-1'>Coupon Code *</label>
-            <div className='flex'>
-              <input
-                type='text'
-                id='code'
-                name='code'
-                value={newCoupon.code}
-                onChange={handleInputChange}
-                className='flex-1 p-2 border border-gray-300 rounded-l-md focus:ring-pink-500 focus:border-pink-500'
-                placeholder='e.g., FLAT100'
-                required
-              />
-              <button
-                type='button'
-                onClick={generateCode}
-                className='px-4 py-2 bg-pink-500 text-white font-medium rounded-r-md hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2'
-              >
-                Generate
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor='description' className='block text-sm font-medium text-gray-700 mb-1'>Description (Optional)</label>
-            <textarea
-              id='description'
-              name='description'
-              rows='3'
-              value={newCoupon.description}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-              placeholder='e.g., Get flat 10% off on all orders'
-            ></textarea>
-          </div>
-
-          <div>
-            <label htmlFor='discountType' className='block text-sm font-medium text-gray-700 mb-1'>Discount Type</label>
-            <select
-              id='discountType'
-              name='discountType'
-              value={newCoupon.discountType}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-            >
-              <option value='percentage'>Percentage (%)</option>
-              <option value='fixed'>Fixed Amount</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor='userType' className='block text-sm font-medium text-gray-700 mb-1'>User Type</label>
-            <select
-              id='userType'
-              name='userType'
-              value={newCoupon.userType}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-            >
-              <option value='normal'>All Users</option>
-              <option value='luxe'>Luxe Members</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor='offerType' className='block text-sm font-medium text-gray-700 mb-1'>Offer Type</label>
-            <select
-              id='offerType'
-              name='offerType'
-              value={newCoupon.offerType}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-            >
-              <option value='none'>Regular Coupon</option>
-              <option value='prepaid'>Prepaid Offer</option>
-              <option value='cod'>COD Offer</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor='discountValue' className='block text-sm font-medium text-gray-700 mb-1'>Discount Value *</label>
-            <input
-              type='number'
-              id='discountValue'
-              name='discountValue'
-              value={newCoupon.discountValue}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-              placeholder='e.g., 10 (for 10% or ₹10)'
-              min='0.01'
-              step='0.01'
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor='expiryDate' className='block text-sm font-medium text-gray-700 mb-1'>Expiry Date *</label>
-            <input
-              type='date'
-              id='expiryDate'
-              name='expiryDate'
-              value={newCoupon.expiryDate}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor='minOrderAmount' className='block text-sm font-medium text-gray-700 mb-1'>Minimum Order Amount (Optional)</label>
-            <input
-              type='number'
-              id='minOrderAmount'
-              name='minOrderAmount'
-              value={newCoupon.minOrderAmount}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-              placeholder='e.g., 500'
-              min='0'
-              step='0.01'
-            />
-          </div>
-
-          <div>
-            <label htmlFor='usageLimit' className='block text-sm font-medium text-gray-700 mb-1'>Overall Usage Limit (Optional)</label>
-            <input
-              type='number'
-              id='usageLimit'
-              name='usageLimit'
-              value={newCoupon.usageLimit}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-              placeholder='e.g., 100'
-              min='1'
-              step='1'
-            />
-          </div>
-
-          <div>
-            <label htmlFor='usageLimitPerUser' className='block text-sm font-medium text-gray-700 mb-1'>Usage Limit Per User (Optional)</label>
-            <input
-              type='number'
-              id='usageLimitPerUser'
-              name='usageLimitPerUser'
-              value={newCoupon.usageLimitPerUser}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-              placeholder='e.g., 1'
-              min='1'
-              step='1'
-            />
-          </div>
-
-          <div className='md:col-span-2'>
-            <label htmlFor='applicableSKUs' className='block text-sm font-medium text-gray-700 mb-1'>Applicable SKUs (Optional)</label>
-            <input
-              type='text'
-              id='applicableSKUs'
-              name='applicableSKUs'
-              value={newCoupon.applicableSKUs}
-              onChange={handleInputChange}
-              className='w-full p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500'
-              placeholder='e.g., SKU1,SKU2,SKU3 (comma-separated)'
-            />
-            <p className='text-xs text-gray-500 mt-1'>Leave blank to apply to all products.</p>
-          </div>
-
-          <div className='col-span-1 md:col-span-2 flex items-center'>
-            <input
-              type='checkbox'
-              id='isActive'
-              name='isActive'
-              checked={newCoupon.isActive}
-              onChange={handleInputChange}
-              className='h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded'
-            />
-            <label htmlFor='isActive' className='ml-2 block text-sm text-gray-900'>Is Active</label>
-          </div>
-
-          <div className='md:col-span-2'>
-            <button
-              type='submit'
-              disabled={isSubmitting}
-              className='w-full bg-pink-500 text-white py-3 px-6 rounded-md font-semibold text-lg hover:bg-pink-600 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:bg-gray-400'
-            >
-              {isSubmitting ? 'Adding Coupon...' : 'Add Coupon'}
-            </button>
-          </div>
-        </form>
+    <div className='p-4 md:p-8 bg-[#f8fafc] min-h-screen font-sans'>
+      <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4'>
+        <div>
+          <h2 className='text-3xl font-bold text-slate-800 tracking-tight'>Coupon Management</h2>
+          <p className='text-slate-500 mt-1'>Create and manage discount codes for your customers</p>
+        </div>
+        <div className='flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-200 w-full md:w-auto'>
+          <Search className='text-slate-400 w-5 h-5 ml-2' />
+          <input 
+            type="text" 
+            placeholder="Search coupons..." 
+            className='bg-transparent border-none focus:ring-0 text-slate-600 placeholder:text-slate-400 w-full md:w-64 py-1'
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* Existing Coupons List */}
-      <div className='bg-white rounded-lg shadow-md p-8'>
-        <h3 className='text-xl font-bold text-gray-700 mb-6'>Existing Coupons</h3>
-        {loading ? (
-          <p>Loading coupons...</p>
-        ) : coupons.length === 0 ? (
-          <p>No coupons found.</p>
-        ) : (
-          <div className='overflow-x-auto'>
-            <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
-                <tr>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Code</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Description</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Discount</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Min Order</th>
-                   <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Applicable SKUs</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Usage Limit</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Per User</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Created At</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Expires On</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Listed By</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>User Type</th>
-                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Offer Type</th>
-                  {role !== 'staff' && <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>}
-                </tr>
-              </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
-                {coupons.map((coupon) => (
-                  <tr key={coupon._id}>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-pink-600 cursor-pointer hover:underline' onClick={() => fetchCouponUsage(coupon._id, coupon.code)}>{coupon.code}</td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.description || 'N/A'}</td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue.toFixed(2)}`}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {coupon.minOrderAmount ? `₹${coupon.minOrderAmount.toFixed(2)}` : 'N/A'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {coupon.minQuantity ? coupon.minQuantity : 'N/A'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {coupon.applicableSKUs && coupon.applicableSKUs.length > 0 ? coupon.applicableSKUs.join(', ') : 'All'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {coupon.usageLimit ? coupon.usageLimit : 'Unlimited'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {coupon.usageLimitPerUser ? coupon.usageLimitPerUser : 'Unlimited'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {new Date(coupon.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {new Date(coupon.expiryDate).toLocaleDateString()}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm'>
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        new Date(coupon.expiryDate) < new Date() || !coupon.isActive
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {new Date(coupon.expiryDate) < new Date() ? 'Expired' : coupon.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm'>
-                      {coupon.creator ? (
-                        <p 
-                          onClick={() => { if(coupon.creator.role === 'staff') { setSelectedStaff(coupon.creator); setShowStaffModal(true); } }}
-                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${coupon.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
-                        >
-                          {coupon.creator.role || 'Admin'}
-                        </p>
-                      ) : (
-                        <p className='text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase inline-block w-fit'>
-                          System
-                        </p>
-                      )}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.userType ? coupon.userType.charAt(0).toUpperCase() + coupon.userType.slice(1) : 'N/A'}</td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{coupon.offerType ? coupon.offerType.charAt(0).toUpperCase() + coupon.offerType.slice(1) : 'None'}</td>
-                    {role !== 'staff' && (
-                      <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                        <button
-                          onClick={() => handleDeleteCoupon(coupon._id)}
-                          className='text-red-600 hover:text-red-900 ml-4'
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    )}
+      <div className='grid grid-cols-1 xl:grid-cols-3 gap-8'>
+        {/* Add New Coupon Form */}
+        <div className='xl:col-span-1'>
+          <div className='bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden sticky top-8'>
+            <div className='p-6 bg-slate-50 border-b border-slate-100 flex items-center gap-2'>
+              <div className='bg-pink-100 p-2 rounded-xl'>
+                <Plus className='text-pink-600 w-5 h-5' />
+              </div>
+              <h3 className='text-lg font-bold text-slate-800'>Create New Coupon</h3>
+            </div>
+            <form onSubmit={handleAddCoupon} className='p-6 space-y-5'>
+              <div>
+                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Coupon Code *</label>
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    name='code'
+                    value={newCoupon.code}
+                    onChange={handleInputChange}
+                    className='flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all uppercase'
+                    placeholder='SUMMER20'
+                    required
+                  />
+                  <button
+                    type='button'
+                    onClick={generateCode}
+                    className='px-4 py-2 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-all text-sm'
+                  >
+                    Auto
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Description</label>
+                <textarea
+                  name='description'
+                  rows='2'
+                  value={newCoupon.description}
+                  onChange={handleInputChange}
+                  className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                  placeholder='Enter short description'
+                ></textarea>
+              </div>
+
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Type</label>
+                  <select
+                    name='discountType'
+                    value={newCoupon.discountType}
+                    onChange={handleInputChange}
+                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all appearance-none cursor-pointer'
+                  >
+                    <option value='percentage'>Percent %</option>
+                    <option value='fixed'>Fixed ₹</option>
+                  </select>
+                </div>
+                <div>
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Value *</label>
+                  <input
+                    type='number'
+                    name='discountValue'
+                    value={newCoupon.discountValue}
+                    onChange={handleInputChange}
+                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    placeholder='10'
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>User Type</label>
+                  <select
+                    name='userType'
+                    value={newCoupon.userType}
+                    onChange={handleInputChange}
+                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                  >
+                    <option value='normal'>All Users</option>
+                    <option value='luxe'>Luxe Only</option>
+                  </select>
+                </div>
+                <div>
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Expiry Date *</label>
+                  <input
+                    type='date'
+                    name='expiryDate'
+                    value={newCoupon.expiryDate}
+                    onChange={handleInputChange}
+                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Min Order ₹</label>
+                  <input
+                    type='number'
+                    name='minOrderAmount'
+                    value={newCoupon.minOrderAmount}
+                    onChange={handleInputChange}
+                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    placeholder='0'
+                  />
+                </div>
+                <div>
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Overall Limit</label>
+                  <input
+                    type='number'
+                    name='usageLimit'
+                    value={newCoupon.usageLimit}
+                    onChange={handleInputChange}
+                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    placeholder='∞'
+                  />
+                </div>
+              </div>
+
+              <div className='flex items-center p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer'>
+                <input
+                  type='checkbox'
+                  id='isActive'
+                  name='isActive'
+                  checked={newCoupon.isActive}
+                  onChange={handleInputChange}
+                  className='h-5 w-5 text-pink-600 focus:ring-pink-500 border-slate-300 rounded-lg transition-all'
+                />
+                <label htmlFor='isActive' className='ml-3 text-sm font-bold text-slate-700 cursor-pointer'>Active & Listable</label>
+              </div>
+
+              <button
+                type='submit'
+                disabled={isSubmitting}
+                className='w-full bg-slate-800 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 disabled:bg-slate-400 mt-2'
+              >
+                {isSubmitting ? 'Creating...' : 'Generate Coupon'}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Existing Coupons List */}
+        <div className='xl:col-span-2'>
+          <div className='bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden'>
+            <div className='p-6 border-b border-slate-100 flex items-center justify-between'>
+              <h3 className='text-lg font-bold text-slate-800 flex items-center gap-2'>
+                <Tag className='text-pink-500 w-5 h-5' />
+                All Active Coupons
+              </h3>
+              <div className='bg-slate-100 px-3 py-1 rounded-full text-xs font-bold text-slate-500'>
+                {filteredCoupons.length} Coupons
+              </div>
+            </div>
+            <div className='overflow-x-auto'>
+              <table className='min-w-full divide-y divide-slate-100'>
+                <thead className='bg-slate-50/50'>
+                  <tr>
+                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>#</th>
+                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Code</th>
+                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Discount</th>
+                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Usage</th>
+                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Expires</th>
+                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Status</th>
+                    <th className='px-6 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Staff Details Modal */}
-      {showStaffModal && selectedStaff && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4'>
-          <div className='bg-white p-6 rounded-lg shadow-xl max-w-sm w-full'>
-            <div className='flex justify-between items-center mb-4'>
-              <h2 className='text-xl font-bold text-gray-800'>Staff Details</h2>
-              <button onClick={() => setShowStaffModal(false)} className='text-gray-500 hover:text-gray-700 font-bold text-xl'>×</button>
-            </div>
-            <div className='space-y-3'>
-              <div className='flex flex-col'>
-                <span className='text-xs font-semibold text-gray-500 uppercase'>Name</span>
-                <span className='text-sm font-medium text-gray-800'>{selectedStaff.name || 'N/A'}</span>
-              </div>
-              <div className='flex flex-col'>
-                <span className='text-xs font-semibold text-gray-500 uppercase'>Email</span>
-                <span className='text-sm font-medium text-gray-800'>{selectedStaff.email}</span>
-              </div>
-            </div>
-            <div className='mt-6 flex justify-end'>
-              <button
-                onClick={() => setShowStaffModal(false)}
-                className='px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium text-sm'
-              >
-                Close
-              </button>
+                </thead>
+                <tbody className='divide-y divide-slate-50'>
+                  {filteredCoupons.map((coupon, index) => (
+                    <tr key={coupon._id} className='hover:bg-slate-50/50 transition-colors group'>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-400'>
+                        {index + 1}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div 
+                          className='flex items-center gap-3 cursor-pointer group/code'
+                          onClick={() => fetchCouponUsage(coupon._id, coupon.code)}
+                        >
+                          <div className='bg-pink-50 p-2 rounded-lg group-hover/code:bg-pink-100 transition-all'>
+                            <Tag className='text-pink-500 w-4 h-4' />
+                          </div>
+                          <div>
+                            <p className='text-sm font-bold text-slate-700 uppercase group-hover/code:text-pink-600 transition-all'>{coupon.code}</p>
+                            <p className='text-[10px] text-slate-400 font-medium'>{coupon.description || 'No description'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <span className='px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold'>
+                          {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}
+                        </span>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div className='flex items-center gap-2'>
+                          <Users className='w-3.5 h-3.5 text-slate-400' />
+                          <span className='text-xs font-bold text-slate-600'>{coupon.usageCount || 0}</span>
+                          <span className='text-[10px] text-slate-400'>/ {coupon.usageLimit || '∞'}</span>
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-500'>
+                        {new Date(coupon.expiryDate).toLocaleDateString()}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                          new Date(coupon.expiryDate) < new Date() || !coupon.isActive
+                            ? 'bg-red-50 text-red-600'
+                            : 'bg-emerald-50 text-emerald-600'
+                        }`}>
+                          {new Date(coupon.expiryDate) < new Date() ? 'Expired' : coupon.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-right'>
+                        <div className='flex items-center justify-end gap-2'>
+                          <button 
+                            onClick={() => fetchCouponUsage(coupon._id, coupon.code)}
+                            className='p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all'
+                            title='View Usage'
+                          >
+                            <FileText className='w-4 h-4' />
+                          </button>
+                          {role !== 'staff' && (
+                            <button
+                              onClick={() => handleDeleteCoupon(coupon._id)}
+                              className='p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all'
+                              title='Delete'
+                            >
+                              <Trash2 className='w-4 h-4' />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredCoupons.length === 0 && (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-12 text-center">
+                        <div className='flex flex-col items-center gap-2'>
+                          <div className='bg-slate-50 p-4 rounded-full'>
+                            <Tag className='w-8 h-8 text-slate-300' />
+                          </div>
+                          <p className='text-slate-400 font-bold'>No coupons found matching your search</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Coupon Usage Modal */}
       {showUsageModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4'>
-          <div className='bg-white p-6 rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col'>
-            <div className='flex justify-between items-center mb-4'>
-              <div>
-                <h2 className='text-xl font-bold text-gray-800'>Coupon Usage</h2>
-                <p className='text-sm text-pink-600 font-semibold'>{selectedCouponCode}</p>
+        <div className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200'>
+            <div className='p-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4'>
+              <div className='flex items-center gap-4'>
+                <div className='bg-pink-100 p-3 rounded-2xl'>
+                  <FileText className='text-pink-600 w-6 h-6' />
+                </div>
+                <div>
+                  <h2 className='text-xl font-bold text-slate-800'>Coupon Usage Analytics</h2>
+                  <p className='text-sm text-pink-600 font-bold flex items-center gap-1'>
+                    <Tag className='w-3 h-3' /> {selectedCouponCode}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setShowUsageModal(false)} className='text-gray-500 hover:text-gray-700 font-bold text-xl'>×</button>
+              <div className='flex items-center gap-2 w-full md:w-auto'>
+                {usageTableData.length > 0 && (
+                  <CSVLink 
+                    data={usageTableData} 
+                    headers={exportHeaders}
+                    filename={`Coupon_Usage_${selectedCouponCode}.csv`}
+                    className='flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 w-full justify-center md:w-auto'
+                  >
+                    <Download className='w-4 h-4' /> Export Report
+                  </CSVLink>
+                )}
+                <button 
+                  onClick={() => setShowUsageModal(false)} 
+                  className='p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-xl transition-all'
+                >
+                  <Plus className='w-6 h-6 rotate-45' />
+                </button>
+              </div>
             </div>
-            <div className='overflow-y-auto flex-1'>
-              {usageList.length === 0 ? (
-                <p className='text-center py-4 text-gray-500'>No users have used this coupon yet.</p>
+
+            <div className='p-6 overflow-y-auto flex-1 bg-white'>
+              {usageTableData.length === 0 ? (
+                <div className='py-20 flex flex-col items-center text-center gap-4'>
+                  <div className='bg-slate-50 p-6 rounded-full'>
+                    <Users className='w-12 h-12 text-slate-200' />
+                  </div>
+                  <div>
+                    <h3 className='text-lg font-bold text-slate-700'>No Usage Recorded</h3>
+                    <p className='text-slate-400 text-sm'>This coupon hasn't been used by any customers yet.</p>
+                  </div>
+                </div>
               ) : (
-                <div className='space-y-3'>
-                  <p className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'>Users who successfully placed orders</p>
-                  {usageList.map((usage, index) => (
-                    <div key={index} className='flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-100'>
-                      <span className='text-sm font-bold text-gray-800'>{usage.userId?.name || 'Unknown User'}</span>
-                      <span className='text-xs text-gray-500'>{usage.userId?.email || 'N/A'}</span>
-                    </div>
-                  ))}
+                <div className='border border-slate-100 rounded-2xl overflow-hidden'>
+                  <table className='min-w-full divide-y divide-slate-100'>
+                    <thead className='bg-slate-50'>
+                      <tr>
+                        <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider'>#</th>
+                        <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Customer</th>
+                        <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Contact Info</th>
+                        <th className='px-6 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Frequency</th>
+                      </tr>
+                    </thead>
+                    <tbody className='divide-y divide-slate-50'>
+                      {usageTableData.map((usage, index) => (
+                        <tr key={index} className='hover:bg-slate-50 transition-colors'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-400'>{index + 1}</td>
+                          <td className='px-6 py-4 whitespace-nowrap'>
+                            <div className='flex items-center gap-3'>
+                              <div className='w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase'>
+                                {usage.name.charAt(0)}
+                              </div>
+                              <span className='text-sm font-bold text-slate-700'>{usage.name}</span>
+                            </div>
+                          </td>
+                          <td className='px-6 py-4 whitespace-nowrap'>
+                            <div className='flex flex-col gap-0.5'>
+                              <span className='text-xs font-medium text-slate-600 flex items-center gap-1.5'>
+                                <FileText className='w-3 h-3 text-slate-400' /> {usage.email}
+                              </span>
+                              <span className='text-xs font-medium text-slate-500 flex items-center gap-1.5'>
+                                <Users className='w-3 h-3 text-slate-400' /> {usage.mobile}
+                              </span>
+                            </div>
+                          </td>
+                          <td className='px-6 py-4 whitespace-nowrap text-center'>
+                            <span className='inline-flex items-center justify-center px-3 py-1 bg-slate-100 text-slate-800 rounded-full text-xs font-bold'>
+                              Used {usage.count}x
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
-            <div className='mt-6 flex justify-end'>
+            
+            <div className='p-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center'>
+              <p className='text-xs text-slate-400 font-medium'>
+                Total unique users: <span className='text-slate-700 font-bold'>{usageTableData.length}</span>
+              </p>
               <button
                 onClick={() => setShowUsageModal(false)}
-                className='px-6 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors font-medium text-sm'
+                className='px-6 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-all font-bold text-sm shadow-md'
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Details Modal */}
+      {showStaffModal && selectedStaff && (
+        <div className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-3xl shadow-2xl max-w-sm w-full border border-slate-200 overflow-hidden'>
+            <div className='p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center'>
+              <h2 className='text-xl font-bold text-slate-800 flex items-center gap-2'>
+                <User className='text-blue-500 w-5 h-5' /> Staff Details
+              </h2>
+              <button onClick={() => setShowStaffModal(false)} className='p-2 text-slate-400 hover:text-slate-600 rounded-lg'>
+                <Plus className='w-6 h-6 rotate-45' />
+              </button>
+            </div>
+            <div className='p-8 flex flex-col items-center text-center'>
+              <div className='w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg'>
+                <User className='text-blue-500 w-10 h-10' />
+              </div>
+              <h3 className='text-xl font-bold text-slate-800'>{selectedStaff.name || 'N/A'}</h3>
+              <p className='text-sm text-slate-500 font-medium mb-6'>{selectedStaff.email}</p>
+              
+              <div className='w-full grid grid-cols-2 gap-4'>
+                <div className='bg-slate-50 p-4 rounded-2xl border border-slate-100'>
+                  <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1'>Role</p>
+                  <p className='text-sm font-bold text-slate-700'>Staff Member</p>
+                </div>
+                <div className='bg-slate-50 p-4 rounded-2xl border border-slate-100'>
+                  <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1'>Status</p>
+                  <p className='text-sm font-bold text-emerald-600'>Authorized</p>
+                </div>
+              </div>
+            </div>
+            <div className='p-6 bg-slate-50 border-t border-slate-100'>
+              <button
+                onClick={() => setShowStaffModal(false)}
+                className='w-full py-3 bg-slate-800 text-white rounded-2xl hover:bg-slate-900 transition-all font-bold shadow-md'
               >
                 Close
               </button>
@@ -545,19 +619,4 @@ const Coupons = ({ token }) => {
 };
 
 export default Coupons;
-ex justify-end'>
-              <button
-                onClick={() => setShowUsageModal(false)}
-                className='px-6 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors font-medium text-sm'
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
-export default Coupons;
