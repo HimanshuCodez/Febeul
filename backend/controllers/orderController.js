@@ -202,26 +202,30 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
 };
 
 const constructEmailHtml = (order, templateHtml) => {
+    // Calculate global subtotal for pro-rating
+    const subtotalBeforeCoupon = order.items.reduce((sum, i) => sum + (parseFloat(i.price) * parseFloat(i.quantity)), 0);
+    const couponDiscount = parseFloat(order.couponDiscount || 0);
+
     // Dynamically generate item rows
     let itemRowsHtml = '';
     order.items.forEach(item => {
-        const itemPrice = parseFloat(item.price || 0); 
+        const itemPrice = parseFloat(item.price || 0);
         const itemQuantity = parseFloat(item.quantity || 0);
-        const itemTotal = parseFloat(itemPrice * itemQuantity || 0);
-        
-        // Taxable calculation matching invoiceGenerator.js: Base = Inclusive / 1.05
-        const itemTaxable = itemTotal / 1.05;
+        const itemGross = itemPrice * itemQuantity;
+
+        // Pro-rate the coupon discount for consistent net reporting per item
+        const itemProportion = subtotalBeforeCoupon > 0 ? (itemGross / subtotalBeforeCoupon) : 0;
+        const itemCouponDiscount = itemProportion * couponDiscount;
+        const netTotal = itemGross - itemCouponDiscount - (parseFloat(item.discountAmount || 0));
 
         itemRowsHtml += `
-            <tr style="border-bottom: 1px solid #eeeeee;">
-                <td style="padding: 12px 8px; vertical-align: top;">
-                    <div style="font-weight: 600; color: #333333;">${item.name}</div>
-                    ${item.sku ? `<div style="font-size: 11px; color: #666666; margin-top: 4px;">SKU: ${item.sku}</div>` : ''}
+            <tr>
+                <td style="padding: 20px 0; border-bottom: 1px solid #f5f5f5;">
+                    <div style="font-size: 14px; font-weight: 600; color: #333333;">${item.name}</div>
+                    ${item.sku ? `<div style="font-size: 11px; color: #999999; margin-top: 4px;">SKU: ${item.sku}</div>` : ''}
                 </td>
-                <td style="padding: 12px 8px; text-align: center; vertical-align: top; color: #666666;">${itemQuantity}</td>
-                <td style="padding: 12px 8px; text-align: right; vertical-align: top; color: #666666;">₹${itemPrice.toFixed(2)}</td>
-                <td style="padding: 12px 8px; text-align: right; vertical-align: top; color: #666666;">₹${itemTaxable.toFixed(2)}</td>
-                <td style="padding: 12px 8px; text-align: right; vertical-align: top; font-weight: 600; color: #333333;">₹${itemTotal.toFixed(2)}</td>
+                <td align="center" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; color: #666666;">${itemQuantity}</td>
+                <td align="right" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; font-weight: 700; color: #333333;">₹${netTotal.toFixed(2)}</td>
             </tr>
         `;
     });
@@ -230,110 +234,100 @@ const constructEmailHtml = (order, templateHtml) => {
     const emailCodCharge = parseFloat(order.codCharge || 0);
     const emailGiftWrapPrice = parseFloat(order.giftWrap && order.giftWrap.price || 0);
     const emailProductAmount = parseFloat(order.productAmount || 0);
-    const emailCouponDiscount = parseFloat(order.couponDiscount || 0);
     const emailOrderTotal = parseFloat(order.orderTotal || 0);
-    const emailDiscountedAmount = emailProductAmount - emailCouponDiscount;
-    
-    // Use stored GST values from order
-    const emailTaxableValue = parseFloat(order.taxableValue || 0);
-    const emailCgst = parseFloat(order.cgstAmount || 0);
-    const emailSgst = parseFloat(order.sgstAmount || 0);
-    const emailIgst = parseFloat(order.igstAmount || 0);
 
+    // Tax calculation following Indian Composite Supply rules (consistent with invoiceGenerator.js)
+    const netProductValue = subtotalBeforeCoupon - couponDiscount;
+    const ancillaryCharges = emailShippingCharge + emailCodCharge + emailGiftWrapPrice;
+    const totalInclusiveAmount = netProductValue + ancillaryCharges;
+
+    // Use a fixed 5% calculation for simple reporting in email (Detailed breakdown in PDF invoice)
+    const totalTaxableValue = totalInclusiveAmount / 1.05;
+    const totalTaxAmount = totalInclusiveAmount - totalTaxableValue;
+
+    const isDelhi = order.address.state && order.address.state.trim().toLowerCase() === 'delhi';
+    
     let gstRowsHtml = '';
-    if (emailIgst > 0) {
+    if (isDelhi) {
+        const splitTax = totalTaxAmount / 2;
         gstRowsHtml = `
-            <tr>
-                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">IGST (5%):</td>
-                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailIgst.toFixed(2)}</td>
+            <tr class="totals-row">
+                <td style="padding: 6px 0; font-size: 14px; color: #666666;">CGST (2.5%)</td>
+                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${splitTax.toFixed(2)}</td>
+            </tr>
+            <tr class="totals-row">
+                <td style="padding: 6px 0; font-size: 14px; color: #666666;">SGST (2.5%)</td>
+                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${splitTax.toFixed(2)}</td>
             </tr>
         `;
     } else {
         gstRowsHtml = `
-            <tr>
-                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">CGST (2.5%):</td>
-                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailCgst.toFixed(2)}</td>
-            </tr>
-            <tr>
-                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">SGST (2.5%):</td>
-                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailSgst.toFixed(2)}</td>
+            <tr class="totals-row">
+                <td style="padding: 6px 0; font-size: 14px; color: #666666;">IGST (5%)</td>
+                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${totalTaxAmount.toFixed(2)}</td>
             </tr>
         `;
     }
 
-    let giftWrapRowHtml = '';
-    if (emailGiftWrapPrice > 0) {
-        giftWrapRowHtml = `
-            <tr>
-                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">Gift Wrap:</td>
-                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailGiftWrapPrice.toFixed(2)}</td>
+    let couponDiscountRow = '';
+    if (couponDiscount > 0) {
+        couponDiscountRow = `
+            <tr class="totals-row">
+                <td style="padding: 6px 0; font-size: 14px; color: #666666;">Coupon Discount</td>
+                <td align="right" style="padding: 6px 0; color: #155724; font-size: 14px;">- ₹${couponDiscount.toFixed(2)}</td>
             </tr>
         `;
     }
 
-    let codChargeRowHtml = '';
+    let codChargeRow = '';
     if (emailCodCharge > 0) {
-        codChargeRowHtml = `
-            <tr>
-                <td style="text-align: right; font-weight: bold; color: #333333; padding: 5px 10px; font-size: 11px;">COD Charges:</td>
-                <td style="text-align: right; color: #333333; padding: 5px 10px; font-size: 11px;">₹${emailCodCharge.toFixed(2)}</td>
+        codChargeRow = `
+            <tr class="totals-row">
+                <td style="padding: 6px 0; font-size: 14px; color: #666666;">COD Charges</td>
+                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${emailCodCharge.toFixed(2)}</td>
             </tr>
         `;
-    }
-    
-    let couponDiscountRowHtml = '';
-    if (emailCouponDiscount > 0) {
-        couponDiscountRowHtml = `
-            <tr>
-                <td style="text-align: right; font-weight: bold; color: #155724; padding: 5px 10px; font-size: 11px;">Coupon Discount:</td>
-                <td style="text-align: right; color: #155724; font-weight: bold; padding: 5px 10px; font-size: 11px;">- ₹${emailCouponDiscount.toFixed(2)}</td>
-            </tr>
-        `;
-        if (order.couponOfferType && order.couponOfferType !== 'none') {
-            const offerLabel = order.couponOfferType === 'prepaid' ? 'Prepaid Offer' : 'COD Offer';
-            couponDiscountRowHtml += `
-                <tr>
-                    <td style="text-align: right; font-weight: bold; color: #155724; padding: 5px 10px; font-size: 10px;">(Applied ${offerLabel})</td>
-                    <td></td>
-                </tr>
-            `;
-        }
     }
 
-    // Populate template placeholders
-    let populatedHtml = templateHtml;
-    populatedHtml = populatedHtml.replace('{{userName}}', order.userId.name || 'Customer');
-    populatedHtml = populatedHtml.replace('{{orderId}}', order._id.toString());
+    let giftWrapRow = '';
+    if (emailGiftWrapPrice > 0) {
+        giftWrapRow = `
+            <tr class="totals-row">
+                <td style="padding: 6px 0; font-size: 14px; color: #666666;">Gift Wrap (${order.giftWrap.name})</td>
+                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${emailGiftWrapPrice.toFixed(2)}</td>
+            </tr>
+        `;
+    }
+
+    const orderDateFormatted = new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     const sequentialInvoice = order.invoiceNumber ? order.invoiceNumber.toString().padStart(4, '0') : order._id.toString().slice(-8).toUpperCase();
-    populatedHtml = populatedHtml.replace('{{invoiceNumber}}', `INV-${sequentialInvoice}`);
-    populatedHtml = populatedHtml.replace('{{invoiceDate}}', new Date(order.date).toLocaleDateString());
-    populatedHtml = populatedHtml.replace('{{orderDate}}', new Date(order.date).toLocaleDateString());
-    populatedHtml = populatedHtml.replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
-    populatedHtml = populatedHtml.replace('{{itemRows}}', itemRowsHtml);
-    populatedHtml = populatedHtml.replace('{{subtotal}}', emailProductAmount.toFixed(2));
-    populatedHtml = populatedHtml.replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE');
-    populatedHtml = populatedHtml.replace('{{codChargeRow}}', codChargeRowHtml);
-    populatedHtml = populatedHtml.replace('{{giftWrapRow}}', giftWrapRowHtml);
-    populatedHtml = populatedHtml.replace('{{gstRows}}', gstRowsHtml);
-    populatedHtml = populatedHtml.replace('{{couponDiscountRow}}', couponDiscountRowHtml);
-    populatedHtml = populatedHtml.replace('{{shippingAddressName}}', order.address.name);
-    populatedHtml = populatedHtml.replace('{{shippingAddressAddress}}', order.address.address);
-    populatedHtml = populatedHtml.replace('{{shippingAddressCity}}', order.address.city);
-    populatedHtml = populatedHtml.replace('{{shippingAddressZip}}', order.address.zip);
-    populatedHtml = populatedHtml.replace('{{shippingAddressCountry}}', order.address.country);
-    populatedHtml = populatedHtml.replace('{{shippingAddressPhone}}', order.address.phone);
-    populatedHtml = populatedHtml.replace('{{billingAddressName}}', order.address.name);
-    populatedHtml = populatedHtml.replace('{{billingAddressAddress}}', order.address.address);
-    populatedHtml = populatedHtml.replace('{{billingAddressCity}}', order.address.city);
-    populatedHtml = populatedHtml.replace('{{billingAddressZip}}', order.address.zip);
-    populatedHtml = populatedHtml.replace('{{billingAddressCountry}}', order.address.country);
-    populatedHtml = populatedHtml.replace('{{paymentMethod}}', order.paymentMethod);
-    populatedHtml = populatedHtml.replace('{{paymentStatus}}', order.payment ? 'Paid' : 'Pending');
-    populatedHtml = populatedHtml.replace('{{paymentStatusClass}}', order.payment ? 'paid' : 'pending');
-    populatedHtml = populatedHtml.replace('{{orderTrackingLink}}', `https://febeul.onrender.com/track/${order._id}`);
-    populatedHtml = populatedHtml.replace('{{currentYear}}', new Date().getFullYear());
 
-    return populatedHtml;
+    let finalHtml = templateHtml
+        .replace('{{orderId}}', order._id.toString().slice(-8).toUpperCase())
+        .replace('{{orderDate}}', orderDateFormatted)
+        .replace('{{invoiceNumber}}', `INV-${sequentialInvoice}`)
+        .replace('{{invoiceDate}}', orderDateFormatted)
+        .replace('{{paymentMethod}}', order.paymentMethod)
+        .replace('{{billingAddressName}}', order.address.name)
+        .replace('{{billingAddressAddress}}', order.address.address)
+        .replace('{{billingAddressCity}}', order.address.city)
+        .replace('{{billingAddressZip}}', order.address.zip)
+        .replace('{{billingAddressCountry}}', 'India')
+        .replace('{{shippingAddressName}}', order.address.name)
+        .replace('{{shippingAddressAddress}}', order.address.address)
+        .replace('{{shippingAddressCity}}', order.address.city)
+        .replace('{{shippingAddressZip}}', order.address.zip)
+        .replace('{{shippingAddressCountry}}', 'India')
+        .replace('{{itemRows}}', itemRowsHtml)
+        .replace('{{subtotal}}', subtotalBeforeCoupon.toFixed(2))
+        .replace('{{couponDiscountRow}}', couponDiscountRow)
+        .replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE')
+        .replace('{{codChargeRow}}', codChargeRow)
+        .replace('{{giftWrapRow}}', giftWrapRow)
+        .replace('{{gstRows}}', gstRowsHtml)
+        .replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
+
+    return finalHtml;
 };
 
 // Placing orders using COD Method

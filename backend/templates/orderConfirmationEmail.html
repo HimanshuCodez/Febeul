@@ -3,259 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmation - Febeul</title>
+    <title>Order Confirmed - Febeul</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@400;600;700&display=swap');
+        
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-            color: #333333;
+            padding: 0;
+            background-color: #fdf5f5;
+            font-family: 'Montserrat', Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 650px;
+            margin: 20px auto;
             background-color: #ffffff;
-            padding: 30px;
-            border: 1px solid #dddddd;
-            border-radius: 4px;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(249, 174, 175, 0.1);
         }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #eeeeee;
-            padding-bottom: 20px;
+        .hero {
+            background-color: #f9aeaf;
+            padding: 50px 40px;
+            text-align: center;
+            color: #ffffff;
         }
-        .logo {
-            width: 120px;
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            margin: 0 0 10px;
+            letter-spacing: -0.5px;
         }
-        .invoice-title {
-            text-align: right;
-        }
-        .invoice-title h1 {
+        .hero p {
+            font-size: 16px;
             margin: 0;
-            font-size: 20px;
-            color: #333333;
+            opacity: 0.95;
+            font-weight: 400;
         }
-        .invoice-title p {
-            margin: 5px 0 0;
-            font-size: 11px;
-            color: #666666;
+        .content {
+            padding: 40px;
         }
-        .info-grid {
-            width: 100%;
-            margin-bottom: 30px;
-        }
-        .info-grid td {
-            vertical-align: top;
-            width: 50%;
+        .order-badge {
+            display: inline-block;
+            background-color: #fff0f0;
+            color: #d17a7b;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         .section-title {
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 700;
             color: #333333;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            letter-spacing: 1.5px;
+            margin-bottom: 20px;
             display: block;
+            border-left: 3px solid #f9aeaf;
+            padding-left: 12px;
+        }
+        .info-card {
+            background-color: #fafafa;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
         }
         .info-text {
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.6;
             color: #555555;
             margin: 0;
         }
-        .address-box {
-            padding-top: 15px;
-            border-top: 1px solid #eeeeee;
-            margin-top: 15px;
-        }
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 30px 0;
-        }
         .items-table th {
-            background-color: #f8f8f8;
-            padding: 10px;
             font-size: 11px;
-            font-weight: bold;
+            font-weight: 700;
+            color: #999999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eeeeee;
             text-align: left;
-            border-top: 1px solid #dddddd;
-            border-bottom: 1px solid #dddddd;
         }
         .items-table td {
-            padding: 12px 10px;
-            font-size: 11px;
-            border-bottom: 1px solid #eeeeee;
+            padding: 20px 0;
+            border-bottom: 1px solid #f5f5f5;
         }
         .totals-section {
-            width: 100%;
+            margin-top: 30px;
+            background-color: #fafafa;
+            border-radius: 16px;
+            padding: 24px;
         }
-        .totals-section td {
-            padding: 5px 10px;
-            font-size: 11px;
-        }
-        .totals-label {
-            text-align: right;
-            font-weight: bold;
-            color: #333333;
-            width: 80%;
-        }
-        .totals-value {
-            text-align: right;
-            color: #333333;
+        .totals-row td {
+            padding: 6px 0;
+            font-size: 14px;
+            color: #666666;
         }
         .grand-total {
-            font-size: 14px !important;
-            font-weight: bold;
-            color: #000000;
-            border-top: 2px solid #333333;
-            padding-top: 10px !important;
-        }
-        .terms {
-            margin-top: 40px;
-            font-size: 10px;
-            color: #888888;
-            line-height: 1.5;
-            padding-top: 20px;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            color: #000000 !important;
             border-top: 1px solid #eeeeee;
+            padding-top: 15px !important;
+            margin-top: 10px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #000000;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 30px;
+            transition: transform 0.2s;
         }
         .footer {
-            margin-top: 30px;
+            padding: 40px;
             text-align: center;
-            font-size: 11px;
-            font-weight: bold;
-            color: #333333;
-            padding: 20px;
-            background-color: #f8f8f8;
+            background-color: #fafafa;
         }
-        .luxe-tag {
-            background-color: #fff8e1;
-            color: #ff8f00;
-            padding: 2px 6px;
-            font-size: 9px;
-            font-weight: bold;
-            border-radius: 2px;
+        .footer p {
+            font-size: 12px;
+            color: #999999;
+            line-height: 1.8;
+            margin: 10px 0;
+        }
+        .social-links {
+            margin-top: 20px;
+        }
+        .social-links a {
+            margin: 0 10px;
             display: inline-block;
-            margin-bottom: 5px;
+        }
+        .luxe-member-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #ffffff;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <table width="100%" class="header">
+        <!-- Logo Header -->
+        <table width="100%" style="padding: 25px 40px;">
             <tr>
-                <td>
-                    <img src="https://i.postimg.cc/brz9vx2j/removebg-Logo.png" alt="FEBEUL" class="logo">
-                </td>
-                <td class="invoice-title">
-                    <h1>Tax Invoice/Bill of Supply/Cash Memo</h1>
-                    <p>(Original for Recipient)</p>
+                <td align="center">
+                    <img src="https://i.postimg.cc/brz9vx2j/removebg-Logo.png" alt="FEBEUL" width="100">
                 </td>
             </tr>
         </table>
 
-        <!-- Company & Invoice Details -->
-        <table class="info-grid" cellspacing="0" cellpadding="0">
-            <tr>
-                <td>
-                    <span class="section-title">Sold By:</span>
-                    <p class="info-text">
-                        <strong>FEBEUL</strong><br>
-                        H. no 89, Blk-D1 Bhalswa Resettlement Colony,<br>
-                        New Swaroop Nagar, Near Govt. Dispensary,<br>
-                        Delhi - 110042, India<br>
-                        GSTIN: 07BGQPY8326L1ZC<br>
-                        PAN: BGQPY8326L
-                    </p>
-                </td>
-                <td style="padding-left: 40px;">
-                    <span class="section-title">Invoice Details:</span>
-                    <p class="info-text">
-                        <strong>Invoice No:</strong> {{invoiceNumber}}<br>
-                        <strong>Invoice Date:</strong> {{invoiceDate}}<br>
-                        <strong>Order ID:</strong> #{{orderId}}<br>
-                        <strong>Order Date:</strong> {{orderDate}}<br>
-                        <strong>Payment Method:</strong> {{paymentMethod}}
-                    </p>
-                </td>
-            </tr>
-        </table>
+        <!-- Hero Section -->
+        <div class="hero">
+            <h1>Order Confirmed!</h1>
+            <p>Get ready! Something beautiful is coming your way.</p>
+        </div>
 
-        <!-- Addresses -->
-        <table class="info-grid address-box" cellspacing="0" cellpadding="0">
-            <tr>
-                <td>
-                    <span class="section-title">Billing Address:</span>
-                    <p class="info-text">
-                        <strong>{{billingAddressName}}</strong><br>
-                        {{billingAddressAddress}}<br>
-                        {{billingAddressCity}}, {{billingAddressZip}}<br>
-                        {{billingAddressCountry}}
-                    </p>
-                </td>
-                <td style="padding-left: 40px;">
-                    <span class="section-title">Shipping Address:</span>
-                    <p class="info-text">
-                        <strong>{{shippingAddressName}}</strong><br>
-                        {{shippingAddressAddress}}<br>
-                        {{shippingAddressCity}}, {{shippingAddressZip}}<br>
-                        {{shippingAddressCountry}}
-                    </p>
-                </td>
-            </tr>
-        </table>
+        <div class="content">
+            <div align="center">
+                <span class="order-badge">Order ID: #{{orderId}}</span>
+            </div>
 
-        <!-- Items Table -->
-        <table class="items-table">
-            <thead>
+            <p class="info-text" style="font-size: 16px; color: #333333; margin-bottom: 30px; text-align: center;">
+                Hi <strong>{{billingAddressName}}</strong>,<br>
+                Thank you for choosing Febeul. We've received your order and are currently preparing it with love and care.
+            </p>
+
+            <!-- Order Details Grid -->
+            <table width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                    <th style="width: 40%;">Description</th>
-                    <th style="text-align: center;">Qty</th>
-                    <th style="text-align: right;">Unit Price</th>
-                    <th style="text-align: right;">Taxable</th>
-                    <th style="text-align: right;">Total</th>
+                    <td width="48%" valign="top">
+                        <div class="info-card">
+                            <span class="section-title">Order Info</span>
+                            <p class="info-text">
+                                <strong>Date:</strong> {{orderDate}}<br>
+                                <strong>Payment:</strong> {{paymentMethod}}<br>
+                                <strong>Invoice:</strong> {{invoiceNumber}}
+                            </p>
+                        </div>
+                    </td>
+                    <td width="4%"></td>
+                    <td width="48%" valign="top">
+                        <div class="info-card">
+                            <span class="section-title">Shipping To</span>
+                            <p class="info-text">
+                                <strong>{{shippingAddressName}}</strong><br>
+                                {{shippingAddressAddress}}<br>
+                                {{shippingAddressCity}}, {{shippingAddressZip}}<br>
+                                {{shippingAddressCountry}}
+                            </p>
+                        </div>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                {{itemRows}}
-            </tbody>
-        </table>
+            </table>
 
-        <!-- Totals -->
-        <table class="totals-section" cellspacing="0" cellpadding="0">
-            <tr>
-                <td class="totals-label">Subtotal:</td>
-                <td class="totals-value">₹{{subtotal}}</td>
-            </tr>
-            {{couponDiscountRow}}
-            <tr>
-                <td class="totals-label">Shipping Charges:</td>
-                <td class="totals-value">{{shipping}}</td>
-            </tr>
-            {{codChargeRow}}
-            {{giftWrapRow}}
-            {{gstRows}}
-            <tr>
-                <td class="totals-label grand-total">Grand Total:</td>
-                <td class="totals-value grand-total">₹{{totalAmount}}</td>
-            </tr>
-        </table>
+            <!-- Items Section -->
+            <span class="section-title">Your Selection</span>
+            <table class="items-table" width="100%">
+                <thead>
+                    <tr>
+                        <th align="left">Item Details</th>
+                        <th align="center">Qty</th>
+                        <th align="right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{itemRows}}
+                </tbody>
+            </table>
 
-        <!-- Terms -->
-        <div class="terms">
-            <strong>Terms & Conditions:</strong><br>
-            1. This is a computer-generated invoice and does not require a signature.<br>
-            2. All disputes are subject to Delhi jurisdiction.<br>
-            3. Goods once sold cannot be returned or exchanged without valid reason.
+            <!-- Totals Section -->
+            <div class="totals-section">
+                <table width="100%">
+                    <tr class="totals-row">
+                        <td>Subtotal</td>
+                        <td align="right">₹{{subtotal}}</td>
+                    </tr>
+                    {{couponDiscountRow}}
+                    <tr class="totals-row">
+                        <td>Shipping</td>
+                        <td align="right">{{shipping}}</td>
+                    </tr>
+                    {{codChargeRow}}
+                    {{giftWrapRow}}
+                    {{gstRows}}
+                    <tr class="totals-row">
+                        <td class="grand-total">Grand Total</td>
+                        <td align="right" class="grand-total">₹{{totalAmount}}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div align="center">
+                <a href="https://febeul.com/profile" class="btn">Track Your Order</a>
+            </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            Thank you for shopping with FEBEUL! | support@febeul.com | www.febeul.com
+            <p style="font-size: 14px; font-weight: 700; color: #333333;">Elegant. Soft. Loved.</p>
+            <p>
+                Need help with your order? We're here for you.<br>
+                Contact us at <strong>support@febeul.com</strong>
+            </p>
+            <div class="social-links">
+                <a href="https://instagram.com/febeul.official"><img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" width="20" alt="Instagram"></a>
+                <a href="https://facebook.com/febeul"><img src="https://cdn-icons-png.flaticon.com/512/174/174848.png" width="20" alt="Facebook"></a>
+            </div>
+            <p style="margin-top: 30px; opacity: 0.6; font-size: 10px;">
+                © 2026 Febeul Luxury. All rights reserved.<br>
+                This is a computer generated confirmation and does not require a signature.
+            </p>
         </div>
     </div>
 </body>
