@@ -169,7 +169,7 @@ export const applyCoupon = async (req, res) => {
 
         // Check User Type Restriction
         if (coupon.userType === 'luxe') {
-            const user = await mongoose.model('user').findById(userId);
+            const user = await userModel.findById(userId);
             if (!user || !user.isLuxeMember) {
                 return res.status(403).json({ success: false, message: 'This coupon is reserved for Luxe Members only.' });
             }
@@ -317,5 +317,8 @@ export const applyProductCoupon = async (req, res) => {
     } catch (error) {
         console.error('Error applying product coupon:', error);
         res.status(500).json({ success: false, message: 'Error applying product coupon.' });
+    }
+};
+alse, message: 'Error applying product coupon.' });
     }
 };

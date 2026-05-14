@@ -52,6 +52,24 @@ const Coupons = ({ token }) => {
     }
   };
 
+  const fetchAllUsageData = async () => {
+    setIsExporting(true);
+    try {
+      const response = await axios.get(`${backendUrl}/api/coupon/usage-all`, { headers: { token } });
+      if (response.data.success) {
+        setAllUsageData(response.data.allUsage);
+        toast.success("Analytics data ready for download!");
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching all usage:', error);
+      toast.error('Failed to fetch global analytics.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const fetchCouponUsage = async (couponId, code) => {
     try {
       const response = await axios.get(`${backendUrl}/api/coupon/usage/${couponId}`, { headers: { token } });
@@ -639,6 +657,32 @@ const Coupons = ({ token }) => {
               <div className='w-full grid grid-cols-2 gap-4'>
                 <div className='bg-slate-50 p-4 rounded-2xl border border-slate-100'>
                   <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1'>Role</p>
+                  <p className='text-sm font-bold text-slate-700'>Staff Member</p>
+                </div>
+                <div className='bg-slate-50 p-4 rounded-2xl border border-slate-100'>
+                  <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1'>Status</p>
+                  <p className='text-sm font-bold text-emerald-600'>Authorized</p>
+                </div>
+              </div>
+            </div>
+            <div className='p-6 bg-slate-50 border-t border-slate-100'>
+              <button
+                onClick={() => setShowStaffModal(false)}
+                className='w-full py-3 bg-slate-800 text-white rounded-2xl hover:bg-slate-900 transition-all font-bold shadow-md'
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Coupons;
+
+e-400 uppercase tracking-widest mb-1'>Role</p>
                   <p className='text-sm font-bold text-slate-700'>Staff Member</p>
                 </div>
                 <div className='bg-slate-50 p-4 rounded-2xl border border-slate-100'>
