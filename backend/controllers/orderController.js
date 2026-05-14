@@ -72,7 +72,7 @@ const decreaseStock = async (items) => {
 };
 
 // Helper function to calculate all pricing components
-const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, couponDiscount = 0, userState = 'Delhi', couponCode) => {
+const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, providedCouponDiscount = 0, userState = 'Delhi', couponCode) => {
     let productAmount = 0;
     let totalItemDiscount = 0;
 
@@ -91,10 +91,10 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
             const mPrice = siteSettings.membershipPrice || 129;
             productAmount += mPrice * item.quantity;
             return {
-                productId: "60d5ecb8b3b1c8e1e8e8e8e8", // Dummy valid ObjectId for membership
+                productId: "60d5ecb8b3b1c8e1e8e8e8e8", 
                 quantity: item.quantity,
                 name: item.name,
-                image: "https://res.cloudinary.com/dv5p6v6jx/image/upload/v1715414841/membership_icon.png", // Default image or handle in frontend
+                image: "https://res.cloudinary.com/dv5p6v6jx/image/upload/v1715414841/membership_icon.png",
                 price: mPrice,
                 sku: "LUXE-MEMBERSHIP",
                 discountAmount: 0
@@ -138,31 +138,69 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     let shippingCharge = 0;
     let codCharge = 0; 
     
-    // Determine COD charge based on paymentMethod
     if (paymentMethod === 'COD') {
         codCharge = siteSettings.codCharge || 50;
     }
-    const user = await userModel.findById(userId); // Fetch user to check luxe status
+    const user = await userModel.findById(userId); 
     const isLuxeMember = user?.isLuxeMember || false;
     const giftWrapsLeft = user?.giftWrapsLeft || 0;
 
-    if (isLuxeMember && giftWrapData && giftWrapsLeft > 0) { // If user is luxe and has free wraps left
-        giftWrapPrice = 0; // Luxe members get gift wrap for free
+    if (isLuxeMember && giftWrapData && giftWrapsLeft > 0) { 
+        giftWrapPrice = 0; 
     }
 
-    // Calculate coupon offer type if couponCode is provided
+    // Calculate coupon discount securely on the backend
+    let couponDiscount = 0;
     let couponOfferType = 'none';
+
     if (couponCode) {
         const coupon = await couponModel.findOne({ code: couponCode.toUpperCase() });
-        if (coupon) {
-            couponOfferType = coupon.offerType || 'none';
+        if (!coupon || !coupon.isActive || new Date(coupon.expiryDate) <= new Date()) {
+            throw new Error('The coupon code provided is invalid or has expired.');
         }
+
+        // Validate Payment Method Restriction
+        if (coupon.offerType === 'prepaid' && paymentMethod === 'COD') {
+            throw new Error('This coupon is only valid for prepaid orders.');
+        }
+        if (coupon.offerType === 'cod' && paymentMethod !== 'COD') {
+            throw new Error('This coupon is only valid for Cash on Delivery orders.');
+        }
+
+        couponOfferType = coupon.offerType || 'none';
+        let applicableTotal = 0;
+        let currentQuantity = 0;
+        const cartTotal = processedItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+        if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
+            const applicableItems = processedItems.filter(item => coupon.applicableSKUs.includes(item.sku));
+            if (applicableItems.length === 0) {
+                throw new Error('This coupon is not applicable to any items in your cart.');
+            }
+            applicableTotal = applicableItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+            currentQuantity = applicableItems.reduce((total, item) => total + item.quantity, 0);
+        } else {
+            applicableTotal = cartTotal;
+            currentQuantity = processedItems.reduce((total, item) => total + item.quantity, 0);
+        }
+
+        // Verify conditions
+        if (applicableTotal < coupon.minOrderAmount) {
+            throw new Error(`A minimum of ₹${coupon.minOrderAmount} worth of applicable items is required for this coupon.`);
+        }
+        if (coupon.minQuantity && currentQuantity < coupon.minQuantity) {
+            throw new Error(`A minimum of ${coupon.minQuantity} applicable items is required for this coupon.`);
+        }
+
+        if (coupon.discountType === 'percentage') {
+            couponDiscount = (applicableTotal * coupon.discountValue) / 100;
+        } else {
+            couponDiscount = coupon.discountValue;
+        }
+        couponDiscount = Math.min(couponDiscount, applicableTotal);
     }
 
-    // Calculate shipping charge based on frontend logic
-    // Calculate shipping based on discounted total
     const discountedProductAmount = productAmount - totalItemDiscount;
-
     const isMembershipOrder = items.every(item => item.name === "Febeul Luxe Membership");
 
     if (!isMembershipOrder && paymentMethod !== 'COD' && !isLuxeMember && discountedProductAmount < (siteSettings.shippingThreshold || 499)) {
@@ -174,11 +212,7 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
         codCharge = 0;
     }
     
-    // Calculate subtotal for GST (discountedProductAmount - couponDiscount)
     const discountedAmount = discountedProductAmount - couponDiscount;
-    
-    // Extract GST from the inclusive amount (5% GST)
-    // Formula: Base = Inclusive / 1.05
     const taxableValue = discountedAmount / 1.05;
     const totalGst = discountedAmount - taxableValue;
     
@@ -194,11 +228,10 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
         igstAmount = totalGst;
     }
 
-    // Recalculate orderTotal - GST is already included in the product prices
     const totalCombinedDiscount = totalItemDiscount + couponDiscount;
     const orderTotal = (productAmount - totalCombinedDiscount) + shippingCharge + codCharge + giftWrapPrice;
 
-    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, isDelhi, couponOfferType };
+    return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, isDelhi, couponOfferType, couponDiscount };
 };
 
 const constructEmailHtml = (order, templateHtml) => {

@@ -90,6 +90,43 @@ export const getCouponUsage = async (req, res) => {
     }
 };
 
+// Admin: Get usage data for all coupons (for global export)
+export const getAllCouponUsage = async (req, res) => {
+    try {
+        const coupons = await couponModel.find({}).populate('usersWhoUsed.userId', 'name email mobile');
+        
+        let allUsage = [];
+
+        coupons.forEach(coupon => {
+            const usageByCoupon = {};
+            
+            coupon.usersWhoUsed.forEach(usage => {
+                const user = usage.userId;
+                if (!user) return;
+                
+                const userId = user._id.toString();
+                if (!usageByCoupon[userId]) {
+                    usageByCoupon[userId] = {
+                        name: user.name || 'Unknown User',
+                        email: user.email || 'N/A',
+                        mobile: user.mobile || 'N/A',
+                        couponCode: coupon.code,
+                        count: 0
+                    };
+                }
+                usageByCoupon[userId].count += 1;
+            });
+
+            allUsage = allUsage.concat(Object.values(usageByCoupon));
+        });
+
+        res.json({ success: true, allUsage });
+    } catch (error) {
+        console.error('Error fetching all coupon usage:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch usage analytics.' });
+    }
+};
+
 // User: Apply a coupon
 export const applyCoupon = async (req, res) => {
     try {

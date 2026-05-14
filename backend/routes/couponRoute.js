@@ -1,5 +1,5 @@
 import express from 'express';
-import { addCoupon, listCoupons, removeCoupon, applyCoupon, getActiveCoupons, applyProductCoupon, getCouponUsage } from '../controllers/couponController.js';
+import { addCoupon, listCoupons, removeCoupon, applyCoupon, getActiveCoupons, applyProductCoupon, getCouponUsage, getAllCouponUsage } from '../controllers/couponController.js';
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 import authUser from '../middleware/auth.js';
@@ -11,6 +11,7 @@ couponRouter.post('/add', adminAuth, addCoupon);
 couponRouter.get('/list', adminAuth, listCoupons);
 couponRouter.post('/remove', adminAuth, removeCoupon);
 couponRouter.get('/usage/:id', adminAuth, getCouponUsage);
+couponRouter.get('/usage-all', adminAuth, getAllCouponUsage);
 
 // User Routes
 couponRouter.post('/apply', auth, applyCoupon);

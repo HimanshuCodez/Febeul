@@ -1033,7 +1033,7 @@ export default function CheckoutPage() {
 
                 return (
                   <div className="flex flex-col gap-4">
-                    <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} selectedPayment={selectedPayment} />
+                    <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} selectedPayment={selectedPayment} appliedCoupon={appliedCoupon} />
                     <CouponShows 
                       productSKUs={cartItems.map(item => item.sku).filter(Boolean)} 
                       onRedeem={handleApplyCouponByCode} 

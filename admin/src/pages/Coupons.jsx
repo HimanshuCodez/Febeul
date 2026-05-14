@@ -31,6 +31,8 @@ const Coupons = ({ token }) => {
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [usageList, setUsageList] = useState([]);
   const [selectedCouponCode, setSelectedCouponCode] = useState('');
+  const [allUsageData, setAllUsageData] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchCoupons = async () => {
     if (!token) return;

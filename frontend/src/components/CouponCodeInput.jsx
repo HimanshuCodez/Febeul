@@ -5,7 +5,7 @@ import useAuthStore from '../store/authStore';
 import { Tag, Ticket, X, CheckCircle2, Sparkles, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const CouponCodeInput = ({ items, onCouponApply, selectedPayment }) => {
+const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon }) => {
     const [couponCode, setCouponCode] = useState('');
     const [appliedCode, setAppliedCode] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -13,6 +13,17 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const { token, user } = useAuthStore();
     const url = import.meta.env.VITE_BACKEND_URL;
+
+    // Sync internal appliedCode with prop from parent
+    useEffect(() => {
+        if (appliedCoupon) {
+            setAppliedCode(appliedCoupon.code);
+            setCouponCode(appliedCoupon.code);
+        } else {
+            setAppliedCode(null);
+            setCouponCode('');
+        }
+    }, [appliedCoupon]);
 
     useEffect(() => {
         const fetchOffers = async () => {
