@@ -16,6 +16,7 @@ const Coupons = ({ token }) => {
     discountType: 'percentage',
     discountValue: '',
     minOrderAmount: '',
+    minQuantity: '',
     usageLimit: '',
     usageLimitPerUser: '',
     expiryDate: '',
@@ -100,6 +101,7 @@ const Coupons = ({ token }) => {
         description: newCoupon.description || undefined,
         discountValue: parseFloat(newCoupon.discountValue),
         minOrderAmount: newCoupon.minOrderAmount ? parseFloat(newCoupon.minOrderAmount) : undefined,
+        minQuantity: newCoupon.minQuantity ? parseInt(newCoupon.minQuantity) : undefined,
         usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : undefined,
         usageLimitPerUser: newCoupon.usageLimitPerUser ? parseInt(newCoupon.usageLimitPerUser) : undefined,
         applicableSKUs: newCoupon.applicableSKUs ? newCoupon.applicableSKUs.split(',').map(s => s.trim()).filter(s => s) : [],
@@ -113,6 +115,7 @@ const Coupons = ({ token }) => {
           discountType: 'percentage',
           discountValue: '',
           minOrderAmount: '',
+          minQuantity: '',
           usageLimit: '',
           usageLimitPerUser: '',
           expiryDate: '',
@@ -295,15 +298,17 @@ const Coupons = ({ token }) => {
                   </select>
                 </div>
                 <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Expiry Date *</label>
-                  <input
-                    type='date'
-                    name='expiryDate'
-                    value={newCoupon.expiryDate}
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Offer Type</label>
+                  <select
+                    name='offerType'
+                    value={newCoupon.offerType}
                     onChange={handleInputChange}
                     className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
-                    required
-                  />
+                  >
+                    <option value='none'>None</option>
+                    <option value='prepaid'>Prepaid Only</option>
+                    <option value='cod'>COD Only</option>
+                  </select>
                 </div>
               </div>
 
@@ -320,6 +325,31 @@ const Coupons = ({ token }) => {
                   />
                 </div>
                 <div>
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Min Quantity</label>
+                  <input
+                    type='number'
+                    name='minQuantity'
+                    value={newCoupon.minQuantity}
+                    onChange={handleInputChange}
+                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    placeholder='0'
+                  />
+                </div>
+              </div>
+
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Expiry Date *</label>
+                  <input
+                    type='date'
+                    name='expiryDate'
+                    value={newCoupon.expiryDate}
+                    onChange={handleInputChange}
+                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    required
+                  />
+                </div>
+                <div>
                   <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Overall Limit</label>
                   <input
                     type='number'
@@ -330,6 +360,18 @@ const Coupons = ({ token }) => {
                     placeholder='∞'
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Applicable SKUs (Comma separated)</label>
+                <input
+                  type='text'
+                  name='applicableSKUs'
+                  value={newCoupon.applicableSKUs}
+                  onChange={handleInputChange}
+                  className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                  placeholder='SKU1, SKU2'
+                />
               </div>
 
               <div className='flex items-center p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer'>

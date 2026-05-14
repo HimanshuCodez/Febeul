@@ -26,10 +26,11 @@ const MyOrders = () => {
             let shippingCharge = order.shippingCharge || 0;
             let codCharge = order.codCharge || 0;
             const giftWrapPrice = order.giftWrap?.price || 0;
+            const couponDiscount = order.couponDiscount || 0;
             let orderTotal = order.orderTotal || 0;
 
             if (order.paymentMethod === 'COD' && codCharge === 0) {
-                const unaccountedAmount = orderTotal - (productAmount + shippingCharge + giftWrapPrice);
+                const unaccountedAmount = orderTotal - (productAmount - couponDiscount + shippingCharge + giftWrapPrice);
                 if (unaccountedAmount > 49 && unaccountedAmount < 51) {
                     codCharge = unaccountedAmount;
                     if (shippingCharge === unaccountedAmount) {
@@ -38,11 +39,11 @@ const MyOrders = () => {
                 }
             }
 
-            const finalTotal = productAmount + shippingCharge + codCharge + giftWrapPrice;
+            const finalTotal = productAmount - couponDiscount + shippingCharge + codCharge + giftWrapPrice;
             
             return {
                 ...order,
-                displayTotal: Math.max(orderTotal, finalTotal)
+                displayTotal: orderTotal || finalTotal
             };
         });
 
@@ -94,7 +95,9 @@ const MyOrders = () => {
                         <p className="text-sm text-gray-500">{order.items.length} items</p>
                         {order.couponDiscount > 0 && (
                             <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
-                                DISCOUNT APPLIED
+                                {order.couponOfferType && order.couponOfferType !== 'none' 
+                                    ? `${order.couponOfferType.toUpperCase()} OFFER` 
+                                    : 'DISCOUNT APPLIED'}
                             </span>
                         )}
                         {order.items.some(item => item.name === "Febeul Luxe Membership") && (

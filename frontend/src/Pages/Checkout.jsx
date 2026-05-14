@@ -167,6 +167,7 @@ export default function CheckoutPage() {
         );
         if (response.data.success) {
           setCartItems(response.data.cartItems);
+          useAuthStore.getState().setCartItems(response.data.cartItems);
           if (response.data.giftWrap) {
             setSelectedGiftWrap(response.data.giftWrap);
           }
@@ -342,6 +343,40 @@ export default function CheckoutPage() {
     }
   }
 
+  const handleApplyCouponByCode = async (code) => {
+    if (!token) {
+        toast.error("Please log in to apply coupons.");
+        return;
+    }
+    
+    const cartItemsForCoupon = cartItems.map((item) => {
+        const selectedVariation = item.variations?.find(v => v.color === item.color);
+        const itemPrice = selectedVariation?.sizes?.find(s => s.size === item.size)?.price;
+        return {
+            sku: selectedVariation?.sku,
+            price: item.price || itemPrice || 0,
+            quantity: item.quantity,
+            appliedCoupon: item.appliedCoupon
+        };
+    });
+
+    try {
+        const response = await axios.post(`${backendUrl}/api/coupon/apply`, 
+            { code: code.toUpperCase(), items: cartItemsForCoupon, userId: user?._id, paymentMethod: selectedPayment },
+            { headers: { token } }
+        );
+
+        if (response.data.success) {
+            toast.success(response.data.message);
+            handleCouponApply(response.data);
+        } else {
+            toast.error(response.data.message);
+        }
+    } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to apply coupon.");
+    }
+  }
+
   const placeCodOrder = async () => {
     const orderItems = cartItems.map((item) => {
         const selectedVariation = item.variations?.find(
@@ -381,7 +416,7 @@ export default function CheckoutPage() {
         const response = await axios.post(`${backendUrl}/api/order/place`, orderData, { headers: { token } });
         if (response.data.success) {
             toast.success("Order placed successfully!");
-            const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice, couponDiscount };
+            const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice, couponDiscount: (totalProductDiscount + couponDiscount) };
             navigate("/Success", { state: { order: response.data.order, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
         } else {
             toast.error(response.data.message || "Failed to place order.");
@@ -468,7 +503,7 @@ export default function CheckoutPage() {
             if (verifyResponse.data.success) {
               toast.success("Payment successful!");
               const localOrder = { _id: order.receipt, ...orderPayload };
-              const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice, couponDiscount };
+              const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice, couponDiscount: (totalProductDiscount + couponDiscount) };
               navigate('/Success', { state: { order: localOrder, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
             } else {
               toast.error("Payment verification failed.");
@@ -997,9 +1032,15 @@ export default function CheckoutPage() {
                 });
 
                 return (
-                  <>
+                  <div className="flex flex-col gap-4">
                     <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} selectedPayment={selectedPayment} />
-                  </>
+                    <CouponShows 
+                      productSKUs={cartItems.map(item => item.sku).filter(Boolean)} 
+                      onRedeem={handleApplyCouponByCode} 
+                      appliedCoupon={appliedCoupon}
+                      selectedPayment={selectedPayment}
+                    />
+                  </div>
                 );
               })()}
 

@@ -139,6 +139,7 @@ export const applyCoupon = async (req, res) => {
         }
 
         let applicableTotal = 0;
+        let currentQuantity = 0;
         let cartTotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
         if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
@@ -147,12 +148,18 @@ export const applyCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'This coupon is not applicable to any items in your cart.' });
             }
             applicableTotal = applicableItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+            currentQuantity = applicableItems.reduce((total, item) => total + item.quantity, 0);
         } else {
             applicableTotal = cartTotal;
+            currentQuantity = items.reduce((total, item) => total + item.quantity, 0);
         }
 
         if (applicableTotal < coupon.minOrderAmount) {
             return res.status(400).json({ success: false, message: `A minimum of ₹${coupon.minOrderAmount} worth of applicable items is required.` });
+        }
+
+        if (coupon.minQuantity && currentQuantity < coupon.minQuantity) {
+            return res.status(400).json({ success: false, message: `A minimum of ${coupon.minQuantity} applicable items is required.` });
         }
 
         let discountAmount = 0;
@@ -246,6 +253,10 @@ export const applyProductCoupon = async (req, res) => {
 
         if (applicablePrice < coupon.minOrderAmount) {
             return res.status(400).json({ success: false, message: `Minimum order amount of ₹${coupon.minOrderAmount} is required for this coupon.` });
+        }
+
+        if (coupon.minQuantity && productItem.quantity < coupon.minQuantity) {
+            return res.status(400).json({ success: false, message: `A minimum quantity of ${coupon.minQuantity} is required for this coupon.` });
         }
 
         let discountAmount = 0;

@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = null }) => {
+const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = null, selectedPayment = "" }) => {
   const { user, cartItems } = useAuthStore();
   const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
@@ -22,7 +22,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
       try {
         const response = await axios.get(`${backendUrl}/api/coupon/all`);
         if (response.data.success) {
-          // Show all active coupons to everyone for visibility
+          // Show all active coupons
           setCoupons(response.data.coupons);
         } else {
           setError(response.data.message || 'Failed to fetch coupons.');
@@ -44,6 +44,15 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
       navigate('/luxe');
       return;
     }
+
+    if (selectedPayment && coupon.offerType !== 'none' && (
+      (coupon.offerType === 'prepaid' && selectedPayment !== 'card') ||
+      (coupon.offerType === 'cod' && selectedPayment !== 'cod')
+    )) {
+      toast.error(`This coupon is only valid for ${coupon.offerType === 'prepaid' ? 'Online Payment' : 'Cash on Delivery'} orders.`);
+      return;
+    }
+
     setSelectedCoupon(coupon);
     setIsModalOpen(true);
     onRedeem(coupon.code);
@@ -58,10 +67,8 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
   }
 
   const applicableCoupons = coupons.filter(coupon => 
-    (coupon.offerType === 'none' || !coupon.offerType) && (
-      coupon.applicableSKUs.length === 0 || 
-      productSKUs.some(sku => coupon.applicableSKUs.includes(sku))
-    )
+    coupon.applicableSKUs.length === 0 || 
+    productSKUs.some(sku => coupon.applicableSKUs.includes(sku))
   );
 
   if (applicableCoupons.length === 0) return null;
@@ -98,8 +105,13 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
           }
 
           const isAmountRestricted = coupon.minOrderAmount > 0 && currentAmount < coupon.minOrderAmount;
+          
+          const isPaymentRestricted = selectedPayment && coupon.offerType !== 'none' && (
+            (coupon.offerType === 'prepaid' && selectedPayment !== 'card') ||
+            (coupon.offerType === 'cod' && selectedPayment !== 'cod')
+          );
 
-          const isDisabled = isLuxeRestricted || isQuantityRestricted || isAmountRestricted;
+          const isDisabled = isLuxeRestricted || isQuantityRestricted || isAmountRestricted || isPaymentRestricted;
 
           return (
             <div key={coupon._id} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 border rounded-lg transition-shadow ${
@@ -110,7 +122,15 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
                   <Tag size={24} className={isDisabled ? 'text-gray-400' : 'text-blue-600'} />
                 </div>
                 <div>
-                  <h3 className={`font-semibold ${isDisabled ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className={`font-semibold ${isDisabled ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
+                    {coupon.offerType === 'prepaid' && (
+                      <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">Prepaid Only</span>
+                    )}
+                    {coupon.offerType === 'cod' && (
+                      <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold uppercase">COD Only</span>
+                    )}
+                  </div>
                   {coupon.description && <p className="text-sm text-gray-600">{coupon.description}</p>}
                   <div className="mt-2 text-xs text-gray-500">
                     {coupon.minOrderAmount > 0 && (
@@ -128,6 +148,11 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
                     ) : (
                       <p>Discount: ₹{coupon.discountValue} off</p>
                     )}
+                    {isPaymentRestricted && (
+                        <p className="text-red-500 font-bold mt-1">
+                            {coupon.offerType === 'prepaid' ? '⚠️ Use online payment to unlock' : '⚠️ Use COD to unlock'}
+                        </p>
+                    )}
                     {coupon.userType === 'luxe' && (
                       <p className={`font-bold mt-1 ${user?.isLuxeMember ? 'text-amber-600' : 'text-amber-500'}`}>
                         {user?.isLuxeMember ? '✨ Luxe Member Exclusive' : '🔒 For Luxe Members Only'}
@@ -138,17 +163,19 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
               </div>
               {!isApplied && (
                 <button
-                  onClick={() => !isDisabled && handleRedeemClick(coupon)}
-                  disabled={isDisabled && !isLuxeRestricted}
+                  onClick={() => handleRedeemClick(coupon)}
+                  disabled={(isQuantityRestricted || isAmountRestricted) && !isLuxeRestricted && !isPaymentRestricted}
                   className={`ml-auto sm:ml-0 px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${
                     isLuxeRestricted 
                     ? 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200' 
+                    : isPaymentRestricted
+                    ? 'bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200' 
                     : isDisabled
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-500 text-white hover:bg-blue-600'
                   }`}
                 >
-                  {isLuxeRestricted ? 'Join Luxe' : isQuantityRestricted ? 'Locked' : isAmountRestricted ? 'Locked' : 'Redeem'}
+                  {isLuxeRestricted ? 'Join Luxe' : (isQuantityRestricted || isAmountRestricted) ? 'Locked' : isPaymentRestricted ? 'Change Pay' : 'Redeem'}
                 </button>
               )}
               {isApplied && (

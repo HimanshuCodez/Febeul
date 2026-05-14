@@ -271,9 +271,13 @@ const constructEmailHtml = (order, templateHtml) => {
 
     let couponDiscountRow = '';
     if (couponDiscount > 0) {
+        let offerLabel = '';
+        if (order.couponOfferType && order.couponOfferType !== 'none') {
+            offerLabel = `<br><span style="font-size: 10px; font-weight: 700;">(${order.couponOfferType === 'prepaid' ? 'Prepaid Offer' : 'COD Offer'})</span>`;
+        }
         couponDiscountRow = `
             <tr class="totals-row">
-                <td style="padding: 6px 0; font-size: 14px; color: #666666;">Coupon Discount</td>
+                <td style="padding: 6px 0; font-size: 14px; color: #666666;">Coupon Discount${offerLabel}</td>
                 <td align="right" style="padding: 6px 0; color: #155724; font-size: 14px;">- ₹${couponDiscount.toFixed(2)}</td>
             </tr>
         `;
