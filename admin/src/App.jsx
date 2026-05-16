@@ -20,6 +20,7 @@ import MaintenanceMode from './pages/Settings/MaintenanceMode'
 import Configurations from './pages/Settings/Configurations'
 import ImageOptimize from './pages/Settings/ImageOptimize'
 import Login from './components/Login'
+import ForgetPass from './pages/ForgetPass'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -54,7 +55,10 @@ const App = () => {
     <div className='bg-gray-50 min-h-screen'>
       <ToastContainer />
       {token === ""
-        ? <Login setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} setPermissions={setPermissions} />
+        ? <Routes>
+            <Route path='/forgot-password' element={<ForgetPass />} />
+            <Route path='*' element={<Login setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} setPermissions={setPermissions} />} />
+          </Routes>
         : <>
           <Navbar setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} role={role} email={userEmail} setPermissions={setPermissions} />
           <hr />

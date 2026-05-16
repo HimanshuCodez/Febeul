@@ -2,6 +2,7 @@ import axios from 'axios'
 import React, { useState } from 'react'
 import { backendUrl } from '../App'
 import { toast } from 'react-toastify'
+import { Link } from 'react-router-dom'
 
 const Login = ({setToken, setRole, setUserEmail, setPermissions}) => {
 
@@ -34,17 +35,22 @@ const Login = ({setToken, setRole, setUserEmail, setPermissions}) => {
   return (
     <div className='min-h-screen flex items-center justify-center w-full'>
         <div className='bg-white shadow-md rounded-lg px-8 py-6 max-w-md'>
-            <h1 className='text-2xl font-bold mb-4'>Admin Panel</h1>
+            <h1 className='text-2xl font-bold mb-4 text-center'>Admin Panel</h1>
             <form onSubmit={onSubmitHandler}>
                 <div className='mb-3 min-w-72'>
                     <p className='text-sm font-medium text-gray-700 mb-2'>Email Address</p>
-                    <input onChange={(e)=>setEmail(e.target.value)} value={email} className='rounded-md w-full px-3 py-2 border border-gray-300 outline-none' type="email" placeholder='your@email.com' required />
+                    <input onChange={(e)=>setEmail(e.target.value)} value={email} className='rounded-md w-full px-3 py-2 border border-gray-300 outline-none focus:border-black transition-all' type="email" placeholder='your@email.com' required />
                 </div>
                 <div className='mb-3 min-w-72'>
-                    <p className='text-sm font-medium text-gray-700 mb-2'>Password</p>
-                    <input onChange={(e)=>setPassword(e.target.value)} value={password} className='rounded-md w-full px-3 py-2 border border-gray-300 outline-none' type="password" placeholder='Enter your password' required />
+                    <div className='flex justify-between items-center mb-2'>
+                        <p className='text-sm font-medium text-gray-700'>Password</p>
+                        <Link to="/forgot-password" title="Forget Password" title="Forget Password" className='text-xs text-gray-500 hover:text-black hover:underline transition-colors'>
+                            Forgot Password?
+                        </Link>
+                    </div>
+                    <input onChange={(e)=>setPassword(e.target.value)} value={password} className='rounded-md w-full px-3 py-2 border border-gray-300 outline-none focus:border-black transition-all' type="password" placeholder='Enter your password' required />
                 </div>
-                <button className='mt-2 w-full py-2 px-4 rounded-md text-white bg-black' type="submit"> Login </button>
+                <button className='mt-4 w-full py-2 px-4 rounded-md text-white bg-black hover:bg-gray-800 transition-colors' type="submit"> Login </button>
             </form>
         </div>
     </div>
