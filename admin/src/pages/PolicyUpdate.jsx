@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App.jsx';
-import { FiPlus, FiTrash2, FiChevronUp, FiChevronDown, FiSave } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiChevronUp, FiChevronDown, FiSave, FiChevronRight } from 'react-icons/fi';
 
 const PREDEFINED_POLICIES = [
   { id: 'DataPrivacy', label: 'Data Privacy' },
@@ -23,9 +23,17 @@ const PolicyUpdate = ({ token }) => {
   const [loading, setLoading] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [collapsedSections, setCollapsedSections] = useState({});
   const role = localStorage.getItem('role');
 
   const API_BASE_URL = `${backendUrl}/api/policy`;
+
+  const toggleSection = (index) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   const fetchPolicyContent = async (name) => {
     setLoading(true);
@@ -178,6 +186,14 @@ const PolicyUpdate = ({ token }) => {
               <div key={sIndex} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center">
                   <div className="flex items-center gap-4 flex-1">
+                    <button 
+                      type="button" 
+                      onClick={() => toggleSection(sIndex)}
+                      className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500"
+                      title={collapsedSections[sIndex] ? "Expand Section" : "Collapse Section"}
+                    >
+                      {collapsedSections[sIndex] ? <FiChevronRight size={20} /> : <FiChevronDown size={20} />}
+                    </button>
                     <span className="text-gray-400 font-mono text-sm">#{sIndex + 1}</span>
                     <input
                       type="text"
@@ -188,55 +204,57 @@ const PolicyUpdate = ({ token }) => {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => moveSection(sIndex, -1)} className="p-1 hover:text-pink-500"><FiChevronUp /></button>
-                    <button type="button" onClick={() => moveSection(sIndex, 1)} className="p-1 hover:text-pink-500"><FiChevronDown /></button>
+                    <button type="button" onClick={() => moveSection(sIndex, -1)} className="p-1 hover:text-pink-500" title="Move Up"><FiChevronUp /></button>
+                    <button type="button" onClick={() => moveSection(sIndex, 1)} className="p-1 hover:text-pink-500" title="Move Down"><FiChevronDown /></button>
                     {role !== 'staff' && (
-                      <button type="button" onClick={() => removeSection(sIndex)} className="p-1 hover:text-red-500 ml-2"><FiTrash2 /></button>
+                      <button type="button" onClick={() => removeSection(sIndex)} className="p-1 hover:text-red-500 ml-2" title="Delete Section"><FiTrash2 /></button>
                     )}
                   </div>
                 </div>
 
-                <div className="p-6 space-y-4">
-                  {section.content.map((item, cIndex) => (
-                    <div key={cIndex} className="flex gap-4 items-start group">
-                      <select
-                        className="p-2 text-xs bg-gray-100 border rounded font-medium"
-                        value={item.type}
-                        onChange={(e) => updateContentItem(sIndex, cIndex, 'type', e.target.value)}
-                      >
-                        <option value="paragraph">Paragraph</option>
-                        <option value="subheading">Subheading</option>
-                        <option value="list">List Item</option>
-                      </select>
-                      
-                      <textarea
-                        className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded outline-none focus:border-pink-300 transition-all resize-none min-h-[40px]"
-                        rows={item.type === 'paragraph' ? 3 : 1}
-                        value={item.text}
-                        onChange={(e) => updateContentItem(sIndex, cIndex, 'text', e.target.value)}
-                        placeholder={`Enter ${item.type} text...`}
-                      />
-                      
-                      {role !== 'staff' && (
-                        <button
-                          type="button"
-                          onClick={() => removeContentItem(sIndex, cIndex)}
-                          className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                {!collapsedSections[sIndex] && (
+                  <div className="p-6 space-y-4">
+                    {section.content.map((item, cIndex) => (
+                      <div key={cIndex} className="flex gap-4 items-start group">
+                        <select
+                          className="p-2 text-xs bg-gray-100 border rounded font-medium"
+                          value={item.type}
+                          onChange={(e) => updateContentItem(sIndex, cIndex, 'type', e.target.value)}
                         >
-                          <FiTrash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  
-                  <button
-                    type="button"
-                    onClick={() => addContentItem(sIndex)}
-                    className="text-sm text-pink-500 font-semibold hover:text-pink-600 flex items-center gap-1"
-                  >
-                    <FiPlus size={14} /> Add Content Row
-                  </button>
-                </div>
+                          <option value="paragraph">Paragraph</option>
+                          <option value="subheading">Subheading</option>
+                          <option value="list">List Item</option>
+                        </select>
+                        
+                        <textarea
+                          className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded outline-none focus:border-pink-300 transition-all resize-y min-h-[60px]"
+                          rows={item.type === 'paragraph' ? 4 : 2}
+                          value={item.text}
+                          onChange={(e) => updateContentItem(sIndex, cIndex, 'text', e.target.value)}
+                          placeholder={`Enter ${item.type} text...`}
+                        />
+                        
+                        {role !== 'staff' && (
+                          <button
+                            type="button"
+                            onClick={() => removeContentItem(sIndex, cIndex)}
+                            className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      onClick={() => addContentItem(sIndex)}
+                      className="text-sm text-pink-500 font-semibold hover:text-pink-600 flex items-center gap-1"
+                    >
+                      <FiPlus size={14} /> Add Content Row
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
