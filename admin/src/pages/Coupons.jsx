@@ -3,7 +3,11 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { CSVLink } from 'react-csv';
-import { Download, Search, FileText, Trash2, Plus, Calendar, Tag, User, Users, Info, ChevronRight, Edit, X } from 'lucide-react';
+import { 
+  Download, Search, FileText, Trash2, Plus, 
+  Calendar, Tag, User, Users, Info, 
+  ChevronRight, Edit, X, CheckCircle2, AlertCircle, TrendingUp 
+} from 'lucide-react';
 
 const Coupons = ({ token }) => {
   const [coupons, setCoupons] = useState([]);
@@ -11,6 +15,8 @@ const Coupons = ({ token }) => {
   const role = localStorage.getItem('role');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCouponId, setEditingCouponId] = useState(null);
+  const [showFormModal, setShowFormModal] = useState(false);
+  
   const [newCoupon, setNewCoupon] = useState({
     code: '',
     description: '',
@@ -26,13 +32,11 @@ const Coupons = ({ token }) => {
     offerType: 'none',
     applicableSKUs: '',
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showStaffModal, setShowStaffModal] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState(null);
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [usageList, setUsageList] = useState([]);
   const [selectedCouponCode, setSelectedCouponCode] = useState('');
-  const [allUsageData, setAllUsageData] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
 
   const fetchCoupons = async () => {
@@ -50,24 +54,6 @@ const Coupons = ({ token }) => {
       toast.error('Failed to fetch coupons.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchAllUsageData = async () => {
-    setIsExporting(true);
-    try {
-      const response = await axios.get(`${backendUrl}/api/coupon/usage-all`, { headers: { token } });
-      if (response.data.success) {
-        setAllUsageData(response.data.allUsage);
-        toast.success("Analytics data ready for download!");
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      console.error('Error fetching all usage:', error);
-      toast.error('Failed to fetch global analytics.');
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -112,6 +98,7 @@ const Coupons = ({ token }) => {
       applicableSKUs: '',
     });
     setEditingCouponId(null);
+    setShowFormModal(false);
   };
 
   const handleEditClick = (coupon) => {
@@ -131,7 +118,7 @@ const Coupons = ({ token }) => {
       offerType: coupon.offerType || 'none',
       applicableSKUs: coupon.applicableSKUs ? coupon.applicableSKUs.join(', ') : '',
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowFormModal(true);
   };
 
   const generateCode = () => {
@@ -215,6 +202,13 @@ const Coupons = ({ token }) => {
     (coupon.description && coupon.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const stats = {
+    total: coupons.length,
+    active: coupons.filter(c => c.isActive && new Date(c.expiryDate) > new Date()).length,
+    expired: coupons.filter(c => new Date(c.expiryDate) < new Date()).length,
+    totalUsage: coupons.reduce((acc, curr) => acc + (curr.usageCount || 0), 0)
+  };
+
   const getGroupedUsageData = () => {
     const grouped = usageList.reduce((acc, usage) => {
       const user = usage.userId;
@@ -245,428 +239,471 @@ const Coupons = ({ token }) => {
 
   return (
     <div className='p-4 md:p-8 bg-[#f8fafc] min-h-screen font-sans'>
+      {/* Header Section */}
       <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4'>
         <div>
           <h2 className='text-3xl font-bold text-slate-800 tracking-tight'>Coupon Management</h2>
-          <p className='text-slate-500 mt-1'>Create and manage discount codes for your customers</p>
+          <p className='text-slate-500 mt-1 font-medium'>Create, track and manage discount rewards</p>
         </div>
-        <div className='flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-200 w-full md:w-auto'>
-          <Search className='text-slate-400 w-5 h-5 ml-2' />
-          <input 
-            type="text" 
-            placeholder="Search coupons..." 
-            className='bg-transparent border-none focus:ring-0 text-slate-600 placeholder:text-slate-400 w-full md:w-64 py-1'
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <button 
+          onClick={() => { resetForm(); setShowFormModal(true); }}
+          className='flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-200 active:scale-95'
+        >
+          <Plus className='w-5 h-5' /> Create New Coupon
+        </button>
+      </div>
+
+      {/* Stats Section */}
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
+        <div className='bg-white p-6 rounded-3xl border border-slate-100 shadow-sm'>
+          <div className='flex items-center justify-between mb-4'>
+            <div className='bg-blue-50 p-2 rounded-xl text-blue-600'><Tag size={20} /></div>
+            <span className='text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Total</span>
+          </div>
+          <p className='text-2xl font-black text-slate-800'>{stats.total}</p>
+          <p className='text-sm text-slate-500 font-medium'>Total Coupons</p>
+        </div>
+        <div className='bg-white p-6 rounded-3xl border border-slate-100 shadow-sm'>
+          <div className='flex items-center justify-between mb-4'>
+            <div className='bg-emerald-50 p-2 rounded-xl text-emerald-600'><CheckCircle2 size={20} /></div>
+            <span className='text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Live</span>
+          </div>
+          <p className='text-2xl font-black text-slate-800'>{stats.active}</p>
+          <p className='text-sm text-slate-500 font-medium'>Active & Valid</p>
+        </div>
+        <div className='bg-white p-6 rounded-3xl border border-slate-100 shadow-sm'>
+          <div className='flex items-center justify-between mb-4'>
+            <div className='bg-rose-50 p-2 rounded-xl text-rose-600'><AlertCircle size={20} /></div>
+            <span className='text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Expired</span>
+          </div>
+          <p className='text-2xl font-black text-slate-800'>{stats.expired}</p>
+          <p className='text-sm text-slate-500 font-medium'>Ended Validity</p>
+        </div>
+        <div className='bg-white p-6 rounded-3xl border border-slate-100 shadow-sm'>
+          <div className='flex items-center justify-between mb-4'>
+            <div className='bg-amber-50 p-2 rounded-xl text-amber-600'><TrendingUp size={20} /></div>
+            <span className='text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Usage</span>
+          </div>
+          <p className='text-2xl font-black text-slate-800'>{stats.totalUsage}</p>
+          <p className='text-sm text-slate-500 font-medium'>Total Redeems</p>
         </div>
       </div>
 
-      <div className='grid grid-cols-1 xl:grid-cols-3 gap-8'>
-        {/* Add/Edit Coupon Form */}
-        <div className='xl:col-span-1'>
-          <div className='bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden sticky top-8'>
-            <div className='p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between'>
-              <div className='flex items-center gap-2'>
-                <div className='bg-pink-100 p-2 rounded-xl'>
-                  {editingCouponId ? <Edit className='text-pink-600 w-5 h-5' /> : <Plus className='text-pink-600 w-5 h-5' />}
-                </div>
-                <h3 className='text-lg font-bold text-slate-800'>{editingCouponId ? 'Edit Coupon' : 'Create New Coupon'}</h3>
-              </div>
-              {editingCouponId && (
-                <button onClick={resetForm} className='p-2 hover:bg-slate-200 rounded-lg text-slate-400 transition-all'>
-                  <X className='w-5 h-5' />
-                </button>
+      {/* Toolbar & List */}
+      <div className='bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden'>
+        <div className='p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50'>
+          <div className='relative w-full md:w-96'>
+            <Search className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4' />
+            <input 
+              type="text" 
+              placeholder="Search by code or description..." 
+              className='w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 outline-none transition-all text-sm font-medium'
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className='flex items-center gap-2'>
+            <span className='text-xs font-bold text-slate-400 mr-2'>{filteredCoupons.length} Results</span>
+          </div>
+        </div>
+
+        <div className='overflow-x-auto'>
+          <table className='min-w-full divide-y divide-slate-100'>
+            <thead className='bg-white'>
+              <tr>
+                <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>#</th>
+                <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Coupon Detail</th>
+                <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Reward</th>
+                <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Usage</th>
+                <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Expiry</th>
+                <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Status</th>
+                <th className='px-6 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Actions</th>
+              </tr>
+            </thead>
+            <tbody className='divide-y divide-slate-50'>
+              {filteredCoupons.map((coupon, index) => {
+                const isExpired = new Date(coupon.expiryDate) < new Date();
+                const isInactive = !coupon.isActive;
+                
+                return (
+                  <tr key={coupon._id} className='hover:bg-slate-50/50 transition-colors group'>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-400'>
+                      {index + 1}
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='flex items-center gap-3'>
+                        <div className={`p-2 rounded-xl ${isExpired ? 'bg-slate-100 text-slate-400' : 'bg-pink-50 text-pink-500'}`}>
+                          <Tag size={16} />
+                        </div>
+                        <div>
+                          <p className={`text-sm font-bold uppercase tracking-tight ${isExpired || isInactive ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                            {coupon.code}
+                          </p>
+                          <p className='text-[10px] text-slate-400 font-bold max-w-[200px] truncate'>
+                            {coupon.description || 'Global Discount Coupon'}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-black ${isExpired || isInactive ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                        {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}
+                      </span>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='flex items-center gap-2'>
+                        <div className='w-full bg-slate-100 h-1.5 rounded-full overflow-hidden max-w-[60px]'>
+                          <div 
+                            className={`h-full rounded-full ${isExpired ? 'bg-slate-300' : 'bg-slate-800'}`} 
+                            style={{ width: `${Math.min(((coupon.usageCount || 0) / (coupon.usageLimit || 100)) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <span className='text-[11px] font-black text-slate-600'>{coupon.usageCount || 0}</span>
+                        <span className='text-[10px] text-slate-400 font-bold'>/ {coupon.usageLimit || '∞'}</span>
+                      </div>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <p className='text-xs font-bold text-slate-600'>{new Date(coupon.expiryDate).toLocaleDateString()}</p>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                        isExpired ? 'bg-rose-50 text-rose-500' : isInactive ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-600'
+                      }`}>
+                        {isExpired ? 'Expired' : isInactive ? 'Hidden' : 'Live'}
+                      </span>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-right'>
+                      <div className='flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all'>
+                        <button 
+                          onClick={() => handleEditClick(coupon)}
+                          className='p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all'
+                          title='Edit'
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => fetchCouponUsage(coupon._id, coupon.code)}
+                          className='p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all'
+                          title='Analytics'
+                        >
+                          <FileText size={16} />
+                        </button>
+                        {role !== 'staff' && (
+                          <button
+                            onClick={() => handleDeleteCoupon(coupon._id)}
+                            className='p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all'
+                            title='Delete'
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredCoupons.length === 0 && !loading && (
+                <tr>
+                  <td colSpan="7" className="px-6 py-20 text-center">
+                    <div className='flex flex-col items-center gap-3'>
+                      <div className='bg-slate-50 p-6 rounded-full'><Tag size={40} className='text-slate-200' /></div>
+                      <div>
+                        <p className='text-slate-800 font-bold'>No coupons found</p>
+                        <p className='text-slate-400 text-sm'>Try adjusting your search or create a new one.</p>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add/Edit Form Modal */}
+      {showFormModal && (
+        <div className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 overflow-y-auto'>
+          <div className='bg-white rounded-[32px] shadow-2xl max-w-2xl w-full border border-slate-200 my-8'>
+            <div className='p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-[32px]'>
+              <div className='flex items-center gap-3'>
+                <div className='bg-slate-900 p-2.5 rounded-xl text-white'>
+                  {editingCouponId ? <Edit size={20} /> : <Plus size={20} />}
+                </div>
+                <div>
+                  <h3 className='text-xl font-black text-slate-900'>{editingCouponId ? 'Edit Reward Code' : 'New Discount Reward'}</h3>
+                  <p className='text-xs text-slate-500 font-bold'>Set up your discount parameters below</p>
+                </div>
+              </div>
+              <button onClick={resetForm} className='p-2 hover:bg-slate-200 rounded-xl text-slate-400 transition-all'>
+                <X size={24} />
+              </button>
             </div>
-            <form onSubmit={handleSubmit} className='p-6 space-y-5'>
-              <div>
-                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Coupon Code *</label>
-                <div className='flex gap-2'>
-                  <input
-                    type='text'
-                    name='code'
-                    value={newCoupon.code}
-                    onChange={handleInputChange}
-                    className='flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all uppercase'
-                    placeholder='SUMMER20'
-                    required
-                  />
-                  {!editingCouponId && (
-                    <button
-                      type='button'
-                      onClick={generateCode}
-                      className='px-4 py-2 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-all text-sm'
+            
+            <form onSubmit={handleSubmit} className='p-8 space-y-6'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div className='space-y-2'>
+                  <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Reward Code *</label>
+                  <div className='flex gap-2'>
+                    <input
+                      type='text'
+                      name='code'
+                      value={newCoupon.code}
+                      onChange={handleInputChange}
+                      className='flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all uppercase font-bold text-slate-800'
+                      placeholder='SUMMER25'
+                      required
+                    />
+                    {!editingCouponId && (
+                      <button
+                        type='button'
+                        onClick={generateCode}
+                        className='px-4 py-2 bg-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-300 transition-all text-xs'
+                      >
+                        Auto
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className='space-y-2'>
+                  <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Discount Reward *</label>
+                  <div className='flex bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden'>
+                    <select
+                      name='discountType'
+                      value={newCoupon.discountType}
+                      onChange={handleInputChange}
+                      className='bg-transparent p-3.5 border-r border-slate-200 outline-none text-sm font-bold text-slate-600 cursor-pointer'
                     >
-                      Auto
-                    </button>
-                  )}
+                      <option value='percentage'>%</option>
+                      <option value='fixed'>₹</option>
+                    </select>
+                    <input
+                      type='number'
+                      name='discountValue'
+                      value={newCoupon.discountValue}
+                      onChange={handleInputChange}
+                      className='flex-1 p-3.5 bg-transparent outline-none font-bold text-slate-800'
+                      placeholder='0.00'
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Description</label>
+              <div className='space-y-2'>
+                <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Display Description</label>
                 <textarea
                   name='description'
                   rows='2'
                   value={newCoupon.description}
                   onChange={handleInputChange}
-                  className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
-                  placeholder='Enter short description'
+                  className='w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all font-medium text-slate-700'
+                  placeholder='Describe the benefit for customers...'
                 ></textarea>
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Type</label>
-                  <select
-                    name='discountType'
-                    value={newCoupon.discountType}
-                    onChange={handleInputChange}
-                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all appearance-none cursor-pointer'
-                  >
-                    <option value='percentage'>Percent %</option>
-                    <option value='fixed'>Fixed ₹</option>
-                  </select>
-                </div>
-                <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Value *</label>
-                  <input
-                    type='number'
-                    name='discountValue'
-                    value={newCoupon.discountValue}
-                    onChange={handleInputChange}
-                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
-                    placeholder='10'
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>User Type</label>
+              <div className='grid grid-cols-2 gap-6'>
+                <div className='space-y-2'>
+                  <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Audience</label>
                   <select
                     name='userType'
                     value={newCoupon.userType}
                     onChange={handleInputChange}
-                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    className='w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700'
                   >
-                    <option value='normal'>All Users</option>
-                    <option value='luxe'>Luxe Only</option>
+                    <option value='normal'>Public (All Users)</option>
+                    <option value='luxe'>Exclusive (Luxe Only)</option>
                   </select>
                 </div>
-                <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Offer Type</label>
+                <div className='space-y-2'>
+                  <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Method</label>
                   <select
                     name='offerType'
                     value={newCoupon.offerType}
                     onChange={handleInputChange}
-                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    className='w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700'
                   >
-                    <option value='none'>None</option>
-                    <option value='prepaid'>Prepaid Only</option>
+                    <option value='none'>Any Payment</option>
+                    <option value='prepaid'>Online Only</option>
                     <option value='cod'>COD Only</option>
                   </select>
                 </div>
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Min Order ₹</label>
-                  <input
-                    type='number'
-                    name='minOrderAmount'
-                    value={newCoupon.minOrderAmount}
-                    onChange={handleInputChange}
-                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
-                    placeholder='0'
-                  />
-                </div>
-                <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Min Quantity</label>
-                  <input
-                    type='number'
-                    name='minQuantity'
-                    value={newCoupon.minQuantity}
-                    onChange={handleInputChange}
-                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
-                    placeholder='0'
-                  />
-                </div>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Expiry Date *</label>
+              <div className='grid grid-cols-2 gap-6'>
+                <div className='space-y-2'>
+                  <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Expiry *</label>
                   <input
                     type='date'
                     name='expiryDate'
                     value={newCoupon.expiryDate}
                     onChange={handleInputChange}
-                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
+                    className='w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700'
                     required
                   />
                 </div>
-                <div>
-                  <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Overall Limit</label>
+                <div className='space-y-2'>
+                  <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Max Redeems</label>
                   <input
                     type='number'
                     name='usageLimit'
                     value={newCoupon.usageLimit}
                     onChange={handleInputChange}
-                    className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
-                    placeholder='∞'
+                    className='w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700'
+                    placeholder='Unlimited'
                   />
                 </div>
               </div>
 
-              <div>
-                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Applicable SKUs (Comma separated)</label>
+              <div className='grid grid-cols-2 gap-6'>
+                <div className='space-y-2'>
+                  <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Min Order ₹</label>
+                  <input
+                    type='number'
+                    name='minOrderAmount'
+                    value={newCoupon.minOrderAmount}
+                    onChange={handleInputChange}
+                    className='w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700'
+                    placeholder='0'
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Min Qty</label>
+                  <input
+                    type='number'
+                    name='minQuantity'
+                    value={newCoupon.minQuantity}
+                    onChange={handleInputChange}
+                    className='w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700'
+                    placeholder='0'
+                  />
+                </div>
+              </div>
+
+              <div className='space-y-2'>
+                <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>SKU Restrictions</label>
                 <input
                   type='text'
                   name='applicableSKUs'
                   value={newCoupon.applicableSKUs}
                   onChange={handleInputChange}
-                  className='w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all'
-                  placeholder='SKU1, SKU2'
+                  className='w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium text-slate-700'
+                  placeholder='e.g. FB-TSHIRT-01, FB-JEANS-02'
                 />
               </div>
 
-              <div className='flex items-center p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer'>
+              <div className='flex items-center p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-all'>
                 <input
                   type='checkbox'
                   id='isActive'
                   name='isActive'
                   checked={newCoupon.isActive}
                   onChange={handleInputChange}
-                  className='h-5 w-5 text-pink-600 focus:ring-pink-500 border-slate-300 rounded-lg transition-all'
+                  className='h-6 w-6 text-slate-900 focus:ring-slate-900/10 border-slate-300 rounded-lg cursor-pointer'
                 />
-                <label htmlFor='isActive' className='ml-3 text-sm font-bold text-slate-700 cursor-pointer'>Active & Listable</label>
+                <label htmlFor='isActive' className='ml-4 text-sm font-black text-slate-700 cursor-pointer'>Make this coupon active and listable immediately</label>
               </div>
 
-              <div className='flex gap-3'>
-                {editingCouponId && (
-                  <button
-                    type='button'
-                    onClick={resetForm}
-                    className='flex-1 bg-slate-200 text-slate-700 py-4 px-6 rounded-2xl font-bold text-lg hover:bg-slate-300 transition-all'
-                  >
-                    Cancel
-                  </button>
-                )}
+              <div className='pt-4 flex gap-4'>
+                <button
+                  type='button'
+                  onClick={resetForm}
+                  className='flex-1 bg-slate-100 text-slate-600 py-4 px-6 rounded-2xl font-black hover:bg-slate-200 transition-all'
+                >
+                  Discard
+                </button>
                 <button
                   type='submit'
                   disabled={isSubmitting}
-                  className={`${editingCouponId ? 'flex-[2]' : 'w-full'} bg-slate-800 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 disabled:bg-slate-400`}
+                  className='flex-[2] bg-slate-900 text-white py-4 px-6 rounded-2xl font-black shadow-xl shadow-slate-900/10 hover:bg-black transition-all disabled:bg-slate-400'
                 >
-                  {isSubmitting ? (editingCouponId ? 'Updating...' : 'Creating...') : (editingCouponId ? 'Update Coupon' : 'Generate Coupon')}
+                  {isSubmitting ? 'Syncing...' : (editingCouponId ? 'Save Changes' : 'Initialize Reward')}
                 </button>
               </div>
             </form>
           </div>
         </div>
-
-        {/* Existing Coupons List */}
-        <div className='xl:col-span-2'>
-          <div className='bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden'>
-            <div className='p-6 border-b border-slate-100 flex items-center justify-between'>
-              <h3 className='text-lg font-bold text-slate-800 flex items-center gap-2'>
-                <Tag className='text-pink-500 w-5 h-5' />
-                All Active Coupons
-              </h3>
-              <div className='bg-slate-100 px-3 py-1 rounded-full text-xs font-bold text-slate-500'>
-                {filteredCoupons.length} Coupons
-              </div>
-            </div>
-            <div className='overflow-x-auto'>
-              <table className='min-w-full divide-y divide-slate-100'>
-                <thead className='bg-slate-50/50'>
-                  <tr>
-                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>#</th>
-                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Code</th>
-                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Discount</th>
-                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Usage</th>
-                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Expires</th>
-                    <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Status</th>
-                    <th className='px-6 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className='divide-y divide-slate-50'>
-                  {filteredCoupons.map((coupon, index) => (
-                    <tr key={coupon._id} className='hover:bg-slate-50/50 transition-colors group'>
-                      <td className='px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-400'>
-                        {index + 1}
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap'>
-                        <div 
-                          className='flex items-center gap-3 cursor-pointer group/code'
-                          onClick={() => fetchCouponUsage(coupon._id, coupon.code)}
-                        >
-                          <div className='bg-pink-50 p-2 rounded-lg group-hover/code:bg-pink-100 transition-all'>
-                            <Tag className='text-pink-500 w-4 h-4' />
-                          </div>
-                          <div>
-                            <p className='text-sm font-bold text-slate-700 uppercase group-hover/code:text-pink-600 transition-all'>{coupon.code}</p>
-                            <p className='text-[10px] text-slate-400 font-medium'>{coupon.description || 'No description'}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap'>
-                        <span className='px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold'>
-                          {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}
-                        </span>
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap'>
-                        <div className='flex items-center gap-2'>
-                          <Users className='w-3.5 h-3.5 text-slate-400' />
-                          <span className='text-xs font-bold text-slate-600'>{coupon.usageCount || 0}</span>
-                          <span className='text-[10px] text-slate-400'>/ {coupon.usageLimit || '∞'}</span>
-                        </div>
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-500'>
-                        {new Date(coupon.expiryDate).toLocaleDateString()}
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap'>
-                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                          new Date(coupon.expiryDate) < new Date() || !coupon.isActive
-                            ? 'bg-red-50 text-red-600'
-                            : 'bg-emerald-50 text-emerald-600'
-                        }`}>
-                          {new Date(coupon.expiryDate) < new Date() ? 'Expired' : coupon.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className='px-6 py-4 whitespace-nowrap text-right'>
-                        <div className='flex items-center justify-end gap-2'>
-                          <button 
-                            onClick={() => handleEditClick(coupon)}
-                            className='p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all'
-                            title='Edit Coupon'
-                          >
-                            <Edit className='w-4 h-4' />
-                          </button>
-                          <button 
-                            onClick={() => fetchCouponUsage(coupon._id, coupon.code)}
-                            className='p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all'
-                            title='View Usage'
-                          >
-                            <FileText className='w-4 h-4' />
-                          </button>
-                          {role !== 'staff' && (
-                            <button
-                              onClick={() => handleDeleteCoupon(coupon._id)}
-                              className='p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all'
-                              title='Delete'
-                            >
-                              <Trash2 className='w-4 h-4' />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredCoupons.length === 0 && (
-                    <tr>
-                      <td colSpan="7" className="px-6 py-12 text-center">
-                        <div className='flex flex-col items-center gap-2'>
-                          <div className='bg-slate-50 p-4 rounded-full'>
-                            <Tag className='w-8 h-8 text-slate-300' />
-                          </div>
-                          <p className='text-slate-400 font-bold'>No coupons found matching your search</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Coupon Usage Modal */}
       {showUsageModal && (
-        <div className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200'>
-            <div className='p-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4'>
+        <div className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4'>
+          <div className='bg-white rounded-[32px] shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-200'>
+            <div className='p-8 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4'>
               <div className='flex items-center gap-4'>
-                <div className='bg-pink-100 p-3 rounded-2xl'>
-                  <FileText className='text-pink-600 w-6 h-6' />
+                <div className='bg-white p-3 rounded-2xl border border-slate-200 shadow-sm'>
+                  <TrendingUp className='text-slate-900 w-6 h-6' />
                 </div>
                 <div>
-                  <h2 className='text-xl font-bold text-slate-800'>Coupon Usage Analytics</h2>
-                  <p className='text-sm text-pink-600 font-bold flex items-center gap-1'>
-                    <Tag className='w-3 h-3' /> {selectedCouponCode}
+                  <h2 className='text-xl font-black text-slate-800'>Redemption Analytics</h2>
+                  <p className='text-sm text-slate-500 font-bold flex items-center gap-1.5'>
+                    <Tag size={12} className='text-pink-500' /> {selectedCouponCode}
                   </p>
                 </div>
               </div>
-              <div className='flex items-center gap-2 w-full md:w-auto'>
+              <div className='flex items-center gap-3 w-full md:w-auto'>
                 {usageTableData.length > 0 && (
                   <CSVLink 
                     data={usageTableData} 
                     headers={exportHeaders}
                     filename={`Coupon_Usage_${selectedCouponCode}.csv`}
-                    className='flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 w-full justify-center md:w-auto'
+                    className='flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-black text-xs hover:bg-emerald-700 transition-all shadow-md'
                   >
-                    <Download className='w-4 h-4' /> Export Report
+                    <Download className='w-4 h-4' /> Export CSV
                   </CSVLink>
                 )}
                 <button 
                   onClick={() => setShowUsageModal(false)} 
                   className='p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-xl transition-all'
                 >
-                  <Plus className='w-6 h-6 rotate-45' />
+                  <X size={24} />
                 </button>
               </div>
             </div>
 
-            <div className='p-6 overflow-y-auto flex-1 bg-white'>
+            <div className='p-8 overflow-y-auto flex-1 bg-white'>
               {usageTableData.length === 0 ? (
                 <div className='py-20 flex flex-col items-center text-center gap-4'>
-                  <div className='bg-slate-50 p-6 rounded-full'>
-                    <Users className='w-12 h-12 text-slate-200' />
+                  <div className='bg-slate-50 p-8 rounded-full'>
+                    <Users className='w-16 h-12 text-slate-200' />
                   </div>
                   <div>
-                    <h3 className='text-lg font-bold text-slate-700'>No Usage Recorded</h3>
-                    <p className='text-slate-400 text-sm'>This coupon hasn't been used by any customers yet.</p>
+                    <h3 className='text-xl font-black text-slate-700'>No Data Yet</h3>
+                    <p className='text-slate-400 text-sm font-medium'>This code hasn't been redeemed by any customers.</p>
                   </div>
                 </div>
               ) : (
-                <div className='border border-slate-100 rounded-2xl overflow-hidden'>
+                <div className='border border-slate-100 rounded-[24px] overflow-hidden'>
                   <table className='min-w-full divide-y divide-slate-100'>
-                    <thead className='bg-slate-50'>
+                    <thead className='bg-slate-50/50'>
                       <tr>
-                        <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider'>#</th>
-                        <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Customer</th>
-                        <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Contact Info</th>
-                        <th className='px-6 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider'>Frequency</th>
+                        <th className='px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest'>#</th>
+                        <th className='px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest'>Customer</th>
+                        <th className='px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest'>Identity</th>
+                        <th className='px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest'>Frequency</th>
                       </tr>
                     </thead>
                     <tbody className='divide-y divide-slate-50'>
                       {usageTableData.map((usage, index) => (
-                        <tr key={index} className='hover:bg-slate-50 transition-colors'>
+                        <tr key={index} className='hover:bg-slate-50/50 transition-colors'>
                           <td className='px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-400'>{index + 1}</td>
                           <td className='px-6 py-4 whitespace-nowrap'>
                             <div className='flex items-center gap-3'>
-                              <div className='w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase'>
+                              <div className='w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-xs uppercase'>
                                 {usage.name.charAt(0)}
                               </div>
-                              <span className='text-sm font-bold text-slate-700'>{usage.name}</span>
+                              <span className='text-sm font-black text-slate-700'>{usage.name}</span>
                             </div>
                           </td>
                           <td className='px-6 py-4 whitespace-nowrap'>
-                            <div className='flex flex-col gap-0.5'>
-                              <span className='text-xs font-medium text-slate-600 flex items-center gap-1.5'>
-                                <FileText className='w-3 h-3 text-slate-400' /> {usage.email}
-                              </span>
-                              <span className='text-xs font-medium text-slate-500 flex items-center gap-1.5'>
-                                <Users className='w-3 h-3 text-slate-400' /> {usage.mobile}
-                              </span>
+                            <div className='flex flex-col'>
+                              <span className='text-xs font-bold text-slate-600'>{usage.email}</span>
+                              <span className='text-[10px] font-bold text-slate-400'>{usage.mobile}</span>
                             </div>
                           </td>
                           <td className='px-6 py-4 whitespace-nowrap text-center'>
-                            <span className='inline-flex items-center justify-center px-3 py-1 bg-slate-100 text-slate-800 rounded-full text-xs font-bold'>
-                              Used {usage.count}x
+                            <span className='inline-flex items-center justify-center px-4 py-1.5 bg-slate-100 text-slate-900 rounded-xl text-[11px] font-black'>
+                              {usage.count} Redeems
                             </span>
                           </td>
                         </tr>
@@ -677,57 +714,15 @@ const Coupons = ({ token }) => {
               )}
             </div>
             
-            <div className='p-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center'>
-              <p className='text-xs text-slate-400 font-medium'>
-                Total unique users: <span className='text-slate-700 font-bold'>{usageTableData.length}</span>
+            <div className='p-8 bg-slate-50 border-t border-slate-100 flex justify-between items-center'>
+              <p className='text-xs text-slate-400 font-bold'>
+                Unique Redeemers: <span className='text-slate-900 font-black'>{usageTableData.length}</span>
               </p>
               <button
                 onClick={() => setShowUsageModal(false)}
-                className='px-6 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-all font-bold text-sm shadow-md'
+                className='px-8 py-3 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all font-black text-sm shadow-xl shadow-slate-900/10'
               >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Staff Details Modal */}
-      {showStaffModal && selectedStaff && (
-        <div className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-3xl shadow-2xl max-w-sm w-full border border-slate-200 overflow-hidden'>
-            <div className='p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center'>
-              <h2 className='text-xl font-bold text-slate-800 flex items-center gap-2'>
-                <User className='text-blue-500 w-5 h-5' /> Staff Details
-              </h2>
-              <button onClick={() => setShowStaffModal(false)} className='p-2 text-slate-400 hover:text-slate-600 rounded-lg'>
-                <Plus className='w-6 h-6 rotate-45' />
-              </button>
-            </div>
-            <div className='p-8 flex flex-col items-center text-center'>
-              <div className='w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg'>
-                <User className='text-blue-500 w-10 h-10' />
-              </div>
-              <h3 className='text-xl font-bold text-slate-800'>{selectedStaff.name || 'N/A'}</h3>
-              <p className='text-sm text-slate-500 font-medium mb-6'>{selectedStaff.email}</p>
-              
-              <div className='w-full grid grid-cols-2 gap-4'>
-                <div className='bg-slate-50 p-4 rounded-2xl border border-slate-100'>
-                  <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1'>Role</p>
-                  <p className='text-sm font-bold text-slate-700'>Staff Member</p>
-                </div>
-                <div className='bg-slate-50 p-4 rounded-2xl border border-slate-100'>
-                  <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1'>Status</p>
-                  <p className='text-sm font-bold text-emerald-600'>Authorized</p>
-                </div>
-              </div>
-            </div>
-            <div className='p-6 bg-slate-50 border-t border-slate-100'>
-              <button
-                onClick={() => setShowStaffModal(false)}
-                className='w-full py-3 bg-slate-800 text-white rounded-2xl hover:bg-slate-900 transition-all font-bold shadow-md'
-              >
-                Close
+                Close View
               </button>
             </div>
           </div>
@@ -738,4 +733,3 @@ const Coupons = ({ token }) => {
 };
 
 export default Coupons;
-
