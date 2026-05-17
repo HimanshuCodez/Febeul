@@ -81,23 +81,23 @@ const List = ({ token }) => {
 
   const getDisplayVariation = (item) => {
     if (!searchQuery) return item.variations?.[0];
-    const searchLower = searchQuery.toLowerCase();
+    const searchLower = searchQuery.toLowerCase().trim();
     return item.variations?.find(v => 
-      v.sku?.toLowerCase().includes(searchLower) ||
-      v.color?.toLowerCase().includes(searchLower) ||
-      v.sizes?.some(s => s.size.toLowerCase().includes(searchLower))
+      String(v.sku || '').toLowerCase().includes(searchLower) ||
+      String(v.color || '').toLowerCase().includes(searchLower) ||
+      v.sizes?.some(s => String(s.size || '').toLowerCase().includes(searchLower))
     ) || item.variations?.[0];
   };
 
   const filteredList = list.filter(item => {
-    const searchLower = searchQuery.toLowerCase();
+    const searchLower = searchQuery.toLowerCase().trim();
     return (
       item.name.toLowerCase().includes(searchLower) ||
       item.category.toLowerCase().includes(searchLower) ||
       item.variations?.some(variation => 
-        variation.sku?.toLowerCase().includes(searchLower) ||
-        variation.color?.toLowerCase().includes(searchLower) ||
-        variation.sizes?.some(size => size.size.toLowerCase().includes(searchLower))
+        String(variation.sku || '').toLowerCase().includes(searchLower) ||
+        String(variation.color || '').toLowerCase().includes(searchLower) ||
+        variation.sizes?.some(size => String(size.size || '').toLowerCase().includes(searchLower))
       )
     );
   });
