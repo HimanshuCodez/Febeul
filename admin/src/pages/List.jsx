@@ -250,7 +250,9 @@ const List = ({ token }) => {
           paginatedList.map((item, index) => {
             const displayVariation = getDisplayVariation(item);
             const pKeys = getProductSkuKeys(item);
-            const isProductFullySelected = pKeys.length > 0 && pKeys.every(k => selectedSkus.includes(k));
+            const selectedPKeys = pKeys.filter(k => selectedSkus.includes(k));
+            const isProductFullySelected = pKeys.length > 0 && selectedPKeys.length === pKeys.length;
+            const isProductPartiallySelected = selectedPKeys.length > 0 && selectedPKeys.length < pKeys.length;
 
             return (
               <div key={index} className='border rounded-lg overflow-hidden bg-white shadow-sm hover:bg-gray-50 transition-colors'>
@@ -261,9 +263,12 @@ const List = ({ token }) => {
                   <div onClick={(e) => e.stopPropagation()} className='flex items-center justify-center'>
                     <input
                       type="checkbox"
-                      className='cursor-pointer'
+                      className={`w-4 h-4 cursor-pointer accent-blue-600 ${isProductPartiallySelected ? 'opacity-70' : ''}`}
                       checked={isProductFullySelected}
                       onChange={() => handleProductSelect(item)}
+                      ref={el => {
+                        if (el) el.indeterminate = isProductPartiallySelected;
+                      }}
                     />
                   </div>
                   <img className='w-10 h-10 object-cover rounded shadow-sm' src={displayVariation?.images?.[0]} alt="" />
@@ -308,55 +313,87 @@ const List = ({ token }) => {
               {/* Accordion Content: Variations */}
               {expandedProductId === item._id && (
                 <div className='bg-gray-50 p-4 border-t'>
-                  <h4 className='font-bold text-gray-700 mb-3 text-sm uppercase tracking-wider'>Product Variations</h4>
+                  <div className='flex justify-between items-center mb-3'>
+                    <h4 className='font-bold text-gray-700 text-sm uppercase tracking-wider'>Product Variations</h4>
+                    <p className='text-[10px] text-gray-500 italic'>* Select individual sizes below for granular export</p>
+                  </div>
                   <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-                    {item.variations.map((v, vIndex) => (
-                      <div key={vIndex} className='bg-white p-3 rounded-lg border shadow-sm'>
-                        <div className='flex items-center gap-3 mb-3'>
-                           <img className='w-14 h-14 object-cover rounded-md' src={v.images?.[0]} />
-                           <div className='text-xs'>
-                             <p><span className='font-semibold text-gray-500'>Color:</span> {v.color}</p>
-                             <p><span className='font-semibold text-gray-500'>SKU:</span> {v.sku}</p>
-                           </div>
+                    {item.variations.map((v, vIndex) => {
+                      const vKeys = v.sizes?.map(s => getSkuKey(item._id, v.sku, s.size)) || [];
+                      const selectedVKeys = vKeys.filter(k => selectedSkus.includes(k));
+                      const isVarFullySelected = vKeys.length > 0 && selectedVKeys.length === vKeys.length;
+                      const isVarPartiallySelected = selectedVKeys.length > 0 && selectedVKeys.length < vKeys.length;
+
+                      const handleVariationToggle = () => {
+                        setSelectedSkus(prev => {
+                          if (isVarFullySelected) {
+                            return prev.filter(k => !vKeys.includes(k));
+                          } else {
+                            return [...new Set([...prev, ...vKeys])];
+                          }
+                        });
+                      };
+
+                      return (
+                        <div key={vIndex} className='bg-white p-3 rounded-lg border shadow-sm'>
+                          <div className='flex items-center justify-between mb-3 border-b pb-2'>
+                            <div className='flex items-center gap-3'>
+                               <img className='w-12 h-12 object-cover rounded-md' src={v.images?.[0]} />
+                               <div className='text-xs'>
+                                 <p className='font-bold text-gray-800'>{v.color}</p>
+                                 <p className='text-gray-500'>SKU: {v.sku}</p>
+                               </div>
+                            </div>
+                            <div className='flex flex-col items-end gap-1'>
+                              <span className='text-[9px] font-bold text-gray-400 uppercase'>Select All</span>
+                              <input 
+                                type="checkbox"
+                                checked={isVarFullySelected}
+                                onChange={handleVariationToggle}
+                                className='w-4 h-4 cursor-pointer accent-blue-600'
+                                ref={el => {
+                                  if (el) el.indeterminate = isVarPartiallySelected;
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className='overflow-hidden rounded-md border border-gray-100'>
+                            <table className='min-w-full divide-y divide-gray-200 text-[10px]'>
+                              <thead className='bg-gray-100'>
+                                <tr>
+                                  <th className='px-2 py-1.5 text-left font-bold text-gray-600'>Select</th>
+                                  <th className='px-2 py-1.5 text-left font-bold text-gray-600'>Size</th>
+                                  <th className='px-2 py-1.5 text-left font-bold text-gray-600'>Price</th>
+                                  <th className='px-2 py-1.5 text-left font-bold text-gray-600'>Stock</th>
+                                </tr>
+                              </thead>
+                              <tbody className='bg-white divide-y divide-gray-100'>
+                                {v.sizes.map((s, sIndex) => {
+                                  const key = getSkuKey(item._id, v.sku, s.size);
+                                  return (
+                                    <tr key={sIndex} className='hover:bg-gray-50'>
+                                      <td className='px-2 py-2'>
+                                        <input 
+                                          type="checkbox" 
+                                          checked={selectedSkus.includes(key)}
+                                          onChange={() => handleSkuSelect(key)}
+                                          className='w-4 h-4 cursor-pointer accent-blue-600'
+                                        />
+                                      </td>
+                                      <td className='px-2 py-2 font-medium text-gray-700'>{s.size}</td>
+                                      <td className='px-2 py-2 font-bold text-gray-900'>{currency}{s.price}</td>
+                                      <td className={`px-2 py-2 font-semibold ${s.stock === 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                        {s.stock}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                        <div className='overflow-hidden rounded-md border border-gray-100'>
-                          <table className='min-w-full divide-y divide-gray-200 text-[10px]'>
-                            <thead className='bg-gray-100'>
-                              <tr>
-                                <th className='px-2 py-1 text-left font-bold text-gray-600'>Select</th>
-                                <th className='px-2 py-1 text-left font-bold text-gray-600'>Size</th>
-                                <th className='px-2 py-1 text-left font-bold text-gray-600'>Price</th>
-                                <th className='px-2 py-1 text-left font-bold text-gray-600'>MRP</th>
-                                <th className='px-2 py-1 text-left font-bold text-gray-600'>Stock</th>
-                              </tr>
-                            </thead>
-                            <tbody className='bg-white divide-y divide-gray-100'>
-                              {v.sizes.map((s, sIndex) => {
-                                const key = getSkuKey(item._id, v.sku, s.size);
-                                return (
-                                  <tr key={sIndex} className='hover:bg-gray-50'>
-                                    <td className='px-2 py-1'>
-                                      <input 
-                                        type="checkbox" 
-                                        checked={selectedSkus.includes(key)}
-                                        onChange={() => handleSkuSelect(key)}
-                                        className='cursor-pointer'
-                                      />
-                                    </td>
-                                    <td className='px-2 py-1 font-medium'>{s.size}</td>
-                                    <td className='px-2 py-1'>{currency}{s.price}</td>
-                                    <td className='px-2 py-1 text-gray-400'>{currency}{s.mrp}</td>
-                                    <td className={`px-2 py-1 font-semibold ${s.stock === 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                      {s.stock}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
