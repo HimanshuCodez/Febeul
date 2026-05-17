@@ -220,8 +220,6 @@ const Tickets = ({ token }) => {
         </div>
         {loading ? (
           <p>Loading tickets...</p>
-        ) : tickets.length === 0 ? (
-          <p>No tickets found.</p>
         ) : (
           <>
             <div className='overflow-x-auto'>
@@ -479,7 +477,7 @@ const Tickets = ({ token }) => {
               )}
             </div>
           </div>
-      
+        </div>
       )}
     </div>
   );
