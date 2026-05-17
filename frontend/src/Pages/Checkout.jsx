@@ -19,7 +19,6 @@ import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 import GiftWrapModal from '../components/GiftWrapModal';
 import CouponCodeInput from '../components/CouponCodeInput';
-import CouponShows from '../components/CouponShows';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -340,40 +339,6 @@ export default function CheckoutPage() {
     } else {
         setAppliedCoupon(null);
         setCouponDiscount(0);
-    }
-  }
-
-  const handleApplyCouponByCode = async (code) => {
-    if (!token) {
-        toast.error("Please log in to apply coupons.");
-        return;
-    }
-    
-    const cartItemsForCoupon = cartItems.map((item) => {
-        const selectedVariation = item.variations?.find(v => v.color === item.color);
-        const itemPrice = selectedVariation?.sizes?.find(s => s.size === item.size)?.price;
-        return {
-            sku: selectedVariation?.sku,
-            price: item.price || itemPrice || 0,
-            quantity: item.quantity,
-            appliedCoupon: item.appliedCoupon
-        };
-    });
-
-    try {
-        const response = await axios.post(`${backendUrl}/api/coupon/apply`, 
-            { code: code.toUpperCase(), items: cartItemsForCoupon, userId: user?._id, paymentMethod: selectedPayment },
-            { headers: { token } }
-        );
-
-        if (response.data.success) {
-            toast.success(response.data.message);
-            handleCouponApply(response.data);
-        } else {
-            toast.error(response.data.message);
-        }
-    } catch (error) {
-        toast.error(error.response?.data?.message || "Failed to apply coupon.");
     }
   }
 
@@ -1034,12 +999,6 @@ export default function CheckoutPage() {
                 return (
                   <div className="flex flex-col gap-4">
                     <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} selectedPayment={selectedPayment} appliedCoupon={appliedCoupon} />
-                    <CouponShows 
-                      productSKUs={cartItems.map(item => item.sku).filter(Boolean)} 
-                      onRedeem={handleApplyCouponByCode} 
-                      appliedCoupon={appliedCoupon}
-                      selectedPayment={selectedPayment}
-                    />
                   </div>
                 );
               })()}
