@@ -315,6 +315,7 @@ const Coupons = ({ token }) => {
                 <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Coupon Detail</th>
                 <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Reward</th>
                 <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Usage</th>
+                <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Created</th>
                 <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Expiry</th>
                 <th className='px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Status</th>
                 <th className='px-6 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]'>Actions</th>
@@ -363,6 +364,9 @@ const Coupons = ({ token }) => {
                       </div>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
+                      <p className='text-xs font-bold text-slate-600'>{coupon.createdAt ? new Date(coupon.createdAt).toLocaleDateString() : 'N/A'}</p>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
                       <p className='text-xs font-bold text-slate-600'>{new Date(coupon.expiryDate).toLocaleDateString()}</p>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
@@ -404,7 +408,7 @@ const Coupons = ({ token }) => {
               })}
               {filteredCoupons.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="7" className="px-6 py-20 text-center">
+                  <td colSpan="8" className="px-6 py-20 text-center">
                     <div className='flex flex-col items-center gap-3'>
                       <div className='bg-slate-50 p-6 rounded-full'><Tag size={40} className='text-slate-200' /></div>
                       <div>
