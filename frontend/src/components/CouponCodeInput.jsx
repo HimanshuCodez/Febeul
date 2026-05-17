@@ -31,7 +31,9 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                 const response = await axios.get(`${url}/api/coupon/all`);
                 if (response.data.success) {
                     const filteredOffers = response.data.coupons.filter(c => 
-                        c.isActive && new Date(c.expiryDate) > new Date()
+                        c.isActive && 
+                        new Date(c.expiryDate) > new Date() &&
+                        (c.offerType === 'prepaid' || c.offerType === 'cod') // Only show payment-specific coupons
                     );
                     setOffers(filteredOffers);
                 }
@@ -188,8 +190,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                                         const isAlreadyAppliedToItem = items.some(item => item.appliedCoupon?.toUpperCase() === offer.code.toUpperCase());
                                         const paymentMethodLower = (selectedPayment || '').toLowerCase();
                                         const isEligible = ((offer.offerType === 'prepaid' && (paymentMethodLower === 'card' || paymentMethodLower === 'razorpay' || paymentMethodLower === 'stripe')) || 
-                                                         (offer.offerType === 'cod' && paymentMethodLower === 'cod') ||
-                                                         (offer.offerType === 'none')) && !isAlreadyAppliedToItem;
+                                                         (offer.offerType === 'cod' && paymentMethodLower === 'cod')) && !isAlreadyAppliedToItem;
                                         
                                         return (
                                             <div 
