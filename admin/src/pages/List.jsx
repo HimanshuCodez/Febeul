@@ -133,21 +133,32 @@ const List = ({ token }) => {
     { label: "Name", key: "name" },
     { label: "Category", key: "category" },
     { label: "SKU", key: "sku" },
+    { label: "Color", key: "color" },
+    { label: "Size", key: "size" },
     { label: "Price", key: "price" },
     { label: "MRP", key: "mrp" },
     { label: "Stock", key: "stock" }
   ];
 
-  const csvData = list
+  const csvData = [];
+  list
     .filter(item => selectedProducts.includes(item._id))
-    .map(item => ({
-      name: item.name,
-      category: item.category,
-      sku: item.variations?.[0]?.sku,
-      price: item.variations?.[0]?.sizes?.[0]?.price,
-      mrp: item.variations?.[0]?.sizes?.[0]?.mrp,
-      stock: calculateTotalStock(item)
-    }));
+    .forEach(item => {
+      item.variations?.forEach(variation => {
+        variation.sizes?.forEach(size => {
+          csvData.push({
+            name: item.name,
+            category: item.category,
+            sku: variation.sku,
+            color: variation.color,
+            size: size.size,
+            price: size.price,
+            mrp: size.mrp,
+            stock: size.stock
+          });
+        });
+      });
+    });
 
   const columnLayout = role !== 'staff' 
     ? "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px_40px]" 
