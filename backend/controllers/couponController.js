@@ -319,6 +319,3 @@ export const applyProductCoupon = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error applying product coupon.' });
     }
 };
-alse, message: 'Error applying product coupon.' });
-    }
-};
