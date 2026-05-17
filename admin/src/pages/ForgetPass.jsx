@@ -18,7 +18,10 @@ const ForgetPass = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post(`${backendUrl}/api/user/forgot-password`, { email: email.toLowerCase() });
+            const response = await axios.post(`${backendUrl}/api/user/forgot-password`, { 
+                email: email.toLowerCase(),
+                isAdminReset: true 
+            });
             if (response.data.success) {
                 toast.success(response.data.message || "OTP sent to your email.");
                 setStep(2);
@@ -109,7 +112,10 @@ const ForgetPass = () => {
     const handleResendOtp = async () => {
         setLoading(true);
         try {
-            const response = await axios.post(`${backendUrl}/api/user/forgot-password`, { email: email.toLowerCase() });
+            const response = await axios.post(`${backendUrl}/api/user/forgot-password`, { 
+                email: email.toLowerCase(),
+                isAdminReset: true 
+            });
             if (response.data.success) {
                 toast.success("OTP re-sent to your email.");
             } else {

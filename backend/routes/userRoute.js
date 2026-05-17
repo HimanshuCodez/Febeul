@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, sendAdminOTP, adminOtpLogin } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
 
 const userRouter = express.Router();
@@ -12,6 +12,8 @@ userRouter.post('/register', registerUser)
 userRouter.post('/login', loginUser)
 userRouter.post('/google-login', googleLogin)
 userRouter.post('/admin', adminLogin)
+userRouter.post('/admin-send-otp', sendAdminOTP)
+userRouter.post('/admin-otp-login', adminOtpLogin)
 
 // Protected Routes
 userRouter.get('/profile', authUser, getProfile)

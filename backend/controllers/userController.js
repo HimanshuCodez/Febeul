@@ -126,11 +126,16 @@ const registerUser = async (req, res) => {
 // Forgot Password
 const forgotPassword = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email: rawEmail, isAdminReset } = req.body;
+        const email = rawEmail.trim().toLowerCase();
         const user = await userModel.findOne({ email });
 
         if (!user) {
             return res.json({ success: false, message: "User with this email does not exist." });
+        }
+
+        if (isAdminReset && (user.role !== 'admin' && user.role !== 'staff')) {
+            return res.json({ success: false, message: "This email has no admin role." });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -557,4 +562,86 @@ const updateStaffPermissions = async (req, res) => {
 };
 
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions }
+// Send OTP for Admin Login
+const sendAdminOTP = async (req, res) => {
+    try {
+        const { email: rawEmail } = req.body;
+        const email = rawEmail.trim().toLowerCase();
+
+        const cleanEnv = (val) => {
+            if (!val) return '';
+            let cleaned = val.split('│')[0];
+            cleaned = cleaned.trim();
+            cleaned = cleaned.replace(/^["'](.+)["']$/, '$1');
+            return cleaned.trim();
+        };
+
+        const adminEmailEnv = cleanEnv(process.env.ADMIN_EMAIL).toLowerCase();
+        const staffEmailsEnv = process.env.STAFF_EMAILS ? process.env.STAFF_EMAILS.split(',').map(e => cleanEnv(e).toLowerCase()) : [];
+        const legacyStaffEmailEnv = cleanEnv(process.env.STAFF_EMAIL).toLowerCase();
+
+        const isEnvAdmin = (email === adminEmailEnv || staffEmailsEnv.includes(email) || email === legacyStaffEmailEnv);
+
+        let user = await userModel.findOne({ email });
+
+        if (!isEnvAdmin && (!user || (user.role !== 'admin' && user.role !== 'staff'))) {
+            return res.json({ success: false, message: "This email has no admin role." });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        if (user) {
+            user.otp = otp;
+            user.otp_expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+            await user.save();
+        } else if (isEnvAdmin) {
+            // Create a temporary or permanent user for the ENV admin to store OTP
+            user = new userModel({
+                email,
+                name: email === adminEmailEnv ? 'Primary Admin' : 'Staff Member',
+                role: email === adminEmailEnv ? 'admin' : 'staff',
+                otp,
+                otp_expiry: new Date(Date.now() + 5 * 60 * 1000)
+            });
+            await user.save();
+        }
+
+        await sendEmail(email, 'Your Admin Login OTP', `<p>Your OTP for admin login is: <strong>${otp}</strong>. It is valid for 5 minutes.</p>`);
+
+        res.json({ success: true, message: "OTP sent to your email." });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+// Verify Admin OTP Login
+const adminOtpLogin = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const user = await userModel.findOne({ email: email.toLowerCase() });
+
+        if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
+            return res.json({ success: false, message: "This email has no admin role." });
+        }
+
+        if (user.otp !== otp || new Date() > user.otp_expiry) {
+            return res.json({ success: false, message: "Invalid or expired OTP." });
+        }
+
+        user.otp = undefined;
+        user.otp_expiry = undefined;
+        await user.save();
+
+        const token = jwt.sign(user._id.toString(), process.env.JWT_SECRET);
+        res.json({ success: true, token, role: user.role, permissions: user.permissions, email: user.email });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions, sendAdminOTP, adminOtpLogin }
