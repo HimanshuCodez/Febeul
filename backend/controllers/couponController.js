@@ -75,6 +75,48 @@ export const removeCoupon = async (req, res) => {
     }
 };
 
+// Admin: Update a coupon
+export const updateCoupon = async (req, res) => {
+    try {
+        const { id, code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs } = req.body;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'Coupon ID is required.' });
+        }
+
+        const updateData = {
+            code,
+            description,
+            discountType,
+            discountValue,
+            minOrderAmount,
+            minQuantity,
+            usageLimit,
+            usageLimitPerUser,
+            expiryDate,
+            isActive,
+            userType,
+            offerType,
+            applicableSKUs
+        };
+
+        // Remove undefined fields
+        Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+        const updatedCoupon = await couponModel.findByIdAndUpdate(id, updateData, { new: true });
+
+        if (!updatedCoupon) {
+            return res.status(404).json({ success: false, message: 'Coupon not found.' });
+        }
+
+        res.json({ success: true, message: 'Coupon updated successfully.', coupon: updatedCoupon });
+
+    } catch (error) {
+        console.error('Error updating coupon:', error);
+        res.status(500).json({ success: false, message: 'Failed to update coupon.' });
+    }
+};
+
 // Admin: Get users who used a specific coupon
 export const getCouponUsage = async (req, res) => {
     try {

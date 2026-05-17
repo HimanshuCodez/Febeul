@@ -3,13 +3,14 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { CSVLink } from 'react-csv';
-import { Download, Search, FileText, Trash2, Plus, Calendar, Tag, User, Users, Info, ChevronRight } from 'lucide-react';
+import { Download, Search, FileText, Trash2, Plus, Calendar, Tag, User, Users, Info, ChevronRight, Edit, X } from 'lucide-react';
 
 const Coupons = ({ token }) => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const role = localStorage.getItem('role');
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingCouponId, setEditingCouponId] = useState(null);
   const [newCoupon, setNewCoupon] = useState({
     code: '',
     description: '',
@@ -94,6 +95,45 @@ const Coupons = ({ token }) => {
     }));
   };
 
+  const resetForm = () => {
+    setNewCoupon({
+      code: '',
+      description: '',
+      discountType: 'percentage',
+      discountValue: '',
+      minOrderAmount: '',
+      minQuantity: '',
+      usageLimit: '',
+      usageLimitPerUser: '',
+      expiryDate: '',
+      isActive: true,
+      userType: 'normal',
+      offerType: 'none',
+      applicableSKUs: '',
+    });
+    setEditingCouponId(null);
+  };
+
+  const handleEditClick = (coupon) => {
+    setEditingCouponId(coupon._id);
+    setNewCoupon({
+      code: coupon.code,
+      description: coupon.description || '',
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
+      minOrderAmount: coupon.minOrderAmount || '',
+      minQuantity: coupon.minQuantity || '',
+      usageLimit: coupon.usageLimit || '',
+      usageLimitPerUser: coupon.usageLimitPerUser || '',
+      expiryDate: coupon.expiryDate ? new Date(coupon.expiryDate).toISOString().split('T')[0] : '',
+      isActive: coupon.isActive,
+      userType: coupon.userType || 'normal',
+      offerType: coupon.offerType || 'none',
+      applicableSKUs: coupon.applicableSKUs ? coupon.applicableSKUs.join(', ') : '',
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const generateCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
@@ -103,7 +143,7 @@ const Coupons = ({ token }) => {
     setNewCoupon((prev) => ({ ...prev, code: result }));
   };
 
-  const handleAddCoupon = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!token) {
       toast.error('Authentication token is missing.');
@@ -118,39 +158,29 @@ const Coupons = ({ token }) => {
     try {
       const payload = {
         ...newCoupon,
+        id: editingCouponId || undefined,
         description: newCoupon.description || undefined,
         discountValue: parseFloat(newCoupon.discountValue),
-        minOrderAmount: newCoupon.minOrderAmount ? parseFloat(newCoupon.minOrderAmount) : undefined,
-        minQuantity: newCoupon.minQuantity ? parseInt(newCoupon.minQuantity) : undefined,
+        minOrderAmount: newCoupon.minOrderAmount ? parseFloat(newCoupon.minOrderAmount) : 0,
+        minQuantity: newCoupon.minQuantity ? parseInt(newCoupon.minQuantity) : 0,
         usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : undefined,
         usageLimitPerUser: newCoupon.usageLimitPerUser ? parseInt(newCoupon.usageLimitPerUser) : undefined,
         applicableSKUs: newCoupon.applicableSKUs ? newCoupon.applicableSKUs.split(',').map(s => s.trim()).filter(s => s) : [],
       };
-      const response = await axios.post(`${backendUrl}/api/coupon/add`, payload, { headers: { token } });
+
+      const endpoint = editingCouponId ? `${backendUrl}/api/coupon/update` : `${backendUrl}/api/coupon/add`;
+      const response = await axios.post(endpoint, payload, { headers: { token } });
+
       if (response.data.success) {
-        toast.success('Coupon added successfully!');
-        setNewCoupon({
-          code: '',
-          description: '',
-          discountType: 'percentage',
-          discountValue: '',
-          minOrderAmount: '',
-          minQuantity: '',
-          usageLimit: '',
-          usageLimitPerUser: '',
-          expiryDate: '',
-          isActive: true,
-          userType: 'normal',
-          offerType: 'none',
-          applicableSKUs: '',
-        });
+        toast.success(editingCouponId ? 'Coupon updated successfully!' : 'Coupon added successfully!');
+        resetForm();
         fetchCoupons();
       } else {
         toast.error(response.data.message);
       }
     } catch (error) {
-      console.error('Error adding coupon:', error);
-      toast.error(error.response?.data?.message || 'Failed to add coupon.');
+      console.error('Error submitting coupon:', error);
+      toast.error(error.response?.data?.message || 'Failed to process coupon.');
     } finally {
       setIsSubmitting(false);
     }
@@ -233,16 +263,23 @@ const Coupons = ({ token }) => {
       </div>
 
       <div className='grid grid-cols-1 xl:grid-cols-3 gap-8'>
-        {/* Add New Coupon Form */}
+        {/* Add/Edit Coupon Form */}
         <div className='xl:col-span-1'>
           <div className='bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden sticky top-8'>
-            <div className='p-6 bg-slate-50 border-b border-slate-100 flex items-center gap-2'>
-              <div className='bg-pink-100 p-2 rounded-xl'>
-                <Plus className='text-pink-600 w-5 h-5' />
+            <div className='p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                <div className='bg-pink-100 p-2 rounded-xl'>
+                  {editingCouponId ? <Edit className='text-pink-600 w-5 h-5' /> : <Plus className='text-pink-600 w-5 h-5' />}
+                </div>
+                <h3 className='text-lg font-bold text-slate-800'>{editingCouponId ? 'Edit Coupon' : 'Create New Coupon'}</h3>
               </div>
-              <h3 className='text-lg font-bold text-slate-800'>Create New Coupon</h3>
+              {editingCouponId && (
+                <button onClick={resetForm} className='p-2 hover:bg-slate-200 rounded-lg text-slate-400 transition-all'>
+                  <X className='w-5 h-5' />
+                </button>
+              )}
             </div>
-            <form onSubmit={handleAddCoupon} className='p-6 space-y-5'>
+            <form onSubmit={handleSubmit} className='p-6 space-y-5'>
               <div>
                 <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2'>Coupon Code *</label>
                 <div className='flex gap-2'>
@@ -255,13 +292,15 @@ const Coupons = ({ token }) => {
                     placeholder='SUMMER20'
                     required
                   />
-                  <button
-                    type='button'
-                    onClick={generateCode}
-                    className='px-4 py-2 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-all text-sm'
-                  >
-                    Auto
-                  </button>
+                  {!editingCouponId && (
+                    <button
+                      type='button'
+                      onClick={generateCode}
+                      className='px-4 py-2 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-all text-sm'
+                    >
+                      Auto
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -406,13 +445,24 @@ const Coupons = ({ token }) => {
                 <label htmlFor='isActive' className='ml-3 text-sm font-bold text-slate-700 cursor-pointer'>Active & Listable</label>
               </div>
 
-              <button
-                type='submit'
-                disabled={isSubmitting}
-                className='w-full bg-slate-800 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 disabled:bg-slate-400 mt-2'
-              >
-                {isSubmitting ? 'Creating...' : 'Generate Coupon'}
-              </button>
+              <div className='flex gap-3'>
+                {editingCouponId && (
+                  <button
+                    type='button'
+                    onClick={resetForm}
+                    className='flex-1 bg-slate-200 text-slate-700 py-4 px-6 rounded-2xl font-bold text-lg hover:bg-slate-300 transition-all'
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type='submit'
+                  disabled={isSubmitting}
+                  className={`${editingCouponId ? 'flex-[2]' : 'w-full'} bg-slate-800 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-slate-900 transition-all shadow-lg shadow-slate-200 disabled:bg-slate-400`}
+                >
+                  {isSubmitting ? (editingCouponId ? 'Updating...' : 'Creating...') : (editingCouponId ? 'Update Coupon' : 'Generate Coupon')}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -488,6 +538,13 @@ const Coupons = ({ token }) => {
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-right'>
                         <div className='flex items-center justify-end gap-2'>
+                          <button 
+                            onClick={() => handleEditClick(coupon)}
+                            className='p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all'
+                            title='Edit Coupon'
+                          >
+                            <Edit className='w-4 h-4' />
+                          </button>
                           <button 
                             onClick={() => fetchCouponUsage(coupon._id, coupon.code)}
                             className='p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all'
