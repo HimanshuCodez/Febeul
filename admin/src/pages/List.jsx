@@ -9,7 +9,7 @@ const List = ({ token }) => {
 
   const [list, setList] = useState([])
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [selectedSkus, setSelectedSkus] = useState([]); // Tracks "productId|sku|size"
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [expandedProductId, setExpandedProductId] = useState(null);
@@ -20,6 +20,20 @@ const List = ({ token }) => {
 
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+
+  // Helper to get unique key for a SKU/size
+  const getSkuKey = (productId, sku, size) => `${productId}|${sku}|${size}`;
+
+  // Helper to get all SKU keys for a product
+  const getProductSkuKeys = (item) => {
+    const keys = [];
+    item.variations?.forEach(v => {
+      v.sizes?.forEach(s => {
+        keys.push(getSkuKey(item._id, v.sku, s.size));
+      });
+    });
+    return keys;
+  };
 
   const fetchList = async () => {
     try {
@@ -110,22 +124,30 @@ const List = ({ token }) => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const handleProductSelect = (productId) => {
-    setSelectedProducts(prevSelected => {
-      if (prevSelected.includes(productId)) {
-        return prevSelected.filter(id => id !== productId);
+  const handleProductSelect = (item) => {
+    const pKeys = getProductSkuKeys(item);
+    setSelectedSkus(prev => {
+      const allSelected = pKeys.every(k => prev.includes(k));
+      if (allSelected) {
+        return prev.filter(k => !pKeys.includes(k));
       } else {
-        return [...prevSelected, productId];
+        return [...new Set([...prev, ...pKeys])];
       }
     });
   };
 
+  const handleSkuSelect = (key) => {
+    setSelectedSkus(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      const allProductIds = filteredList.map(item => item._id);
-      setSelectedProducts(allProductIds);
+      const allKeys = filteredList.flatMap(item => getProductSkuKeys(item));
+      setSelectedSkus(allKeys);
     } else {
-      setSelectedProducts([]);
+      setSelectedSkus([]);
     }
   };
 
@@ -141,11 +163,11 @@ const List = ({ token }) => {
   ];
 
   const csvData = [];
-  list
-    .filter(item => selectedProducts.includes(item._id))
-    .forEach(item => {
-      item.variations?.forEach(variation => {
-        variation.sizes?.forEach(size => {
+  list.forEach(item => {
+    item.variations?.forEach(variation => {
+      variation.sizes?.forEach(size => {
+        const key = getSkuKey(item._id, variation.sku, size.size);
+        if (selectedSkus.includes(key)) {
           csvData.push({
             name: item.name,
             category: item.category,
@@ -156,13 +178,17 @@ const List = ({ token }) => {
             mrp: size.mrp,
             stock: size.stock
           });
-        });
+        }
       });
     });
+  });
 
   const columnLayout = role !== 'staff' 
     ? "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px_40px]" 
     : "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px]";
+
+  const allFilteredSkuKeys = filteredList.flatMap(item => getProductSkuKeys(item));
+  const isAllSelected = allFilteredSkuKeys.length > 0 && allFilteredSkuKeys.every(k => selectedSkus.includes(k));
 
   return (
     <>
@@ -178,15 +204,15 @@ const List = ({ token }) => {
           data={csvData}
           headers={headers}
           filename={"products.csv"}
-          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded whitespace-nowrap ${selectedProducts.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded whitespace-nowrap ${selectedSkus.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={() => {
-            if (selectedProducts.length === 0) {
-              toast.info("Please select products to export");
+            if (selectedSkus.length === 0) {
+              toast.info("Please select SKUs to export");
               return false;
             }
           }}
         >
-          Export Selected
+          Export Selected ({selectedSkus.length})
         </CSVLink>
       </div>
       
@@ -203,7 +229,7 @@ const List = ({ token }) => {
               type="checkbox"
               className='cursor-pointer'
               onChange={handleSelectAll}
-              checked={filteredList.length > 0 && selectedProducts.length === filteredList.length}
+              checked={isAllSelected}
             />
           </div>
           <p>Image</p>
@@ -223,6 +249,9 @@ const List = ({ token }) => {
         {
           paginatedList.map((item, index) => {
             const displayVariation = getDisplayVariation(item);
+            const pKeys = getProductSkuKeys(item);
+            const isProductFullySelected = pKeys.length > 0 && pKeys.every(k => selectedSkus.includes(k));
+
             return (
               <div key={index} className='border rounded-lg overflow-hidden bg-white shadow-sm hover:bg-gray-50 transition-colors'>
                 <div 
@@ -233,8 +262,8 @@ const List = ({ token }) => {
                     <input
                       type="checkbox"
                       className='cursor-pointer'
-                      checked={selectedProducts.includes(item._id)}
-                      onChange={() => handleProductSelect(item._id)}
+                      checked={isProductFullySelected}
+                      onChange={() => handleProductSelect(item)}
                     />
                   </div>
                   <img className='w-10 h-10 object-cover rounded shadow-sm' src={displayVariation?.images?.[0]} alt="" />
@@ -294,6 +323,7 @@ const List = ({ token }) => {
                           <table className='min-w-full divide-y divide-gray-200 text-[10px]'>
                             <thead className='bg-gray-100'>
                               <tr>
+                                <th className='px-2 py-1 text-left font-bold text-gray-600'>Select</th>
                                 <th className='px-2 py-1 text-left font-bold text-gray-600'>Size</th>
                                 <th className='px-2 py-1 text-left font-bold text-gray-600'>Price</th>
                                 <th className='px-2 py-1 text-left font-bold text-gray-600'>MRP</th>
@@ -301,16 +331,27 @@ const List = ({ token }) => {
                               </tr>
                             </thead>
                             <tbody className='bg-white divide-y divide-gray-100'>
-                              {v.sizes.map((s, sIndex) => (
-                                <tr key={sIndex} className='hover:bg-gray-50'>
-                                  <td className='px-2 py-1 font-medium'>{s.size}</td>
-                                  <td className='px-2 py-1'>{currency}{s.price}</td>
-                                  <td className='px-2 py-1 text-gray-400'>{currency}{s.mrp}</td>
-                                  <td className={`px-2 py-1 font-semibold ${s.stock === 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                    {s.stock}
-                                  </td>
-                                </tr>
-                              ))}
+                              {v.sizes.map((s, sIndex) => {
+                                const key = getSkuKey(item._id, v.sku, s.size);
+                                return (
+                                  <tr key={sIndex} className='hover:bg-gray-50'>
+                                    <td className='px-2 py-1'>
+                                      <input 
+                                        type="checkbox" 
+                                        checked={selectedSkus.includes(key)}
+                                        onChange={() => handleSkuSelect(key)}
+                                        className='cursor-pointer'
+                                      />
+                                    </td>
+                                    <td className='px-2 py-1 font-medium'>{s.size}</td>
+                                    <td className='px-2 py-1'>{currency}{s.price}</td>
+                                    <td className='px-2 py-1 text-gray-400'>{currency}{s.mrp}</td>
+                                    <td className={`px-2 py-1 font-semibold ${s.stock === 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                      {s.stock}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
