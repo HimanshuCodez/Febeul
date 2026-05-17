@@ -11,8 +11,8 @@ export const createTicket = async (req, res) => {
     console.log("req.userId in createTicket:", req.userId); // Debugging line
 
     try {
-        if (!subject || !description || !message) {
-            return res.status(400).json({ success: false, message: 'Please provide subject, description, and a message.' });
+        if (!subject || !message) {
+            return res.status(400).json({ success: false, message: 'Please provide subject and a message.' });
         }
 
         const user = await userModel.findById(req.userId);
@@ -46,7 +46,7 @@ export const createTicket = async (req, res) => {
         const newTicket = new ticketModel({
             user: req.userId,
             subject,
-            description,
+            description: description || message, // Fallback if description is missing
             contactInfo,
             ticketNumber, // Store the numeric ID
             messages: [{ sender: 'user', message }],

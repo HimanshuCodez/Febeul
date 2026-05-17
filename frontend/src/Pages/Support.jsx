@@ -156,6 +156,7 @@ const Support = () => {
         const submitFormData = new FormData();
         submitFormData.append("subject", formData.subject);
         submitFormData.append("message", formData.message);
+        submitFormData.append("description", formData.message); // Using message as description
         formData.images.forEach((image) => {
             submitFormData.append("images", image);
         });
@@ -169,7 +170,7 @@ const Support = () => {
             });
             if (response.data.success) {
                 toast.success("Ticket created successfully!");
-                setFormData({ subject: "", description: "", contactInfo: "", message: "", images: [] });
+                setFormData({ subject: "", message: "", images: [] }); // Corrected reset
                 setIsCreating(false);
                 fetchUserTickets();
             } else {
@@ -195,9 +196,9 @@ const Support = () => {
 
     const filteredTickets = tickets.filter((ticket) => {
         const subject = ticket.subject?.toLowerCase() || '';
-        const ticketId = ticket.ticketNumber || ticket._id?.slice(-6);
-        const search = searchTerm.toLowerCase();
-        return subject.includes(search) || ticketId.includes(search);
+        const ticketId = String(ticket.ticketNumber || ticket._id?.slice(-6) || '');
+        const search = searchTerm.toLowerCase().trim();
+        return subject.includes(search) || ticketId.toLowerCase().includes(search);
     });
 
     return (

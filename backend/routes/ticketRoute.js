@@ -7,7 +7,7 @@ import upload from '../middleware/multer.js'; // Import multer middleware
 const ticketRouter = express.Router();
 
 // Admin routes
-ticketRouter.get('/list', auth, listTickets); // This should be before /:id
+ticketRouter.get('/list', adminAuth, listTickets); // This should be before /:id
 ticketRouter.post('/update-status', adminAuth, updateStatus);
 ticketRouter.post('/admin-reply', adminAuth, upload.array('images', 2), adminPanelReplyToTicket); // Admin panel reply
 

@@ -138,8 +138,8 @@ const Tickets = ({ token }) => {
     const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
     const userName = ticket.user?.name?.toLowerCase() || '';
     const userEmail = ticket.user?.email?.toLowerCase() || '';
-    const ticketId = ticket.ticketNumber || ticket._id?.slice(-6); // Support new and old tickets
-    const matchesSearch = userName.includes(searchTerm.toLowerCase()) || userEmail.includes(searchTerm.toLowerCase()) || ticketId.includes(searchTerm.toLowerCase());
+    const ticketId = String(ticket.ticketNumber || ticket._id?.slice(-6) || ''); // Support new and old tickets
+    const matchesSearch = userName.includes(searchTerm.toLowerCase()) || userEmail.includes(searchTerm.toLowerCase()) || ticketId.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -371,7 +371,6 @@ const Tickets = ({ token }) => {
                 <div className='bg-gray-50 p-3 rounded-lg border border-gray-100 italic text-gray-800 text-sm'>
                   {selectedTicket.description}
                 </div>
-              </div>
               </div>
               <div className='space-y-2'>
                 <p className='text-sm font-medium text-gray-700'>Messages:</p>
