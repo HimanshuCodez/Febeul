@@ -45,27 +45,27 @@ const NewAndNow = () => {
   });
 
   return (
-    <div className="py-12 bg-white">
+    <div className="py-12 bg-[#fafafa] min-h-screen">
       {loading && <Loader />}
-      <div className="container mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex justify-center items-center gap-4 mb-2">
           <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800">New Arrivals</h1>
-          <img src="/new.gif" alt="NEW" className="h-10 sm:h-12 object-contain" /> {/* Adjust size as needed */}
+          <img src="/new.gif" alt="NEW" className="h-10 sm:h-12 object-contain" />
         </div>
         <p className="text-center text-gray-600 mb-8">{products.length} products found</p>
         <div className="flex justify-end mb-4">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 bg-gray-100 rounded-lg border-none outline-none cursor-pointer"
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg outline-none cursor-pointer text-sm font-medium"
           >
-            <option value="newest">Newest</option>
+            <option value="newest">Newest First</option>
             <option value="price-low">Price: Low to High</option>
             <option value="price-high">Price: High to Low</option>
           </select>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-12">
           {sortedProducts.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}
