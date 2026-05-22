@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Share2,
   Truck,
@@ -12,7 +12,8 @@ import {
   Lock,
   Heart,
   XCircle,
-  X
+  X,
+  ChevronDown
 } from "lucide-react";
 import Loader from "../components/Loader";
 import useAuthStore from "../store/authStore";
@@ -108,7 +109,6 @@ const ProductDetailPage = () => {
   const [selectedVariationIndex, setSelectedVariationIndex] = useState(0);
   const [selectedSizeValue, setSelectedSizeValue] = useState(null); 
   const [isProdDetailsExpanded, setIsProdDetailsExpanded] = useState(false);
-  const [isAddInfoExpanded, setIsAddInfoExpanded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [averageRating, setAverageRating] = useState(0); 
   const [numOfReviews, setNumOfReviews] = useState(0); 
@@ -363,37 +363,32 @@ const ProductDetailPage = () => {
       ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
       : 0;
 
-  const productDetailRows = product ? [
-
+  const allSpecifications = product ? [
+    { label: "Product Category", value: product.category },
+    { label: "Type", value: product.type },
     { label: "Material Type", value: product.materialType },
-    { label: "Care Instructions", value: product.careInstructions },
-    { label: "Country of Origin", value: product.countryOfOrigin },
+    { label: "Material Composition", value: product.materialComposition },
     { label: "Fabric", value: product.fabric },
     { label: "Pattern", value: product.pattern },
+    { label: "Neck", value: product.neck },
     { label: "Sleeve Style", value: product.sleeveStyle },
     { label: "Sleeve Length", value: product.sleeveLength },
-    { label: "Neck", value: product.neck },
-    { label: "HSN", value: product.hsn },
-    { label: "Material Composition", value: product.materialComposition },
     { label: "Closure Type", value: product.closureType },
-    { label: "Net Quantity", value: product.netQuantity },
-  ].filter((row) => row.value) : [];
-
-  const additionalInfoRows = product ? [
-    { label: "Manufacturer", value: product.manufacturer },
-    { label: "Packer", value: product.packer },
+    { label: "Care Instructions", value: product.careInstructions },
     { label: "Included Components", value: product.includedComponents },
+    { label: "Net Quantity", value: product.netQuantity },
+    { label: "Generic Name", value: product.genericName },
     { label: "Item Weight", value: product.itemWeight },
     { label: "Item Dimensions LxWxH", value: product.itemDimensionsLxWxH },
-    { label: "Generic Name", value: product.genericName },
+    { label: "Country of Origin", value: product.countryOfOrigin },
+    { label: "Manufacturer", value: product.manufacturer },
+    { label: "Packer", value: product.packer },
+    { label: "HSN", value: product.hsn },
   ].filter((row) => row.value) : [];
 
-  const prodDetailsToShow = isProdDetailsExpanded
-    ? productDetailRows
-    : productDetailRows.slice(0, 4);
-  const addInfoToShow = isAddInfoExpanded
-    ? additionalInfoRows
-    : additionalInfoRows.slice(0, 4);
+  const specsToShow = isProdDetailsExpanded
+    ? allSpecifications
+    : allSpecifications.slice(0, 6);
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 overflow-x-hidden selection:bg-pink-100 selection:text-pink-900">
@@ -490,10 +485,10 @@ const ProductDetailPage = () => {
                     )}
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {/* Variations */}
-                    <div className="py-2">
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">
+                    <div className="py-1">
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">
                         Color: <span className="text-black">{selectedVariation.color}</span>
                       </div>
                       <div className="flex gap-2 flex-wrap">
@@ -524,8 +519,8 @@ const ProductDetailPage = () => {
                                 alt={`Color ${variation.color}`}
                                 className="object-cover rounded-[10px]"
                                 style={{ 
-                                  width: `${imageSettings?.variationSize || 50}px`, 
-                                  height: `${imageSettings?.variationSize || 65}px` 
+                                  width: `${imageSettings?.variationSize || 45}px`, 
+                                  height: `${imageSettings?.variationSize || 58}px` 
                                 }}
                               />
                             </div>
@@ -535,8 +530,8 @@ const ProductDetailPage = () => {
                     </div>
 
                     {/* Sizes */}
-                    <div className="py-2">
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">
+                    <div className="py-1">
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">
                          Size: <span className="text-black">{selectedSizeValue || 'Select'}</span> 
                       </div>
                       <div className="flex gap-2 flex-wrap">
@@ -546,7 +541,7 @@ const ProductDetailPage = () => {
                             <button
                               key={sizeData.size}
                               onClick={() => setSelectedSizeValue(sizeData.size)} 
-                              className={`min-w-[55px] h-11 border rounded-xl transition-all relative overflow-hidden text-xs font-black tracking-widest ${
+                              className={`min-w-[50px] h-10 border rounded-xl transition-all relative overflow-hidden text-[11px] font-black tracking-widest ${
                                 selectedSizeValue === sizeData.size
                                   ? "border-black bg-black text-white shadow-lg"
                                   : "border-gray-100 bg-white hover:border-black text-gray-900"
@@ -618,22 +613,22 @@ const ProductDetailPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-24">
               <div>
                 <h2 className="text-xl font-playfair font-bold text-gray-900 mb-10 uppercase tracking-[0.3em]">
-                  The Details
+                  Specifications
                 </h2>
                 <div className="space-y-1">
-                  {prodDetailsToShow.map((detail, index) => (
+                  {specsToShow.map((detail, index) => (
                     <DetailRow
                       key={index}
                       label={detail.label}
                       value={detail.value}
                       isLast={
                         !isProdDetailsExpanded &&
-                        index === prodDetailsToShow.length - 1
+                        index === specsToShow.length - 1
                       }
                     />
                   ))}
                 </div>
-                {productDetailRows.length > 4 && (
+                {allSpecifications.length > 6 && (
                   <button
                     onClick={() =>
                       setIsProdDetailsExpanded(!isProdDetailsExpanded)
@@ -647,7 +642,7 @@ const ProductDetailPage = () => {
               </div>
               <div>
                 <h2 className="text-xl font-playfair font-bold text-gray-900 mb-10 uppercase tracking-[0.3em]">
-                  Artist's Note
+                  Product Description
                 </h2>
                 <div
                   className="product-description text-sm text-gray-500 leading-relaxed font-light"
