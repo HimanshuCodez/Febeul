@@ -233,7 +233,25 @@ const buildInvoicePDF = (order, res) => {
         doc.y = totalsY;
         const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
-        addTotalRow('Subtotal:', `INR ${subtotal.toFixed(2)}`);
+        // Tax breakdown (Moved up)
+        const discountedSubtotal = subtotal - (order.couponDiscount || 0);
+        
+        // Use stored GST values if they exist, otherwise calculate based on 5%
+        const finalTaxableValue = order.taxableValue || (discountedSubtotal / 1.05);
+        const totalTax = discountedSubtotal - finalTaxableValue;
+        
+        const isDelhi = order.address.state && order.address.state.toLowerCase() === 'delhi';
+        
+        if (isDelhi) {
+            // Intra-state (Delhi to Delhi): CGST + SGST
+            const splitTax = totalTax / 2;
+            addTotalRow('CGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
+            addTotalRow('SGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
+        } else {
+            // Inter-state: IGST
+            addTotalRow('IGST (5%):', `INR ${totalTax.toFixed(2)}`);
+        }
+
         if (order.couponDiscount > 0) {
             addTotalRow('Discount:', `- INR ${order.couponDiscount.toFixed(2)}`);
             if (order.couponOfferType && order.couponOfferType !== 'none') {
@@ -270,24 +288,8 @@ const buildInvoicePDF = (order, res) => {
             doc.moveDown(0.5);
         }
 
-        // Tax breakdown
-        const discountedSubtotal = subtotal - (order.couponDiscount || 0);
-        
-        // Use stored GST values if they exist, otherwise calculate based on 5%
-        const finalTaxableValue = order.taxableValue || (discountedSubtotal / 1.05);
-        const totalTax = discountedSubtotal - finalTaxableValue;
-        
-        const isDelhi = order.address.state && order.address.state.toLowerCase() === 'delhi';
-        
-        if (isDelhi) {
-            // Intra-state (Delhi to Delhi): CGST + SGST
-            const splitTax = totalTax / 2;
-            addTotalRow('CGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
-            addTotalRow('SGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
-        } else {
-            // Inter-state: IGST
-            addTotalRow('IGST (5%):', `INR ${totalTax.toFixed(2)}`);
-        }
+        // Subtotal row (Moved down)
+        addTotalRow('Subtotal:', `INR ${subtotal.toFixed(2)}`);
 
         doc.moveDown(0.3);
         doc.strokeColor(primaryColor).lineWidth(1).moveTo(totalsLabelX + 20, doc.y).lineTo(doc.page.width - 30, doc.y).stroke();

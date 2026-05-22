@@ -3,7 +3,8 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { assets } from '../assets/assets'; // Assuming icons like parcel_icon, order_icon are useful
-import { Paperclip, X } from 'lucide-react'; // Import Paperclip and X
+import { Paperclip, X, Download } from 'lucide-react'; // Import Paperclip, X, and Download
+import { CSVLink } from 'react-csv';
 
 const Tickets = ({ token }) => {
   const [tickets, setTickets] = useState([]);
@@ -160,6 +161,35 @@ const Tickets = ({ token }) => {
     }
   };
 
+  // CSV Export Data
+  const csvHeaders = [
+    { label: "Ticket ID", key: "ticketNumber" },
+    { label: "Subject", key: "subject" },
+    { label: "Customer Name", key: "customerName" },
+    { label: "Customer Email", key: "customerEmail" },
+    { label: "Luxe Member", key: "isLuxeMember" },
+    { label: "Status", key: "status" },
+    { label: "Created At", key: "createdAt" },
+    { label: "Updated At", key: "updatedAt" },
+    { label: "Description", key: "description" },
+    { label: "Contact Info", key: "contactInfo" },
+    { label: "Messages", key: "messages" },
+  ];
+
+  const csvData = filteredTickets.map(ticket => ({
+    ticketNumber: ticket.ticketNumber || ticket._id?.slice(-6),
+    subject: ticket.subject,
+    customerName: ticket.user?.name || 'N/A',
+    customerEmail: ticket.user?.email || 'N/A',
+    isLuxeMember: ticket.user?.isLuxeMember ? 'Yes' : 'No',
+    status: ticket.status,
+    createdAt: new Date(ticket.createdAt).toLocaleString(),
+    updatedAt: new Date(ticket.updatedAt || ticket.createdAt).toLocaleString(),
+    description: ticket.description,
+    contactInfo: ticket.contactInfo || 'Not provided',
+    messages: ticket.messages?.map(m => `[${m.sender}] ${m.message}`).join(' | ') || '',
+  }));
+
   return (
     <div className='p-6 bg-gray-50 min-h-screen'>
       <h2 className='text-3xl font-semibold text-gray-800 mb-8'>Support Tickets</h2>
@@ -207,6 +237,15 @@ const Tickets = ({ token }) => {
           >
             Refresh
           </button>
+          <CSVLink
+            data={csvData}
+            headers={csvHeaders}
+            filename={`tickets_export_${new Date().toISOString().split('T')[0]}.csv`}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <Download size={16} />
+            Export All
+          </CSVLink>
         </div>
       </div>
 
