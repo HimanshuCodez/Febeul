@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = null, selectedPayment = "" }) => {
+const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {}, appliedCoupon = null, selectedPayment = "" }) => {
   const { user, cartItems } = useAuthStore();
   const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
@@ -51,6 +51,15 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
     )) {
       toast.error(`This coupon is only valid for ${coupon.offerType === 'prepaid' ? 'Online Payment' : 'Cash on Delivery'} orders.`);
       return;
+    }
+
+    if (appliedCoupon) {
+      if (appliedCoupon.code === coupon.code) {
+        toast.error("This coupon is already applied.");
+        return;
+      }
+      // If another coupon is already applied, we inform the user it will be replaced
+      toast.success(`Replacing coupon ${appliedCoupon.code} with ${coupon.code}`);
     }
 
     setSelectedCoupon(coupon);
@@ -157,16 +166,27 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, appliedCoupon = nu
                     ? 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200' 
                     : isDisabled
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : appliedCoupon 
+                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200' 
                     : 'bg-blue-500 text-white hover:bg-blue-600'
                   }`}
                 >
-                  {isLuxeRestricted ? 'Join Luxe' : (isQuantityRestricted || isAmountRestricted) ? 'Locked' : 'Redeem'}
+                  {isLuxeRestricted ? 'Join Luxe' : (isQuantityRestricted || isAmountRestricted) ? 'Locked' : appliedCoupon ? 'Apply' : 'Redeem'}
                 </button>
               )}
               {isApplied && (
-                <span className="ml-auto sm:ml-0 bg-green-100 text-green-700 px-3 py-1 rounded-md text-sm font-medium border border-green-200">
-                  Applied
-                </span>
+                <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-md text-sm font-medium border border-green-200">
+                    Applied
+                  </span>
+                  <button 
+                    onClick={() => onRemove()}
+                    className="p-1 text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                    title="Remove Coupon"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               )}
             </div>
           );

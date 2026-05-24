@@ -219,6 +219,11 @@ const ProductDetailPage = () => {
     }
   };
 
+  const onRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    toast.success("Coupon removed.");
+  };
+
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
@@ -608,7 +613,12 @@ const ProductDetailPage = () => {
                   </div>
 
                   <div className="pt-6 border-t border-gray-50">
-                    <CouponShows productSKUs={productSKUs} onRedeem={onRedeemCoupon} appliedCoupon={appliedCoupon} />
+                    <CouponShows 
+                      productSKUs={productSKUs} 
+                      onRedeem={onRedeemCoupon} 
+                      onRemove={onRemoveCoupon}
+                      appliedCoupon={appliedCoupon} 
+                    />
                   </div>
 
                   <div className="space-y-4 pt-6 border-t border-gray-50 text-[11px] font-medium text-gray-500">
