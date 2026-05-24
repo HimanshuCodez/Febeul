@@ -25,17 +25,16 @@ import CouponShows from "../components/CouponShows";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings }) => {
+const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLeft, onSwipeRight }) => {
   return (
     <div 
       className="relative mx-auto overflow-hidden bg-white shadow-sm w-full h-[75vh] lg:h-[calc(100vh-100px)] flex items-center justify-center cursor-default"
-      onClick={onMobileClick}
     >
       <motion.img
         key={src}
         src={src}
         alt={alt}
-        className={`w-full h-full transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'}`}
+        className={`w-full h-full transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} touch-none`}
         style={{ 
           objectFit: 'cover', 
           transform: 'scale(1.02)' 
@@ -43,6 +42,14 @@ const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings }) => {
         initial={{ opacity: 0.8 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(e, info) => {
+          if (info.offset.x > 50) onSwipeRight?.();
+          else if (info.offset.x < -50) onSwipeLeft?.();
+        }}
+        onTap={() => onMobileClick()}
       />
       {isOutOfStock && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -59,6 +66,15 @@ const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings }) => {
 const FullScreenGallery = ({ images, initialIndex, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
+  const handleDragEnd = (event, info) => {
+    const swipeThreshold = 50;
+    if (info.offset.x > swipeThreshold) {
+      setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    } else if (info.offset.x < -swipeThreshold) {
+      setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[999] bg-white flex flex-col lg:hidden">
       <div className="flex items-center justify-between p-4 border-b">
@@ -67,15 +83,23 @@ const FullScreenGallery = ({ images, initialIndex, onClose }) => {
           <X size={24} />
         </button>
       </div>
-      <div className="flex-1 relative flex items-center justify-center p-4 bg-white">
-        <motion.img
-          key={currentIndex}
-          src={images[currentIndex]}
-          alt={`Product ${currentIndex + 1}`}
-          className="max-w-full max-h-full object-contain"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        />
+      <div className="flex-1 relative flex items-center justify-center p-4 bg-white overflow-hidden">
+        <AnimatePresence initial={false} mode="wait">
+          <motion.img
+            key={currentIndex}
+            src={images[currentIndex]}
+            alt={`Product ${currentIndex + 1}`}
+            className="max-w-full max-h-full object-contain touch-none"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.7}
+            onDragEnd={handleDragEnd}
+          />
+        </AnimatePresence>
       </div>
       <div className="p-4 border-t flex gap-2 overflow-x-auto bg-gray-50 no-scrollbar">
         {images.map((img, idx) => (
@@ -442,6 +466,8 @@ const ProductDetailPage = () => {
                       isOutOfStock={isOutOfStock} 
                       onMobileClick={() => setIsGalleryOpen(true)}
                       settings={imageSettings}
+                      onSwipeLeft={() => setSelectedImage((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                      onSwipeRight={() => setSelectedImage((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
                     />
                   </div>
                 </div>
