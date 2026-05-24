@@ -38,6 +38,19 @@ const Coupons = ({ token }) => {
   const [usageList, setUsageList] = useState([]);
   const [selectedCouponCode, setSelectedCouponCode] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [allUsageData, setAllUsageData] = useState([]);
+
+  const fetchAllUsage = async () => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${backendUrl}/api/coupon/usage-all`, { headers: { token } });
+      if (response.data.success) {
+        setAllUsageData(response.data.allUsage);
+      }
+    } catch (error) {
+      console.error('Error fetching all usage:', error);
+    }
+  };
 
   const fetchCoupons = async () => {
     if (!token) return;
@@ -46,6 +59,7 @@ const Coupons = ({ token }) => {
       const response = await axios.get(`${backendUrl}/api/coupon/list`, { headers: { token } });
       if (response.data.success) {
         setCoupons(response.data.coupons);
+        fetchAllUsage();
       } else {
         toast.error(response.data.message);
       }
@@ -237,20 +251,71 @@ const Coupons = ({ token }) => {
     { label: "Usage Count", key: "count" }
   ];
 
+  const allExportHeaders = [
+    { label: "User Name", key: "name" },
+    { label: "Email", key: "email" },
+    { label: "Mobile", key: "mobile" },
+    { label: "Coupon Code", key: "couponCode" },
+    { label: "Usage Count", key: "count" }
+  ];
+
+  const couponExportHeaders = [
+    { label: "Code", key: "code" },
+    { label: "Description", key: "description" },
+    { label: "Discount Type", key: "discountType" },
+    { label: "Discount Value", key: "discountValue" },
+    { label: "Min Order Amount", key: "minOrderAmount" },
+    { label: "Min Quantity", key: "minQuantity" },
+    { label: "Usage Limit", key: "usageLimit" },
+    { label: "Usage Count", key: "usageCount" },
+    { label: "Expiry Date", key: "expiryDate" },
+    { label: "Status", key: "isActive" },
+    { label: "User Type", key: "userType" },
+    { label: "Offer Type", key: "offerType" },
+    { label: "Applicable SKUs", key: "applicableSKUs" }
+  ];
+
+  const couponsForExport = coupons.map(c => ({
+    ...c,
+    isActive: c.isActive ? 'Active' : 'Inactive',
+    expiryDate: new Date(c.expiryDate).toLocaleDateString(),
+    applicableSKUs: c.applicableSKUs ? c.applicableSKUs.join(', ') : ''
+  }));
+
   return (
     <div className='p-4 md:p-8 bg-[#f8fafc] min-h-screen font-sans'>
       {/* Header Section */}
-      <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4'>
+      <div className='flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4'>
         <div>
           <h2 className='text-3xl font-bold text-slate-800 tracking-tight'>Coupon Management</h2>
           <p className='text-slate-500 mt-1 font-medium'>Create, track and manage discount rewards</p>
         </div>
-        <button 
-          onClick={() => { resetForm(); setShowFormModal(true); }}
-          className='flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-200 active:scale-95'
-        >
-          <Plus className='w-5 h-5' /> Create New Coupon
-        </button>
+        <div className='flex flex-wrap items-center gap-3'>
+          <CSVLink 
+            data={couponsForExport} 
+            headers={couponExportHeaders}
+            filename={`Coupons_List_${new Date().toISOString().split('T')[0]}.csv`}
+            className='flex items-center gap-2 bg-white text-slate-700 px-5 py-3 rounded-2xl font-bold border border-slate-200 hover:bg-slate-50 transition-all shadow-sm active:scale-95 text-sm'
+          >
+            <Download className='w-4 h-4' /> Export Coupons
+          </CSVLink>
+          {allUsageData.length > 0 && (
+            <CSVLink 
+              data={allUsageData} 
+              headers={allExportHeaders}
+              filename={`All_Coupons_Usage_${new Date().toISOString().split('T')[0]}.csv`}
+              className='flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 text-sm'
+            >
+              <Download className='w-4 h-4' /> Export All Usage
+            </CSVLink>
+          )}
+          <button 
+            onClick={() => { resetForm(); setShowFormModal(true); }}
+            className='flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-200 active:scale-95 text-sm'
+          >
+            <Plus className='w-5 h-5' /> Create New Coupon
+          </button>
+        </div>
       </div>
 
       {/* Stats Section */}
