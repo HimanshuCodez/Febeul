@@ -51,24 +51,87 @@ const AppContent = () => {
   const location = useLocation();
   const { user, token } = useAuthStore();
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [typographySettings, setTypographySettings] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkMaintenanceMode = async () => {
+    let handleResize;
+    const fetchSettings = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/settings`);
-        if (response.data.success && response.data.content) {
-          setIsMaintenanceMode(response.data.content.maintenanceMode || false);
+        const [settingsRes, typographyRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/settings`),
+          axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/typographySettings`)
+        ]);
+
+        if (settingsRes.data.success && settingsRes.data.content) {
+          setIsMaintenanceMode(settingsRes.data.content.maintenanceMode || false);
+        }
+
+        if (typographyRes.data.success && typographyRes.data.content) {
+          const settings = typographyRes.data.content;
+          setTypographySettings(settings);
+          applyTypography(settings);
+          
+          // Add resize listener for responsive font sizing
+          handleResize = () => applyTypography(settings);
+          window.addEventListener('resize', handleResize);
         }
       } catch (error) {
-        console.error("Error checking maintenance mode:", error);
+        console.error("Error fetching CMS settings:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkMaintenanceMode();
+    fetchSettings();
+    
+    return () => {
+      if (handleResize) {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
   }, []);
+
+  const applyTypography = (settings) => {
+    if (!settings) return;
+
+    // Load Google Fonts
+    const fontsToLoad = [settings.primaryFont, settings.secondaryFont, settings.accentFont];
+    const uniqueFonts = [...new Set(fontsToLoad)].filter(font => 
+      !['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'Courier New'].includes(font)
+    );
+
+    if (uniqueFonts.length > 0) {
+      const fontString = uniqueFonts.map(font => `family=${font.replace(/\s+/g, '+')}:wght@400;500;600;700`).join('&');
+      const linkId = 'google-fonts-typography';
+      let link = document.getElementById(linkId);
+
+      if (!link) {
+        link = document.createElement('link');
+        link.id = linkId;
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+      }
+      link.href = `https://fonts.googleapis.com/css2?${fontString}&display=swap`;
+    }
+
+    // Apply CSS Variables
+    const root = document.documentElement;
+    root.style.setProperty('--primary-font', `"${settings.primaryFont}", sans-serif`);
+    root.style.setProperty('--secondary-font', `"${settings.secondaryFont}", sans-serif`);
+    root.style.setProperty('--accent-font', `"${settings.accentFont}", serif`);
+    
+    // Desktop sizes
+    root.style.setProperty('--base-font-size', `${settings.baseFontSize}px`);
+    root.style.setProperty('--h1-size', `${settings.h1Size}px`);
+    root.style.setProperty('--h2-size', `${settings.h2Size}px`);
+    root.style.setProperty('--h3-size', `${settings.h3Size}px`);
+
+    // Mobile sizes
+    if (window.innerWidth < 768) {
+      root.style.setProperty('--base-font-size', `${settings.mobileBaseFontSize}px`);
+    }
+  };
 
   const showHeaderFooter = !["/auth", "/forgot-password"].includes(
     location.pathname

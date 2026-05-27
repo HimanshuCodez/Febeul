@@ -28,6 +28,31 @@ const TypographySettings = ({ token }) => {
         fetchSettings();
     }, []);
 
+    useEffect(() => {
+        const loadFonts = () => {
+            const fontsToLoad = [settings.primaryFont, settings.secondaryFont, settings.accentFont];
+            const uniqueFonts = [...new Set(fontsToLoad)].filter(font => 
+                !['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'Courier New'].includes(font)
+            );
+
+            if (uniqueFonts.length === 0) return;
+
+            const fontString = uniqueFonts.map(font => `family=${font.replace(/\s+/g, '+')}:wght@400;500;600;700`).join('&');
+            const linkId = 'google-fonts-typography-preview';
+            let link = document.getElementById(linkId);
+
+            if (!link) {
+                link = document.createElement('link');
+                link.id = linkId;
+                link.rel = 'stylesheet';
+                document.head.appendChild(link);
+            }
+            link.href = `https://fonts.googleapis.com/css2?${fontString}&display=swap`;
+        };
+
+        loadFonts();
+    }, [settings.primaryFont, settings.secondaryFont, settings.accentFont]);
+
     const fetchSettings = async () => {
         try {
             const response = await axios.get(`${backendUrl}/api/cms/typographySettings`);
@@ -210,6 +235,64 @@ const TypographySettings = ({ token }) => {
                         </div>
                     </section>
 
+                    {/* Live Preview */}
+                    <section className="mt-10 p-6 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-2 mb-6 border-b pb-2">
+                            <Layout className="text-purple-500" size={20} />
+                            <h3 className="font-bold text-gray-800">Live Preview</h3>
+                        </div>
+                        <div className="space-y-6" style={{ 
+                            fontSize: `${settings.baseFontSize}px`,
+                            fontFamily: settings.primaryFont
+                        }}>
+                            <h1 style={{ 
+                                fontSize: `${settings.h1Size}px`, 
+                                fontFamily: settings.accentFont,
+                                lineHeight: 1.2,
+                                fontWeight: 700
+                            }}>
+                                This is an H1 Heading
+                            </h1>
+                            <h2 style={{ 
+                                fontSize: `${settings.h2Size}px`, 
+                                fontFamily: settings.accentFont,
+                                lineHeight: 1.2,
+                                fontWeight: 600
+                            }}>
+                                This is an H2 Heading
+                            </h2>
+                            <h3 style={{ 
+                                fontSize: `${settings.h3Size}px`, 
+                                fontFamily: settings.accentFont,
+                                lineHeight: 1.2,
+                                fontWeight: 600
+                            }}>
+                                This is an H3 Heading
+                            </h3>
+                            <p className="text-gray-600 leading-relaxed">
+                                This is a paragraph using the primary font. It shows how the base font size and primary font family look in a typical block of text. <span style={{ fontFamily: settings.secondaryFont, fontWeight: 600 }}>This text uses the secondary font for UI/emphasis.</span>
+                            </p>
+                            <div className="flex gap-4">
+                                <button style={{ 
+                                    fontFamily: settings.secondaryFont,
+                                    padding: '8px 16px',
+                                    backgroundColor: 'black',
+                                    color: 'white',
+                                    borderRadius: '8px'
+                                }}>
+                                    UI Button
+                                </button>
+                                <span style={{ 
+                                    fontFamily: settings.secondaryFont,
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}>
+                                    Secondary Font UI Link
+                                </span>
+                            </div>
+                        </div>
+                    </section>
+
                     <div className="pt-8 border-t border-gray-50 flex justify-end gap-4">
                         <button
                             onClick={fetchSettings}
@@ -235,10 +318,10 @@ const TypographySettings = ({ token }) => {
                     <Type size={20} />
                 </div>
                 <div>
-                    <h4 className="font-bold text-indigo-900 mb-1 text-sm italic">Pro Tip: Font Loading</h4>
+                    <h4 className="font-bold text-indigo-900 mb-1 text-sm italic">Automated Font Loading</h4>
                     <p className="text-xs text-indigo-800 leading-relaxed font-medium">
-                        Ensure the selected fonts are properly imported in your frontend's main CSS or HTML file (e.g., via Google Fonts). 
-                        Changing fonts here updates the styling variables used across the site.
+                        The selected fonts are now automatically fetched from Google Fonts. You don't need to manually import them or download any packages. 
+                        The changes will be applied globally across the website once saved.
                     </p>
                 </div>
             </div>
