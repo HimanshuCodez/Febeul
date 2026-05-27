@@ -19,6 +19,7 @@ import NewUserMail from './pages/NewUserMail' // Import the NewUserMail componen
 import MaintenanceMode from './pages/Settings/MaintenanceMode'
 import Configurations from './pages/Settings/Configurations'
 import ImageOptimize from './pages/Settings/ImageOptimize'
+import TypographySettings from './pages/Settings/TypographySettings'
 import Login from './components/Login'
 import ForgetPass from './pages/ForgetPass'
 import { ToastContainer } from 'react-toastify';
@@ -90,6 +91,7 @@ const App = () => {
                 {isAllowed('/maintenance') && <Route path='/maintenance' element={<MaintenanceMode token={token} />} />}
                 {isAllowed('/configurations') && <Route path='/configurations' element={<Configurations token={token} />} />}
                 {isAllowed('/image-optimize') && <Route path='/image-optimize' element={<ImageOptimize token={token} />} />}
+                {isAllowed('/typography') && <Route path='/typography' element={<TypographySettings token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}
