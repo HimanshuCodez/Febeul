@@ -18,6 +18,7 @@ import {
 import Loader from "../components/Loader";
 import useAuthStore from "../store/authStore";
 import { toast } from "react-hot-toast";
+import ProductCard from "../components/ProductCard";
 import SimilarItems from "../components/SimilarItems";
 import Reviews from "../components/Reviews"; 
 import AddressModal from "../components/AddressModal";
@@ -140,6 +141,29 @@ const ProductDetailPage = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [appliedCoupon, setAppliedCoupon] = useState(null); 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+
+  const [luxeProducts, setLuxeProducts] = useState([]);
+  const [loadingLuxeProducts, setLoadingLuxeProducts] = useState(true);
+
+  useEffect(() => {
+    const fetchLuxePriveProducts = async () => {
+      setLoadingLuxeProducts(true);
+      try {
+        const response = await axios.get(
+          `${backendUrl}/api/product/list?isLuxePrive=true`,
+          { headers: { token } }
+        );
+        if (response.data.success) {
+          setLuxeProducts(response.data.products);
+        }
+      } catch (error) {
+        console.error("Failed to fetch Luxe Prive products", error);
+      } finally {
+        setLoadingLuxeProducts(false);
+      }
+    };
+    fetchLuxePriveProducts();
+  }, [token]);
 
   useEffect(() => {
     const fetchAllSettings = async () => {
@@ -422,7 +446,7 @@ const ProductDetailPage = () => {
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 overflow-x-hidden selection:bg-pink-100 selection:text-pink-900">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,400&family=Raleway:wght@200;300;400;700&display=swap');
         
         .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
         .font-playfair { font-family: 'Playfair Display', serif; }
@@ -645,10 +669,25 @@ const ProductDetailPage = () => {
             </div>
           </div>
 
-          <div className="max-w-[1440px] mx-auto px-6 py-24">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-24">
+          {/* Luxe Prive Section */}
+          {luxeProducts.length > 0 && (
+            <div className="mt-12 mb-8">
+              <div className="text-center mb-10 flex flex-col items-center gap-2">
+                <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-[10px] font-bold">Member Exclusive</p>
+                <h2 className="text-4xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">LUXE PRIVE COLLECTION</h2>
+              </div>
+              <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                {luxeProducts.map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="max-w-[1440px] mx-auto px-6 py-12 lg:py-16">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
               <div>
-                <h2 className="text-xl font-playfair font-bold text-gray-900 mb-10 uppercase tracking-[0.3em]">
+                <h2 className="text-xl font-playfair font-bold text-gray-900 mb-8 uppercase tracking-[0.3em]">
                   Specifications
                 </h2>
                 <div className="space-y-1">
@@ -677,7 +716,7 @@ const ProductDetailPage = () => {
                 )}
               </div>
               <div>
-                <h2 className="text-xl font-playfair font-bold text-gray-900 mb-10 uppercase tracking-[0.3em]">
+                <h2 className="text-xl font-playfair font-bold text-gray-900 mb-8 uppercase tracking-[0.3em]">
                   Product Description
                 </h2>
                 <div
@@ -688,7 +727,7 @@ const ProductDetailPage = () => {
             </div>
           </div>
           
-          <div className="bg-slate-50/50 py-24 rounded-[3rem]">
+          <div className="bg-slate-50/50 py-16 rounded-[3rem]">
              <div className="max-w-[1440px] mx-auto px-6">
                 <Reviews productId={productId} />
              </div>
@@ -699,9 +738,27 @@ const ProductDetailPage = () => {
           Collection item not found.
         </div>
       )}
-      <div className="mt-20">
+      <div className="mt-12">
         <SimilarItems productId={productId} token={token} />
       </div>
+      <AddressModal 
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        addresses={user?.addresses || []}
+        selectedAddress={selectedAddress}
+        onSelectAddress={handleSelectAddress}
+      />
+
+      {isGalleryOpen && (
+        <FullScreenGallery 
+          images={images} 
+          initialIndex={selectedImage} 
+          onClose={() => setIsGalleryOpen(false)} 
+        />
+      )}
+    </div>
+  );
+};
       <AddressModal 
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}
