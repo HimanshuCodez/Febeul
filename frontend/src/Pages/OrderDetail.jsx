@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaCheckCircle, 
   FaShippingFast,
@@ -170,6 +170,169 @@ const ReturnExchangeModal = ({ orderId, token, onClose, onSubmitted }) => {
     );
 };
 
+// --- Cancellation Modal Component ---
+const CancellationModal = ({ order, token, onClose, onCancelled }) => {
+    const [reason, setReason] = useState('');
+    const [bankDetails, setBankDetails] = useState({
+        accountHolderName: '',
+        accountNumber: '',
+        ifsc: '',
+        bankName: ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const isPrepaid = order.paymentMethod !== 'COD';
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setBankDetails(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (isPrepaid && (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifsc)) {
+            toast.error("Please provide complete bank details for refund.");
+            return;
+        }
+        setIsSubmitting(true);
+
+        try {
+            const response = await axios.post(`${backendUrl}/api/order/cancel`, {
+                orderId: order._id,
+                reason,
+                bankDetails: isPrepaid ? bankDetails : null
+            }, {
+                headers: { token }
+            });
+
+            if (response.data.success) {
+                toast.success("Order cancelled successfully.");
+                onCancelled();
+            } else {
+                toast.error(response.data.message || "Failed to cancel order.");
+            }
+        } catch (error) {
+            console.error("Error cancelling order:", error);
+            toast.error(error.response?.data?.message || "An error occurred.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+        >
+            <motion.div
+                initial={{ scale: 0.8, y: -50 }}
+                animate={{ scale: 1, y: 0 }}
+                className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            >
+                <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                    <h2 className="text-2xl font-bold text-gray-800">Cancel Order</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div>
+                        <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">Reason for cancellation (Optional)</label>
+                        <select
+                            id="reason"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#e8767a] focus:border-[#e8767a]"
+                        >
+                            <option value="">Select a reason</option>
+                            <option value="Changed my mind">Changed my mind</option>
+                            <option value="Ordered by mistake">Ordered by mistake</option>
+                            <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+                            <option value="Delivery time is too long">Delivery time is too long</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    {isPrepaid && (
+                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                <FaCreditCard className="text-[#e8767a]" />
+                                Refund Bank Details
+                            </h3>
+                            <p className="text-xs text-gray-500 italic">Please provide details where you'd like to receive your refund.</p>
+                            
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 uppercase">Account Holder Name</label>
+                                    <input
+                                        type="text"
+                                        name="accountHolderName"
+                                        value={bankDetails.accountHolderName}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 mt-1 border rounded-md text-sm"
+                                        placeholder="As per bank records"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 uppercase">Account Number</label>
+                                    <input
+                                        type="text"
+                                        name="accountNumber"
+                                        value={bankDetails.accountNumber}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 mt-1 border rounded-md text-sm"
+                                        placeholder="1234567890"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 uppercase">IFSC Code</label>
+                                        <input
+                                            type="text"
+                                            name="ifsc"
+                                            value={bankDetails.ifsc}
+                                            onChange={handleInputChange}
+                                            className="w-full p-2 mt-1 border rounded-md text-sm uppercase"
+                                            placeholder="HDFC0001234"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 uppercase">Bank Name</label>
+                                        <input
+                                            type="text"
+                                            name="bankName"
+                                            value={bankDetails.bankName}
+                                            onChange={handleInputChange}
+                                            className="w-full p-2 mt-1 border rounded-md text-sm"
+                                            placeholder="e.g. HDFC Bank"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 font-bold uppercase text-xs tracking-widest">
+                            Keep Order
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="px-6 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-gray-400 font-bold uppercase text-xs tracking-widest"
+                        >
+                            {isSubmitting ? 'Cancelling...' : 'Confirm Cancellation'}
+                        </button>
+                    </div>
+                </form>
+            </motion.div>
+        </motion.div>
+    );
+};
+
 
 export default function OrderDetailPage() {
   const { orderId } = useParams();
@@ -180,6 +343,8 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
+  const [showCancelledAnimation, setShowCancelledAnimation] = useState(false);
 
   useEffect(() => {
     fetchSiteSettings();
@@ -238,6 +403,15 @@ export default function OrderDetailPage() {
     }
   };
 
+  const onOrderCancelled = () => {
+    setIsCancellationModalOpen(false);
+    setShowCancelledAnimation(true);
+    setTimeout(() => {
+        setShowCancelledAnimation(false);
+        fetchOrderDetails();
+    }, 3000);
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#f9aeaf]"><Loader className="animate-spin text-pink-500" size={48} /></div>;
   }
@@ -270,7 +444,13 @@ export default function OrderDetailPage() {
     return (currentDate - deliveredDate) <= threeDaysInMillis;
   };
 
+  const isCancellationEligible = () => {
+    const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
+    return !nonCancellable.includes(order.orderStatus);
+  };
+
   const returnPossible = isReturnEligible();
+  const cancellationPossible = isCancellationEligible();
 
   // Use pricing details from the order object
   const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
@@ -280,10 +460,7 @@ export default function OrderDetailPage() {
 
   const orderNumberToDisplay = order?._id;
   
-  console.log("Debug: order.deliveredAt from backend:", order.deliveredAt);
   const parsedDeliveredDate = new Date(order.deliveredAt);
-  console.log("Debug: new Date(order.deliveredAt):", parsedDeliveredDate);
-  console.log("Debug: parsedDeliveredDate is valid:", !isNaN(parsedDeliveredDate.getTime()));
 
   const estimatedDelivery = order.deliveredAt 
     ? parsedDeliveredDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -345,17 +522,60 @@ export default function OrderDetailPage() {
 
   return (
     <>
-      {isReturnModalOpen && (
-        <ReturnExchangeModal 
-            orderId={order._id}
-            token={token}
-            onClose={() => setIsReturnModalOpen(false)}
-            onSubmitted={() => {
-                setIsReturnModalOpen(false);
-                fetchOrderDetails(); // Re-fetch order details to show updated status
-            }}
-        />
-      )}
+      <AnimatePresence>
+        {isReturnModalOpen && (
+            <ReturnExchangeModal 
+                orderId={order._id}
+                token={token}
+                onClose={() => setIsReturnModalOpen(false)}
+                onSubmitted={() => {
+                    setIsReturnModalOpen(false);
+                    fetchOrderDetails(); // Re-fetch order details to show updated status
+                }}
+            />
+        )}
+        {isCancellationModalOpen && (
+            <CancellationModal
+                order={order}
+                token={token}
+                onClose={() => setIsCancellationModalOpen(false)}
+                onCancelled={onOrderCancelled}
+            />
+        )}
+        {showCancelledAnimation && (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[100] text-center"
+            >
+                <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                    className="w-32 h-32 bg-red-100 rounded-full flex items-center justify-center mb-6"
+                >
+                    <X size={64} className="text-red-600" />
+                </motion.div>
+                <motion.h2
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-4xl font-black text-gray-900 uppercase tracking-tighter"
+                >
+                    Order Cancelled
+                </motion.h2>
+                <motion.p
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-gray-500 mt-2 font-medium"
+                >
+                    Your request has been processed successfully.
+                </motion.p>
+            </motion.div>
+        )}
+      </AnimatePresence>
       <div className="min-h-screen bg-[#f9aeaf] py-8 px-4">
         <div className="max-w-4xl mx-auto">
           
@@ -415,7 +635,7 @@ export default function OrderDetailPage() {
               <p className="text-2xl font-bold text-[#e8767a]">{orderNumberToDisplay}</p>
             </motion.div>
 
-            {order.shiprocket?.trackingUrl && !isLuxeOrder && (
+            {order.shiprocket?.trackingUrl && !isLuxeOrder && order.orderStatus !== 'Cancelled' && (
               <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -457,11 +677,12 @@ export default function OrderDetailPage() {
               {[
                 { status: 'Order Placed', label: 'Order Confirmed', description: 'Your order has been placed successfully', date: new Date(order.date).toLocaleString(), level: 1 },
                 { status: 'Processing', label: 'Processing', description: 'We\'re preparing your items', date: order.date ? new Date(order.date).toLocaleString() : null, level: 2 },
-                { status: 'Confirmed', label: 'Order Confirmed', description: 'Your order has been confirmed and is being processed', date: order.date ? new Date(order.date).toLocaleString() : null, level: 2.5 }, // Added for clarity
+                { status: 'Confirmed', label: 'Order Confirmed', description: 'Your order has been confirmed and is being processed', date: order.date ? new Date(order.date).toLocaleString() : null, level: 2.5 },
                 { status: 'Shipped', label: 'Shipped', description: 'On the way to you', date: order.shippedAt ? new Date(order.shippedAt).toLocaleString() : null, level: 3 },
-                { status: 'Out for delivery', label: 'Out for Delivery', description: 'Your package is out for delivery', date: order.shippedAt ? new Date(order.shippedAt).toLocaleString() : null, level: 3.5 }, // Added for clarity
+                { status: 'Out for delivery', label: 'Out for Delivery', description: 'Your package is out for delivery', date: order.shippedAt ? new Date(order.shippedAt).toLocaleString() : null, level: 3.5 },
                 { status: 'Delivered', label: 'Delivered', description: isLuxeOrder ? 'Your Luxe Membership is now active' : 'Package delivered', date: order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : (isLuxeOrder && order.payment ? new Date(order.date).toLocaleString() : null), level: 4 }
               ].filter(s => {
+                  if (order.orderStatus === 'Cancelled') return s.status === 'Order Placed' || s.status === 'Cancelled';
                   if (isLuxeOrder) return s.status === 'Order Placed' || s.status === 'Delivered';
                   return s.statusLevels === 0 ? true : statusLevels[s.status] > 0;
               }).map((statusItem, index, array) => {
@@ -482,9 +703,29 @@ export default function OrderDetailPage() {
                       </motion.div>
                   );
               })}
+
+              {order.orderStatus === 'Cancelled' && (
+                <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
+                    <div className="flex flex-col items-center mr-4">
+                        <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
+                            <X className="text-white" />
+                        </div>
+                    </div>
+                    <div className="flex-1 pt-2">
+                        <p className="font-bold text-red-600 uppercase tracking-widest">Cancelled</p>
+                        <p className="text-sm text-gray-600">The order has been cancelled.</p>
+                        {order.refundDetails?.status !== 'none' && (
+                            <div className="mt-2 bg-red-50 p-2 rounded border border-red-100">
+                                <p className="text-xs font-bold text-red-800">Refund Status: {order.refundDetails.status.toUpperCase()}</p>
+                                {order.refundDetails.reason && <p className="text-[10px] text-red-600 mt-1 italic">Reason: {order.refundDetails.reason}</p>}
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+              )}
             </div>
 
-            {!isLuxeOrder && (
+            {!isLuxeOrder && order.orderStatus !== 'Cancelled' && (
               <motion.div 
                 variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }}
                 className="mt-6 p-4 bg-[#fff5f5] rounded-lg border border-[#f9aeaf]"
@@ -543,8 +784,9 @@ export default function OrderDetailPage() {
                   {order.paymentMethod === 'COD' ? <FaMoneyBillWave className="text-2xl text-[#e8767a]" /> : <FaCreditCard className="text-2xl text-[#e8767a]" />}
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-800">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Card Payment'}</p>
+                  <p className="font-semibold text-gray-800">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : (order.paymentMethod === 'Razorpay' ? 'Razorpay Prepaid' : 'Stripe Payment')}</p>
                   <p className="text-sm text-gray-600">Total: ₹{orderTotal.toFixed(2)}</p>
+                  <p className={`text-[10px] font-bold uppercase ${order.payment ? 'text-green-600' : 'text-red-500'}`}>{order.payment ? 'Paid' : 'Pending'}</p>
                 </div>
               </div>
             </motion.div>
@@ -661,7 +903,7 @@ export default function OrderDetailPage() {
               )}
               <div className="border-t pt-3 flex justify-between text-xl font-bold">
                 <span className="text-gray-800">Total</span>
-                <span className="text-[#e8767a]">₹{(productAmount - (order.couponDiscount || 0) + shippingCharge + codCharge + (order.giftWrap?.price || 0)).toFixed(2)}</span>
+                <span className="text-[#e8767a]">₹{orderTotal.toFixed(2)}</span>
               </div>
             </div>
           </motion.div>
@@ -684,17 +926,17 @@ export default function OrderDetailPage() {
               </motion.button>
             </Link>
             
-            {!isLuxeOrder ? (
+            {!isLuxeOrder && order.orderStatus !== 'Cancelled' ? (
               <motion.button
                   onClick={handleDownloadInvoice}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+                  className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm"
               >
                   <FaFileInvoice className="mr-2" />
                   Download Invoice
               </motion.button>
-            ) : (
+            ) : isLuxeOrder && (
               <motion.button
                   onClick={() => navigate('/support')}
                   whileHover={{ scale: 1.05 }}
@@ -706,6 +948,26 @@ export default function OrderDetailPage() {
               </motion.button>
             )}
           </motion.div>
+
+          {/* Cancel Order Button */}
+          {cancellationPossible && !isLuxeOrder && (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.85 }}
+                className="mt-4"
+            >
+                <motion.button
+                    onClick={() => setIsCancellationModalOpen(true)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full border-2 border-red-500 text-red-600 font-bold py-3 px-6 rounded-lg transition-all hover:bg-red-50 flex items-center justify-center uppercase tracking-widest text-sm"
+                >
+                    <X className="mr-2" size={18} />
+                    Cancel Order
+                </motion.button>
+            </motion.div>
+          )}
 
           {/* Return/Exchange Button */}
           {returnPossible && (
@@ -719,7 +981,7 @@ export default function OrderDetailPage() {
                   onClick={() => setIsReturnModalOpen(true)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm"
               >
                   <FaUndo className="mr-2" />
                   Return/Exchange
@@ -734,7 +996,7 @@ export default function OrderDetailPage() {
             transition={{ delay: 1 }}
             className="mt-6 text-center text-gray-600 text-sm"
           >
-            <p>Need help with your order? <a href="#" className="text-[#e8767a] hover:underline font-semibold">Contact Support</a></p>
+            <p>Need help with your order? <Link to="/support" className="text-[#e8767a] hover:underline font-semibold">Contact Support</Link></p>
           </motion.div>
         </div>
       </div>

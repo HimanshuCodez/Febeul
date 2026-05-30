@@ -24,6 +24,9 @@ orderRouter.post('/userorders',authUser,userOrders)
 orderRouter.post('/verifyStripe',authUser, verifyStripe)
 orderRouter.post('/verifyRazorpay',authUser, verifyRazorpay)
 
+// Cancel Order
+orderRouter.post('/cancel', authUser, cancelOrder)
+
 // Refund System Routes
 orderRouter.post('/refund-request', authUser, requestRefund);
 orderRouter.post('/shiprocket-webhook', updateShiprocketStatusWebhook); // Webhook should be unauthenticated

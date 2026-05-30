@@ -16,6 +16,7 @@ import Images from './pages/Images/Images' // Import the Images component
 import Cms from './pages/Texts/Cms' // Import the Cms component
 import FebeulDashboard from './pages/Dashboard' // Import the Dashboard component
 import NewUserMail from './pages/NewUserMail' // Import the NewUserMail component
+import RefundRequests from './pages/RefundRequests' // Import the RefundRequests component
 import MaintenanceMode from './pages/Settings/MaintenanceMode'
 import Configurations from './pages/Settings/Configurations'
 import ImageOptimize from './pages/Settings/ImageOptimize'
@@ -78,6 +79,7 @@ const App = () => {
                 {isAllowed('/add') && <Route path='/add' element={<Add token={token} />} />}
                 {isAllowed('/list') && <Route path='/list' element={<List token={token} />} />}
                 {isAllowed('/orders') && <Route path='/orders' element={<Orders token={token} />} />}
+                {isAllowed('/refund-requests') && <Route path='/refund-requests' element={<RefundRequests token={token} />} />}
                 {isAllowed('/update') && <Route path='/update/:productId' element={<Update token={token} />} />}
                 {isAllowed('/allusers') && <Route path='/allusers' element={<AllUsers token={token} />} />}
                 {isAllowed('/gift-wraps') && <Route path='/gift-wraps' element={<ManageGiftWraps token={token} />} />}

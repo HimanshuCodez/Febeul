@@ -1018,4 +1018,69 @@ const getOrderById = async (req, res) => {
     }
 };
 
-export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getRazorpayKey, generateInvoice, getOrderById}
+const cancelOrder = async (req, res) => {
+    try {
+        const { orderId, reason, bankDetails } = req.body;
+        const userId = req.userId;
+
+        const order = await orderModel.findById(orderId);
+
+        if (!order) {
+            return res.json({ success: false, message: "Order not found" });
+        }
+
+        if (order.userId.toString() !== userId) {
+            return res.json({ success: false, message: "Not authorized to cancel this order" });
+        }
+
+        const nonCancellableStatuses = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
+        if (nonCancellableStatuses.includes(order.orderStatus)) {
+            return res.json({ success: false, message: `Order cannot be cancelled in '${order.orderStatus}' status.` });
+        }
+
+        // Restore stock
+        for (const item of order.items) {
+            if (item.name === "Febeul Luxe Membership") continue;
+            const product = await productModel.findById(item.productId);
+            if (product) {
+                const variation = product.variations.find(v => v.color === item.color);
+                if (variation) {
+                    const sizeData = variation.sizes.find(s => s.size === item.size);
+                    if (sizeData) {
+                        sizeData.stock += item.quantity;
+                    }
+                }
+                await product.save();
+            }
+        }
+
+        // Update Order
+        order.orderStatus = 'Cancelled';
+        order.isCancelled = true;
+
+        if (order.paymentMethod !== 'COD') {
+            order.refundDetails.status = 'pending';
+            order.refundDetails.reason = reason || 'Customer requested cancellation';
+            order.refundDetails.requestedAt = new Date();
+            
+            if (bankDetails) {
+                order.refundDetails.customerPayoutDetails = {
+                    type: 'bank',
+                    bankAccount: bankDetails.accountNumber,
+                    ifsc: bankDetails.ifsc,
+                    accountHolderName: bankDetails.accountHolderName
+                };
+            }
+        }
+
+        await order.save();
+
+        res.json({ success: true, message: "Order cancelled successfully" });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getRazorpayKey, generateInvoice, getOrderById, cancelOrder}

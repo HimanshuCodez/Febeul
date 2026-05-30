@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { assets } from '../assets/assets'
-import { ChevronDown, ChevronRight, PackageSearch, Settings } from 'lucide-react'
+import { ChevronDown, ChevronRight, PackageSearch, Settings, RotateCcw } from 'lucide-react'
 
 const Sidebar = ({ role, permissions = [] }) => {
   const location = useLocation();
@@ -97,6 +97,13 @@ const Sidebar = ({ role, permissions = [] }) => {
               <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/orders">
                   <img className='w-5 h-5' src={assets.order_icon} alt="" />
                   <p className='hidden md:block'>Orders</p>
+              </NavLink>
+            )}
+
+            {isAllowed('/refund-requests') && (
+              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/refund-requests">
+                  <RotateCcw size={20} className="text-gray-600" />
+                  <p className='hidden md:block'>Refund Requests</p>
               </NavLink>
             )}
 
