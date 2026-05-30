@@ -759,24 +759,6 @@ const ProductDetailPage = () => {
     </div>
   );
 };
-      <AddressModal 
-        isOpen={isAddressModalOpen}
-        onClose={() => setIsAddressModalOpen(false)}
-        addresses={user?.addresses || []}
-        selectedAddress={selectedAddress}
-        onSelectAddress={handleSelectAddress}
-      />
-
-      {isGalleryOpen && (
-        <FullScreenGallery 
-          images={images} 
-          initialIndex={selectedImage} 
-          onClose={() => setIsGalleryOpen(false)} 
-        />
-      )}
-    </div>
-  );
-};
 
 const DetailRow = ({ label, value, isLast = false }) => (
   <div
