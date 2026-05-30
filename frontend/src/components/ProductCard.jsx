@@ -8,10 +8,32 @@ import { toast } from 'react-hot-toast';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+// Global cache to avoid redundant API calls across multiple ProductCard instances
+let couponsCache = null;
+let couponsPromise = null;
+
+const fetchActiveCoupons = async () => {
+  if (couponsCache) return couponsCache;
+  if (couponsPromise) return couponsPromise;
+
+  couponsPromise = axios.get(`${backendUrl}/api/coupon/active`)
+    .then(res => {
+      if (res.data.success) {
+        couponsCache = res.data.coupons;
+        return couponsCache;
+      }
+      return [];
+    })
+    .catch(() => []);
+
+  return couponsPromise;
+};
+
 const ProductCard = ({ product, onWishlistToggle }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeVariationIndex, setActiveVariationIndex] = useState(0);
+  const [activeCoupons, setActiveCoupons] = useState([]);
 
   const { user, token, isAuthenticated, fetchWishlistCount } = useAuthStore();
   const navigate = useNavigate();
@@ -25,6 +47,14 @@ const ProductCard = ({ product, onWishlistToggle }) => {
       toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
     }
   };
+
+  useEffect(() => {
+    const loadCoupons = async () => {
+      const coupons = await fetchActiveCoupons();
+      setActiveCoupons(coupons);
+    };
+    loadCoupons();
+  }, []);
 
   useEffect(() => {
     const checkWishlist = async () => {
@@ -88,6 +118,32 @@ const ProductCard = ({ product, onWishlistToggle }) => {
 
   const defaultImage = activeVariation.images?.[0] || product.variations?.[0]?.images?.[0];
   const hoverImage = activeVariation.images?.[1] || defaultImage;
+
+  const getBestCouponPrice = () => {
+    const sku = activeVariation.sku;
+    if (!displayPrice || !sku || !activeCoupons.length) return null;
+
+    let maxDiscount = 0;
+    activeCoupons.forEach(coupon => {
+      const isApplicableSKU = !coupon.applicableSKUs || coupon.applicableSKUs.length === 0 || coupon.applicableSKUs.includes(sku);
+      const isMinAmountMet = displayPrice >= (coupon.minOrderAmount || 0);
+      const isLuxeMatch = coupon.userType !== 'luxe' || isLuxeMember;
+
+      if (isApplicableSKU && isMinAmountMet && isLuxeMatch) {
+        let discount = 0;
+        if (coupon.discountType === 'percentage') {
+          discount = (displayPrice * coupon.discountValue) / 100;
+        } else {
+          discount = coupon.discountValue;
+        }
+        if (discount > maxDiscount) maxDiscount = discount;
+      }
+    });
+
+    return maxDiscount > 0 ? displayPrice - maxDiscount : null;
+  };
+
+  const bestCouponPrice = getBestCouponPrice();
 
   return (
     <motion.div
@@ -218,9 +274,19 @@ const ProductCard = ({ product, onWishlistToggle }) => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-                <span className="text-base font-black text-gray-900">₹{displayPrice?.toLocaleString('en-IN')}</span>
-                {displayMrp > displayPrice && (
-                  <span className="text-xs text-gray-400 line-through font-medium">₹{displayMrp.toLocaleString('en-IN')}</span>
+                {bestCouponPrice ? (
+                  <>
+                    <span className="text-base font-black text-green-600">₹{bestCouponPrice.toLocaleString('en-IN')}</span>
+                    <span className="text-xs text-gray-400 line-through font-medium">₹{displayPrice?.toLocaleString('en-IN')}</span>
+                    <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 uppercase tracking-tighter">Coupon</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-base font-black text-gray-900">₹{displayPrice?.toLocaleString('en-IN')}</span>
+                    {displayMrp > displayPrice && (
+                      <span className="text-xs text-gray-400 line-through font-medium">₹{displayMrp.toLocaleString('en-IN')}</span>
+                    )}
+                  </>
                 )}
             </div>
           </div>
