@@ -445,7 +445,7 @@ export default function OrderDetailPage() {
   };
 
   const isCancellationEligible = () => {
-    const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
+    const nonCancellable = ['Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
     return !nonCancellable.includes(order.orderStatus);
   };
 
