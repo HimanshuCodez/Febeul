@@ -15,7 +15,8 @@ import {
   FaTruckLoading,
   FaClipboardList,
   FaUndo,
-  FaCamera
+  FaCamera,
+  FaCrown
 } from 'react-icons/fa';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -462,11 +463,13 @@ export default function OrderDetailPage() {
   
   const parsedDeliveredDate = new Date(order.deliveredAt);
 
-  const estimatedDelivery = order.deliveredAt 
-    ? parsedDeliveredDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : (order.shippedAt 
-        ? `Est: ${new Date(new Date(order.shippedAt).setDate(new Date(order.shippedAt).getDate() + 5)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` 
-        : (siteSettings.expectedDeliveryDays || '5 to 7 days'));
+  const estimatedDelivery = order.orderStatus === 'Delivered'
+    ? 'Marked as Delivered'
+    : (order.deliveredAt 
+        ? parsedDeliveredDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : (order.shippedAt 
+            ? `Est: ${new Date(new Date(order.shippedAt).setDate(new Date(order.shippedAt).getDate() + 5)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` 
+            : (siteSettings.expectedDeliveryDays || '5 to 7 days')));
   
   const statusLevels = {
     'Order Placed': 1,
@@ -999,11 +1002,6 @@ export default function OrderDetailPage() {
             <p>Need help with your order? <Link to="/support" className="text-[#e8767a] hover:underline font-semibold">Contact Support</Link></p>
           </motion.div>
         </div>
-      </div>
-    </>
-  );
-}
-  </div>
       </div>
     </>
   );

@@ -86,7 +86,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
   return (
     <div className="my-4">
       <h2 className="text-lg font-bold text-gray-800 mb-3">Available Coupons</h2>
-      <div className="grid grid-cols-1 gap-4">
+      <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory">
         {applicableCoupons.map((coupon) => {
           const isApplied = appliedCoupon && appliedCoupon.code === coupon.code;
           const isLuxeRestricted = coupon.userType === 'luxe' && !user?.isLuxeMember;
@@ -121,73 +121,74 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
           const isDisabled = isLuxeRestricted || isQuantityRestricted || isAmountRestricted;
 
           return (
-            <div key={coupon._id} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 border rounded-lg transition-shadow ${
-              isDisabled ? 'bg-gray-50 border-gray-200 opacity-80' : 'bg-white border-blue-100 hover:shadow-md'
+            <div key={coupon._id} className={`flex-shrink-0 snap-start w-[280px] flex flex-col justify-between gap-3 p-4 border rounded-xl transition-all ${
+              isDisabled ? 'bg-gray-50 border-gray-100 opacity-80' : 'bg-white border-blue-100 hover:shadow-lg'
             }`}>
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <Tag size={24} className={isDisabled ? 'text-gray-400' : 'text-blue-600'} />
+                <div className="flex-shrink-0 p-2 bg-blue-50 rounded-lg">
+                  <Tag size={20} className={isDisabled ? 'text-gray-400' : 'text-blue-600'} />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className={`font-semibold ${isDisabled ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
-                  </div>
-                  {coupon.description && <p className="text-sm text-gray-600">{coupon.description}</p>}
-                  <div className="mt-2 text-xs text-gray-500">
-                    {coupon.minOrderAmount > 0 && (
-                      <p className={isAmountRestricted ? 'text-red-500' : 'text-green-600'}>
-                        Min. Order: ₹{coupon.minOrderAmount} {isAmountRestricted && `(Add ₹${(coupon.minOrderAmount - currentAmount).toFixed(2)} more)`}
-                      </p>
-                    )}
-                    {coupon.minQuantity > 0 && (
-                      <p className={isQuantityRestricted ? 'text-red-500' : 'text-green-600'}>
-                        Min. Quantity: {coupon.minQuantity} products {isQuantityRestricted && `(Add ${itemsNeeded} more to unlock)`}
-                      </p>
-                    )}
-                    {coupon.discountType === 'percentage' ? (
-                      <p>Discount: {coupon.discountValue}% off</p>
-                    ) : (
-                      <p>Discount: ₹{coupon.discountValue} off</p>
-                    )}
-                    {coupon.userType === 'luxe' && (
-                      <p className={`font-bold mt-1 ${user?.isLuxeMember ? 'text-amber-600' : 'text-amber-500'}`}>
-                        {user?.isLuxeMember ? '✨ Luxe Member Exclusive' : '🔒 For Luxe Members Only'}
-                      </p>
-                    )}
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`font-black uppercase tracking-wider text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
+                  {coupon.description && <p className="text-xs text-gray-600 line-clamp-2 mt-1">{coupon.description}</p>}
                 </div>
               </div>
-              {!isApplied && (
-                <button
-                  onClick={() => handleRedeemClick(coupon)}
-                  disabled={(isQuantityRestricted || isAmountRestricted) && !isLuxeRestricted}
-                  className={`ml-auto sm:ml-0 px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${
-                    isLuxeRestricted 
-                    ? 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200' 
-                    : isDisabled
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : appliedCoupon 
-                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200' 
-                    : 'bg-blue-500 text-white hover:bg-blue-600'
-                  }`}
-                >
-                  {isLuxeRestricted ? 'Join Luxe' : (isQuantityRestricted || isAmountRestricted) ? 'Locked' : appliedCoupon ? 'Apply' : 'Redeem'}
-                </button>
-              )}
-              {isApplied && (
-                <div className="flex items-center gap-2 ml-auto sm:ml-0">
-                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-md text-sm font-medium border border-green-200">
-                    Applied
-                  </span>
-                  <button 
-                    onClick={() => onRemove()}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                    title="Remove Coupon"
-                  >
-                    <X size={18} />
-                  </button>
+
+              <div className="space-y-1 mt-auto">
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">
+                  {coupon.minOrderAmount > 0 && (
+                    <p className={isAmountRestricted ? 'text-red-500' : 'text-green-600'}>
+                      Min. Order: ₹{coupon.minOrderAmount}
+                    </p>
+                  )}
+                  {coupon.minQuantity > 0 && (
+                    <p className={isQuantityRestricted ? 'text-red-500' : 'text-green-600'}>
+                      Min. Quantity: {coupon.minQuantity}
+                    </p>
+                  )}
+                  {coupon.discountType === 'percentage' ? (
+                    <p className="text-blue-600">{coupon.discountValue}% OFF</p>
+                  ) : (
+                    <p className="text-blue-600">₹{coupon.discountValue} OFF</p>
+                  )}
+                  {coupon.userType === 'luxe' && (
+                    <p className={`font-black mt-1 ${user?.isLuxeMember ? 'text-amber-600' : 'text-amber-500'}`}>
+                      {user?.isLuxeMember ? '✨ LUXE EXCLUSIVE' : '🔒 LUXE ONLY'}
+                    </p>
+                  )}
                 </div>
-              )}
+
+                {!isApplied ? (
+                  <button
+                    onClick={() => handleRedeemClick(coupon)}
+                    disabled={(isQuantityRestricted || isAmountRestricted) && !isLuxeRestricted}
+                    className={`w-full mt-2 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+                      isLuxeRestricted 
+                      ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' 
+                      : isDisabled
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : appliedCoupon 
+                      ? 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-100'
+                    }`}
+                  >
+                    {isLuxeRestricted ? 'Join Luxe' : (isQuantityRestricted || isAmountRestricted) ? 'Locked' : appliedCoupon ? 'Apply' : 'Redeem'}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="flex-1 bg-green-500 text-white py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] text-center">
+                      Applied
+                    </span>
+                    <button 
+                      onClick={() => onRemove()}
+                      className="p-2 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      title="Remove Coupon"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}

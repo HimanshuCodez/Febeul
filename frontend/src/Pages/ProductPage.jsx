@@ -121,8 +121,9 @@ const FullScreenGallery = ({ images, initialIndex, onClose }) => {
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const colorParam = searchParams.get('color');
+  const couponParam = searchParams.get('coupon');
   const navigate = useNavigate();
   const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount } = useAuthStore();
 
@@ -141,9 +142,31 @@ const ProductDetailPage = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [appliedCoupon, setAppliedCoupon] = useState(null); 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [autoApplied, setAutoApplied] = useState(false);
 
   const [luxeProducts, setLuxeProducts] = useState([]);
   const [loadingLuxeProducts, setLoadingLuxeProducts] = useState(true);
+
+  // Derived variables
+  const variations = product?.variations || [];
+  const selectedVariation = variations[selectedVariationIndex] || {};
+  const images = selectedVariation.images || [];
+
+  const currentSizeData = selectedVariation.sizes?.find(s => s.size === selectedSizeValue);
+  const displayPrice = currentSizeData?.price;
+  const displayMrp = currentSizeData?.mrp;
+  const isOutOfStock = !currentSizeData || Number(currentSizeData.stock) <= 0;
+
+  const finalDisplayPrice = appliedCoupon 
+    ? Math.max(0, displayPrice - appliedCoupon.discountAmount) 
+    : displayPrice;
+
+  const discount =
+    displayMrp > displayPrice
+      ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
+      : 0;
+
+  const productSKUs = product ? [...new Set(product.variations.map(v => v.sku).filter(Boolean))] : [];
 
   useEffect(() => {
     const fetchLuxePriveProducts = async () => {
@@ -196,8 +219,6 @@ const ProductDetailPage = () => {
     setIsAddressModalOpen(false);
   };
 
-  const productSKUs = product ? [...new Set(product.variations.map(v => v.sku).filter(Boolean))] : [];
-
   const onRedeemCoupon = async (couponCode) => {
     if (!isAuthenticated) {
       toast.error("Please log in to apply coupons.");
@@ -232,9 +253,20 @@ const ProductDetailPage = () => {
           discountType: response.data.discountType,
           discountValue: response.data.discountValue,
         });
+        
+        // Update URL
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('coupon', couponCode);
+        setSearchParams(newParams, { replace: true });
+
       } else {
         toast.error(response.data.message);
         setAppliedCoupon(null);
+        
+        // Remove from URL if invalid
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('coupon');
+        setSearchParams(newParams, { replace: true });
       }
     } catch (error) {
       console.error('Error applying product coupon:', error);
@@ -246,7 +278,20 @@ const ProductDetailPage = () => {
   const onRemoveCoupon = () => {
     setAppliedCoupon(null);
     toast.success("Coupon removed.");
+    
+    // Update URL
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('coupon');
+    setSearchParams(newParams, { replace: true });
   };
+
+  // Auto-apply coupon from URL
+  useEffect(() => {
+    if (couponParam && product && isAuthenticated && !appliedCoupon && !autoApplied && selectedSizeValue) {
+      onRedeemCoupon(couponParam);
+      setAutoApplied(true);
+    }
+  }, [couponParam, product, isAuthenticated, selectedSizeValue, autoApplied]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -397,24 +442,6 @@ const ProductDetailPage = () => {
       toast.error("Failed to add to cart.");
     }
   };
-
-  const variations = product?.variations || [];
-  const selectedVariation = variations[selectedVariationIndex] || {};
-  const images = selectedVariation.images || [];
-
-  const currentSizeData = selectedVariation.sizes?.find(s => s.size === selectedSizeValue);
-  const displayPrice = currentSizeData?.price;
-  const displayMrp = currentSizeData?.mrp;
-  const isOutOfStock = !currentSizeData || Number(currentSizeData.stock) <= 0;
-
-  const finalDisplayPrice = appliedCoupon 
-    ? Math.max(0, displayPrice - appliedCoupon.discountAmount) 
-    : displayPrice;
-
-  const discount =
-    displayMrp > displayPrice
-      ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
-      : 0;
 
   const allSpecifications = product ? [
     { label: "Product Category", value: product.category },
