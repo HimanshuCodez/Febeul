@@ -610,13 +610,33 @@ const ProductDetailPage = () => {
                     </div>
                   </div>
 
+                  <div className="space-y-4 pt-6 border-t border-gray-50 text-sm font-medium text-gray-500">
+                    <div className="flex items-center gap-4 group">
+                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
+                        <Truck size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
+                      </div>
+                      <div>
+                         <p className="font-black text-black uppercase tracking-widest text-xs">Express Shipping</p>
+                         <p className="text-sm">Estimated arrival: {siteSettings?.expectedDeliveryDays || "5 to 7 Days"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 group">
+                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
+                        <MapPin size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
+                      </div>
+                      <button onClick={() => setIsAddressModalOpen(true)} className="text-sm font-black uppercase tracking-widest hover:text-pink-600 transition-colors text-left">
+                        {selectedAddress ? `Shipping to ${selectedAddress.city}, ${selectedAddress.zip}` : "Select destination"}
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Actions */}
-                  <div className="space-y-3 pt-2">
+                  <div className="space-y-3 pt-6 border-t border-gray-50">
                     <div className="flex gap-3">
                       <button 
                         disabled={isOutOfStock}
                         onClick={handleAddToCart} 
-                        className={`flex-[3] h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all ${isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-black border-2 border-black hover:bg-black hover:text-white active:scale-95'}`}
+                        className={`flex-[3] h-14 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all ${isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-black border-2 border-black hover:bg-black hover:text-white active:scale-95'}`}
                       >
                         {isOutOfStock ? 'Sold Out' : 'Add to Bag'}
                       </button>
@@ -630,7 +650,7 @@ const ProductDetailPage = () => {
                     <button 
                       disabled={isOutOfStock}
                       onClick={handleBuyNow} 
-                      className={`w-full h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all ${isOutOfStock ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-pink-500 text-white hover:bg-pink-600 shadow-xl shadow-pink-100 active:scale-[0.98]'}`}
+                      className={`w-full h-14 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all ${isOutOfStock ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-pink-500 text-white hover:bg-pink-600 shadow-xl shadow-pink-100 active:scale-[0.98]'}`}
                     >
                       Buy It Now
                     </button>
@@ -643,26 +663,6 @@ const ProductDetailPage = () => {
                       onRemove={onRemoveCoupon}
                       appliedCoupon={appliedCoupon} 
                     />
-                  </div>
-
-                  <div className="space-y-4 pt-6 border-t border-gray-50 text-[11px] font-medium text-gray-500">
-                    <div className="flex items-center gap-4 group">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
-                        <Truck size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
-                      </div>
-                      <div>
-                         <p className="font-black text-black uppercase tracking-widest text-[10px]">Express Shipping</p>
-                         <p className="">Estimated arrival: {siteSettings?.expectedDeliveryDays || "5 to 7 Days"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 group">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
-                        <MapPin size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
-                      </div>
-                      <button onClick={() => setIsAddressModalOpen(true)} className="text-[10px] font-black uppercase tracking-widest hover:text-pink-600 transition-colors text-left">
-                        {selectedAddress ? `Shipping to ${selectedAddress.city}, ${selectedAddress.zip}` : "Select destination"}
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
