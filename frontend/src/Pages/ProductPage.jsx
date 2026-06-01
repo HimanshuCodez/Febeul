@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,7 +13,8 @@ import {
   Heart,
   XCircle,
   X,
-  ChevronDown
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import Loader from "../components/Loader";
 import useAuthStore from "../store/authStore";
@@ -482,10 +483,18 @@ const ProductDetailPage = () => {
       {loading && <Loader />}
       {product ? (
         <div className="w-full mx-auto px-0 lg:px-4 py-0 lg:py-6 font-jakarta">
-          <div className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-6 px-6 hidden lg:block font-bold">
-            Home / {product.category} /{" "}
+          <nav className="flex items-center text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-4 lg:mb-6 px-6 py-4 lg:py-0 font-bold">
+            <Link to="/" className="hover:text-black transition-colors">Home</Link>
+            <ChevronRight size={12} className="mx-2" />
+            <Link 
+              to={`/products/${product.category.toLowerCase().replace(/\s+/g, '-')}`} 
+              className="hover:text-black transition-colors"
+            >
+              {product.category}
+            </Link>
+            <ChevronRight size={12} className="mx-2" />
             <span className="text-gray-900">{product.name}</span>
-          </div>
+          </nav>
 
           <div className="bg-white">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-16 items-start">
