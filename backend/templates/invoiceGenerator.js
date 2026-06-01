@@ -233,13 +233,26 @@ const buildInvoicePDF = (order, res) => {
         doc.y = totalsY;
         const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
-        // Tax breakdown (Moved up)
-        const discountedSubtotal = subtotal - (order.couponDiscount || 0);
+        addTotalRow('Gross Amount:', `INR ${subtotal.toFixed(2)}`);
+
+        if (order.couponDiscount > 0) {
+            addTotalRow('Discount:', `- INR ${order.couponDiscount.toFixed(2)}`);
+            if (order.couponOfferType && order.couponOfferType !== 'none') {
+                const offerLabel = order.couponOfferType === 'prepaid' ? '(Prepaid Offer)' : '(COD Offer)';
+                doc.fontSize(7).font('Helvetica-Bold').fillColor('#155724').text(offerLabel, totalsLabelX, doc.y - 7, { width: 110, align: 'right' });
+                doc.moveDown(0.2);
+            }
+        }
+
+        // Calculate Taxation based on discounted amount
+        const discountedAmount = subtotal - (order.couponDiscount || 0);
         
         // Use stored GST values if they exist, otherwise calculate based on 5%
-        const finalTaxableValue = order.taxableValue || (discountedSubtotal / 1.05);
-        const totalTax = discountedSubtotal - finalTaxableValue;
+        const finalTaxableValue = order.taxableValue || (discountedAmount / 1.05);
+        const totalTax = discountedAmount - finalTaxableValue;
         
+        addTotalRow('Taxable Value:', `INR ${finalTaxableValue.toFixed(2)}`);
+
         const isDelhi = order.address.state && order.address.state.toLowerCase() === 'delhi';
         
         if (isDelhi) {
@@ -252,19 +265,13 @@ const buildInvoicePDF = (order, res) => {
             addTotalRow('IGST (5%):', `INR ${totalTax.toFixed(2)}`);
         }
 
-        if (order.couponDiscount > 0) {
-            addTotalRow('Discount:', `- INR ${order.couponDiscount.toFixed(2)}`);
-            if (order.couponOfferType && order.couponOfferType !== 'none') {
-                const offerLabel = order.couponOfferType === 'prepaid' ? '(Prepaid Offer)' : '(COD Offer)';
-                doc.fontSize(7).font('Helvetica-Bold').fillColor('#155724').text(offerLabel, totalsLabelX, doc.y - 7, { width: 110, align: 'right' });
-                doc.moveDown(0.2);
-            }
-        }
+        // Subtotal row (Placed below taxation as requested)
+        addTotalRow('Subtotal:', `INR ${discountedAmount.toFixed(2)}`);
         
         addTotalRow('Shipping Charges:', order.shippingCharge > 0 ? `INR ${order.shippingCharge.toFixed(2)}` : 'FREE');
         if (order.codCharge > 0) addTotalRow('COD Charges:', `INR ${order.codCharge.toFixed(2)}`);
         
-        // Add Gift Wrap Style and Price (Aligned above the line)
+        // Add Gift Wrap Style and Price
         if (order.giftWrap) {
             const startY = doc.y;
             
@@ -287,9 +294,6 @@ const buildInvoicePDF = (order, res) => {
             doc.strokeColor(borderColor).lineWidth(0.5).moveTo(30, doc.y).lineTo(doc.page.width - 30, doc.y).stroke();
             doc.moveDown(0.5);
         }
-
-        // Subtotal row (Moved down)
-        addTotalRow('Subtotal:', `INR ${subtotal.toFixed(2)}`);
 
         doc.moveDown(0.3);
         doc.strokeColor(primaryColor).lineWidth(1).moveTo(totalsLabelX + 20, doc.y).lineTo(doc.page.width - 30, doc.y).stroke();

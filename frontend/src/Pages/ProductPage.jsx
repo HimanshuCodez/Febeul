@@ -707,7 +707,7 @@ const ProductDetailPage = () => {
 
           {/* Luxe Prive Section */}
           {luxeProducts.length > 0 && (
-            <div className="mt-12 mb-8">
+            <div className="mt-16 pt-16 border-t border-gray-100">
               <div className="text-center mb-10 flex flex-col items-center gap-2">
                 <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-[10px] font-bold">Member Exclusive</p>
                 <h2 className="text-4xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">LUXE PRIVE COLLECTION</h2>
@@ -720,7 +720,7 @@ const ProductDetailPage = () => {
             </div>
           )}
 
-          <div className="max-w-[1440px] mx-auto px-6 py-12 lg:py-16">
+          <div className="max-w-[1440px] mx-auto px-6 py-12 lg:py-16 border-t border-gray-100 mt-12">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
               <div>
                 <h2 className="text-xl font-playfair font-bold text-gray-900 mb-8 uppercase tracking-[0.3em]">
@@ -763,7 +763,7 @@ const ProductDetailPage = () => {
             </div>
           </div>
           
-          <div className="bg-slate-50/50 py-16 rounded-[3rem]">
+          <div className="bg-slate-50/50 py-16 rounded-[3rem] mt-12 border-t border-gray-100">
              <div className="max-w-[1440px] mx-auto px-6">
                 <Reviews productId={productId} />
              </div>
@@ -774,7 +774,7 @@ const ProductDetailPage = () => {
           Collection item not found.
         </div>
       )}
-      <div className="mt-12">
+      <div className="mt-12 pt-12 border-t border-gray-100">
         <SimilarItems productId={productId} token={token} />
       </div>
       <AddressModal 
