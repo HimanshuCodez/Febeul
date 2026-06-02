@@ -483,17 +483,17 @@ const ProductDetailPage = () => {
       {loading && <Loader />}
       {product ? (
         <div className="w-full mx-auto px-0 lg:px-4 py-0 lg:py-6 font-jakarta">
-          <nav className="flex items-center text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-4 lg:mb-6 px-6 py-4 lg:py-0 font-bold">
-            <Link to="/" className="hover:text-black transition-colors">Home</Link>
-            <ChevronRight size={12} className="mx-2" />
+          <nav className="flex items-center text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-4 lg:mb-6 px-6 py-4 lg:py-0 font-bold overflow-hidden">
+            <Link to="/" className="hover:text-black transition-colors shrink-0">Home</Link>
+            <ChevronRight size={12} className="mx-2 shrink-0" />
             <Link 
               to={`/products/${product.category.toLowerCase().replace(/\s+/g, '-')}`} 
-              className="hover:text-black transition-colors"
+              className="hover:text-black transition-colors shrink-0"
             >
               {product.category}
             </Link>
-            <ChevronRight size={12} className="mx-2" />
-            <span className="text-gray-900">{product.name}</span>
+            <ChevronRight size={12} className="mx-2 shrink-0" />
+            <span className="text-gray-900 truncate min-w-0">{product.name}</span>
           </nav>
 
           <div className="bg-white">

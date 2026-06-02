@@ -229,10 +229,10 @@ const AllProducts = () => {
     <div className="min-h-screen bg-white">
       {/* Breadcrumbs */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-6">
-        <nav className="flex items-center text-[11px] font-medium text-gray-400 uppercase tracking-widest mb-4">
-          <Link to="/" className="hover:text-black transition-colors">Home</Link>
-          <ChevronRight size={12} className="mx-2 text-gray-300" />
-          <span className="text-black">{category ? category.replace(/-/g, ' ') : 'All Products'}</span>
+        <nav className="flex items-center text-[11px] font-medium text-gray-400 uppercase tracking-widest mb-4 overflow-hidden">
+          <Link to="/" className="hover:text-black transition-colors shrink-0">Home</Link>
+          <ChevronRight size={12} className="mx-2 text-gray-300 shrink-0" />
+          <span className="text-black truncate min-w-0">{category ? category.replace(/-/g, ' ') : 'All Products'}</span>
         </nav>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-100 pb-8">
           <div>
