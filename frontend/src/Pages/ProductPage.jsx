@@ -808,9 +808,3 @@ const DetailRow = ({ label, value, isLast = false }) => (
 );
 
 export default ProductDetailPage;
-ssName="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] col-span-1">{label}</span>
-    <span className="text-sm text-gray-900 col-span-2 font-medium tracking-tight">{value}</span>
-  </div>
-);
-
-export default ProductDetailPage;
