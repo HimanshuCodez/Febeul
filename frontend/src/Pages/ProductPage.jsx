@@ -763,8 +763,8 @@ const ProductDetailPage = () => {
             </div>
           </div>
           
-          <div className="bg-slate-50/50 py-16 rounded-[3rem] mt-12 border-t border-gray-100">
-             <div className="max-w-[1440px] mx-auto px-6">
+          <div className="bg-slate-50/50 py-16 rounded-[3rem] mt-12 border border-gray-100">
+             <div className="max-w-full mx-auto px-8">
                 <Reviews productId={productId} />
              </div>
           </div>
@@ -774,7 +774,7 @@ const ProductDetailPage = () => {
           Collection item not found.
         </div>
       )}
-      <div className="mt-12 pt-12 border-t border-gray-100">
+      <div className="mt-12 pt-12 border border-gray-100 rounded-[2.5rem] bg-white p-8">
         <SimilarItems productId={productId} token={token} />
       </div>
       <AddressModal 
@@ -803,6 +803,12 @@ const DetailRow = ({ label, value, isLast = false }) => (
     }`}
   >
     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] col-span-1">{label}</span>
+    <span className="text-sm text-gray-900 col-span-2 font-medium tracking-tight">{value}</span>
+  </div>
+);
+
+export default ProductDetailPage;
+ssName="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] col-span-1">{label}</span>
     <span className="text-sm text-gray-900 col-span-2 font-medium tracking-tight">{value}</span>
   </div>
 );
