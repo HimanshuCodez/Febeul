@@ -496,7 +496,7 @@ const ProductDetailPage = () => {
             <span className="text-gray-900 truncate min-w-0">{product.name}</span>
           </nav>
 
-          <div className="bg-white">
+          <div className="bg-white pb-12">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-16 items-start">
               {/* --- Image Gallery (Left) --- */}
               <div className="lg:col-span-7 lg:sticky lg:top-12">
@@ -540,25 +540,25 @@ const ProductDetailPage = () => {
 
               {/* --- Product Info & Buy Box (Right) --- */}
               <div className="lg:col-span-5 px-6 lg:px-2 py-8 lg:py-0">
-                <div className="space-y-6">
-                  <div className="pb-4">
-                    <h1 className="text-3xl lg:text-4xl font-playfair font-medium text-gray-900 leading-[1.1] mb-3 tracking-tight">
+                <div className="space-y-0">
+                  <div className="pb-6 border-b border-gray-400">
+                    <h1 className="text-3xl lg:text-4xl font-playfair font-medium text-gray-900 leading-[1.1] tracking-tight">
                       {product.name}
                     </h1>
+                  </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-full">
-                        <span className="text-xs font-black">{averageRating.toFixed(1)}</span>
-                        <Star size={10} className="text-yellow-500 fill-current" />
-                      </div>
-                      <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest border-l border-gray-200 pl-3">
-                        {numOfReviews} reviews
-                      </span>
+                  <div className="py-4 border-b border-gray-400 flex items-center gap-3">
+                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-black">{averageRating.toFixed(1)}</span>
+                      <Star size={10} className="text-yellow-500 fill-current" />
                     </div>
+                    <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest border-l border-gray-400 pl-3">
+                      {numOfReviews} reviews
+                    </span>
                   </div>
 
                   {/* Price Section */}
-                  <div className="py-0">
+                  <div className="py-6 border-b border-gray-400">
                     <div className="flex items-baseline gap-3 mb-1">
                       <span className="text-4xl font-black text-gray-900 tracking-tighter">
                         ₹{finalDisplayPrice?.toLocaleString('en-IN')}
@@ -576,9 +576,9 @@ const ProductDetailPage = () => {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-0">
                     {/* Variations */}
-                    <div className="py-1">
+                    <div className="py-6 border-b border-gray-400">
                       <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">    
                         Color: <span className="text-black">{selectedVariation.color}</span>
                       </div>
@@ -602,7 +602,7 @@ const ProductDetailPage = () => {
                               className={`p-0.5 border-2 rounded-xl cursor-pointer transition-all relative ${   
                                 index === selectedVariationIndex
                                   ? "border-pink-500 shadow-md scale-105"
-                                  : "border-transparent hover:border-gray-200"
+                                  : "border-transparent hover:border-gray-300"
                               } ${isFullyOutOfStock ? 'opacity-50' : ''}`}
                             >
                               <img
@@ -621,7 +621,7 @@ const ProductDetailPage = () => {
                     </div>
 
                     {/* Sizes */}
-                    <div className="py-1">
+                    <div className="py-6 border-b border-gray-400">
                       <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">    
                          Size: <span className="text-black">{selectedSizeValue || 'Select'}</span>
                       </div>
@@ -635,8 +635,8 @@ const ProductDetailPage = () => {
                               className={`min-w-[50px] h-10 border rounded-xl transition-all relative overflow-hidden text-[11px] font-black tracking-widest ${
                                 selectedSizeValue === sizeData.size
                                   ? "border-black bg-black text-white shadow-lg"
-                                  : "border-gray-100 bg-white hover:border-black text-gray-900"
-                              } ${isSizeOutOfStock ? 'text-gray-300 border-gray-50 cursor-not-allowed' : ''}`}  
+                                  : "border-gray-400 bg-white hover:border-black text-gray-900"
+                              } ${isSizeOutOfStock ? 'text-gray-300 border-gray-100 cursor-not-allowed' : ''}`}  
                             >
                               {sizeData.size}
                             </button>
@@ -646,7 +646,7 @@ const ProductDetailPage = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-4 pt-6 border-t border-gray-50 text-sm font-medium text-gray-500">    
+                  <div className="space-y-4 py-6 border-b border-gray-400 text-sm font-medium text-gray-500">    
                     <div className="flex items-center gap-4 group">
                       <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
                         <Truck size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
@@ -667,7 +667,7 @@ const ProductDetailPage = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="space-y-3 pt-6 border-t border-gray-50">
+                  <div className="space-y-3 py-6 border-b border-gray-400">
                     <div className="flex gap-3">
                       <button
                         disabled={isOutOfStock}
@@ -678,7 +678,7 @@ const ProductDetailPage = () => {
                       </button>
                       <button
                         onClick={handleWishlistToggle}
-                        className={`flex-1 h-14 flex items-center justify-center border-2 border-gray-50 rounded-2xl hover:border-pink-500 transition-all active:scale-95 ${isWishlisted ? 'text-pink-500 border-pink-100 bg-pink-50' : 'text-gray-300'}`}
+                        className={`flex-1 h-14 flex items-center justify-center border-2 border-gray-200 rounded-2xl hover:border-pink-500 transition-all active:scale-95 ${isWishlisted ? 'text-pink-500 border-pink-100 bg-pink-50' : 'text-gray-300'}`}
                       >
                         <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
                       </button>
@@ -692,7 +692,7 @@ const ProductDetailPage = () => {
                     </button>
                   </div>
 
-                  <div className="pt-6 border-t border-gray-50">
+                  <div className="pt-6">
                     <CouponShows
                       productSKUs={productSKUs}
                       onRedeem={onRedeemCoupon}
@@ -707,7 +707,7 @@ const ProductDetailPage = () => {
 
           {/* Luxe Prive Section */}
           {luxeProducts.length > 0 && (
-            <div className="mt-16 pt-16 border-t border-gray-100">
+            <div className="mt-0 pt-16 border-t border-gray-400 bg-white pb-16">
               <div className="text-center mb-10 flex flex-col items-center gap-2">
                 <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-[10px] font-bold">Member Exclusive</p>
                 <h2 className="text-4xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">LUXE PRIVE COLLECTION</h2>
@@ -720,9 +720,10 @@ const ProductDetailPage = () => {
             </div>
           )}
 
-          <div className="max-w-[1440px] mx-auto px-6 py-12 lg:py-16 border-t border-gray-100 mt-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
-              <div>
+          {/* Specifications & Description Section */}
+          <div className="max-w-full mx-auto px-0 border-t border-gray-400 mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+              <div className="p-8 lg:p-16 border-b lg:border-b-0 lg:border-r border-gray-400">
                 <h2 className="text-xl font-playfair font-bold text-gray-900 mb-8 uppercase tracking-[0.3em]">  
                   Specifications
                 </h2>
@@ -751,20 +752,21 @@ const ProductDetailPage = () => {
                   </button>
                 )}
               </div>
-              <div>
+              <div className="p-8 lg:p-16">
                 <h2 className="text-xl font-playfair font-bold text-gray-900 mb-8 uppercase tracking-[0.3em]">  
                   Product Description
                 </h2>
                 <div
-                  className="product-description text-sm text-gray-500 leading-relaxed font-light"
+                  className="product-description text-sm text-black leading-relaxed font-medium"
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-50/50 py-16 rounded-[3rem] mt-12 border border-gray-100">
+          <div className="bg-white py-16 border-t border-gray-400 mt-0">
              <div className="max-w-full mx-auto px-8">
+                
                 <Reviews productId={productId} />
              </div>
           </div>
@@ -774,7 +776,8 @@ const ProductDetailPage = () => {
           Collection item not found.
         </div>
       )}
-      <div className="mt-12 pt-12 border border-gray-100 rounded-[2.5rem] bg-white p-8">
+      <div className="mt-0 pt-12 border-t border-gray-400 bg-white p-8">
+        
         <SimilarItems productId={productId} token={token} />
       </div>
       <AddressModal
@@ -799,7 +802,7 @@ const ProductDetailPage = () => {
 const DetailRow = ({ label, value, isLast = false }) => (
   <div
     className={`grid grid-cols-3 gap-6 items-center py-5 ${
-      !isLast ? "border-b border-gray-50" : ""
+      !isLast ? "border-b border-gray-400" : ""
     }`}
   >
     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] col-span-1">{label}</span> 
