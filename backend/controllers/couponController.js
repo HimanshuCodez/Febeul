@@ -3,11 +3,9 @@ import couponModel from '../models/couponModel.js';
 // Admin: Add a new coupon
 export const addCoupon = async (req, res) => {
     try {
-<<<<<<< HEAD
+
         const { code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs, specificUsers } = req.body;
-=======
-        const { code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs } = req.body;
->>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
+
 
         if (!code || !discountType || !discountValue || !expiryDate) {
             return res.status(400).json({ success: false, message: 'Required fields are missing.' });
