@@ -94,7 +94,7 @@ const FebeulMembershipWidget = () => {
                   Unlock exclusive Febeul perks and earn rewards with every
                   purchase 💖
                 </p>
-                <Link to="/PrimeMember" onClick={() => setOpen(false)}>
+                <Link to="/luxe" onClick={() => setOpen(false)}>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     className="bg-pink-500 text-white w-full py-3 rounded-full font-semibold shadow-md hover:bg-pink-600"

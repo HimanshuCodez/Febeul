@@ -6,12 +6,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaCrown, FaBusAlt, FaCheckCircle, FaStar, FaShieldAlt } from "react-icons/fa";
 import ProductCard from "../components/ProductCard";
 import Loader from "../components/Loader";
+import { toast } from "react-hot-toast";
 
 export default function FebeulLuxe() {
   const { user, token, isAuthenticated, getProfile } = useAuthStore();
   const [razorpayKey, setRazorpayKey] = useState("");
   const navigate = useNavigate();
   const [showPromo, setShowPromo] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [siteSettings, setSiteSettings] = useState({ 
     membershipPrice: 129, 
     membershipPriceOriginal: 152 
@@ -75,10 +77,11 @@ export default function FebeulLuxe() {
 
   const handlePayment = async () => {
     if (!isAuthenticated) {
-      alert("Please login to purchase the membership.");
+      navigate('/auth');
       return;
     }
 
+    setIsProcessing(true);
     const amount = siteSettings.membershipPrice || 129;
     const items = [
       {
@@ -111,7 +114,7 @@ export default function FebeulLuxe() {
       );
 
       if (!orderResponse.data.success) {
-        throw new Error("Order creation failed");
+        throw new Error(orderResponse.data.message || "Order creation failed");
       }
 
       const { order } = orderResponse.data;
@@ -120,7 +123,7 @@ export default function FebeulLuxe() {
         key: razorpayKey,
         amount: order.amount,
         currency: order.currency,
-        name: "Febeul",
+        name: "FEBEUL",
         description: "Febeul Luxe Membership",
         order_id: order.id,
         handler: async function (response) {
@@ -137,15 +140,22 @@ export default function FebeulLuxe() {
             );
 
             if (verifyResponse.data.success) {
-              alert("Payment successful! Welcome to Febeul Luxe.");
+              toast.success("Payment successful! Welcome to Febeul Luxe.");
               await getProfile();
               navigate('/PrimeMember');
             } else {
-              alert("Payment verification failed. Please contact support.");
+              toast.error("Payment verification failed.");
             }
           } catch (error) {
             console.error("Payment verification error:", error);
-            alert("Payment verification failed. Please contact support.");
+            toast.error("Payment verification error.");
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        modal: {
+          ondismiss: function() {
+            setIsProcessing(false);
           }
         },
         prefill: {
@@ -165,7 +175,8 @@ export default function FebeulLuxe() {
       rzp.open();
     } catch (error) {
       console.error("Payment failed", error);
-      alert("Payment failed. Please try again.");
+      toast.error(error.message || "Payment failed. Please try again.");
+      setIsProcessing(false);
     }
   };
 
@@ -286,10 +297,10 @@ export default function FebeulLuxe() {
 
         <button
           onClick={handlePayment}
-          disabled={!isAuthenticated}
+          disabled={isProcessing}
           className="w-full bg-[#b87a7b] hover:bg-[#a66b6c] transition-all text-white font-['Raleway'] font-bold tracking-widest py-4 rounded-2xl shadow-lg disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed uppercase text-sm"
         >
-          {isAuthenticated ? "Become a Member" : "Login to Join"}
+          {isProcessing ? "Processing..." : (isAuthenticated ? "Become a Member" : "Login to Join")}
         </button>
 
         <div className="mt-8 pt-8 border-t border-gray-50 flex flex-col gap-4">
