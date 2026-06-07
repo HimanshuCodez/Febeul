@@ -440,8 +440,9 @@ const placeOrder = async (req,res) => {
                 _id: order._id,
                 shippingAddress: { // Ensure this matches Shiprocket's expected structure
                     name: order.address.name.split(' ')[0] || '', // First name
-                    lastName: order.address.name.split(' ').slice(1).join(' ') || '', // Last name
+                    lastName: order.address.name.split(' ').slice(1).join(' ') || '.', // Last name (use dot if empty)
                     address: order.address.address,
+                    address2: `${order.address.locality || ''}${order.address.landmark ? ', ' + order.address.landmark : ''}`.trim(),
                     city: order.address.city,
                     pincode: order.address.zip, // Use zip from frontend
                     state: order.address.state,
@@ -664,15 +665,16 @@ const verifyStripe = async (req,res) => {
                     const shiprocketOrderData = {
                         _id: updatedOrder._id,
                         shippingAddress: { // Ensure this matches Shiprocket's expected structure
-                            name: updatedOrder.address.name.split(' ')[0] || '', // First name
-                            lastName: updatedOrder.address.name.split(' ').slice(1).join(' ') || '', // Last name
-                            address: updatedOrder.address.address,
-                            city: updatedOrder.address.city,
-                            pincode: updatedOrder.address.zip, // Use zip from frontend
-                            state: updatedOrder.address.state,
+                            name: (updatedOrder || order).address.name.split(' ')[0] || '', // First name
+                            lastName: (updatedOrder || order).address.name.split(' ').slice(1).join(' ') || '.', // Last name (use dot if empty)
+                            address: (updatedOrder || order).address.address,
+                            address2: `${(updatedOrder || order).address.locality || ''}${(updatedOrder || order).address.landmark ? ', ' + (updatedOrder || order).address.landmark : ''}`.trim(),
+                            city: (updatedOrder || order).address.city,
+                            pincode: (updatedOrder || order).address.zip, // Use zip from frontend
+                            state: (updatedOrder || order).address.state,
                             country: "India",
-                            phone: updatedOrder.address.phone,
-                            email: updatedOrder.userId.email
+                            phone: (updatedOrder || order).address.phone,
+                            email: (updatedOrder || order).userId.email
                         },
                         user: updatedOrder.userId,
                         items: updatedOrder.items,
@@ -867,10 +869,11 @@ const verifyRazorpay = async (req,res) => {
                         const shiprocketToken = await shiprocketLogin();
                         const shiprocketOrderData = {
                             _id: order._id,
-                            shippingAddress: { // Ensure this matches Shiprocket's expected structure
+                        shippingAddress: { // Ensure this matches Shiprocket's expected structure
                                 name: order.address.name.split(' ')[0] || '', // First name
-                                lastName: order.address.name.split(' ').slice(1).join(' ') || '', // Last name
+                                lastName: order.address.name.split(' ').slice(1).join(' ') || '.', // Last name (use dot if empty)
                                 address: order.address.address,
+                                address2: `${order.address.locality || ''}${order.address.landmark ? ', ' + order.address.landmark : ''}`.trim(),
                                 city: order.address.city,
                                 pincode: order.address.zip, // Use zip from frontend
                                 state: order.address.state,
