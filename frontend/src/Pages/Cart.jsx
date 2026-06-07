@@ -1,0 +1,339 @@
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Trash2, ShoppingBag, CreditCard } from "lucide-react";
+import { Link } from "react-router-dom";
+import useAuthStore from "../store/authStore";
+import axios from "axios";
+import { toast } from "react-hot-toast";
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+const Cart = () => {
+  const [giftWrap, setGiftWrap] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { user, token, isAuthenticated, cartItems, fetchCartCount, setCartItems, siteSettings, fetchSiteSettings } = useAuthStore();
+
+  const fetchCart = async (showLoading = true) => {
+    if (!isAuthenticated || !user) {
+      setLoading(false);
+      return;
+    }
+    try {
+      if (showLoading) setLoading(true);
+      const response = await axios.get(
+        `${backendUrl}/api/cart/get`,
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        setCartItems(response.data.cartItems || []);
+        setGiftWrap(response.data.giftWrap || null);
+      }
+    } catch (error) {
+      toast.error("Failed to fetch cart items.");
+      console.error(error);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCart();
+    fetchSiteSettings();
+  }, [isAuthenticated, user]);
+
+  const handleQuantityChange = async (itemId, size, color, delta) => {
+    const item = cartItems.find(item => item._id === itemId && item.size === size && item.color === color);
+    if (!item) return;
+    
+    const newQuantity = (item.quantity || 0) + delta;
+
+    if (newQuantity < 1) {
+        handleRemove(itemId, size, color);
+        return;
+    }
+
+    // Optimistic update
+    const updatedItems = cartItems.map(i => 
+        (i._id === itemId && i.size === size && i.color === color) 
+        ? { ...i, quantity: newQuantity } 
+        : i
+    );
+    setCartItems(updatedItems);
+
+    try {
+        const response = await axios.post(`${backendUrl}/api/cart/update`, 
+            { userId: user._id, itemId, size, color, quantity: newQuantity },
+            { headers: { token } }
+        );
+        if (!response.data.success) {
+            toast.error("Failed to update cart.");
+            fetchCart(false); // Rollback
+        }
+    } catch (error) {
+        toast.error("Failed to update cart.");
+        fetchCart(false); // Rollback
+    }
+  };
+
+  const handleRemove = async (itemId, size, color) => {
+    // Optimistic update
+    const updatedItems = cartItems.filter(i => 
+        !(i._id === itemId && i.size === size && i.color === color)
+    );
+    setCartItems(updatedItems);
+
+    try {
+        const response = await axios.post(`${backendUrl}/api/cart/remove`, 
+            { userId: user._id, itemId, size, color },
+            { headers: { token } }
+        );
+        if (response.data.success) {
+            toast.success("Item removed from cart.");
+            // Gift wrap might have changed if cart became empty or something
+            if (updatedItems.length === 0) setGiftWrap(null);
+            else fetchCart(false); // Refresh to be sure
+        } else {
+            toast.error("Failed to remove item.");
+            fetchCart(false); // Rollback
+        }
+    } catch (error) {
+        toast.error("Failed to remove item.");
+        fetchCart(false); // Rollback
+    }
+  };
+
+  const handleRemoveGiftWrap = async () => {
+    try {
+      const response = await axios.post(`${backendUrl}/api/cart/remove-giftwrap`, {}, { headers: { token } });
+      if (response.data.success) {
+        toast.success("Gift wrap removed.");
+        fetchCart();
+      }
+    } catch (error) {
+      toast.error("Failed to remove gift wrap.");
+    }
+  };
+
+  const subtotal = (cartItems || []).reduce(
+    (sum, item) => {
+      // item.price is now directly available from the backend response in getUserCart
+      return sum + (item.price * item.quantity);
+    },
+    0
+  );
+
+  const totalDiscount = (cartItems || []).reduce(
+    (sum, item) => {
+      return sum + (item.discountAmount || 0);
+    },
+    0
+  );
+
+  const isLuxeMember = user?.isLuxeMember && (user?.giftWrapsLeft > 0);
+  const giftWrapPrice = giftWrap ? (isLuxeMember ? 0 : giftWrap.price) : 0;
+
+  const shipping = (isAuthenticated && user?.isLuxeMember)
+    ? 0 // Luxe members get free shipping here (COD is handled in Checkout)
+    : (subtotal - totalDiscount > (siteSettings.shippingThreshold || 499) ? 0 : (siteSettings.defaultShippingCharge || 50)); // Shipping calculated on discounted total
+  
+  const total = (subtotal - totalDiscount) + shipping + giftWrapPrice;
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>
+  }
+
+  const handleCheckout = (e) => {
+    if (cartItems.length === 0) {
+      e.preventDefault();
+      toast.error("Your cart is empty. Add a product to redeem the gift wrap.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-pink-50/50 font-sans">
+      <div className="container mx-auto px-4 py-12">
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-4xl font-bold text-gray-800 mb-8"
+        >
+          Shopping Cart
+        </motion.h1>
+
+        {!isAuthenticated || cartItems.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center bg-white rounded-lg shadow-md p-12 text-center"
+          >
+            <ShoppingBag className="w-20 h-20 text-pink-400 mb-6" />
+            <h2 className="text-2xl font-semibold text-gray-700">
+              Your cart is empty
+            </h2>
+            <p className="text-gray-500 mt-2">
+              Looks like you haven't added anything to your cart yet.
+            </p>
+            <Link to="/" className="mt-6 bg-pink-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-pink-600 transition-colors">
+              Continue Shopping
+            </Link>
+          </motion.div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              {cartItems.map((item, index) => {
+                const selectedVariation = item.variations?.find(
+                  (v) => v.color === item.color
+                );
+
+                const itemImage = selectedVariation?.images?.[0];
+                const itemPrice = selectedVariation?.sizes?.find(
+                  (s) => s.size === item.size
+                )?.price;
+
+                const price = item.price || itemPrice;
+                const image = item.image || itemImage;
+
+                return (
+                <motion.div
+                  key={`${item._id}-${item.size}-${item.color}`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="bg-white rounded-lg shadow-md p-4 flex items-start space-x-4"
+                >
+                  <img
+                    src={image}
+                    alt={item.name}
+                    className="w-24 h-24 md:w-32 md:h-32 rounded-md object-cover object-top"
+                  />
+                  <div className="flex-1">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      {item.name}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {item.size} / {item.color}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className={`text-lg font-bold text-pink-500 ${item.discountAmount > 0 ? 'line-through text-sm text-gray-400' : ''}`}>
+                        ₹{price.toFixed(2)}
+                      </p>
+                      {item.discountAmount > 0 && (
+                        <p className="text-lg font-bold text-green-600">
+                          ₹{(price - item.discountAmount).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    {item.appliedCoupon && (
+                      <p className="text-xs text-green-600 font-medium mt-1">
+                        Coupon "{item.appliedCoupon}" applied
+                      </p>
+                    )}
+                    <div className="flex items-center mt-4">
+                      <div className="flex items-center border rounded-md">
+                        <button
+                          onClick={() => handleQuantityChange(item._id, item.size, item.color, -1)}
+                          className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md"
+                        >
+                          -
+                        </button>
+                        <span className="px-4 font-medium text-gray-800">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => handleQuantityChange(item._id, item.size, item.color, 1)}
+                          className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-md"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRemove(item._id, item.size, item.color)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </motion.div>
+              )})}
+
+              {giftWrap && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="bg-white rounded-lg shadow-md p-4 flex items-start space-x-4 border-2 border-pink-100"
+                >
+                  <img
+                    src={giftWrap.image}
+                    alt={giftWrap.name}
+                    className="w-24 h-24 md:w-32 md:h-32 rounded-md object-cover"
+                  />
+                  <div className="flex-1">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      {giftWrap.name} (Gift Wrap)
+                    </h2>
+                    <p className="text-lg font-bold text-pink-500 mt-1">
+                      {giftWrapPrice === 0 ? "FREE" : `₹${giftWrapPrice.toFixed(2)}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRemoveGiftWrap}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </motion.div>
+              )}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="lg:col-span-1 bg-white rounded-lg shadow-md p-6 h-fit"
+            >
+              <h2 className="text-xl font-semibold text-gray-800 border-b pb-4">
+                Order Summary
+              </h2>
+              <div className="space-y-4 mt-4">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Coupon Discount</span>
+                    <span>- ₹{totalDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-gray-600">
+                  <span>Shipping</span>
+                  <span>{shipping === 0 ? "Free" : `₹${shipping.toFixed(2)}`}</span>
+                </div>
+                {giftWrap && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Gift Wrap</span>
+                    <span>{giftWrapPrice === 0 ? "FREE" : `₹${giftWrapPrice.toFixed(2)}`}</span>
+                  </div>
+                )}
+              
+                <div className="border-t pt-4 mt-4 flex justify-between font-bold text-gray-800 text-lg">
+                  <span>Total</span>
+                  <span>₹{total.toFixed(2)}</span>
+                </div>
+              </div>
+            <Link to="/checkout" onClick={handleCheckout}><button className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-semibold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center space-x-2">
+                <CreditCard size={20} />
+                
+                <span>Proceed to Checkout</span>
+              </button></Link>
+            </motion.div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Cart;

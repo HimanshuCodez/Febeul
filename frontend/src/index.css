@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default values that will be overridden by JS */
+  --primary-font: 'Inter', sans-serif;
+  --secondary-font: 'Inter', sans-serif;
+  --accent-font: 'Playfair Display', serif;
+  --base-font-size: 16px;
+  --h1-size: 48px;
+  --h2-size: 36px;
+  --h3-size: 24px;
+}
+
+body {
+  font-family: var(--primary-font);
+  font-size: var(--base-font-size);
+}
+
+h1 {
+  font-family: var(--accent-font);
+  font-size: var(--h1-size);
+}
+
+h2 {
+  font-family: var(--accent-font);
+  font-size: var(--h2-size);
+}
+
+h3 {
+  font-family: var(--accent-font);
+  font-size: var(--h3-size);
+}
+
+button, nav, .ui-element {
+  font-family: var(--secondary-font);
+}
+
+.product-description ul {
+  list-style-type: disc;
+  margin-left: 1.25em; /* Adjust as needed for spacing */
+}
+
+.product-description ol {
+  list-style-type: decimal;
+  margin-left: 1.25em; /* Adjust as needed for spacing */
+}
+
+.product-description li {
+  margin-bottom: 0.5em; /* Space between list items */
+}
+
+/* mobile-only class */
+@media (min-width: 768px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

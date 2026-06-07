@@ -1,0 +1,37 @@
+import express from 'express';
+import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, sendAdminOTP, adminOtpLogin } from '../controllers/userController.js';
+import authUser from '../middleware/auth.js';
+
+const userRouter = express.Router();
+
+// Pincode Proxy Route (Must be public)
+userRouter.get('/pincode-check/:zip', pincodeProxy)
+
+// Auth Routes
+userRouter.post('/register', registerUser)
+userRouter.post('/login', loginUser)
+userRouter.post('/google-login', googleLogin)
+userRouter.post('/admin', adminLogin)
+userRouter.post('/admin-send-otp', sendAdminOTP)
+userRouter.post('/admin-otp-login', adminOtpLogin)
+
+// Protected Routes
+userRouter.get('/profile', authUser, getProfile)
+userRouter.post('/add-address', authUser, addAddress)
+userRouter.post('/update-address', authUser, updateAddress)
+userRouter.get('/allusers', authUser, getAllUsers)
+
+// Password Reset Routes
+userRouter.post('/forgot-password', forgotPassword);
+userRouter.post('/verify-password-otp', verifyPasswordOtp);
+userRouter.post('/reset-password', resetPassword);
+
+// Wishlist Routes
+userRouter.get('/wishlist', authUser, getWishlist);
+userRouter.post('/wishlist/add', authUser, addToWishlist);
+userRouter.post('/wishlist/remove', authUser, removeFromWishlist);
+
+// Gift Wrap Routes
+userRouter.post('/giftwrap/decrement', authUser, decrementGiftWraps);
+
+export default userRouter;

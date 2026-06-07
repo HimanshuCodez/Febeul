@@ -1,0 +1,54 @@
+import mongoose from "mongoose";
+
+const productSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    description: { type: String, required: true },
+    variations: [{
+        color: { type: String },
+        sku: { type: String },
+        images: { type: [String] },
+        sizes: [{
+            size: { type: String, required: true },
+            price: { type: Number, required: true },
+            mrp: { type: Number },
+            stock: { type: Number, default: 0 }
+        }]
+    }],
+    category: { type: String, required: true },
+    sizes: { type: Array, required: true },
+    bestseller: { type: Boolean, default: false },
+    date: { type: Number, required: true },
+    styleCode: { type: String },
+    countryOfOrigin: { type: String },
+    manufacturer: { type: String },
+    packer: { type: String },
+    includedComponents: { type: String },
+    fabric: { type: String },
+    type: { type: String },
+    pattern: { type: String },
+    sleeveStyle: { type: String },
+    sleeveLength: { type: String },
+    neck: { type: String },
+    hsn: { type: String },
+    materialComposition: { type: String },
+    careInstructions: { type: String },
+    closureType: { type: String },
+    materialType: { type: String },
+    itemWeight: { type: String },
+    itemDimensionsLxWxH: { type: String },
+    netQuantity: { type: String },
+    genericName: { type: String },
+    keywords: { type: [String], default: [] },
+    averageRating: { type: Number, default: 0 },
+    numOfReviews: { type: Number, default: 0 },
+    isLuxePrive: { type: Boolean, default: false },
+    creator: {
+        name: { type: String },
+        email: { type: String },
+        role: { type: String }
+    }
+})
+
+const productModel  = mongoose.models.product || mongoose.model("product",productSchema);
+
+export default productModel

@@ -1,0 +1,352 @@
+import orderModel from "../models/orderModel.js";
+import userModel from "../models/userModel.js";
+import Razorpay from "razorpay";
+import { v2 as cloudinary } from "cloudinary"; // Import cloudinary
+
+// Assume shiprocket client/utility functions are available
+// import { getShiprocketOrderStatus } from '../utils/shiprocket.js'; 
+
+const razorpayInstance = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+
+// --- Constants (re-defined or imported for this controller's self-sufficiency) ---
+const SHIPPING_CHARGE_THRESHOLD = 499;
+const DEFAULT_SHIPPING_CHARGE = 50;
+const COD_CHARGE_AMOUNT = 50;
+const BUYER_FAULT_CONVENIENCE_FEE = 150;
+
+// --- Helper: Get Shiprocket Order Status ---
+// This function would ideally call Shiprocket API to get the latest status
+// For now, we rely on the status stored in our DB, but a real system
+// would verify this with Shiprocket directly before acting.
+// This is a placeholder for actual Shiprocket API call.
+const getShiprocketStatusFromOrder = async (orderId) => {
+    const order = await orderModel.findById(orderId);
+    if (!order) {
+        throw new Error("Order not found");
+    }
+    // In a real scenario, this would involve an API call to Shiprocket
+    // For now, we'll use the stored status
+    return order.shiprocketStatus;
+};
+
+// --- 1. Refund Calculation Function ---
+const calculateRefundAmount = async (order, returnReason, currentShiprocketStatus) => {
+    let refund = 0;
+    const productAmount = order.productAmount;
+    const shippingCharge = order.shippingCharge;
+    const codCharge = order.codCharge;
+
+    // Fetch dynamic site settings
+    const cmsModel = (await import('../models/cmsModel.js')).default;
+    const siteSettingsDoc = await cmsModel.findOne({ name: 'siteSettings' });
+    const siteSettings = siteSettingsDoc?.content || {
+        membershipPrice: 129,
+        shippingThreshold: 499,
+        defaultShippingCharge: 50,
+        codCharge: 50
+    };
+
+    switch (currentShiprocketStatus) {
+        case 'NEW':
+        case 'PICKUP SCHEDULED':
+            // CASE 1: Cancel BEFORE shipping
+            // Formula: productAmount - (shippingCharge if productAmount < 499) - (codCharge if COD)
+            refund = productAmount;
+            if (productAmount < (siteSettings.shippingThreshold || 499) && order.paymentMethod !== 'COD') { // Only deduct shipping if it was initially applied and not COD
+                refund -= shippingCharge; // This shippingCharge would be 50 if productAmount < 499
+            }
+            if (order.paymentMethod === 'COD') {
+                refund -= codCharge;
+            }
+            break;
+
+        case 'SHIPPED':
+        case 'IN_TRANSIT':
+            // CASE 2: Cancel AFTER shipping but NOT delivered
+            // Formula: productAmount + codCharge (if COD)
+            refund = productAmount;
+            if (order.paymentMethod === 'COD') {
+                refund += codCharge;
+            }
+            break;
+
+        case 'DELIVERED':
+        case 'RTO': // RTO is considered delivered for refund calculation purposes here if a return is requested after RTO.
+            // Cases for DELIVERED / RTO
+            if (!returnReason) {
+                // This case should ideally not happen if admin *must* select a reason for delivered items.
+                // If it does, a default conservative approach is to refund only product amount.
+                refund = productAmount;
+            } else if (returnReason === 'buyer_fault') {
+                // CASE 4: Buyer fault return
+                // Formula: productAmount - 150
+                refund = productAmount - BUYER_FAULT_CONVENIENCE_FEE;
+            } else if (returnReason === 'seller_fault' || returnReason === 'courier_fault') {
+                // CASE 5: Seller fault OR Courier fault
+                // Formula: productAmount + shippingCharge + codCharge (Full refund)
+                refund = productAmount + shippingCharge + codCharge;
+            }
+            break;
+
+        default:
+            console.warn(`Unknown or unhandled Shiprocket status for refund calculation: ${currentShiprocketStatus}`);
+            refund = 0; // Default to no refund for unhandled statuses
+            break;
+    }
+
+    return Math.max(0, refund); // Ensure refund is not negative
+};
+
+// --- 3. Razorpay Prepaid Refund Function ---
+const processPrepaidRefund = async (orderId, razorpayPaymentId, refundAmount) => {
+    try {
+        if (!razorpayPaymentId) {
+            throw new Error("Razorpay Payment ID is missing for prepaid refund.");
+        }
+        if (refundAmount <= 0) {
+            console.warn(`Refund amount is non-positive for order ${orderId}. Skipping Razorpay refund.`);
+            return { success: true, message: "No amount to refund via Razorpay.", refundId: null };
+        }
+
+        const refundResponse = await razorpayInstance.payments.refund(razorpayPaymentId, {
+            amount: refundAmount * 100, // Amount in paise
+            speed: 'normal',
+            notes: {
+                order_id: orderId.toString(),
+                reason: "Customer requested refund" // Can be dynamic
+            }
+        });
+
+        if (refundResponse.status === 'processed' || refundResponse.status === 'pending') {
+            console.log(`Razorpay refund initiated for order ${orderId}: ${refundResponse.id}`);
+            return { success: true, message: "Prepaid refund initiated successfully.", refundId: refundResponse.id };
+        } else {
+            console.error(`Razorpay refund failed for order ${orderId}: ${refundResponse.id} - ${refundResponse.status}`);
+            return { success: false, message: `Razorpay refund failed with status: ${refundResponse.status}.`, refundId: refundResponse.id };
+        }
+    } catch (error) {
+        console.error(`Error processing prepaid refund for order ${orderId}:`, error);
+        throw new Error(`Failed to process prepaid refund: ${error.message}`);
+    }
+};
+
+// --- 4. COD Refund Handler (Payout Abstraction) ---
+const processCodRefund = async (orderId, refundAmount, customerPayoutDetails) => {
+    try {
+        if (refundAmount <= 0) {
+            console.warn(`Refund amount is non-positive for COD order ${orderId}. No payout needed.`);
+            return { success: true, message: "No amount to refund for COD order.", refundId: null };
+        }
+        
+        // This is where a real-world system would integrate with a payout service (e.g., Razorpay Payouts, custom bank APIs)
+        // For this implementation, we will mark it for manual processing and store details.
+        
+        console.log(`COD refund requested for order ${orderId}. Amount: ${refundAmount}. Details:`, customerPayoutDetails);
+        // Simulate a successful payout request for now
+        const simulatedPayoutId = `MANUAL_PAYOUT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // In a real system, you would call a payout API here.
+        // Example: await payoutService.createPayout(refundAmount, customerPayoutDetails);
+
+        return { success: true, message: "COD refund marked for manual processing/payout.", refundId: simulatedPayoutId };
+
+    } catch (error) {
+        console.error(`Error processing COD refund for order ${orderId}:`, error);
+        throw new Error(`Failed to process COD refund: ${error.message}`);
+    }
+};
+
+// --- 5. Admin Approve Refund Handler ---
+const approveRefund = async (req, res) => {
+    const { orderId, returnReason, manualRefundAmount } = req.body;
+
+    try {
+        const order = await orderModel.findById(orderId).populate('userId');
+        if (!order) {
+            return res.json({ success: false, message: "Order not found." });
+        }
+
+        if (order.refundDetails.status === 'completed') {
+            return res.json({ success: false, message: "Refund has already been completed for this order." });
+        }
+
+        // 1. Determine Refund Amount
+        let refundAmount = 0;
+        if (manualRefundAmount !== undefined && manualRefundAmount !== null) {
+            refundAmount = parseFloat(manualRefundAmount);
+        } else {
+            // Use automated calculation based on current status
+            const currentShiprocketStatus = order.shiprocketStatus || 'UNKNOWN';
+            refundAmount = await calculateRefundAmount(order, returnReason || order.refundDetails.reason, currentShiprocketStatus);
+        }
+
+        if (refundAmount < 0) refundAmount = 0;
+
+        // 2. Process Refund based on Payment Method
+        let refundResult = { success: false, message: "Unsupported payment method for automated refund.", refundId: null };
+
+        if (order.paymentMethod === 'Razorpay') {
+            if (!order.razorpayPaymentId) {
+                // Fallback to paymentDetails if razorpayPaymentId not directly set
+                const paymentId = order.paymentDetails?.razorpay_payment_id;
+                if (!paymentId) {
+                    return res.json({ success: false, message: "Razorpay Payment ID not found for this order." });
+                }
+                refundResult = await processPrepaidRefund(orderId, paymentId, refundAmount);
+            } else {
+                refundResult = await processPrepaidRefund(orderId, order.razorpayPaymentId, refundAmount);
+            }
+        } else if (order.paymentMethod === 'COD') {
+            refundResult = await processCodRefund(orderId, refundAmount, order.refundDetails.customerPayoutDetails);
+        } else if (order.paymentMethod === 'Stripe') {
+            // Placeholder for Stripe refund logic
+            // For now, mark as manual or fail with message
+            refundResult = { success: false, message: "Stripe automated refund not yet implemented. Please process manually via Stripe Dashboard.", refundId: "MANUAL_STRIPE" };
+        }
+
+        if (refundResult.success) {
+            // 3. Update Order State
+            order.orderStatus = 'Refunded';
+            order.refundDetails.status = 'completed';
+            order.refundDetails.amount = refundAmount;
+            order.refundDetails.id = refundResult.refundId;
+            order.refundDetails.processedAt = new Date();
+            order.isRefundable = false; // Prevent further refunds
+
+            await order.save();
+
+            return res.json({ 
+                success: true, 
+                message: `Refund processed successfully. Amount: ₹${refundAmount}`,
+                refundId: refundResult.refundId 
+            });
+        } else {
+            return res.json({ 
+                success: false, 
+                message: refundResult.message || "Failed to process refund through gateway." 
+            });
+        }
+
+    } catch (error) {
+        console.error("Error in approveRefund:", error);
+        res.json({ success: false, message: `Internal server error: ${error.message}` });
+    }
+};
+
+// --- Main function to handle cancellation/return requests ---
+const requestRefund = async (req, res) => {
+    const { orderId, reason } = req.body;
+    const userId = req.userId; // Assuming userId is available from auth middleware
+    const uploadedImages = req.files; // Array of uploaded files from multer
+
+    try {
+        const order = await orderModel.findById(orderId).populate('userId');
+
+        if (!order) {
+            return res.json({ success: false, message: "Order not found." });
+        }
+
+        // --- Safeguards & Eligibility ---
+        if (order.userId._id.toString() !== userId) {
+            return res.json({ success: false, message: "Not authorized to request refund for this order." });
+        }
+        if (order.refundDetails.status !== 'none' && order.refundDetails.status !== 'failed') {
+             return res.json({ success: false, message: `Refund is already ${order.refundDetails.status}.` });
+        }
+
+        // Check if return is eligible (Delivered within 3 days)
+        if (order.orderStatus !== 'Delivered' || !order.deliveredAt) {
+            return res.json({ success: false, message: "Order is not eligible for return (must be delivered)." });
+        }
+        const threeDaysInMillis = 3 * 24 * 60 * 60 * 1000;
+        const deliveredDate = new Date(order.deliveredAt);
+        const currentDate = new Date();
+        if ((currentDate - deliveredDate) > threeDaysInMillis) {
+            return res.json({ success: false, message: "Return/Exchange window has closed (3 days after delivery)." });
+        }
+
+        // Upload images to Cloudinary
+        const imageUrls = [];
+        if (uploadedImages && uploadedImages.length > 0) {
+            for (const file of uploadedImages) {
+                const result = await cloudinary.uploader.upload(file.path, { resource_type: 'image' });
+                imageUrls.push(result.secure_url);
+            }
+        }
+
+        // Update order with refund request details
+        await orderModel.findByIdAndUpdate(orderId, {
+            orderStatus: 'Refund Initiated', // Update main order status
+            'refundDetails.status': 'pending', // Set refund status to pending
+            'refundDetails.reason': reason, // Store the user's reason
+            'refundDetails.images': imageUrls, // Store image URLs
+            'refundDetails.requestedAt': new Date(), // Set request timestamp
+        }, { new: true }); // Return the updated document
+
+        return res.json({ success: true, message: "Return/Exchange request submitted successfully. We will review your request shortly." });
+
+    } catch (error) {
+        console.error("Error in requestRefund:", error);
+        res.json({ success: false, message: `Internal server error: ${error.message}` });
+    }
+};
+
+
+// --- Shiprocket Webhook Handler (Conceptual) ---
+// This would be an API endpoint Shiprocket calls to update order statuses
+// and potentially trigger further actions.
+const updateShiprocketStatusWebhook = async (req, res) => {
+    try {
+        const { order_id, current_status, status_code, event_type, shipment_id } = req.body;
+        console.log(`Shiprocket Webhook received for order ${order_id}: Status ${current_status}`);
+
+        if (!order_id || !current_status) {
+            return res.status(400).json({ success: false, message: "Missing required webhook data." });
+        }
+
+        const order = await orderModel.findOne({ 'shiprocket.orderId': order_id });
+        if (!order) {
+            // Also check by _id if shiprocket.orderId not set for some reason
+            const orderById = await orderModel.findById(order_id);
+            if (orderById) {
+                order = orderById;
+            } else {
+                console.warn(`Shiprocket webhook: Order not found for Shiprocket order ID ${order_id}.`);
+                return res.json({ success: false, message: "Order not found in DB." });
+            }
+        }
+        
+        let newOrderStatus = order.orderStatus;
+        let newShiprocketStatus = current_status; // Use Shiprocket's actual status
+
+        // Map Shiprocket status to internal orderStatus if needed
+        if (current_status === 'DELIVERED') {
+            newOrderStatus = 'Delivered';
+            order.deliveredAt = new Date();
+        } else if (current_status === 'SHIPPED' || current_status === 'IN_TRANSIT') {
+            newOrderStatus = 'Shipped';
+        } else if (current_status === 'RTO INITIATED' || current_status === 'RTO DELIVERED') {
+            newOrderStatus = 'Returned'; // Or a specific RTO status
+            newShiprocketStatus = 'RTO';
+        } else if (current_status === 'CANCELLED') {
+            newOrderStatus = 'Cancelled';
+        }
+
+        await orderModel.findByIdAndUpdate(order._id, {
+            orderStatus: newOrderStatus,
+            shiprocketStatus: newShiprocketStatus,
+            deliveredAt: order.deliveredAt // Will be null if not delivered
+        });
+
+        return res.json({ success: true, message: "Shiprocket status updated." });
+
+    } catch (error) {
+        console.error("Error handling Shiprocket webhook:", error);
+        res.status(500).json({ success: false, message: `Internal server error: ${error.message}` });
+    }
+};
+
+export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, approveRefund, updateShiprocketStatusWebhook };

@@ -1,0 +1,525 @@
+import React, { useEffect, useState, useRef } from 'react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import { backendUrl } from '../App';
+import { assets } from '../assets/assets'; // Assuming icons like parcel_icon, order_icon are useful
+import { Paperclip, X, Download } from 'lucide-react'; // Import Paperclip, X, and Download
+import { CSVLink } from 'react-csv';
+
+const Tickets = ({ token }) => {
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'open', 'closed', 'pending'
+  const [searchTerm, setSearchTerm] = useState(''); // New state for search
+  const [adminMessage, setAdminMessage] = useState(''); // New state for admin message
+  const [adminAttachments, setAdminAttachments] = useState([]); // New state for admin chat attachments
+  const [isSending, setIsSending] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const adminFileInputRef = useRef(null); // Ref for admin file input
+
+  const fetchTickets = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await axios.get(`${backendUrl}/api/ticket/list`, { headers: { token } });
+      if (response.data.success) {
+        setTickets(response.data.tickets.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+      toast.error('Failed to fetch tickets.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (ticketId, newStatus) => {
+    if (!token) return;
+    try {
+      const response = await axios.post(`${backendUrl}/api/ticket/update-status`, { ticketId, status: newStatus }, { headers: { token } });
+      if (response.data.success) {
+        toast.success('Ticket status updated!');
+        fetchTickets(); // Refresh tickets
+        if (selectedTicket && selectedTicket._id === ticketId) {
+          setSelectedTicket((prev) => ({ ...prev, status: newStatus }));
+        }
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update ticket status.');
+    }
+  };
+
+  const sendAdminReply = async (ticketId) => {
+    if (!adminMessage.trim() && adminAttachments.length === 0) return; // Allow sending only attachments
+    if (isSending) return;
+    if (!token) {
+      toast.error("Authentication token missing.");
+      return;
+    }
+
+    setIsSending(true);
+    const replyFormData = new FormData();
+    replyFormData.append("ticketId", ticketId);
+    replyFormData.append("message", adminMessage);
+    replyFormData.append("sender", 'admin');
+    adminAttachments.forEach((file) => {
+        replyFormData.append("images", file);
+    });
+
+    try {
+      const response = await axios.post(`${backendUrl}/api/ticket/admin-reply`,
+        replyFormData,
+        {
+          headers: {
+            token: token,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        toast.success("Reply sent!");
+        // Update the messages in the selected ticket locally
+        setSelectedTicket(prev => {
+          const newMsgImages = response.data.newImages || []; // Assuming backend returns URLs of uploaded images
+          const newMessage = {
+            message: adminMessage,
+            sender: 'admin',
+            createdAt: new Date().toISOString(),
+            images: newMsgImages, // Store image URLs
+          };
+          return {
+            ...prev,
+            messages: [...prev.messages, newMessage]
+          };
+        });
+        setAdminMessage(''); // Clear the input field
+        setAdminAttachments([]); // Clear attachments
+        if (adminFileInputRef.current) {
+            adminFileInputRef.current.value = ""; // Clear file input
+        }
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error("Failed to send reply.");
+      console.error(error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleAdminAttachmentsChange = (e) => {
+    const files = Array.from(e.target.files);
+    setAdminAttachments((prev) => {
+        const newAttachments = [...prev, ...files].slice(0, 2); // Limit to max 2 attachments for chat replies
+        return newAttachments;
+    });
+    e.target.value = ''; // Clear file input after selection
+  };
+
+  const handleRemoveAdminAttachment = (indexToRemove) => {
+      setAdminAttachments((prev) =>
+          prev.filter((_, index) => index !== indexToRemove)
+      );
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, [token]);
+
+  const filteredTickets = tickets.filter((ticket) => {
+    const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
+    const userName = ticket.user?.name?.toLowerCase() || '';
+    const userEmail = ticket.user?.email?.toLowerCase() || '';
+    const ticketId = String(ticket.ticketNumber || ticket._id?.slice(-6) || ''); // Support new and old tickets
+    const matchesSearch = userName.includes(searchTerm.toLowerCase()) || userEmail.includes(searchTerm.toLowerCase()) || ticketId.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  const paginatedTickets = filteredTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'closed': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // CSV Export Data
+  const csvHeaders = [
+    { label: "Ticket ID", key: "ticketNumber" },
+    { label: "Subject", key: "subject" },
+    { label: "Customer Name", key: "customerName" },
+    { label: "Customer Email", key: "customerEmail" },
+    { label: "Luxe Member", key: "isLuxeMember" },
+    { label: "Status", key: "status" },
+    { label: "Created At", key: "createdAt" },
+    { label: "Updated At", key: "updatedAt" },
+    { label: "Description", key: "description" },
+    { label: "Contact Info", key: "contactInfo" },
+    { label: "Messages", key: "messages" },
+  ];
+
+  const csvData = filteredTickets.map(ticket => ({
+    ticketNumber: ticket.ticketNumber || ticket._id?.slice(-6),
+    subject: ticket.subject,
+    customerName: ticket.user?.name || 'N/A',
+    customerEmail: ticket.user?.email || 'N/A',
+    isLuxeMember: ticket.user?.isLuxeMember ? 'Yes' : 'No',
+    status: ticket.status,
+    createdAt: new Date(ticket.createdAt).toLocaleString(),
+    updatedAt: new Date(ticket.updatedAt || ticket.createdAt).toLocaleString(),
+    description: ticket.description,
+    contactInfo: ticket.contactInfo || 'Not provided',
+    messages: ticket.messages?.map(m => `[${m.sender}] ${m.message}`).join(' | ') || '',
+  }));
+
+  return (
+    <div className='p-6 bg-gray-50 min-h-screen'>
+      <h2 className='text-3xl font-semibold text-gray-800 mb-8'>Support Tickets</h2>
+
+      {/* Filter and Search */}
+      <div className='mb-6 flex flex-col md:flex-row justify-between items-center gap-4'>
+        <div className='flex flex-wrap gap-4'>
+          <button
+            onClick={() => setFilterStatus('all')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'all' ? 'bg-pink-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setFilterStatus('open')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'open' ? 'bg-green-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+          >
+            Open
+          </button>
+          <button
+            onClick={() => setFilterStatus('pending')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'pending' ? 'bg-yellow-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+          >
+            Pending
+          </button>
+          <button
+            onClick={() => setFilterStatus('closed')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'closed' ? 'bg-red-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+          >
+            Closed
+          </button>
+        </div>
+        
+        <div className='flex gap-4 w-full md:w-auto'>
+          <input
+            type="text"
+            placeholder="Search by customer name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 flex-1 md:w-64"
+          />
+          <button
+            onClick={fetchTickets}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+          >
+            Refresh
+          </button>
+          <CSVLink
+            data={csvData}
+            headers={csvHeaders}
+            filename={`tickets_export_${new Date().toISOString().split('T')[0]}.csv`}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <Download size={16} />
+            Export All
+          </CSVLink>
+        </div>
+      </div>
+
+      {/* Tickets List */}
+      <div className='bg-white rounded-lg shadow-md p-8 mb-8'>
+        <div className='flex justify-between items-center mb-6'>
+          <h3 className='text-xl font-bold text-gray-700'>All Tickets ({filteredTickets.length})</h3>
+          {totalPages > 1 && (
+            <span className='text-sm text-gray-500 font-medium'>Page {currentPage} of {totalPages}</span>
+          )}
+        </div>
+        {loading ? (
+          <p>Loading tickets...</p>
+        ) : (
+          <>
+            <div className='overflow-x-auto'>
+              <table className='min-w-full divide-y divide-gray-200'>
+                <thead className='bg-gray-50'>
+                  <tr>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>ID</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Subject</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Customer</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Last Updated</th>
+                    <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
+                  </tr>
+                </thead>
+                <tbody className='bg-white divide-y divide-gray-200'>
+                  {paginatedTickets.map((ticket) => (
+                    <tr key={ticket._id} className='hover:bg-gray-50'>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{ticket.ticketNumber || ticket._id.slice(-6)}</td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{ticket.subject}</td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        <div className='flex flex-col gap-1'>
+                          <span className='font-medium text-gray-900'>{ticket.user?.name || 'N/A'}</span>
+                          <span className='text-xs'>{ticket.user?.email}</span>
+                          {ticket.user?.isLuxeMember && (
+                            <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit'>
+                              <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
+                              Luxe Member
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ticket.status)} capitalize`}>
+                          {ticket.status}
+                        </span>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        {new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
+                        <button
+                          onClick={() => setSelectedTicket(ticket)}
+                          className='text-indigo-600 hover:text-indigo-900'
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className='flex justify-center items-center gap-2 mt-8'>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className='px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                >
+                  Previous
+                </button>
+                
+                <div className='flex gap-1'>
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-10 h-10 rounded-md text-sm font-bold transition-all ${currentPage === pageNum ? 'bg-pink-500 text-white shadow-md' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                      return <span key={pageNum} className='flex items-end px-1 text-gray-400 font-bold'>...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className='px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Ticket Details Modal/Panel */}
+      {selectedTicket && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto'>
+            <div className='p-6 border-b flex justify-between items-center'>
+              <h3 className='text-2xl font-bold text-gray-800'>Ticket #{selectedTicket.ticketNumber || selectedTicket._id.slice(-6)} - {selectedTicket.subject}</h3>
+              <button onClick={() => setSelectedTicket(null)} className='text-gray-500 hover:text-gray-800 text-xl font-bold'>&times;</button>
+            </div>
+            <div className='p-6 space-y-4'>
+              <div className='flex justify-between items-start'>
+                <div>
+                  <p className='text-sm font-medium text-gray-700'>Customer:</p>
+                  <p className='text-base text-gray-900 font-bold'>{selectedTicket.user?.name || 'N/A'}</p>
+                  <p className='text-xs text-gray-500'>{selectedTicket.user?.email}</p>
+                </div>
+                {selectedTicket.user?.isLuxeMember && (
+                  <div className='flex flex-col items-end'>
+                    <span className='px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-sm flex items-center gap-1.5 uppercase tracking-widest'>
+                      <span className='w-2 h-2 bg-amber-500 rounded-full animate-ping'></span>
+                      Luxe Priority
+                    </span>
+                    <span className='text-[10px] text-amber-600 font-semibold mt-1'>High Priority Support</span>
+                  </div>
+                )}
+              </div>
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <p className='text-sm font-medium text-gray-700'>Status:</p>
+                  <select
+                    value={selectedTicket.status}
+                    onChange={(e) => handleStatusChange(selectedTicket._id, e.target.value)}
+                    className='mt-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-pink-500 w-full'
+                  >
+                    <option value="open">Open</option>
+                    <option value="pending">Pending</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-gray-700'>Created At:</p>
+                  <p className='mt-2.5 text-sm text-gray-600 font-medium'>{new Date(selectedTicket.createdAt).toLocaleString()}</p>
+                </div>
+              </div>
+              <div>
+                <p className='text-sm font-medium text-gray-700 border-b pb-1 mb-2'>Contact Info:</p>
+                <div className='bg-gray-50 p-2 rounded-lg border border-gray-100 text-gray-800 text-sm mb-4'>
+                  {selectedTicket.contactInfo || 'Not provided'}
+                </div>
+                <p className='text-sm font-medium text-gray-700 border-b pb-1 mb-2'>Description:</p>
+                <div className='bg-gray-50 p-3 rounded-lg border border-gray-100 italic text-gray-800 text-sm'>
+                  {selectedTicket.description}
+                </div>
+              </div>
+              <div className='space-y-2'>
+                <p className='text-sm font-medium text-gray-700'>Messages:</p>
+                {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
+                  selectedTicket.messages.map((msg, index) => (
+                    <div key={index} className={`p-3 rounded-lg ${msg.sender === 'admin' ? 'bg-gray-100' : 'bg-blue-100 ml-auto'} max-w-[80%] flex flex-col`}>
+                      <span className='font-bold text-xs'>{msg.sender === 'admin' ? 'Admin' : selectedTicket.user?.name || 'Customer'}</span>
+                      <p className='text-sm'>{msg.message}</p>
+                      {msg.images && msg.images.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                              {msg.images.map((imgSrc, imgIndex) => (
+                                  <a key={imgIndex} href={imgSrc} target="_blank" rel="noopener noreferrer">
+                                      <img src={imgSrc} alt={`Attachment ${imgIndex + 1}`} className="w-16 h-16 object-cover rounded-md cursor-pointer" />
+                                  </a>
+                              ))}
+                          </div>
+                      )}
+                      <span className='text-xs text-gray-500 self-end'>{new Date(msg.createdAt).toLocaleString()}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className='text-sm text-gray-500'>No messages yet.</p>
+                )}
+              </div>
+              {selectedTicket.status === 'closed' ? (
+                <div className='mt-4 p-4 bg-gray-100 text-gray-700 rounded-md text-center'>
+                  <p className='font-semibold'>Conversation is ended.</p>
+                  <p>Please create a new ticket for further issues.</p>
+                </div>
+              ) : (
+                <div className='flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200'>
+                    {/* Attachment previews for current message */}
+                    {adminAttachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {adminAttachments.map((file, index) => (
+                                <div key={index} className="relative w-20 h-20 border rounded-md overflow-hidden">
+                                    <img src={URL.createObjectURL(file)} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveAdminAttachment(index)}
+                                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <div className='flex items-center gap-2'>
+                        <input
+                            type="file"
+                            ref={adminFileInputRef}
+                            accept="image/*"
+                            multiple
+                            onChange={handleAdminAttachmentsChange}
+                            className="hidden" // Hide the actual file input
+                            disabled={adminAttachments.length >= 2}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => adminFileInputRef.current.click()}
+                            className="bg-gray-200 text-gray-700 p-2 rounded-md hover:bg-gray-300 transition-colors"
+                            title="Attach files"
+                            disabled={adminAttachments.length >= 2}
+                        >
+                            <Paperclip size={20} />
+                        </button>
+                        <input
+                            type="text"
+                            value={adminMessage}
+                            onChange={(e) => setAdminMessage(e.target.value)}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                    sendAdminReply(selectedTicket._id);
+                                }
+                            }}
+                            placeholder="Type your reply..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                        />
+                        <button
+                            disabled={isSending}
+                            onClick={() => sendAdminReply(selectedTicket._id)}
+                            className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 transition-colors disabled:bg-pink-300 disabled:cursor-not-allowed flex items-center justify-center min-w-[70px]"
+                        >
+                            {isSending ? (
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            ) : (
+                                'Send'
+                            )}
+                        </button>
+                    </div>
+                </div>
+              )}
+
+              {selectedTicket.images && selectedTicket.images.length > 0 && (
+                <div className='space-y-2 pt-4 border-t border-gray-200'>
+                  <p className='text-sm font-medium text-gray-700'>Attached Images:</p>
+                  <div className='flex flex-wrap gap-2'>
+                    {selectedTicket.images.map((image, index) => (
+                      <a key={index} href={image} target="_blank" rel="noopener noreferrer">
+                        <img src={image} alt={`Ticket attachment ${index + 1}`} className='w-24 h-24 object-cover rounded-md border border-gray-200 cursor-pointer' />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Tickets;

@@ -1,0 +1,329 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { backendUrl } from '../App'; 
+import { toast } from 'react-toastify';
+
+const AllUsers = ({ token }) => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  
+  // Modal State
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('staff');
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
+
+  // Search and Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const permissionOptions = [
+    { label: 'Dashboard', path: '/' },
+    { label: 'All Users', path: '/allusers' },
+    { label: 'Add Items', path: '/add' },
+    { label: 'List Items', path: '/list' },
+    { label: 'Orders', path: '/orders' },
+    { label: 'Gift Wraps', path: '/gift-wraps' },
+    { label: 'Policy Update', path: '/policy-update' },
+    { label: 'Generate Coupon', path: '/coupons' },
+    { label: 'Tickets', path: '/tickets' },
+    { label: 'Reviews', path: '/reviews' },
+    { label: 'CMS', path: '/cms' },
+    { label: 'Hero Images', path: '/images' },
+    { label: 'Email Marketing', path: '/send-mail' },
+    { label: 'Maintenance Mode', path: '/maintenance' },
+    { label: 'Configurations', path: '/configurations' },
+  ];
+
+  const togglePermission = (path) => {
+    setSelectedPermissions(prev => 
+      prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
+    );
+  };
+
+  const openPermissionsModal = (user = null) => {
+    if (user) {
+      setEmail(user.email);
+      setRole(user.role || 'user');
+      setSelectedPermissions(user.permissions || []);
+    } else {
+      setEmail('');
+      setRole('staff');
+      setSelectedPermissions([]);
+    }
+    setShowModal(true);
+  };
+
+  const handleSavePermissions = async () => {
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/update-permissions`, {
+        email,
+        role,
+        permissions: selectedPermissions
+      }, { headers: { token } });
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setShowModal(false);
+        fetchUsers(); // Refresh list
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (err) {
+      toast.error("Failed to update permissions");
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/user/allusers`, {
+        headers: {
+          token
+        }
+      });
+      if (response.data.success) {
+        setUsers(response.data.users);
+      } else {
+        setError('Failed to fetch users');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchUsers();
+    }
+  }, [token]);
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.mobile && user.mobile.includes(searchTerm));
+    
+    const matchesRole = 
+      roleFilter === 'all' || 
+      (roleFilter === 'staff' && (user.role === 'staff' || user.role === 'admin')) ||
+      (roleFilter === 'user' && user.role === 'user');
+
+    return matchesSearch && matchesRole;
+  });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter]);
+
+  if (loading) {
+    return <p className="p-4">Loading users...</p>;
+  }
+
+  if (error) {
+    return <p className="p-4 text-red-500">Error: {error}</p>;
+  }
+
+  return (
+    <div className='p-4 relative'>
+      <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4'>
+        <div className='flex items-center gap-4'>
+          <h2 className='text-2xl font-bold'>All Users</h2>
+          <span className='bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold'>
+            {filteredUsers.length} Users
+          </span>
+        </div>
+        <div className='flex flex-col sm:flex-row gap-3 w-full md:w-auto'>
+          <input 
+            type="text" 
+            placeholder="Search name, email, phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className='border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black w-full sm:w-64'
+          />
+          <select 
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className='border border-gray-300 rounded-md px-3 py-2 text-sm outline-none bg-white'
+          >
+            <option value="all">All Roles</option>
+            <option value="staff">Staff/Admin</option>
+            <option value="user">Normal Users</option>
+          </select>
+          <button 
+            onClick={() => openPermissionsModal()}
+            className='bg-black text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition-colors whitespace-nowrap'
+          >
+            Add Staff Permissions
+          </button>
+        </div>
+      </div>
+
+      {/* Permissions Modal */}
+      {showModal && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-lg w-full max-w-md p-6 shadow-xl'>
+            <h3 className='text-xl font-bold mb-4'>Manage Staff Permissions</h3>
+            
+            <div className='mb-4'>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>User Email</label>
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter user email"
+                className='w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-black'
+              />
+            </div>
+
+            <div className='mb-4'>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>Role</label>
+              <select 
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className='w-full border border-gray-300 rounded-md px-3 py-2 outline-none'
+              >
+                <option value="user">User</option>
+                <option value="staff">Staff</option>
+              </select>
+            </div>
+
+            <div className='mb-6'>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>Allowed Pages</label>
+              <div className='grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-100 rounded'>
+                {permissionOptions.map((opt) => (
+                  <label key={opt.path} className='flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors'>
+                    <input 
+                      type="checkbox"
+                      checked={selectedPermissions.includes(opt.path)}
+                      onChange={() => togglePermission(opt.path)}
+                      className='w-4 h-4 accent-black'
+                    />
+                    <span className='text-sm text-gray-600'>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className='flex justify-end gap-3'>
+              <button 
+                onClick={() => setShowModal(false)}
+                className='px-4 py-2 text-gray-600 hover:text-gray-800 font-medium'
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSavePermissions}
+                className='bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors font-medium'
+              >
+                Save Permissions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paginatedUsers.length > 0 ? (
+        <>
+          <div className='overflow-x-auto border border-gray-200 rounded-lg'>
+            <table className='min-w-full bg-white divide-y divide-gray-200'>
+              <thead className='bg-gray-50'>
+                <tr>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Name</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Email</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Phone</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Role</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Luxe</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Gift Wraps</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Actions</th>
+                </tr>
+              </thead>
+              <tbody className='bg-white divide-y divide-gray-200'>
+                {paginatedUsers.map((user) => (
+                  <tr key={user._id} className='hover:bg-gray-50 transition-colors'>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900'>{user.name || 'N/A'}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.email}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.mobile || 'N/A'}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm'>
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        user.role === 'admin' ? 'bg-red-100 text-red-700' : 
+                        user.role === 'staff' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.isLuxeMember ? 'Yes' : 'No'}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.giftWrapsLeft}</td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm'>
+                      <button 
+                        onClick={() => openPermissionsModal(user)}
+                        className='text-blue-600 hover:text-blue-800 font-medium underline'
+                      >
+                        View Permissions
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className='flex flex-wrap justify-center items-center gap-2 mt-8 mb-4'>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className='px-4 py-2 border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+              >
+                Previous
+              </button>
+              
+              <div className='flex gap-1'>
+                {[...Array(totalPages)].map((_, i) => {
+                  const pageNum = i + 1;
+                  // Only show first, last, and pages around current
+                  if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-10 h-10 border rounded-md text-sm font-bold transition-all ${currentPage === pageNum ? 'bg-black text-white border-black shadow-md scale-105' : 'border-gray-300 hover:bg-gray-50 text-gray-600'}`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  } else if (pageNum === currentPage - 3 || pageNum === currentPage + 3) {
+                    return <span key={pageNum} className='flex items-end px-1 text-gray-400'>...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className='px-4 py-2 border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className='p-4 text-gray-500'>No users found matching your search.</p>
+      )}
+
+    </div>
+  );
+};
+
+export default AllUsers;

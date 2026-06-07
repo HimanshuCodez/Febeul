@@ -1,0 +1,324 @@
+import { v2 as cloudinary } from "cloudinary"
+import productModel from "../models/productModel.js"
+
+// function for add product
+const addProduct = async (req, res) => {
+    try {
+        const { name, description, category, sizes, bestseller, isLuxePrive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
+        const variations = JSON.parse(variationsJSON);
+        const files = req.files;
+
+        // Step 1: Group files by variation index
+        const filesGroupedByVariation = {};
+        files.forEach(file => {
+            const match = file.fieldname.match(/variations\[(\d+)\]\[images\]/);
+            if (match) {
+                const v_idx = parseInt(match[1]);
+                if (!filesGroupedByVariation[v_idx]) {
+                    filesGroupedByVariation[v_idx] = [];
+                }
+                filesGroupedByVariation[v_idx].push(file);
+            }
+        });
+
+        let processedVariations = await Promise.all(variations.map(async (variation, v_idx) => {
+            const imageFiles = filesGroupedByVariation[v_idx] || []; // Get files for this v_idx
+            let imagesUrl = await Promise.all(
+                imageFiles.map(async (item) => {
+                    let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
+                    return result.secure_url;
+                })
+            );
+            return {
+                color: variation.color,
+                sku: variation.sku,
+                images: imagesUrl,
+                sizes: variation.sizes.map(s => ({ // Process sizes array
+                    size: s.size,
+                    price: Number(s.price),
+                    mrp: Number(s.mrp),
+                    stock: Number(s.stock) || 0
+                }))
+            };
+        }));
+                
+                    const productData = {
+                        name,
+                        description,
+                        category,
+                        bestseller: bestseller === "true" ? true : false,
+                        isLuxePrive: isLuxePrive === "true" ? true : false,
+                        variations: processedVariations,
+                        date: Date.now(),
+                        creator: {
+                            name: req.userName || 'Admin',
+                            email: req.userEmail || '',
+                            role: req.role || 'admin'
+                        },
+            styleCode,
+            countryOfOrigin,
+            manufacturer,
+            packer,
+            includedComponents,
+            fabric,
+            type,
+            pattern,
+            sleeveStyle,
+            sleeveLength,
+            neck,
+            hsn,
+            materialComposition,
+            careInstructions,
+            closureType,
+            materialType,
+            itemWeight,
+            itemDimensionsLxWxH,
+            netQuantity,
+            genericName,
+            keywords: keywords ? keywords.split(',').map(kw => kw.trim()) : [],
+        };
+
+        const product = new productModel(productData);
+        await product.save();
+
+        res.json({ success: true, message: "Product Added" });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+// function for list product
+const listProducts = async (req, res) => {
+    try {
+        const { category, type, fabric, search, isLuxePrive } = req.query; // Extract query parameters
+        let filter = {};
+
+        if (category) {
+            const normalizedCategory = category.replace(/-/g, ' ').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filter.category = { $regex: new RegExp(`^${normalizedCategory}$`, 'i') };
+        }
+        
+        if (type) {
+            // Match exactly, treating hyphens and spaces as interchangeable
+            const pattern = `^${type.replace(/[- ]/g, '[- ]')}$`;
+            filter.type = { $regex: new RegExp(pattern, 'i') };
+        }
+
+        if (fabric) {
+            // Match exactly, treating hyphens and spaces as interchangeable
+            const pattern = `^${fabric.replace(/[- ]/g, '[- ]')}$`;
+            filter.fabric = { $regex: new RegExp(pattern, 'i') };
+        }
+
+        if (search) {
+            const searchRegex = { $regex: search, $options: 'i' };
+            filter.$or = [
+                { name: searchRegex },
+                { description: searchRegex },
+                { category: searchRegex },
+                { fabric: searchRegex },
+                { type: searchRegex },
+                { pattern: searchRegex },
+                { sleeveStyle: searchRegex },
+                { sleeveLength: searchRegex },
+                { neck: searchRegex },
+                { materialComposition: searchRegex },
+                { genericName: searchRegex },
+                { keywords: { $in: [new RegExp(search, "i")] } }
+            ];
+        }
+        // Add isLuxePrive filter
+        if (isLuxePrive === "true") {
+            filter.isLuxePrive = true;
+        } else if (isLuxePrive === "false") {
+            filter.isLuxePrive = false;
+        }
+
+        const products = await productModel.find(filter); // Apply filters
+        res.json({success:true,products})
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// function for removing product
+const removeProduct = async (req, res) => {
+    try {
+        
+        await productModel.findByIdAndDelete(req.body.id)
+        res.json({success:true,message:"Product Removed"})
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// function for single product info
+const singleProduct = async (req, res) => {
+    try {
+        
+        const { productId } = req.body
+        const product = await productModel.findById(productId)
+        res.json({success:true,product})
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// function for updating product
+const updateProduct = async (req, res) => {
+    try {
+        const { productId, name, description, category, bestseller, isLuxePrive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
+        
+        const product = await productModel.findById(productId);
+        if (!product) {
+            return res.json({ success: false, message: "Product not found" });
+        }
+
+        const variations = JSON.parse(variationsJSON);
+        const files = req.files;
+
+        // Handle image deletions from cloudinary (logic remains the same)
+        const incomingImageUrls = new Set(variations.flatMap(v => v.images).filter(img => typeof img === 'string'));
+        const existingImageUrls = product.variations.flatMap(v => v.images);
+        
+        for (const imageUrl of existingImageUrls) {
+            if (!incomingImageUrls.has(imageUrl)) {
+                const publicId = imageUrl.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            }
+        }
+
+        // Step 1: Group files by variation index
+        const filesGroupedByVariation = {};
+        files.forEach(file => {
+            const match = file.fieldname.match(/variations\[(\d+)\]\[images\]/);
+            if (match) {
+                const v_idx = parseInt(match[1]);
+                if (!filesGroupedByVariation[v_idx]) {
+                    filesGroupedByVariation[v_idx] = [];
+                }
+                filesGroupedByVariation[v_idx].push(file);
+            }
+        });
+
+        let processedVariations = await Promise.all(variations.map(async (variation, v_idx) => {
+            const newImageFiles = filesGroupedByVariation[v_idx] || []; // Get files for this v_idx
+            
+            let newImagesUrl = await Promise.all(
+                newImageFiles.map(async (item) => {
+                    let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
+                    return result.secure_url;
+                })
+            );
+
+            const existingImages = variation.images ? variation.images.filter(img => typeof img === 'string') : [];
+
+            return {
+                color: variation.color,
+                sku: variation.sku,
+                images: [...existingImages, ...newImagesUrl],
+                sizes: variation.sizes.map(s => ({ // Process sizes array
+                    size: s.size,
+                    price: Number(s.price),
+                    mrp: Number(s.mrp),
+                    stock: Number(s.stock) || 0
+                }))
+            };
+        }));
+        
+        product.name = name;
+        product.description = description;
+        product.category = category;
+
+        product.bestseller = bestseller === "true" ? true : false;
+        product.isLuxePrive = isLuxePrive === "true" ? true : false;
+        product.styleCode = styleCode;
+        product.countryOfOrigin = countryOfOrigin;
+        product.manufacturer = manufacturer;
+        product.packer = packer;
+        product.includedComponents = includedComponents;
+        product.fabric = fabric;
+        product.type = type;
+        product.pattern = pattern;
+        product.sleeveStyle = sleeveStyle;
+        product.sleeveLength = sleeveLength;
+        product.neck = neck;
+        product.hsn = hsn;
+        product.materialComposition = materialComposition;
+        product.careInstructions = careInstructions;
+        product.closureType = closureType;
+        product.materialType = materialType;
+        product.itemWeight = itemWeight;
+        product.itemDimensionsLxWxH = itemDimensionsLxWxH;
+        product.netQuantity = netQuantity;
+        product.genericName = genericName;
+        product.keywords = keywords ? keywords.split(',').map(kw => kw.trim()) : [];
+        product.variations = processedVariations;
+
+        await product.save();
+
+        res.json({ success: true, message: "Product updated" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// function for getting similar products
+const getSimilarProducts = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const product = await productModel.findById(productId);
+
+        if (!product) {
+            return res.json({ success: false, message: "Product not found" });
+        }
+
+        const similarProducts = await productModel.find({
+            category: product.category,
+            _id: { $ne: productId } // Exclude the current product
+        }).limit(5); // Limit to 5 similar products
+
+        res.json({ success: true, products: similarProducts });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+const getMenuFilters = async (req,res) => {
+    try {
+        const categories = await productModel.distinct("category")
+        const types = await productModel.distinct("type")
+        const fabrics = await productModel.distinct("fabric")
+        const sizes = await productModel.distinct("variations.sizes.size")
+        const colors = await productModel.distinct("variations.color")
+
+        res.json({success:true,data:{categories,types,fabrics,sizes,colors}})
+    } catch (error) {
+        console.log(error)
+        res.json({success:false,message:error.message})
+    }
+}
+
+// function for listing bestseller products
+const listBestsellers = async (req, res) => {
+    try {
+        const products = await productModel.find({ bestseller: true });
+        res.json({ success: true, products });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+export { listProducts, addProduct, removeProduct, singleProduct, updateProduct, getSimilarProducts, getMenuFilters, listBestsellers }

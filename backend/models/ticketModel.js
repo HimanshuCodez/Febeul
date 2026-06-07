@@ -1,0 +1,22 @@
+import mongoose from 'mongoose';
+
+const messageSchema = new mongoose.Schema({
+    sender: { type: String, enum: ['user', 'admin'], required: true },
+    message: { type: String },
+    images: [{ type: String }], // Array to store Cloudinary image URLs for this specific message
+    createdAt: { type: Date, default: Date.now }
+});
+
+const ticketSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
+    subject: { type: String, required: true },
+    description: { type: String, required: true },
+    contactInfo: { type: String }, // Email or Phone Number
+    status: { type: String, enum: ['open', 'pending', 'closed'], default: 'open' },
+    ticketNumber: { type: String, required: true, unique: true }, // Added numeric ticket ID
+    messages: [messageSchema],
+    images: [{ type: String }], // Array to store Cloudinary image URLs
+}, { timestamps: true });
+
+export const ticketModel = mongoose.models.ticket || mongoose.model('ticket', ticketSchema);
+
