@@ -31,7 +31,10 @@ const Coupons = ({ token }) => {
     userType: 'normal',
     offerType: 'none',
     applicableSKUs: '',
+<<<<<<< HEAD
     specificUsers: '',
+=======
+>>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,7 +114,10 @@ const Coupons = ({ token }) => {
       userType: 'normal',
       offerType: 'none',
       applicableSKUs: '',
+<<<<<<< HEAD
       specificUsers: '',
+=======
+>>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
     });
     setEditingCouponId(null);
     setShowFormModal(false);
@@ -133,7 +139,10 @@ const Coupons = ({ token }) => {
       userType: coupon.userType || 'normal',
       offerType: coupon.offerType || 'none',
       applicableSKUs: coupon.applicableSKUs ? coupon.applicableSKUs.join(', ') : '',
+<<<<<<< HEAD
       specificUsers: coupon.specificUsers ? coupon.specificUsers.join(', ') : '',
+=======
+>>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
     });
     setShowFormModal(true);
   };
@@ -170,7 +179,10 @@ const Coupons = ({ token }) => {
         usageLimit: newCoupon.usageLimit ? parseInt(newCoupon.usageLimit) : undefined,
         usageLimitPerUser: newCoupon.usageLimitPerUser ? parseInt(newCoupon.usageLimitPerUser) : undefined,
         applicableSKUs: newCoupon.applicableSKUs ? newCoupon.applicableSKUs.split(',').map(s => s.trim()).filter(s => s) : [],
+<<<<<<< HEAD
         specificUsers: newCoupon.specificUsers ? newCoupon.specificUsers.split(',').map(s => s.trim()).filter(s => s) : [],
+=======
+>>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
       };
 
       const endpoint = editingCouponId ? `${backendUrl}/api/coupon/update` : `${backendUrl}/api/coupon/add`;
@@ -665,6 +677,7 @@ const Coupons = ({ token }) => {
                 />
               </div>
 
+<<<<<<< HEAD
               <div className='space-y-2'>
                 <label className='block text-[11px] font-black text-slate-400 uppercase tracking-widest'>Specific User Restriction (Emails/IDs)</label>
                 <input
@@ -677,6 +690,8 @@ const Coupons = ({ token }) => {
                 />
               </div>
 
+=======
+>>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
               <div className='flex items-center p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-all'>
                 <input
                   type='checkbox'

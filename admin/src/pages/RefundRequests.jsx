@@ -24,6 +24,7 @@ const RefundRequests = ({ token }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedRequest, setSelectedTicket] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+<<<<<<< HEAD
   const [selectedReason, setSelectedReason] = useState('');
 
   const handleApproveRefund = async (orderId) => {
@@ -50,6 +51,8 @@ const RefundRequests = ({ token }) => {
       setIsUpdating(false);
     }
   };
+=======
+>>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -374,6 +377,7 @@ const RefundRequests = ({ token }) => {
               </section>
             </div>
 
+<<<<<<< HEAD
             <div className="p-8 border-t border-gray-100 bg-gray-50 flex flex-col gap-4">
                 {selectedRequest.refundDetails.status !== 'completed' && (
                     <div className="flex flex-col gap-3 p-4 bg-white rounded-3xl border border-gray-200 shadow-sm">
@@ -425,6 +429,32 @@ const RefundRequests = ({ token }) => {
                         <Clock size={20} />
                     </button>
                 </div>
+=======
+            <div className="p-8 border-t border-gray-100 bg-gray-50 flex gap-4">
+                <div className="flex-1 flex gap-2">
+                    <button 
+                        disabled={isUpdating || selectedRequest.refundDetails.status === 'completed'}
+                        onClick={() => updateRefundSubStatus(selectedRequest._id, 'completed')}
+                        className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-200 hover:bg-emerald-700 transition-all disabled:opacity-50"
+                    >
+                        Mark Completed
+                    </button>
+                    <button 
+                        disabled={isUpdating || selectedRequest.refundDetails.status === 'failed'}
+                        onClick={() => updateRefundSubStatus(selectedRequest._id, 'failed')}
+                        className="flex-1 bg-white border border-gray-200 text-gray-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all disabled:opacity-50"
+                    >
+                        Mark Failed
+                    </button>
+                </div>
+                <button 
+                    onClick={() => handleUpdateRefundStatus(selectedRequest._id, 'Processing')}
+                    className="px-6 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all"
+                    title="Move to Processing"
+                >
+                    <Clock size={20} />
+                </button>
+>>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
             </div>
           </div>
         </div>
