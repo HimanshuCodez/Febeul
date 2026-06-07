@@ -39,19 +39,21 @@ const orderSchema = new mongoose.Schema({
 
     // Refund details
     refundDetails: {
-        status: { type: String, enum: ['none', 'pending', 'initiated', 'processing', 'completed', 'failed'], default: 'none' },
+        status: { type: String, enum: ['none', 'pending', 'initiated', 'processing', 'completed', 'failed', 'rejected'], default: 'none' },
         amount: { type: Number, default: 0 },
         id: { type: String }, // Razorpay refund ID
         reason: { type: String },
+        rejectionReason: { type: String }, // Reason for rejecting the refund/return
         images: { type: [String], default: [] }, // Added images for refund request
         requestedAt: { type: Date },
         processedAt: { type: Date },
-        customerPayoutDetails: { // For COD refunds
+        customerPayoutDetails: { // For COD refunds and Return requests
             type: { type: String, enum: ['upi', 'bank'] },
             upiId: { type: String },
             bankAccount: { type: String },
             ifsc: { type: String },
-            accountHolderName: { type: String }
+            accountHolderName: { type: String },
+            bankName: { type: String }
         }
     },
     // To prevent double refunds or conflicting operations

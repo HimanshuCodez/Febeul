@@ -31,17 +31,31 @@ import Reviews from '../components/Reviews';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 // --- Return/Exchange Modal Component ---
-const ReturnExchangeModal = ({ orderId, token, onClose, onSubmitted }) => {
+const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
     const [reason, setReason] = useState('');
+    const [type, setType] = useState('return'); // 'return' or 'refund'
     const [images, setImages] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [bankDetails, setBankDetails] = useState({
+        accountHolderName: '',
+        accountNumber: '',
+        ifsc: '',
+        bankName: ''
+    });
+
+    const isCod = order.paymentMethod === 'COD';
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setBankDetails(prev => ({ ...prev, [name]: value }));
+    };
 
     const handleImageChange = (e) => {
         if (e.target.files) {
             const filesArray = Array.from(e.target.files);
             if (images.length + filesArray.length > 4) {
-                toast.error("You can upload a maximum of 4 images.");
+                toast.error("You must upload exactly 4 images.");
                 return;
             }
             
@@ -56,10 +70,8 @@ const ReturnExchangeModal = ({ orderId, token, onClose, onSubmitted }) => {
     const removeImage = (index) => {
         const newImages = [...images];
         const newPreviews = [...imagePreviews];
-        
         newImages.splice(index, 1);
         newPreviews.splice(index, 1);
-
         setImages(newImages);
         setImagePreviews(newPreviews);
     }
@@ -67,14 +79,26 @@ const ReturnExchangeModal = ({ orderId, token, onClose, onSubmitted }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!reason.trim()) {
-            toast.error("Please provide a reason for your request.");
+            toast.error("Please provide a reason.");
             return;
         }
+        if (images.length !== 4) {
+            toast.error("Please upload exactly 4 images for verification.");
+            return;
+        }
+        if (isCod && (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifsc)) {
+            toast.error("Please provide bank details for the refund.");
+            return;
+        }
+
         setIsSubmitting(true);
 
         const formData = new FormData();
-        formData.append('orderId', orderId);
-        formData.append('reason', reason);
+        formData.append('orderId', order._id);
+        formData.append('reason', `${type.toUpperCase()}: ${reason}`);
+        if (isCod) {
+            formData.append('payoutDetails', JSON.stringify(bankDetails));
+        }
         images.forEach(image => {
             formData.append('images', image);
         });
@@ -88,13 +112,12 @@ const ReturnExchangeModal = ({ orderId, token, onClose, onSubmitted }) => {
             });
 
             if (response.data.success) {
-                toast.success("Return/Exchange request submitted successfully.");
+                toast.success("Request submitted successfully.");
                 onSubmitted();
             } else {
-                toast.error(response.data.message || "Failed to submit request.");
+                toast.error(response.data.message);
             }
         } catch (error) {
-            console.error("Error submitting refund request:", error);
             toast.error(error.response?.data?.message || "An error occurred.");
         } finally {
             setIsSubmitting(false);
@@ -106,63 +129,80 @@ const ReturnExchangeModal = ({ orderId, token, onClose, onSubmitted }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 overflow-y-auto"
         >
             <motion.div
                 initial={{ scale: 0.8, y: -50 }}
                 animate={{ scale: 1, y: 0 }}
-                className="bg-white rounded-lg shadow-xl w-full max-w-lg"
+                className="bg-white rounded-lg shadow-xl w-full max-w-lg my-8"
             >
                 <div className="p-6 border-b flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Request Return or Exchange</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">Return or Refund Request</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     <div>
-                        <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">Reason for return/exchange</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
+                        <select 
+                            value={type} 
+                            onChange={e => setType(e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded-md"
+                        >
+                            <option value="return">Return Product</option>
+                            <option value="refund">Full Refund Request</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
                         <textarea
                             id="reason"
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
-                            rows="4"
+                            rows="3"
                             className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#e8767a] focus:border-[#e8767a]"
-                            placeholder="Please describe the issue with the item(s)..."
+                            placeholder="Describe the issue..."
                         ></textarea>
                     </div>
+
+                    {isCod && (
+                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h3 className="font-bold text-sm text-gray-800 flex items-center gap-2">
+                                <FaCreditCard className="text-[#e8767a]" />
+                                Bank Details for Refund
+                            </h3>
+                            <div className="grid grid-cols-1 gap-3">
+                                <input type="text" name="accountHolderName" placeholder="Account Holder Name" value={bankDetails.accountHolderName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
+                                <input type="text" name="accountNumber" placeholder="Account Number" value={bankDetails.accountNumber} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input type="text" name="ifsc" placeholder="IFSC Code" value={bankDetails.ifsc} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm uppercase" required />
+                                    <input type="text" name="bankName" placeholder="Bank Name" value={bankDetails.bankName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (Max 4)</label>
-                        <div className="flex items-center gap-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload 4 Images (Required)</label>
+                        <div className="flex flex-wrap gap-2">
                             {imagePreviews.map((preview, index) => (
                                 <div key={index} className="relative">
-                                    <img src={preview} alt="preview" className="w-20 h-20 object-cover rounded-md" />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeImage(index)}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                                    >
-                                        <X size={14} />
-                                    </button>
+                                    <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-md" />
+                                    <button type="button" onClick={() => removeImage(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><X size={12} /></button>
                                 </div>
                             ))}
                             {images.length < 4 && (
-                                <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
-                                    <FaCamera className="text-gray-400 text-2xl" />
-                                    <span className="text-xs text-gray-500 mt-1">Add</span>
+                                <label className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                                    <FaCamera className="text-gray-400 text-xl" />
                                     <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
                                 </label>
                             )}
                         </div>
+                        <p className="text-[10px] text-gray-500 mt-1">{images.length}/4 images uploaded</p>
                     </div>
-                    <div className="flex justify-end gap-4 pt-4">
-                        <button type="button" onClick={onClose} className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="px-6 py-2 text-white bg-[#e8767a] rounded-lg hover:bg-[#d5666a] disabled:bg-gray-400"
-                        >
-                            {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                    <div className="flex justify-end gap-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+                        <button type="submit" disabled={isSubmitting || images.length !== 4} className="px-4 py-2 text-white bg-[#e8767a] rounded-lg disabled:bg-gray-300">
+                            {isSubmitting ? 'Submitting...' : 'Submit'}
                         </button>
                     </div>
                 </form>
@@ -182,7 +222,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const isPrepaid = order.paymentMethod !== 'COD';
+    const isCod = order.paymentMethod === 'COD';
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -191,8 +231,8 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isPrepaid && (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifsc)) {
-            toast.error("Please provide complete bank details for refund.");
+        if (isCod && (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifsc)) {
+            toast.error("Please provide bank details for refund (Industry standard).");
             return;
         }
         setIsSubmitting(true);
@@ -201,19 +241,18 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
             const response = await axios.post(`${backendUrl}/api/order/cancel`, {
                 orderId: order._id,
                 reason,
-                bankDetails: isPrepaid ? bankDetails : null
+                bankDetails: isCod ? bankDetails : null
             }, {
                 headers: { token }
             });
 
             if (response.data.success) {
-                toast.success("Order cancelled successfully.");
+                toast.success(response.data.message);
                 onCancelled();
             } else {
-                toast.error(response.data.message || "Failed to cancel order.");
+                toast.error(response.data.message);
             }
         } catch (error) {
-            console.error("Error cancelling order:", error);
             toast.error(error.response?.data?.message || "An error occurred.");
         } finally {
             setIsSubmitting(false);
@@ -238,7 +277,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     <div>
-                        <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">Reason for cancellation (Optional)</label>
+                        <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">Reason for cancellation</label>
                         <select
                             id="reason"
                             value={reason}
@@ -254,77 +293,28 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
                         </select>
                     </div>
 
-                    {isPrepaid && (
+                    {isCod && (
                         <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <h3 className="font-bold text-gray-800 flex items-center gap-2">
                                 <FaCreditCard className="text-[#e8767a]" />
-                                Refund Bank Details
+                                Bank Details for Refund
                             </h3>
-                            <p className="text-xs text-gray-500 italic">Please provide details where you'd like to receive your refund.</p>
+                            <p className="text-xs text-gray-500 italic">Industry standard: Provide details to receive your refund for this COD order.</p>
                             
                             <div className="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase">Account Holder Name</label>
-                                    <input
-                                        type="text"
-                                        name="accountHolderName"
-                                        value={bankDetails.accountHolderName}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 mt-1 border rounded-md text-sm"
-                                        placeholder="As per bank records"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase">Account Number</label>
-                                    <input
-                                        type="text"
-                                        name="accountNumber"
-                                        value={bankDetails.accountNumber}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 mt-1 border rounded-md text-sm"
-                                        placeholder="1234567890"
-                                        required
-                                    />
-                                </div>
+                                <input type="text" name="accountHolderName" placeholder="Account Holder Name" value={bankDetails.accountHolderName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
+                                <input type="text" name="accountNumber" placeholder="Account Number" value={bankDetails.accountNumber} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 uppercase">IFSC Code</label>
-                                        <input
-                                            type="text"
-                                            name="ifsc"
-                                            value={bankDetails.ifsc}
-                                            onChange={handleInputChange}
-                                            className="w-full p-2 mt-1 border rounded-md text-sm uppercase"
-                                            placeholder="HDFC0001234"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 uppercase">Bank Name</label>
-                                        <input
-                                            type="text"
-                                            name="bankName"
-                                            value={bankDetails.bankName}
-                                            onChange={handleInputChange}
-                                            className="w-full p-2 mt-1 border rounded-md text-sm"
-                                            placeholder="e.g. HDFC Bank"
-                                        />
-                                    </div>
+                                    <input type="text" name="ifsc" placeholder="IFSC Code" value={bankDetails.ifsc} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm uppercase" required />
+                                    <input type="text" name="bankName" placeholder="Bank Name" value={bankDetails.bankName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" />
                                 </div>
                             </div>
                         </div>
                     )}
 
                     <div className="flex justify-end gap-4 pt-4">
-                        <button type="button" onClick={onClose} className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 font-bold uppercase text-xs tracking-widest">
-                            Keep Order
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="px-6 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-gray-400 font-bold uppercase text-xs tracking-widest"
-                        >
+                        <button type="button" onClick={onClose} className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg font-bold uppercase text-xs tracking-widest">Keep Order</button>
+                        <button type="submit" disabled={isSubmitting} className="px-6 py-2 text-white bg-red-600 rounded-lg disabled:bg-gray-400 font-bold uppercase text-xs tracking-widest">
                             {isSubmitting ? 'Cancelling...' : 'Confirm Cancellation'}
                         </button>
                     </div>
@@ -439,19 +429,25 @@ export default function OrderDetailPage() {
     if (order.orderStatus !== 'Delivered' || !order.deliveredAt) {
       return false;
     }
+    if (order.refundDetails?.status !== 'none' && order.refundDetails?.status !== 'rejected') {
+        return false; // Already requested or processed
+    }
     const threeDaysInMillis = 3 * 24 * 60 * 60 * 1000;
     const deliveredDate = new Date(order.deliveredAt);
     const currentDate = new Date();
     return (currentDate - deliveredDate) <= threeDaysInMillis;
   };
 
-  const isCancellationEligible = () => {
-    const nonCancellable = ['Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
-    return !nonCancellable.includes(order.orderStatus);
+  const isCancellationPossible = () => {
+    // Only 'Order Placed' is typically cancellable by user in standard ecommerce
+    // User specifically asked to disable for Processing, Confirmed, Shipped, Out for delivery
+    const cancellableStatuses = ['Order Placed'];
+    return cancellableStatuses.includes(order.orderStatus);
   };
 
   const returnPossible = isReturnEligible();
-  const cancellationPossible = isCancellationEligible();
+  const cancellationPossible = isCancellationPossible();
+  const cancellationEligible = !['Delivered', 'Cancelled', 'Returned', 'Refunded'].includes(order.orderStatus);
 
   // Use pricing details from the order object
   const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
@@ -721,8 +717,27 @@ export default function OrderDetailPage() {
                             <div className="mt-2 bg-red-50 p-2 rounded border border-red-100">
                                 <p className="text-xs font-bold text-red-800">Refund Status: {order.refundDetails.status.toUpperCase()}</p>
                                 {order.refundDetails.reason && <p className="text-[10px] text-red-600 mt-1 italic">Reason: {order.refundDetails.reason}</p>}
+                                {order.refundDetails.status === 'rejected' && order.refundDetails.rejectionReason && (
+                                    <p className="text-[10px] text-red-800 mt-1 font-bold">Rejection Reason: {order.refundDetails.rejectionReason}</p>
+                                )}
                             </div>
                         )}
+                    </div>
+                </motion.div>
+              )}
+
+              {order.refundDetails?.status === 'rejected' && order.orderStatus !== 'Cancelled' && (
+                <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
+                    <div className="flex flex-col items-center mr-4">
+                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <XCircle size={20} className="text-red-600" />
+                        </div>
+                    </div>
+                    <div className="flex-1 pt-2">
+                        <p className="font-bold text-red-600 uppercase tracking-widest text-xs">Request Rejected</p>
+                        <div className="mt-2 bg-red-50 p-3 rounded-lg border border-red-100 shadow-sm">
+                            <p className="text-xs font-bold text-red-800 italic">" {order.refundDetails.rejectionReason} "</p>
+                        </div>
                     </div>
                 </motion.div>
               )}
@@ -953,7 +968,7 @@ export default function OrderDetailPage() {
           </motion.div>
 
           {/* Cancel Order Button */}
-          {cancellationPossible && !isLuxeOrder && (
+          {cancellationEligible && (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -962,18 +977,23 @@ export default function OrderDetailPage() {
             >
                 <motion.button
                     onClick={() => setIsCancellationModalOpen(true)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full border-2 border-red-500 text-red-600 font-bold py-3 px-6 rounded-lg transition-all hover:bg-red-50 flex items-center justify-center uppercase tracking-widest text-sm"
+                    disabled={!cancellationPossible}
+                    whileHover={cancellationPossible ? { scale: 1.02 } : {}}
+                    whileTap={cancellationPossible ? { scale: 0.98 } : {}}
+                    className={`w-full border-2 py-3 px-6 rounded-lg transition-all flex items-center justify-center uppercase tracking-widest text-sm font-bold ${
+                        cancellationPossible 
+                        ? 'border-red-500 text-red-600 hover:bg-red-50' 
+                        : 'border-gray-300 text-gray-400 cursor-not-allowed'
+                    }`}
                 >
                     <X className="mr-2" size={18} />
-                    Cancel Order
+                    {cancellationPossible ? 'Cancel Order' : 'Order Cannot Be Cancelled'}
                 </motion.button>
             </motion.div>
           )}
 
           {/* Return/Exchange Button */}
-          {returnPossible && (
+          {order.orderStatus === 'Delivered' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -982,13 +1002,19 @@ export default function OrderDetailPage() {
             >
               <motion.button
                   onClick={() => setIsReturnModalOpen(true)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm"
+                  disabled={!returnPossible}
+                  whileHover={returnPossible ? { scale: 1.05 } : {}}
+                  whileTap={returnPossible ? { scale: 0.95 } : {}}
+                  className={`w-full py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm font-bold ${
+                      returnPossible 
+                      ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
               >
                   <FaUndo className="mr-2" />
-                  Return/Exchange
+                  {returnPossible ? 'Return or Refund' : 'Return Window Closed'}
               </motion.button>
+              {returnPossible && <p className="text-[10px] text-gray-500 mt-2 text-center italic">Industry Standard: Return window closes 3 days after delivery. Exactly 4 images required.</p>}
             </motion.div>
           )}
 

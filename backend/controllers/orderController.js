@@ -1018,6 +1018,8 @@ const getOrderById = async (req, res) => {
     }
 };
 
+import { calculateRefundAmount, processPrepaidRefund, processCodRefund } from './refundController.js';
+
 const cancelOrder = async (req, res) => {
     try {
         const { orderId, reason, bankDetails } = req.body;
@@ -1033,9 +1035,48 @@ const cancelOrder = async (req, res) => {
             return res.json({ success: false, message: "Not authorized to cancel this order" });
         }
 
-        const nonCancellableStatuses = ['Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
+        const nonCancellableStatuses = ['Processing', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
         if (nonCancellableStatuses.includes(order.orderStatus)) {
             return res.json({ success: false, message: `Order cannot be cancelled in '${order.orderStatus}' status.` });
+        }
+
+        // 1. Process Refund for Prepaid Orders
+        if (order.paymentMethod === 'Razorpay' && order.payment) {
+            const paymentId = order.razorpayPaymentId || order.paymentDetails?.razorpay_payment_id;
+            if (paymentId) {
+                // For direct cancellation, we refund the full amount or as calculated
+                const refundAmount = order.orderTotal; 
+                const refundResult = await processPrepaidRefund(orderId, paymentId, refundAmount);
+                
+                if (refundResult.success) {
+                    order.refundDetails.status = 'completed';
+                    order.refundDetails.amount = refundAmount;
+                    order.refundDetails.id = refundResult.refundId;
+                    order.refundDetails.processedAt = new Date();
+                    order.orderStatus = 'Refunded';
+                } else {
+                    // If automatic refund fails, mark as pending for admin
+                    order.refundDetails.status = 'pending';
+                    order.orderStatus = 'Cancelled';
+                }
+            } else {
+                order.refundDetails.status = 'pending';
+                order.orderStatus = 'Cancelled';
+            }
+        } else if (order.paymentMethod === 'COD') {
+            order.orderStatus = 'Cancelled';
+            if (bankDetails) {
+                order.refundDetails.status = 'pending';
+                order.refundDetails.customerPayoutDetails = {
+                    type: 'bank',
+                    bankAccount: bankDetails.accountNumber,
+                    ifsc: bankDetails.ifsc,
+                    accountHolderName: bankDetails.accountHolderName,
+                    bankName: bankDetails.bankName
+                };
+            }
+        } else {
+            order.orderStatus = 'Cancelled';
         }
 
         // Restore stock
@@ -1054,28 +1095,13 @@ const cancelOrder = async (req, res) => {
             }
         }
 
-        // Update Order
-        order.orderStatus = 'Cancelled';
         order.isCancelled = true;
-
-        if (order.paymentMethod !== 'COD') {
-            order.refundDetails.status = 'pending';
-            order.refundDetails.reason = reason || 'Customer requested cancellation';
-            order.refundDetails.requestedAt = new Date();
-            
-            if (bankDetails) {
-                order.refundDetails.customerPayoutDetails = {
-                    type: 'bank',
-                    bankAccount: bankDetails.accountNumber,
-                    ifsc: bankDetails.ifsc,
-                    accountHolderName: bankDetails.accountHolderName
-                };
-            }
-        }
+        order.refundDetails.reason = reason || 'Customer requested cancellation';
+        order.refundDetails.requestedAt = new Date();
 
         await order.save();
 
-        res.json({ success: true, message: "Order cancelled successfully" });
+        res.json({ success: true, message: order.orderStatus === 'Refunded' ? "Order cancelled and refund initiated." : "Order cancelled successfully" });
 
     } catch (error) {
         console.log(error);
