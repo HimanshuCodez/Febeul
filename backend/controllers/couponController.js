@@ -32,10 +32,10 @@ export const addCoupon = async (req, res) => {
             userType,
             offerType: offerType || 'none',
             applicableSKUs: applicableSKUs || [],
-<<<<<<< HEAD
+
             specificUsers: specificUsers || [],
-=======
->>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
+
+
             creator: {
                 name: req.userName || 'Admin',
                 email: req.userEmail || '',
@@ -86,12 +86,10 @@ export const removeCoupon = async (req, res) => {
 // Admin: Update a coupon
 export const updateCoupon = async (req, res) => {
     try {
-<<<<<<< HEAD
-        const { id, code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs, specificUsers } = req.body;
-=======
-        const { id, code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs } = req.body;
->>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
 
+        const { id, code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs, specificUsers } = req.body;
+
+   
         if (!id) {
             return res.status(400).json({ success: false, message: 'Coupon ID is required.' });
         }
@@ -109,12 +107,11 @@ export const updateCoupon = async (req, res) => {
             isActive,
             userType,
             offerType,
-<<<<<<< HEAD
+
             applicableSKUs,
             specificUsers
-=======
-            applicableSKUs
->>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
+
+
         };
 
         // Remove undefined fields
@@ -226,7 +223,7 @@ export const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'You have already used this coupon the maximum number of times.' });
         }
 
-<<<<<<< HEAD
+
         // Check Restrictions (Luxe or Specific Users)
         if (coupon.userType === 'luxe' || (coupon.specificUsers && coupon.specificUsers.length > 0)) {
             const user = await userModel.findById(userId);
@@ -244,14 +241,7 @@ export const applyCoupon = async (req, res) => {
                     return res.status(403).json({ success: false, message: 'This coupon is only available for selected loyal customers.' });
                 }
             }
-=======
-        // Check User Type Restriction
-        if (coupon.userType === 'luxe') {
-            const user = await userModel.findById(userId);
-            if (!user || !user.isLuxeMember) {
-                return res.status(403).json({ success: false, message: 'This coupon is reserved for Luxe Members only.' });
-            }
->>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
+
         }
 
         let applicableTotal = 0;
@@ -350,7 +340,7 @@ export const applyProductCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'You have already used this coupon the maximum number of times.' });
             }
 
-<<<<<<< HEAD
+
             // Check Restrictions (Luxe or Specific Users)
             if (coupon.userType === 'luxe' || (coupon.specificUsers && coupon.specificUsers.length > 0)) {
                 const user = await userModel.findById(userId);
@@ -368,14 +358,7 @@ export const applyProductCoupon = async (req, res) => {
                         return res.status(403).json({ success: false, message: 'This coupon is only available for selected loyal customers.' });
                     }
                 }
-=======
-            // Check User Type Restriction
-            if (coupon.userType === 'luxe') {
-                const user = await mongoose.model('user').findById(userId);
-                if (!user || !user.isLuxeMember) {
-                    return res.status(403).json({ success: false, message: 'This coupon is reserved for Luxe Members only.' });
-                }
->>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
+
             }
         }
 
