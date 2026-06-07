@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {}, appliedCoupon = null, selectedPayment = "" }) => {
-  const { user, cartItems } = useAuthStore();
+  const { user, cartItems, token } = useAuthStore();
   const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,8 +19,12 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
 
   useEffect(() => {
     const fetchCoupons = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       try {
-        const response = await axios.get(`${backendUrl}/api/coupon/all`);
+        const response = await axios.get(`${backendUrl}/api/coupon/all`, { headers: { token } });
         if (response.data.success) {
           // Show all active coupons
           setCoupons(response.data.coupons);
@@ -36,7 +40,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
     };
 
     fetchCoupons();
-  }, []);
+  }, [token]);
 
   const handleRedeemClick = (coupon) => {
     if (coupon.userType === 'luxe' && !user?.isLuxeMember) {
@@ -81,7 +85,15 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
     productSKUs.some(sku => coupon.applicableSKUs.includes(sku)))
   );
 
-  if (applicableCoupons.length === 0) return null;
+  if (applicableCoupons.length === 0) {
+    return (
+      <div className="my-8 text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+        <Tag size={40} className="mx-auto text-gray-300 mb-3" />
+        <p className="text-gray-500 font-medium">No coupons available for you at the moment.</p>
+        <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Check back later for exclusive deals!</p>
+      </div>
+    );
+  }
 
   return (
     <div className="my-4">

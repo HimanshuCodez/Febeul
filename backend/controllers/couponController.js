@@ -1,4 +1,5 @@
 import couponModel from '../models/couponModel.js';
+import userModel from '../models/userModel.js';
 
 // Admin: Add a new coupon
 export const addCoupon = async (req, res) => {
@@ -294,11 +295,33 @@ export const applyCoupon = async (req, res) => {
 // Get all active coupons for users
 export const getActiveCoupons = async (req, res) => {
     try {
+        const userId = req.userId;
+        const user = await userModel.findById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User context not found.' });
+        }
+
         const coupons = await couponModel.find({ 
             isActive: true,
             expiryDate: { $gt: new Date() } 
         }).sort({ createdAt: -1 });
-        res.json({ success: true, coupons });
+
+        // Filter coupons: 
+        // 1. If specificUsers is empty -> show to all
+        // 2. If specificUsers has entries -> show only if user email or ID is in it
+        const filteredCoupons = coupons.filter(coupon => {
+            if (!coupon.specificUsers || coupon.specificUsers.length === 0) {
+                // Also respect userType restriction for public listing
+                if (coupon.userType === 'luxe' && !user.isLuxeMember) {
+                    return false;
+                }
+                return true;
+            }
+            return coupon.specificUsers.includes(user.email) || coupon.specificUsers.includes(userId);
+        });
+
+        res.json({ success: true, coupons: filteredCoupons });
     } catch (error) {
         console.error('Error fetching active coupons:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch active coupons.' });

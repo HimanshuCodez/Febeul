@@ -16,6 +16,6 @@ couponRouter.get('/usage-all', adminAuth, getAllCouponUsage);
 // User Routes
 couponRouter.post('/apply', auth, applyCoupon);
 couponRouter.post('/apply-product-coupon', auth, applyProductCoupon);
-couponRouter.get('/all', getActiveCoupons);
+couponRouter.get('/all', auth, getActiveCoupons);
 
 export default couponRouter;
