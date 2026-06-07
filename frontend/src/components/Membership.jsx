@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gem, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const benefits = [
     { name: "FAST PRIORITY DELIVERY", icon: "/2.png" },
@@ -93,17 +94,23 @@ const FebeulMembershipWidget = () => {
                   Unlock exclusive Febeul perks and earn rewards with every
                   purchase 💖
                 </p>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-pink-500 text-white w-full py-3 rounded-full font-semibold shadow-md hover:bg-pink-600"
-                >
-                  Join now
-                </motion.button>
+                <Link to="/PrimeMember" onClick={() => setOpen(false)}>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    className="bg-pink-500 text-white w-full py-3 rounded-full font-semibold shadow-md hover:bg-pink-600"
+                  >
+                    Join now
+                  </motion.button>
+                </Link>
                 <p className="text-gray-500 text-sm mt-3">
                   Already have an account?{" "}
-                  <a href="#" className="text-pink-600 font-medium hover:underline">
+                  <Link 
+                    to="/auth" 
+                    className="text-pink-600 font-medium hover:underline"
+                    onClick={() => setOpen(false)}
+                  >
                     Sign in
-                  </a>
+                  </Link>
                 </p>
               </div>
 
