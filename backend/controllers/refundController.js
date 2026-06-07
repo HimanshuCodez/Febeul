@@ -159,7 +159,7 @@ const processCodRefund = async (orderId, refundAmount, customerPayoutDetails) =>
     }
 };
 
-<<<<<<< HEAD
+
 // --- 5. Admin Approve Refund Handler ---
 const approveRefund = async (req, res) => {
     const { orderId, returnReason, manualRefundAmount } = req.body;
@@ -237,8 +237,8 @@ const approveRefund = async (req, res) => {
     }
 };
 
-=======
->>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
+
+
 // --- Main function to handle cancellation/return requests ---
 const requestRefund = async (req, res) => {
     const { orderId, reason } = req.body;
@@ -352,8 +352,6 @@ const updateShiprocketStatusWebhook = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
+
 export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, approveRefund, updateShiprocketStatusWebhook };
-=======
-export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, updateShiprocketStatusWebhook };
->>>>>>> 848107dd672c163c17866cd57dff9afa36823bef
+

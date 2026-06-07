@@ -31,9 +31,9 @@ const buildInvoicePDF = (order, res) => {
         const borderColor = '#CCCCCC';
         const tableHeaderBg = '#F5F5F5';
 
-        // ===================================
+        // 
         // TOP HEADER: LOGO & TITLE
-        // ===================================
+        // 
         
         // Logo
         try {
@@ -55,9 +55,9 @@ const buildInvoicePDF = (order, res) => {
         doc.moveDown(1);
         const headerBottom = doc.y;
 
-        // ===================================
+        // 
         // COMPANY & INVOICE DETAILS
-        // ===================================
+        // 
         
         const colWidth = (doc.page.width - 60) / 2;
 
@@ -92,9 +92,9 @@ const buildInvoicePDF = (order, res) => {
         doc.moveDown(1);
         const addressY = doc.y;
 
-        // ===================================
+        // 
         // BILLING & SHIPPING ADDRESSES
-        // ===================================
+        // 
         
         doc.strokeColor(borderColor).lineWidth(0.5).moveTo(30, addressY).lineTo(doc.page.width - 30, addressY).stroke();
         doc.moveDown(0.3);
@@ -143,9 +143,9 @@ const buildInvoicePDF = (order, res) => {
 
         doc.moveDown(1.2);
 
-        // ===================================
+        // 
         // ITEMS TABLE
-        // ===================================
+        // 
         
         const tableTop = doc.y;
         const slCol = 30;
@@ -215,9 +215,9 @@ const buildInvoicePDF = (order, res) => {
         // Table Bottom Border
         doc.strokeColor(borderColor).lineWidth(0.5).moveTo(30, currentY).lineTo(doc.page.width - 30, currentY).stroke();
 
-        // ===================================
+        // 
         // TOTALS SECTION
-        // ===================================
+        // 
         
         const totalsY = currentY + 8;
         const totalsLabelX = 380;
@@ -303,9 +303,9 @@ const buildInvoicePDF = (order, res) => {
         doc.text('Grand Total:', totalsLabelX, doc.y, { width: 110, align: 'right' });
         doc.text(`INR ${order.orderTotal.toFixed(2)}`, totalsValX, doc.y - 11, { width: 65, align: 'right' });
 
-        // ===================================
+        // 
         // TERMS & FOOTER
-        // ===================================
+        // 
         
         const footerY = doc.page.height - 105;
         
