@@ -27,38 +27,55 @@ import CouponShows from "../components/CouponShows";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLeft, onSwipeRight }) => {
+const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLeft, onSwipeRight, currentIndex, totalImages }) => {
   return (
     <div
       className="relative mx-auto overflow-hidden bg-white shadow-sm w-full h-[75vh] lg:h-[calc(100vh-100px)] flex items-center justify-center cursor-default"
     >
-      <motion.img
-        key={src}
-        src={src}
-        alt={alt}
-        className={`w-full h-full transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} touch-none`}
-        style={{
-          objectFit: 'cover',
-          transform: 'scale(1.02)'
-        }}
-        initial={{ opacity: 0.8 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
-        onDragEnd={(e, info) => {
-          if (info.offset.x > 50) onSwipeRight?.();
-          else if (info.offset.x < -50) onSwipeLeft?.();
-        }}
-        onTap={() => onMobileClick()}
-      />
+      <AnimatePresence initial={false} mode="wait">
+        <motion.img
+          key={src}
+          src={src}
+          alt={alt}
+          className={`w-full h-full transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} touch-pan-y`}
+          style={{
+            objectFit: 'cover',
+            transform: 'scale(1.02)'
+          }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(e, info) => {
+            if (info.offset.x > 50) onSwipeRight?.();
+            else if (info.offset.x < -50) onSwipeLeft?.();
+          }}
+          onTap={() => onMobileClick()}
+        />
+      </AnimatePresence>
       {isOutOfStock && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
           <div className="bg-red-600/90 text-white px-6 py-2 rounded-sm font-bold text-xl uppercase tracking-widest flex items-center gap-2 transform -rotate-12 border-2 border-white shadow-2xl">
              <XCircle size={28} />
              Out Of Stock
           </div>
+        </div>
+      )}
+
+      {/* Pagination Dots (Mobile) */}
+      {totalImages > 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 lg:hidden z-20">
+          {Array.from({ length: totalImages }).map((_, idx) => (
+            <div
+              key={idx}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                currentIndex === idx ? "bg-pink-500 w-4" : "bg-gray-300 w-1.5"
+              }`}
+            />
+          ))}
         </div>
       )}
     </div>
