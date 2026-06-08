@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Tag } from 'lucide-react';
+import { Tag, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RedeemPopup from './RedeemApply';
 import useAuthStore from '../store/authStore';
