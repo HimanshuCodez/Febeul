@@ -13,12 +13,13 @@ import {
   FaShoppingBag,
   FaCreditCard // Added for payment method icon
 } from 'react-icons/fa';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from "../store/authStore";
 
 export default function OrderSuccess() {
   const location = useLocation();
+  const navigate = useNavigate();
   // Ensure state exists before destructuring
   const { order: initialOrder, items, address, pricingDetails } = location.state || {};
   const { token, siteSettings, fetchSiteSettings } = useAuthStore(); // Get token and siteSettings here
@@ -26,7 +27,14 @@ export default function OrderSuccess() {
 
   useEffect(() => {
     fetchSiteSettings();
-  }, []);
+
+    // Redirect to myorders after 4 seconds
+    const timer = setTimeout(() => {
+      navigate('/myorders');
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [navigate]);
 
   useEffect(() => {
     const fetchOrder = async () => {
