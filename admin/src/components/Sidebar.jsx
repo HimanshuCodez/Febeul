@@ -1,7 +1,42 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { assets } from '../assets/assets'
-import { ChevronDown, ChevronRight, PackageSearch, Settings, RotateCcw } from 'lucide-react'
+import { 
+  LayoutDashboard, Users, PackageSearch, PlusCircle, List, 
+  ShoppingBag, RotateCcw, Gift, ShieldCheck, Ticket, 
+  MessageSquare, Star, FileText, Image, Mail, Settings, 
+  Wrench, Sliders, Zap, Type, ChevronDown, ChevronRight 
+} from 'lucide-react'
+
+const SidebarItem = ({ to, icon: Icon, label, active, onClick }) => {
+  const baseClass = "mx-4 my-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium group";
+  const activeClass = "bg-black text-white shadow-lg shadow-black/10 scale-[1.02]";
+  const inactiveClass = "text-gray-500 hover:bg-gray-100 hover:text-black";
+
+  if (onClick) {
+    return (
+      <div 
+        onClick={onClick}
+        className={`${baseClass} cursor-pointer ${active ? 'text-black' : inactiveClass}`}
+      >
+        <Icon size={20} className={active ? 'text-black' : 'group-hover:text-black'} />
+        <p className='hidden md:block flex-1'>{label}</p>
+        <div className='hidden md:block'>
+          {active ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <NavLink 
+      to={to} 
+      className={({ isActive }) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}
+    >
+      <Icon size={20} />
+      <p className='hidden md:block'>{label}</p>
+    </NavLink>
+  );
+};
 
 const Sidebar = ({ role, permissions = [] }) => {
   const location = useLocation();
@@ -25,7 +60,7 @@ const Sidebar = ({ role, permissions = [] }) => {
 
   const isAllowed = (path) => {
     if (role === 'admin') return true;
-    if (permissions.length === 0) return true; // Default behavior if no specific permissions set
+    if (permissions.length === 0) return true;
     return permissions.includes(path);
   };
 
@@ -33,180 +68,126 @@ const Sidebar = ({ role, permissions = [] }) => {
   const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize') || isAllowed('/typography');
 
   return (
-    <div className='w-[18%] min-h-screen border-r-2'>
-        <div className='flex flex-col gap-4 pt-6 pl-[20%] text-[15px]'>
+    <div className='w-[20%] md:w-[18%] lg:w-64 min-h-screen bg-white border-r border-gray-100 py-6 overflow-y-auto no-scrollbar'>
+        <div className='flex flex-col gap-1'>
+            
+            <div className="px-6 mb-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Main Menu</p>
+            </div>
 
             {isAllowed('/') && (
-                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/">
-                    <img className='w-5 h-5' src={assets.parcel_icon} alt="" />
-                    <p className='hidden md:block'>Dashboard</p>
-                </NavLink>
+              <SidebarItem to="/" icon={LayoutDashboard} label="Dashboard" />
             )}
 
             {isAllowed('/allusers') && (
-                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/allusers">
-                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                    <p className='hidden md:block'>All Users</p>
-                </NavLink>
+              <SidebarItem to="/allusers" icon={Users} label="All Users" />
             )}
 
             {/* Product Listing Accordion */}
             {showProductListing && (
                 <div className="flex flex-col">
-                    <div 
+                    <SidebarItem 
+                        icon={PackageSearch} 
+                        label="Inventory" 
+                        active={isProductListingOpen}
                         onClick={() => setIsProductListingOpen(!isProductListingOpen)}
-                        className='flex items-center justify-between gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l cursor-pointer hover:bg-gray-50'
-                    >
-                        <div className="flex items-center gap-3">
-                            <PackageSearch size={20} className="text-gray-600" />
-                            <p className='hidden md:block font-medium'>Product Listing</p>
-                        </div>
-                        <div className='hidden md:block'>
-                            {isProductListingOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        </div>
-                    </div>
+                    />
                     
                     {isProductListingOpen && (
-                        <div className="flex flex-col gap-2 mt-2 ml-4">
+                        <div className="flex flex-col mb-2">
                             {isAllowed('/add') && (
-                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/add">
-                                    <img className='w-5 h-5' src={assets.add_icon} alt="" />
-                                    <p className='hidden md:block'>Add Items</p>
-                                </NavLink>
+                                <SidebarItem to="/add" icon={PlusCircle} label="Add Items" />
                             )}
-
                             {isAllowed('/list') && (
-                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/list">
-                                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                                    <p className='hidden md:block'>List Items</p>
-                                </NavLink>
+                                <SidebarItem to="/list" icon={List} label="List Items" />
                             )}
-
                             {location.pathname.includes('/update') && isAllowed('/list') && (
-                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to={location.pathname}>
-                                    <img className='w-5 h-5' src={assets.add_icon} alt="" />
-                                    <p className='hidden md:block'>Update Item</p>
-                                </NavLink>
+                                <SidebarItem to={location.pathname} icon={PlusCircle} label="Update Item" />
                             )}
                         </div>
                     )}
                 </div>
             )}
 
+            <div className="px-6 mt-6 mb-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Store Operations</p>
+            </div>
+
             {isAllowed('/orders') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/orders">
-                  <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                  <p className='hidden md:block'>Orders</p>
-              </NavLink>
+              <SidebarItem to="/orders" icon={ShoppingBag} label="Orders" />
             )}
 
             {isAllowed('/refund-requests') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/refund-requests">
-                  <RotateCcw size={20} className="text-gray-600" />
-                  <p className='hidden md:block'>Refund Requests</p>
-              </NavLink>
+              <SidebarItem to="/refund-requests" icon={RotateCcw} label="Refunds" />
             )}
 
             {isAllowed('/gift-wraps') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/gift-wraps">
-                  <img className='w-5 h-5' src={assets.add_icon} alt="" />
-                  <p className='hidden md:block'>Gift Wraps</p>
-              </NavLink>
+              <SidebarItem to="/gift-wraps" icon={Gift} label="Gift Wraps" />
             )}
 
-            {isAllowed('/policy-update') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/policy-update">
-                  <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                  <p className='hidden md:block'>Policy Update</p>
-              </NavLink>
-            )}
+            <div className="px-6 mt-6 mb-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Marketing & Content</p>
+            </div>
 
             {isAllowed('/coupons') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/coupons">
-                  <img className='w-5 h-5' src={assets.add_icon} alt="" />
-                  <p className='hidden md:block'>Generate Coupon</p>
-              </NavLink>
-            )}
-
-            {isAllowed('/tickets') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/tickets">
-                  <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                  <p className='hidden md:block'>Tickets</p>
-              </NavLink>
-            )}
-
-            {isAllowed('/reviews') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/reviews">
-                  <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                  <p className='hidden md:block'>Reviews</p>
-              </NavLink>
-            )}
-
-            {isAllowed('/cms') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/cms">
-                  <img className='w-5 h-5' src={assets.add_icon} alt="" />
-                  <p className='hidden md:block'>CMS</p>
-              </NavLink>
-            )}
-
-            {isAllowed('/images') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/images">
-                  <img className='w-5 h-5' src={assets.add_icon} alt="" />
-                  <p className='hidden md:block'>Hero Images</p>
-              </NavLink>
+              <SidebarItem to="/coupons" icon={Ticket} label="Coupons" />
             )}
 
             {isAllowed('/send-mail') && (
-              <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/send-mail">
-                  <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                  <p className='hidden md:block'>Email Marketing</p>
-              </NavLink>
+              <SidebarItem to="/send-mail" icon={Mail} label="Email Marketing" />
             )}
+
+            {isAllowed('/cms') && (
+              <SidebarItem to="/cms" icon={FileText} label="Content (CMS)" />
+            )}
+
+            {isAllowed('/images') && (
+              <SidebarItem to="/images" icon={Image} label="Hero Images" />
+            )}
+
+            {isAllowed('/policy-update') && (
+              <SidebarItem to="/policy-update" icon={ShieldCheck} label="Policies" />
+            )}
+
+            <div className="px-6 mt-6 mb-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Support & Trust</p>
+            </div>
+
+            {isAllowed('/tickets') && (
+              <SidebarItem to="/tickets" icon={MessageSquare} label="Tickets" />
+            )}
+
+            {isAllowed('/reviews') && (
+              <SidebarItem to="/reviews" icon={Star} label="Reviews" />
+            )}
+
+            <div className="px-6 mt-6 mb-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System</p>
+            </div>
 
             {/* Settings Accordion */}
             {showSettings && (
                 <div className="flex flex-col">
-                    <div 
+                    <SidebarItem 
+                        icon={Settings} 
+                        label="Settings" 
+                        active={isSettingsOpen}
                         onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                        className='flex items-center justify-between gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l cursor-pointer hover:bg-gray-50'
-                    >
-                        <div className="flex items-center gap-3">
-                            <Settings size={20} className="text-gray-600" />
-                            <p className='hidden md:block font-medium'>Settings</p>
-                        </div>
-                        <div className='hidden md:block'>
-                            {isSettingsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        </div>
-                    </div>
+                    />
                     
                     {isSettingsOpen && (
-                        <div className="flex flex-col gap-2 mt-2 ml-4">
+                        <div className="flex flex-col mb-2">
                             {isAllowed('/maintenance') && (
-                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/maintenance">
-                                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                                    <p className='hidden md:block'>Maintenance Mode</p>
-                                </NavLink>
+                                <SidebarItem to="/maintenance" icon={Wrench} label="Maintenance" />
                             )}
-
                             {isAllowed('/configurations') && (
-                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/configurations">
-                                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                                    <p className='hidden md:block'>Configurations</p>
-                                </NavLink>
+                                <SidebarItem to="/configurations" icon={Sliders} label="Config" />
                             )}
-
                             {isAllowed('/image-optimize') && (
-                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/image-optimize">
-                                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                                    <p className='hidden md:block'>Image Optimization</p>
-                                </NavLink>
+                                <SidebarItem to="/image-optimize" icon={Zap} label="Image Opt" />
                             )}
-
                             {isAllowed('/typography') && (
-                                <NavLink className='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to="/typography">
-                                    <img className='w-5 h-5' src={assets.order_icon} alt="" />
-                                    <p className='hidden md:block'>Typography</p>
-                                </NavLink>
+                                <SidebarItem to="/typography" icon={Type} label="Typography" />
                             )}
                         </div>
                     )}

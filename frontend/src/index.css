@@ -5,8 +5,20 @@
 :root {
   /* Default values that will be overridden by JS */
   --primary-font: 'Inter', sans-serif;
-  --secondary-font: 'Inter', sans-serif;
   --accent-font: 'Playfair Display', serif;
+  
+  /* Primary Metrics */
+  --primary-weight: 400;
+  --primary-line-height: 1.6;
+  --primary-letter-spacing: 0px;
+  
+  /* Accent/Heading Metrics */
+  --accent-weight: 700;
+  --accent-line-height: 1.2;
+  --accent-letter-spacing: 0px;
+  --heading-transform: none;
+
+  /* Font Sizes */
   --base-font-size: 16px;
   --h1-size: 48px;
   --h2-size: 36px;
@@ -16,25 +28,41 @@
 body {
   font-family: var(--primary-font);
   font-size: var(--base-font-size);
+  font-weight: var(--primary-weight);
+  line-height: var(--primary-line-height);
+  letter-spacing: var(--primary-letter-spacing);
 }
 
 h1 {
   font-family: var(--accent-font);
   font-size: var(--h1-size);
+  font-weight: var(--accent-weight);
+  line-height: var(--accent-line-height);
+  letter-spacing: var(--accent-letter-spacing);
+  text-transform: var(--heading-transform);
 }
 
 h2 {
   font-family: var(--accent-font);
   font-size: var(--h2-size);
+  font-weight: var(--accent-weight);
+  line-height: var(--accent-line-height);
+  letter-spacing: var(--accent-letter-spacing);
+  text-transform: var(--heading-transform);
 }
 
 h3 {
   font-family: var(--accent-font);
   font-size: var(--h3-size);
+  font-weight: var(--accent-weight);
+  line-height: var(--accent-line-height);
+  letter-spacing: var(--accent-letter-spacing);
+  text-transform: var(--heading-transform);
 }
 
 button, nav, .ui-element {
-  font-family: var(--secondary-font);
+  /* Buttons usually follow a cleaner primary or secondary font style */
+  font-family: var(--primary-font);
 }
 
 .product-description ul {

@@ -1,28 +1,138 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
-import { Type, Save, RefreshCcw, Layout, Heading1, Heading2, Heading3, Smartphone } from 'lucide-react';
+import { 
+    Type, Save, RefreshCcw, Layout, Heading1, Heading2, Heading3, 
+    Smartphone, Monitor, ChevronDown, Search, AlignLeft, 
+    MoveHorizontal, MoveVertical, Bold, Italic, CaseUpper
+} from 'lucide-react';
+
+const FONT_GROUPS = {
+    'Sans-Serif (Modern)': ['Inter', 'Roboto', 'Montserrat', 'Poppins', 'Open Sans', 'Lato', 'Raleway', 'Nunito', 'Ubuntu'],
+    'Serif (Classic)': ['Playfair Display', 'Merriweather', 'Lora', 'Libre Baskerville', 'Crimson Text', 'Georgia'],
+    'Display (Stylized)': ['Bebas Neue', 'Cinzel', 'Oswald', 'Quicksand', 'Righteous', 'Dancing Script', 'Pacifico'],
+    'Monospace': ['Fira Code', 'Roboto Mono', 'Source Code Pro', 'Courier New'],
+    'System': ['Arial', 'Verdana', 'Times New Roman', 'system-ui']
+};
+
+const FONT_WEIGHTS = [
+    { label: 'Light', value: '300' },
+    { label: 'Regular', value: '400' },
+    { label: 'Medium', value: '500' },
+    { label: 'Semi-Bold', value: '600' },
+    { label: 'Bold', value: '700' },
+    { label: 'Extra-Bold', value: '800' },
+];
+
+const FontPicker = ({ label, value, onChange, description }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const allFonts = Object.values(FONT_GROUPS).flat();
+    const filteredFonts = allFonts.filter(font => 
+        font.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div className="space-y-2 relative" ref={dropdownRef}>
+            <label className="text-sm font-semibold text-gray-600">{label}</label>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white cursor-pointer flex items-center justify-between hover:border-black transition-colors"
+                style={{ fontFamily: value }}
+            >
+                <span>{value}</span>
+                <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+            
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-80 overflow-hidden flex flex-col">
+                    <div className="p-2 border-b border-gray-100 flex items-center gap-2">
+                        <Search size={14} className="text-gray-400" />
+                        <input 
+                            autoFocus
+                            placeholder="Search fonts..."
+                            className="w-full text-sm outline-none"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="overflow-y-auto">
+                        {Object.entries(FONT_GROUPS).map(([group, fonts]) => {
+                            const groupFiltered = fonts.filter(f => f.toLowerCase().includes(searchTerm.toLowerCase()));
+                            if (groupFiltered.length === 0) return null;
+                            return (
+                                <div key={group}>
+                                    <div className="px-3 py-1 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{group}</div>
+                                    {groupFiltered.map(font => (
+                                        <div 
+                                            key={font}
+                                            onClick={() => {
+                                                onChange(font);
+                                                setIsOpen(false);
+                                            }}
+                                            className={`px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm transition-colors ${value === font ? 'bg-indigo-50 text-indigo-600 font-semibold' : ''}`}
+                                            style={{ fontFamily: font }}
+                                        >
+                                            {font}
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+            <p className="text-[10px] text-gray-400">{description}</p>
+        </div>
+    );
+};
+
+const ControlGroup = ({ label, children, icon: Icon }) => (
+    <div className="space-y-3">
+        <div className="flex items-center gap-2 text-gray-700">
+            {Icon && <Icon size={16} />}
+            <span className="text-sm font-bold uppercase tracking-wide text-gray-500">{label}</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 rounded-xl border border-gray-100 bg-gray-50/30">
+            {children}
+        </div>
+    </div>
+);
 
 const TypographySettings = ({ token }) => {
     const [settings, setSettings] = useState({
         primaryFont: 'Inter',
-        secondaryFont: 'Inter',
+        primaryWeight: '400',
+        primaryLineHeight: '1.6',
+        primaryLetterSpacing: '0',
         accentFont: 'Playfair Display',
+        accentWeight: '700',
+        accentLineHeight: '1.2',
+        accentLetterSpacing: '0',
+        headingTransform: 'none',
         baseFontSize: 16,
         h1Size: 48,
         h2Size: 36,
         h3Size: 24,
         mobileBaseFontSize: 14,
+        mobileH1Size: 32,
     });
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-
-    const fontsList = [
-        'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 
-        'Playfair Display', 'Merriweather', 'Nunito', 'Raleway', 'Ubuntu', 
-        'Oswald', 'Quicksand', 'Libre Baskerville', 'Lora', 'Georgia', 'Arial', 'Verdana'
-    ];
+    const [previewMode, setPreviewMode] = useState('desktop');
 
     useEffect(() => {
         fetchSettings();
@@ -30,14 +140,14 @@ const TypographySettings = ({ token }) => {
 
     useEffect(() => {
         const loadFonts = () => {
-            const fontsToLoad = [settings.primaryFont, settings.secondaryFont, settings.accentFont];
+            const fontsToLoad = [settings.primaryFont, settings.accentFont];
             const uniqueFonts = [...new Set(fontsToLoad)].filter(font => 
-                !['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'Courier New'].includes(font)
+                !['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'system-ui'].includes(font)
             );
 
             if (uniqueFonts.length === 0) return;
 
-            const fontString = uniqueFonts.map(font => `family=${font.replace(/\s+/g, '+')}:wght@400;500;600;700`).join('&');
+            const fontString = uniqueFonts.map(font => `family=${font.replace(/\s+/g, '+')}:wght@300;400;500;600;700;800`).join('&');
             const linkId = 'google-fonts-typography-preview';
             let link = document.getElementById(linkId);
 
@@ -51,21 +161,15 @@ const TypographySettings = ({ token }) => {
         };
 
         loadFonts();
-    }, [settings.primaryFont, settings.secondaryFont, settings.accentFont]);
+    }, [settings.primaryFont, settings.accentFont]);
 
     const fetchSettings = async () => {
         try {
             const response = await axios.get(`${backendUrl}/api/cms/typographySettings`);
             if (response.data.success && response.data.content) {
                 setSettings({
-                    primaryFont: response.data.content.primaryFont || 'Inter',
-                    secondaryFont: response.data.content.secondaryFont || 'Inter',
-                    accentFont: response.data.content.accentFont || 'Playfair Display',
-                    baseFontSize: response.data.content.baseFontSize || 16,
-                    h1Size: response.data.content.h1Size || 48,
-                    h2Size: response.data.content.h2Size || 36,
-                    h3Size: response.data.content.h3Size || 24,
-                    mobileBaseFontSize: response.data.content.mobileBaseFontSize || 14,
+                    ...settings,
+                    ...response.data.content
                 });
             }
         } catch (error) {
@@ -105,223 +209,266 @@ const TypographySettings = ({ token }) => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+        <div className="max-w-6xl mx-auto p-6 space-y-8">
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Typography Settings</h2>
-                        <p className="text-gray-500 text-sm mt-1">Manage fonts and sizes for the entire website</p>
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Typography Suite</h2>
+                        <p className="text-gray-500 text-sm mt-1">Professional-grade control over your website's character</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-indigo-100 text-indigo-600">
-                        <Type size={28} />
+                    <div className="p-4 rounded-2xl bg-black text-white shadow-lg shadow-black/10">
+                        <Type size={32} />
                     </div>
                 </div>
 
-                <div className="p-8 space-y-10">
-                    {/* Font Selection */}
-                    <section>
-                        <div className="flex items-center gap-2 mb-6 border-b pb-2">
-                            <Layout className="text-indigo-500" size={20} />
-                            <h3 className="font-bold text-gray-800">Font Families</h3>
+                <div className="p-8 space-y-12">
+                    {/* Primary Font Controls */}
+                    <ControlGroup label="Primary Body Font" icon={AlignLeft}>
+                        <FontPicker 
+                            label="Font Family"
+                            value={settings.primaryFont}
+                            onChange={(font) => setSettings({ ...settings, primaryFont: font })}
+                            description="Used for paragraphs, buttons, and most UI elements."
+                        />
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600">Font Weight</label>
+                            <select 
+                                value={settings.primaryWeight}
+                                onChange={(e) => setSettings({ ...settings, primaryWeight: e.target.value })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            >
+                                {FONT_WEIGHTS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
+                            </select>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-600">Primary Font (Body)</label>
-                                <select
-                                    value={settings.primaryFont}
-                                    onChange={(e) => setSettings({ ...settings, primaryFont: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                >
-                                    {fontsList.map(font => <option key={font} value={font}>{font}</option>)}
-                                </select>
-                                <p className="text-[10px] text-gray-400">Used for most of the website's body text.</p>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-600">Secondary Font (UI)</label>
-                                <select
-                                    value={settings.secondaryFont}
-                                    onChange={(e) => setSettings({ ...settings, secondaryFont: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                >
-                                    {fontsList.map(font => <option key={font} value={font}>{font}</option>)}
-                                </select>
-                                <p className="text-[10px] text-gray-400">Used for navigation and UI elements.</p>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-600">Accent Font (Headings)</label>
-                                <select
-                                    value={settings.accentFont}
-                                    onChange={(e) => setSettings({ ...settings, accentFont: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                >
-                                    {fontsList.map(font => <option key={font} value={font}>{font}</option>)}
-                                </select>
-                                <p className="text-[10px] text-gray-400">Used for headings and decorative text.</p>
-                            </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
+                                <MoveVertical size={14} /> Line Height
+                            </label>
+                            <input 
+                                type="number" step="0.1" min="1" max="2"
+                                value={settings.primaryLineHeight}
+                                onChange={(e) => setSettings({ ...settings, primaryLineHeight: e.target.value })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            />
                         </div>
-                    </section>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
+                                <MoveHorizontal size={14} /> Letter Spacing (px)
+                            </label>
+                            <input 
+                                type="number" step="0.1" min="-2" max="10"
+                                value={settings.primaryLetterSpacing}
+                                onChange={(e) => setSettings({ ...settings, primaryLetterSpacing: e.target.value })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600">Base Font Size (px)</label>
+                            <input 
+                                type="number"
+                                value={settings.baseFontSize}
+                                onChange={(e) => setSettings({ ...settings, baseFontSize: Number(e.target.value) })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            />
+                        </div>
+                    </ControlGroup>
 
-                    {/* Font Sizes */}
-                    <section>
-                        <div className="flex items-center gap-2 mb-6 border-b pb-2">
-                            <Type className="text-orange-500" size={20} />
-                            <h3 className="font-bold text-gray-800">Font Sizes (Desktop)</h3>
+                    {/* Accent/Heading Controls */}
+                    <ControlGroup label="Accent & Heading Font" icon={Heading1}>
+                        <FontPicker 
+                            label="Font Family"
+                            value={settings.accentFont}
+                            onChange={(font) => setSettings({ ...settings, accentFont: font })}
+                            description="Used for all H1, H2, and H3 headings."
+                        />
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600">Font Weight</label>
+                            <select 
+                                value={settings.accentWeight}
+                                onChange={(e) => setSettings({ ...settings, accentWeight: e.target.value })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            >
+                                {FONT_WEIGHTS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
+                            </select>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
-                                    Base Size (px)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={settings.baseFontSize}
-                                    onChange={(e) => setSettings({ ...settings, baseFontSize: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
-                                    <Heading1 size={14} /> H1 Size (px)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={settings.h1Size}
-                                    onChange={(e) => setSettings({ ...settings, h1Size: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
-                                    <Heading2 size={14} /> H2 Size (px)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={settings.h2Size}
-                                    onChange={(e) => setSettings({ ...settings, h2Size: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
-                                    <Heading3 size={14} /> H3 Size (px)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={settings.h3Size}
-                                    onChange={(e) => setSettings({ ...settings, h3Size: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
-                                />
-                            </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600">Text Transform</label>
+                            <select 
+                                value={settings.headingTransform}
+                                onChange={(e) => setSettings({ ...settings, headingTransform: e.target.value })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            >
+                                <option value="none">None</option>
+                                <option value="uppercase">UPPERCASE</option>
+                                <option value="capitalize">Capitalize</option>
+                            </select>
                         </div>
-                    </section>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
+                                <Heading1 size={14} /> H1 Size (px)
+                            </label>
+                            <input 
+                                type="number"
+                                value={settings.h1Size}
+                                onChange={(e) => setSettings({ ...settings, h1Size: Number(e.target.value) })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
+                                <Heading2 size={14} /> H2 Size (px)
+                            </label>
+                            <input 
+                                type="number"
+                                value={settings.h2Size}
+                                onChange={(e) => setSettings({ ...settings, h2Size: Number(e.target.value) })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
+                                <Heading3 size={14} /> H3 Size (px)
+                            </label>
+                            <input 
+                                type="number"
+                                value={settings.h3Size}
+                                onChange={(e) => setSettings({ ...settings, h3Size: Number(e.target.value) })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            />
+                        </div>
+                    </ControlGroup>
 
                     {/* Responsive Settings */}
-                    <section>
-                        <div className="flex items-center gap-2 mb-6 border-b pb-2">
-                            <Smartphone className="text-emerald-500" size={20} />
-                            <h3 className="font-bold text-gray-800">Responsive Settings</h3>
+                    <ControlGroup label="Mobile & Responsive" icon={Smartphone}>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600">Mobile Base Size (px)</label>
+                            <input 
+                                type="number"
+                                value={settings.mobileBaseFontSize}
+                                onChange={(e) => setSettings({ ...settings, mobileBaseFontSize: Number(e.target.value) })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-600">Mobile Base Font Size (px)</label>
-                                <input
-                                    type="number"
-                                    value={settings.mobileBaseFontSize}
-                                    onChange={(e) => setSettings({ ...settings, mobileBaseFontSize: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                                />
-                                <p className="text-[10px] text-gray-400">Smaller base size for improved mobile readability.</p>
-                            </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-600">Mobile H1 Size (px)</label>
+                            <input 
+                                type="number"
+                                value={settings.mobileH1Size}
+                                onChange={(e) => setSettings({ ...settings, mobileH1Size: Number(e.target.value) })}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black outline-none"
+                            />
                         </div>
-                    </section>
+                    </ControlGroup>
 
-                    {/* Live Preview */}
-                    <section className="mt-10 p-6 rounded-2xl bg-gray-50 border border-gray-100">
-                        <div className="flex items-center gap-2 mb-6 border-b pb-2">
-                            <Layout className="text-purple-500" size={20} />
-                            <h3 className="font-bold text-gray-800">Live Preview</h3>
-                        </div>
-                        <div className="space-y-6" style={{ 
-                            fontSize: `${settings.baseFontSize}px`,
-                            fontFamily: settings.primaryFont
-                        }}>
-                            <h1 style={{ 
-                                fontSize: `${settings.h1Size}px`, 
-                                fontFamily: settings.accentFont,
-                                lineHeight: 1.2,
-                                fontWeight: 700
-                            }}>
-                                This is an H1 Heading
-                            </h1>
-                            <h2 style={{ 
-                                fontSize: `${settings.h2Size}px`, 
-                                fontFamily: settings.accentFont,
-                                lineHeight: 1.2,
-                                fontWeight: 600
-                            }}>
-                                This is an H2 Heading
-                            </h2>
-                            <h3 style={{ 
-                                fontSize: `${settings.h3Size}px`, 
-                                fontFamily: settings.accentFont,
-                                lineHeight: 1.2,
-                                fontWeight: 600
-                            }}>
-                                This is an H3 Heading
-                            </h3>
-                            <p className="text-gray-600 leading-relaxed">
-                                This is a paragraph using the primary font. It shows how the base font size and primary font family look in a typical block of text. <span style={{ fontFamily: settings.secondaryFont, fontWeight: 600 }}>This text uses the secondary font for UI/emphasis.</span>
-                            </p>
-                            <div className="flex gap-4">
-                                <button style={{ 
-                                    fontFamily: settings.secondaryFont,
-                                    padding: '8px 16px',
-                                    backgroundColor: 'black',
-                                    color: 'white',
-                                    borderRadius: '8px'
-                                }}>
-                                    UI Button
+                    {/* Live Preview Section */}
+                    <section className="mt-16">
+                        <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+                            <div className="flex items-center gap-2">
+                                <Layout className="text-gray-400" size={20} />
+                                <h3 className="font-black text-xl text-gray-800 uppercase tracking-tight">Live Web Preview</h3>
+                            </div>
+                            <div className="flex bg-gray-100 p-1 rounded-xl">
+                                <button 
+                                    onClick={() => setPreviewMode('desktop')}
+                                    className={`p-2 rounded-lg transition-all ${previewMode === 'desktop' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}
+                                >
+                                    <Monitor size={18} />
                                 </button>
-                                <span style={{ 
-                                    fontFamily: settings.secondaryFont,
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}>
-                                    Secondary Font UI Link
-                                </span>
+                                <button 
+                                    onClick={() => setPreviewMode('mobile')}
+                                    className={`p-2 rounded-lg transition-all ${previewMode === 'mobile' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}
+                                >
+                                    <Smartphone size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={`mx-auto transition-all duration-500 border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-2xl shadow-black/5 ${previewMode === 'mobile' ? 'max-w-[375px]' : 'max-w-full'}`}>
+                            <div className="p-8 space-y-8" style={{ 
+                                fontSize: `${previewMode === 'mobile' ? settings.mobileBaseFontSize : settings.baseFontSize}px`,
+                                fontFamily: settings.primaryFont,
+                                fontWeight: settings.primaryWeight,
+                                lineHeight: settings.primaryLineHeight,
+                                letterSpacing: `${settings.primaryLetterSpacing}px`
+                            }}>
+                                <div className="space-y-4">
+                                    <h1 style={{ 
+                                        fontSize: `${previewMode === 'mobile' ? settings.mobileH1Size : settings.h1Size}px`, 
+                                        fontFamily: settings.accentFont,
+                                        fontWeight: settings.accentWeight,
+                                        lineHeight: settings.accentLineHeight,
+                                        letterSpacing: `${settings.accentLetterSpacing}px`,
+                                        textTransform: settings.headingTransform
+                                    }}>
+                                        The Art of Professional Typography
+                                    </h1>
+                                    <h2 style={{ 
+                                        fontSize: `${settings.h2Size * (previewMode === 'mobile' ? 0.75 : 1)}px`, 
+                                        fontFamily: settings.accentFont,
+                                        fontWeight: settings.accentWeight,
+                                        textTransform: settings.headingTransform
+                                    }}>
+                                        Perfect for Luxury E-commerce
+                                    </h2>
+                                </div>
+                                <p className="text-gray-600">
+                                    This is a live preview of your primary font. Notice how the line height and letter spacing affect the overall readability and "feel" of your brand. Professional typography is about the relationship between space and characters.
+                                </p>
+                                <div className="flex gap-4 pt-4">
+                                    <button style={{ 
+                                        padding: '12px 28px',
+                                        backgroundColor: 'black',
+                                        color: 'white',
+                                        borderRadius: '12px',
+                                        fontWeight: 600,
+                                        fontSize: '14px'
+                                    }}>
+                                        Shop Collection
+                                    </button>
+                                    <button style={{ 
+                                        padding: '12px 28px',
+                                        backgroundColor: 'white',
+                                        color: 'black',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '12px',
+                                        fontWeight: 600,
+                                        fontSize: '14px'
+                                    }}>
+                                        Learn More
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </section>
 
-                    <div className="pt-8 border-t border-gray-50 flex justify-end gap-4">
+                    <div className="pt-12 flex justify-end gap-4 border-t border-gray-50">
                         <button
                             onClick={fetchSettings}
-                            className="flex items-center gap-2 px-6 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all font-medium text-gray-600"
+                            className="flex items-center gap-2 px-8 py-3 rounded-2xl border border-gray-200 hover:bg-gray-50 transition-all font-bold text-gray-500 hover:text-black"
                         >
-                            <RefreshCcw size={18} />
-                            Reset
+                            <RefreshCcw size={20} />
+                            Reset Changes
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
-                            className="flex items-center gap-2 px-8 py-2 rounded-xl bg-black text-white hover:bg-gray-800 transition-all font-medium disabled:bg-gray-400"
+                            className="flex items-center gap-2 px-10 py-3 rounded-2xl bg-black text-white hover:bg-gray-800 transition-all font-bold shadow-xl shadow-black/10 disabled:bg-gray-400"
                         >
-                            {isSaving ? <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full"></div> : <Save size={18} />}
-                            Save Changes
+                            {isSaving ? <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full"></div> : <Save size={20} />}
+                            Save Configuration
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-8 p-6 rounded-2xl bg-indigo-50 border border-indigo-100 flex gap-4">
-                <div className="p-2 h-fit bg-indigo-100 rounded-lg text-indigo-600">
-                    <Type size={20} />
+            <div className="p-8 rounded-3xl bg-black text-white flex gap-6 items-center">
+                <div className="p-4 bg-white/10 rounded-2xl">
+                    <Type size={32} className="text-white" />
                 </div>
                 <div>
-                    <h4 className="font-bold text-indigo-900 mb-1 text-sm italic">Automated Font Loading</h4>
-                    <p className="text-xs text-indigo-800 leading-relaxed font-medium">
-                        The selected fonts are now automatically fetched from Google Fonts. You don't need to manually import them or download any packages. 
-                        The changes will be applied globally across the website once saved.
+                    <h4 className="font-black text-lg mb-1 uppercase tracking-tight">Design Tip</h4>
+                    <p className="text-gray-400 text-sm leading-relaxed max-w-2xl">
+                        For a premium look, try using a <span className="text-white font-bold">Serif font</span> like Playfair Display for headings with <span className="text-white font-bold">increased letter spacing</span>, paired with a clean <span className="text-white font-bold">Sans-Serif</span> like Inter for body text.
                     </p>
                 </div>
             </div>

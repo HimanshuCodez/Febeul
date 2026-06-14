@@ -96,13 +96,13 @@ const AppContent = () => {
     if (!settings) return;
 
     // Load Google Fonts
-    const fontsToLoad = [settings.primaryFont, settings.secondaryFont, settings.accentFont];
+    const fontsToLoad = [settings.primaryFont, settings.accentFont];
     const uniqueFonts = [...new Set(fontsToLoad)].filter(font => 
-      !['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'Courier New'].includes(font)
+      font && !['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'Courier New', 'system-ui'].includes(font)
     );
 
     if (uniqueFonts.length > 0) {
-      const fontString = uniqueFonts.map(font => `family=${font.replace(/\s+/g, '+')}:wght@400;500;600;700`).join('&');
+      const fontString = uniqueFonts.map(font => `family=${font.replace(/\s+/g, '+')}:wght@300;400;500;600;700;800`).join('&');
       const linkId = 'google-fonts-typography';
       let link = document.getElementById(linkId);
 
@@ -117,9 +117,21 @@ const AppContent = () => {
 
     // Apply CSS Variables
     const root = document.documentElement;
+    
+    // Fonts
     root.style.setProperty('--primary-font', `"${settings.primaryFont}", sans-serif`);
-    root.style.setProperty('--secondary-font', `"${settings.secondaryFont}", sans-serif`);
     root.style.setProperty('--accent-font', `"${settings.accentFont}", serif`);
+    
+    // Primary Body Metrics
+    root.style.setProperty('--primary-weight', settings.primaryWeight || '400');
+    root.style.setProperty('--primary-line-height', settings.primaryLineHeight || '1.6');
+    root.style.setProperty('--primary-letter-spacing', `${settings.primaryLetterSpacing || 0}px`);
+    
+    // Accent/Heading Metrics
+    root.style.setProperty('--accent-weight', settings.accentWeight || '700');
+    root.style.setProperty('--accent-line-height', settings.accentLineHeight || '1.2');
+    root.style.setProperty('--accent-letter-spacing', `${settings.accentLetterSpacing || 0}px`);
+    root.style.setProperty('--heading-transform', settings.headingTransform || 'none');
     
     // Desktop sizes
     root.style.setProperty('--base-font-size', `${settings.baseFontSize}px`);
@@ -130,6 +142,7 @@ const AppContent = () => {
     // Mobile sizes
     if (window.innerWidth < 768) {
       root.style.setProperty('--base-font-size', `${settings.mobileBaseFontSize}px`);
+      root.style.setProperty('--h1-size', `${settings.mobileH1Size || settings.h1Size * 0.7}px`);
     }
   };
 
