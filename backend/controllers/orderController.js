@@ -1038,7 +1038,7 @@ const cancelOrder = async (req, res) => {
             return res.json({ success: false, message: "Not authorized to cancel this order" });
         }
 
-        const nonCancellableStatuses = ['Processing', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
+        const nonCancellableStatuses = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
         if (nonCancellableStatuses.includes(order.orderStatus)) {
             return res.json({ success: false, message: `Order cannot be cancelled in '${order.orderStatus}' status.` });
         }

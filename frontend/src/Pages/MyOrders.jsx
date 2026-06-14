@@ -71,6 +71,34 @@ const MyOrders = () => {
     navigate(`/order-detail/${orderId}`);
   };
 
+  const handleCancelOrder = async (orderId) => {
+    const reason = window.prompt("Please enter the reason for cancellation:");
+    if (reason === null) return; // User cancelled prompt
+
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/order/cancel`,
+        { orderId, reason },
+        { headers: { token } }
+      );
+
+      if (response.data.success) {
+        toast.success("Order cancelled successfully");
+        fetchOrders();
+      } else {
+        toast.error(response.data.message || "Failed to cancel order");
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast.error("An error occurred while cancelling the order");
+    }
+  };
+
+  const canCancel = (status) => {
+    const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
+    return !nonCancellable.includes(status);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-6">My Orders</h2>
@@ -84,8 +112,16 @@ const MyOrders = () => {
                         <p className="font-semibold text-gray-800">Order #{order._id.slice(-6)}</p>
                         <p className="text-xs text-gray-500">{new Date(order.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     </div>
-                    <div className="text-right sm:text-left"> {/* Right side: Amount */}
+                    <div className="text-right sm:text-left flex flex-col items-end sm:items-start"> {/* Right side: Amount and Cancel Button */}
                         <p className="font-bold text-gray-800 text-lg">₹{(order.displayTotal || 0).toFixed(2)}</p>
+                        {canCancel(order.orderStatus) && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleCancelOrder(order._id); }}
+                            className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase mt-1 tracking-wider border border-red-200 px-2 py-0.5 rounded-md hover:bg-red-50 transition-all"
+                          >
+                            Cancel Order
+                          </button>
+                        )}
                     </div>
                 </div>
 
