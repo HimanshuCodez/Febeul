@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShoppingBag, ArrowRight, Package } from "lucide-react"; // X and MapPin removed
+import { ShoppingBag, ArrowRight, Package, Crown } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
@@ -100,75 +100,177 @@ const MyOrders = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-6">My Orders</h2>
-      {orders.length > 0 ? (
-          <div className="space-y-4">
-          {orders.map(order => (
-              <div key={order._id} className="p-4 rounded-lg border hover:border-pink-200 hover:bg-pink-50/50 transition-colors">
-                {/* Mobile: Grid for Order ID/Date vs Amount */}
-                <div className="grid grid-cols-2 gap-x-4 items-center justify-between mb-2 sm:flex sm:flex-row sm:mb-0">
-                    <div> {/* Left side: Order ID and Date */}
-                        <p className="font-semibold text-gray-800">Order #{order._id.slice(-6)}</p>
-                        <p className="text-xs text-gray-500">{new Date(order.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+    <div className="max-w-4xl mx-auto py-8 px-4 font-sans">
+      <div className="bg-white rounded-3xl shadow-xl shadow-slate-100/80 border border-slate-100 p-6 md:p-8">
+        
+        {/* Header Section */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-6 mb-8">
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              <ShoppingBag className="text-pink-500 w-6 h-6" /> My Orders
+            </h2>
+            <p className="text-sm text-slate-500 font-medium mt-1">Track and manage your recent purchases</p>
+          </div>
+          <span className="bg-pink-50 text-pink-600 font-black text-xs px-3.5 py-1.5 rounded-2xl border border-pink-100">
+            {orders.length} {orders.length === 1 ? 'Order' : 'Orders'}
+          </span>
+        </div>
+
+        {orders.length > 0 ? (
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: { transition: { staggerChildren: 0.08 } }
+            }}
+            className="space-y-6"
+          >
+            {orders.map((order) => {
+              const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership");
+              const displayStatus = isLuxe && order.payment ? "Delivered" : order.orderStatus;
+              
+              return (
+                <motion.div
+                  key={order._id}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
+                  }}
+                  whileHover={{ y: -2 }}
+                  className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                >
+                  {/* Top bar of the card */}
+                  <div className="bg-slate-50/60 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order ID</span>
+                        <span className="text-sm font-extrabold text-slate-800">#{order._id.slice(-8).toUpperCase()}</span>
+                      </div>
+                      <div className="h-6 w-[1px] bg-slate-200" />
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Date Placed</span>
+                        <span className="text-xs font-bold text-slate-600">
+                          {new Date(order.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right sm:text-left flex flex-col items-end sm:items-start"> {/* Right side: Amount and Cancel Button */}
-                        <p className="font-bold text-gray-800 text-lg">₹{(order.displayTotal || 0).toFixed(2)}</p>
+
+                    <div className="flex items-center gap-3">
+                      {/* Status Badge */}
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black capitalize ${
+                        displayStatus === "Processing" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                        displayStatus === "Shipped" || displayStatus === "Out for delivery" ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                        displayStatus === "Delivered" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                        displayStatus === "Cancelled" ? "bg-rose-50 text-rose-700 border border-rose-100" :
+                        "bg-slate-50 text-slate-700 border border-slate-100"
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          displayStatus === "Processing" ? "bg-amber-500 animate-pulse" :
+                          displayStatus === "Shipped" || displayStatus === "Out for delivery" ? "bg-blue-500" :
+                          displayStatus === "Delivered" ? "bg-emerald-500" :
+                          displayStatus === "Cancelled" ? "bg-rose-500" :
+                          "bg-slate-500"
+                        }`} />
+                        {displayStatus}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Body of the card (Items thumbnail strip & pricing) */}
+                  <div className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    {/* Item Thumbnails & Info */}
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex -space-x-2.5 overflow-hidden">
+                        {order.items.slice(0, 3).map((item, index) => (
+                          <div key={index} className="relative group/thumb flex-shrink-0">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-14 h-14 object-cover rounded-xl border-2 border-white shadow-sm bg-slate-50"
+                            />
+                            {item.quantity > 1 && (
+                              <span className="absolute -bottom-1 -right-1 bg-slate-900 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white">
+                                {item.quantity}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                        {order.items.length > 3 && (
+                          <div className="w-14 h-14 bg-slate-100 border-2 border-white rounded-xl flex items-center justify-center text-xs font-bold text-slate-500 shadow-sm">
+                            +{order.items.length - 3}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-slate-800 line-clamp-1">
+                          {order.items.map(item => item.name).join(', ')}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-slate-500 font-medium">
+                            {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                          </span>
+                          {order.couponDiscount > 0 && (
+                            <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-black border border-emerald-100 uppercase tracking-wider">
+                              Discount Applied
+                            </span>
+                          )}
+                          {isLuxe && (
+                            <span className="text-[9px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-black border border-amber-100 uppercase tracking-wider flex items-center gap-1">
+                              <Crown size={10} className="text-amber-600" /> Luxe Member
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Price and Details/Cancel Button */}
+                    <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center w-full md:w-auto gap-4 pt-4 md:pt-0 border-t border-slate-100 md:border-0">
+                      <div className="text-left md:text-right">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Amount</span>
+                        <span className="text-lg font-black text-slate-900">₹{(order.displayTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
                         {canCancel(order.orderStatus) && (
-                          <button 
+                          <button
                             onClick={(e) => { e.stopPropagation(); handleCancelOrder(order._id); }}
-                            className="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase mt-1 tracking-wider border border-red-200 px-2 py-0.5 rounded-md hover:bg-red-50 transition-all"
+                            className="text-xs text-rose-600 hover:text-white font-bold border border-rose-100 hover:bg-rose-500 hover:border-rose-500 px-3.5 py-2 rounded-xl transition-all active:scale-95"
                           >
-                            Cancel Order
+                            Cancel
                           </button>
                         )}
-                    </div>
-                </div>
-
-                {/* Mobile: Items Count, Status, and Details Button */}
-                <div className="flex justify-between items-center mt-2 sm:mt-0">
-                    <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-500">{order.items.length} items</p>
-                        {order.couponDiscount > 0 && (
-                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
-                                {order.couponOfferType && order.couponOfferType !== 'none' 
-                                    ? `${order.couponOfferType.toUpperCase()} OFFER` 
-                                    : 'DISCOUNT APPLIED'}
-                            </span>
-                        )}
-                        {order.items.some(item => item.name === "Febeul Luxe Membership") && (
-                            <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                <Package size={10} /> LUXE MEMBER
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <span className={`text-xs font-medium px-3 py-1 rounded-full capitalize ${
-                            order.orderStatus === "Processing" ? "bg-yellow-100 text-yellow-700" :
-                            order.orderStatus === "Shipped" || order.orderStatus === "Out for delivery" ? "bg-blue-100 text-blue-700" :
-                            (order.orderStatus === "Delivered" || (order.items.some(item => item.name === "Febeul Luxe Membership") && order.payment)) ? "bg-green-100 text-green-700" :
-                            "bg-gray-100 text-gray-700"
-                        }`}>
-                            {order.items.some(item => item.name === "Febeul Luxe Membership") && order.payment ? "Delivered" : order.orderStatus}
-                        </span>
-                        <button onClick={() => handleViewOrderDetails(order._id)} className="text-pink-500 hover:text-pink-700">
-                            <ArrowRight size={20} />
+                        <button
+                          onClick={() => handleViewOrderDetails(order._id)}
+                          className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl font-bold text-xs shadow-sm hover:shadow active:scale-95 transition-all"
+                        >
+                          Details <ArrowRight className="w-3.5 h-3.5" />
                         </button>
+                      </div>
                     </div>
-                </div>
-              </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-            <ShoppingBag className="mx-auto w-12 h-12 text-gray-300 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700">No Orders Yet</h3>
-            <p className="text-gray-500 mt-1">Your past orders will appear here.</p>
-            <Link to="/" className="mt-4 inline-block bg-pink-500 text-white px-6 py-2 rounded-full font-semibold hover:bg-pink-600 transition-colors">
-                Start Shopping
+                  </div>
+
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        ) : (
+          <div className="text-center py-20 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 p-8">
+            <div className="bg-white p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto shadow-sm border border-slate-100 mb-6">
+              <ShoppingBag className="w-10 h-10 text-slate-300" />
+            </div>
+            <h3 className="text-lg font-black text-slate-700">No Orders Yet</h3>
+            <p className="text-slate-400 text-sm font-medium mt-2 max-w-sm mx-auto">You haven't made any purchases yet. Explore our premium collection and make your first order!</p>
+            <Link 
+              to="/" 
+              className="mt-6 inline-flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg shadow-pink-100 active:scale-95 transition-all"
+            >
+              Start Shopping <ArrowRight className="w-4 h-4" />
             </Link>
-        </div>
-      )}
+          </div>
+        )}
+
+      </div>
     </div>
   );
 };
