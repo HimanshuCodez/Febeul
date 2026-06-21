@@ -120,6 +120,7 @@ const Images = ({ token }) => {
                         <input type="file" className="hidden" onChange={(e) => handleFileUpload('hero', index, e.target.files[0], 'desktop')} />
                       </label>
                     </div>
+                    <p className="text-[10px] text-gray-500 mt-1">Note: Image should be between 1920x800 and 2560x1080 pixels to fill the screen properly.</p>
                   </div>
                   {/* Mobile Upload */}
                   <div className="space-y-3">
@@ -133,6 +134,7 @@ const Images = ({ token }) => {
                         <input type="file" className="hidden" onChange={(e) => handleFileUpload('hero', index, e.target.files[0], 'mobile')} />
                       </label>
                     </div>
+                    <p className="text-[10px] text-gray-500 mt-1">Note: Image should be between 1080x1350 and 1080x1920 pixels to fill the screen properly.</p>
                   </div>
                   {/* Link */}
                   <div className="md:col-span-2 border-t pt-4">
@@ -238,6 +240,7 @@ const Images = ({ token }) => {
                   {poseSection.desktop ? <img src={poseSection.desktop} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">Desktop Image</div>}
                 </div>
                 <label className="block text-center cursor-pointer bg-white border border-gray-300 py-3 rounded-md text-sm font-bold shadow-sm hover:bg-gray-50 transition">Upload Desktop Image<input type="file" className="hidden" onChange={(e) => handleFileUpload('pose', null, e.target.files[0], 'desktop')} /></label>
+                <p className="text-xs text-gray-500 text-center mt-1">Note: Image should be between 1920x800 and 2560x1080 pixels to fill the screen properly.</p>
               </div>
               <div className="space-y-4">
                 <p className="font-bold text-red-600 uppercase text-xs">Mobile Full Screen (Portrait)</p>
@@ -245,6 +248,7 @@ const Images = ({ token }) => {
                   {poseSection.mobile ? <img src={poseSection.mobile} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">Mobile Image</div>}
                 </div>
                 <label className="block text-center cursor-pointer bg-red-50 text-red-600 border border-red-200 py-3 rounded-md text-sm font-bold shadow-sm hover:bg-red-50 transition">Upload Mobile Image<input type="file" className="hidden" onChange={(e) => handleFileUpload('pose', null, e.target.files[0], 'mobile')} /></label>
+                <p className="text-xs text-gray-500 text-center mt-1">Note: Image should be between 1080x1350 and 1080x1920 pixels to fill the screen properly.</p>
               </div>
             </div>
             <div className="border-t pt-6">
