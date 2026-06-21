@@ -439,10 +439,8 @@ export default function OrderDetailPage() {
   };
 
   const isCancellationPossible = () => {
-    // Only 'Order Placed' is typically cancellable by user in standard ecommerce
-    // User specifically asked to disable for Processing, Confirmed, Shipped, Out for delivery
-    const cancellableStatuses = ['Order Placed'];
-    return cancellableStatuses.includes(order.orderStatus);
+    const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
+    return !nonCancellable.includes(order.orderStatus);
   };
 
   const returnPossible = isReturnEligible();
