@@ -3,9 +3,8 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 
 const Hero = () => {
-  const [slides, setSlides] = useState([
-    { desktop: "./purple.jpg", mobile: "./purple.jpg", link: "" },
-  ]);
+  const [slides, setSlides] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -15,9 +14,18 @@ const Hero = () => {
       const response = await axios.get(`${backendUrl}/api/cms/hero_carousel`);
       if (response.data.success && response.data.content && response.data.content.length > 0) {
         setSlides(response.data.content);
+      } else {
+        setSlides([
+          { desktop: "./purple.jpg", mobile: "./purple.jpg", link: "" },
+        ]);
       }
     } catch (error) {
       console.error("Error fetching carousel data:", error);
+      setSlides([
+        { desktop: "./purple.jpg", mobile: "./purple.jpg", link: "" },
+      ]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -27,6 +35,16 @@ const Hero = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="w-full h-[60vh] sm:h-[70vh] lg:h-[85vh] bg-gray-100 animate-pulse flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const sliderRef = useRef(null);

@@ -3,12 +3,8 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 
 const BlackBanner = () => {
-  const [bannerData, setBannerData] = useState({ 
-    video: "", 
-    link: "",
-    showDeal: false,
-    deal: null
-  });
+  const [bannerData, setBannerData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
@@ -17,13 +13,36 @@ const BlackBanner = () => {
         const response = await axios.get(`${backendUrl}/api/cms/black_banner`);
         if (response.data.success && response.data.content) {
           setBannerData(response.data.content);
+        } else {
+          setBannerData({ 
+            video: "", 
+            link: "",
+            showDeal: false,
+            deal: null
+          });
         }
       } catch (error) {
         console.error("Error fetching black banner:", error);
+        setBannerData({ 
+          video: "", 
+          link: "",
+          showDeal: false,
+          deal: null
+        });
+      } finally {
+        setLoading(false);
       }
     };
     fetchBanner();
   }, [backendUrl]);
+
+  if (loading) {
+    return (
+      <section className="relative w-full h-[90vh] sm:h-screen bg-gray-950 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin"></div>
+      </section>
+    );
+  }
 
   const BannerContent = () => {
     if (bannerData.video) {

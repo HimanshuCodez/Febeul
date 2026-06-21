@@ -11,7 +11,8 @@ const defaultCategories = [
 ];
 
 export default function Spotlight() {
-  const [categories, setCategories] = useState(defaultCategories);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
@@ -20,13 +21,35 @@ export default function Spotlight() {
         const response = await axios.get(`${backendUrl}/api/cms/spotlight_categories`);
         if (response.data.success && response.data.content && response.data.content.length > 0) {
           setCategories(response.data.content);
+        } else {
+          setCategories(defaultCategories);
         }
       } catch (error) {
         console.error("Error fetching spotlight data:", error);
+        setCategories(defaultCategories);
+      } finally {
+        setLoading(false);
       }
     };
     fetchSpotlight();
   }, [backendUrl]);
+
+  if (loading) {
+    return (
+      <div className="w-full flex flex-col items-center py-8">
+        <div className="h-9 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+        <div className="h-5 w-96 bg-gray-200 rounded animate-pulse mb-6"></div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-10 sm:gap-20 lg:gap-36">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="w-28 h-28 sm:w-44 sm:h-44 rounded-full bg-gray-200 animate-pulse border-2 border-gray-100 shadow-sm"></div>
+              <div className="mt-3 h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col items-center py-8">

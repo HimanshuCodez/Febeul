@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 
 export default function LingerieRobeSection() {
-  const [poseData, setPoseData] = useState({ desktop: "/redHome.png", mobile: "/redHome.png", link: "" });
+  const [poseData, setPoseData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -13,9 +14,14 @@ export default function LingerieRobeSection() {
         const response = await axios.get(`${backendUrl}/api/cms/pose_section`);
         if (response.data.success && response.data.content) {
           setPoseData(response.data.content);
+        } else {
+          setPoseData({ desktop: "/redHome.png", mobile: "/redHome.png", link: "" });
         }
       } catch (error) {
         console.error("Error fetching pose section:", error);
+        setPoseData({ desktop: "/redHome.png", mobile: "/redHome.png", link: "" });
+      } finally {
+        setLoading(false);
       }
     };
     fetchPose();
@@ -24,6 +30,16 @@ export default function LingerieRobeSection() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [backendUrl]);
+
+  if (loading) {
+    return (
+      <section className="w-full bg-white">
+        <div className="w-full h-[85vh] bg-gray-100 animate-pulse flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full bg-white">
