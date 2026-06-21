@@ -36,16 +36,6 @@ const Hero = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="w-full">
-        <div className="w-full h-[60vh] sm:h-[70vh] lg:h-[85vh] bg-gray-100 animate-pulse flex items-center justify-center">
-          <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin"></div>
-        </div>
-      </div>
-    );
-  }
-
   const [currentSlide, setCurrentSlide] = useState(0);
   const sliderRef = useRef(null);
 
@@ -71,6 +61,16 @@ const Hero = () => {
   useEffect(() => {
     goToSlide(currentSlide);
   }, [currentSlide, slides.length]);
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="w-full h-[60vh] sm:h-[70vh] lg:h-[85vh] bg-gray-100 animate-pulse flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
