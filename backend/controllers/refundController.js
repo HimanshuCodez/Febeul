@@ -215,20 +215,39 @@ const requestRefund = async (req, res) => {
 const updateShiprocketStatusWebhook = async (req, res) => {
     try {
         const { order_id, current_status } = req.body;
-        const order = await orderModel.findOne({ 'shiprocket.orderId': order_id }) || await orderModel.findById(order_id);
+        const statusText = (current_status || '').toString().trim().toUpperCase();
+        const order = await orderModel.findOne({
+            $or: [
+                { 'shiprocket.srOrderId': order_id },
+                { 'shiprocket.ourOrderId': order_id },
+                { 'shiprocket.shipmentId': order_id }
+            ]
+        }) || await orderModel.findById(order_id);
         if (!order) return res.json({ success: false, message: "Order not found." });
 
-        if (current_status === 'DELIVERED') {
+        if (statusText === 'DELIVERED') {
             order.orderStatus = 'Delivered';
             order.deliveredAt = new Date();
-        } else if (['SHIPPED', 'IN_TRANSIT'].includes(current_status)) {
+            order.shiprocketStatus = 'DELIVERED';
+        } else if (statusText === 'OUT FOR DELIVERY' || statusText === 'OUT_FOR_DELIVERY') {
+            order.orderStatus = 'Out for delivery';
+            order.shiprocketStatus = 'IN_TRANSIT';
+        } else if (['SHIPPED', 'IN_TRANSIT', 'IN TRANSIT'].includes(statusText)) {
             order.orderStatus = 'Shipped';
-        } else if (current_status.includes('RTO')) {
+            order.shiprocketStatus = statusText === 'SHIPPED' ? 'SHIPPED' : 'IN_TRANSIT';
+        } else if (statusText === 'PICKUP SCHEDULED' || statusText === 'PICKUP_SCHEDULED') {
+            order.orderStatus = 'Processing';
+            order.shiprocketStatus = 'PICKUP SCHEDULED';
+        } else if (statusText.includes('RTO')) {
             order.orderStatus = 'Returned';
-        } else if (current_status === 'CANCELLED') {
+            order.shiprocketStatus = 'RTO';
+        } else if (statusText === 'CANCELLED') {
             order.orderStatus = 'Cancelled';
+            order.shiprocketStatus = 'CANCELLED';
+        } else {
+            order.shiprocketStatus = 'UNKNOWN';
         }
-        order.shiprocketStatus = current_status;
+
         await order.save();
         res.json({ success: true, message: "Status updated." });
     } catch (error) {

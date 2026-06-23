@@ -9,6 +9,20 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL; // Assume backendUrl is accessible
 
+const getOrderDisplayStatus = (order) => {
+  const shiprocketStatus = (order.shiprocketStatus || "").toUpperCase();
+  const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
+
+  if (isLuxe && order.payment) return "Delivered";
+  if (order.deliveredAt || shiprocketStatus === "DELIVERED") return "Delivered";
+  if (shiprocketStatus === "RTO") return "Returned";
+  if (shiprocketStatus === "CANCELLED") return "Cancelled";
+  if (shiprocketStatus === "IN_TRANSIT") return order.orderStatus === "Out for delivery" ? "Out for delivery" : "Shipped";
+  if (shiprocketStatus === "SHIPPED") return "Shipped";
+  if (shiprocketStatus === "PICKUP SCHEDULED") return "Processing";
+  return order.orderStatus;
+};
+
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
   const [reason, setReason] = useState("");
   const [bankDetails, setBankDetails] = useState({
@@ -236,8 +250,8 @@ const MyOrders = () => {
             className="space-y-6"
           >
             {orders.map((order) => {
-              const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership");
-              const displayStatus = isLuxe && order.payment ? "Delivered" : order.orderStatus;
+              const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
+              const displayStatus = getOrderDisplayStatus(order);
               
               return (
                 <motion.div
@@ -342,7 +356,7 @@ const MyOrders = () => {
                       </div>
                       
                       <div className="flex items-center gap-3">
-                        {canCancel(order.orderStatus) && (
+                        {canCancel(displayStatus) && (
                           <button
                             onClick={(e) => { e.stopPropagation(); setOrderToCancel(order); }}
                             className="text-xs text-rose-600 hover:text-white font-bold border border-rose-100 hover:bg-rose-500 hover:border-rose-500 px-3.5 py-2 rounded-xl transition-all active:scale-95"

@@ -424,9 +424,25 @@ export default function OrderDetailPage() {
     );
   }
 
+  const isLuxeOrder = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
+
+  const getDisplayStatus = () => {
+    const shiprocketStatus = (order.shiprocketStatus || '').toUpperCase();
+    if (isLuxeOrder && order.payment) return 'Delivered';
+    if (order.deliveredAt || shiprocketStatus === 'DELIVERED') return 'Delivered';
+    if (shiprocketStatus === 'RTO') return 'Returned';
+    if (shiprocketStatus === 'CANCELLED') return 'Cancelled';
+    if (shiprocketStatus === 'IN_TRANSIT') return order.orderStatus === 'Out for delivery' ? 'Out for delivery' : 'Shipped';
+    if (shiprocketStatus === 'SHIPPED') return 'Shipped';
+    if (shiprocketStatus === 'PICKUP SCHEDULED') return 'Processing';
+    return order.orderStatus;
+  };
+
+  const displayStatus = getDisplayStatus();
+
   // Calculate if return is eligible
   const isReturnEligible = () => {
-    if (order.orderStatus !== 'Delivered' || !order.deliveredAt) {
+    if (displayStatus !== 'Delivered' || !order.deliveredAt) {
       return false;
     }
     if (order.refundDetails?.status !== 'none' && order.refundDetails?.status !== 'rejected') {
@@ -440,12 +456,12 @@ export default function OrderDetailPage() {
 
   const isCancellationPossible = () => {
     const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
-    return !nonCancellable.includes(order.orderStatus);
+    return !nonCancellable.includes(displayStatus);
   };
 
   const returnPossible = isReturnEligible();
   const cancellationPossible = isCancellationPossible();
-  const cancellationEligible = !['Delivered', 'Cancelled', 'Returned', 'Refunded'].includes(order.orderStatus);
+  const cancellationEligible = !['Delivered', 'Cancelled', 'Returned', 'Refunded'].includes(displayStatus);
 
   // Use pricing details from the order object
   const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
@@ -457,7 +473,7 @@ export default function OrderDetailPage() {
   
   const parsedDeliveredDate = new Date(order.deliveredAt);
 
-  const estimatedDelivery = order.orderStatus === 'Delivered'
+  const estimatedDelivery = displayStatus === 'Delivered'
     ? 'Marked as Delivered'
     : (order.deliveredAt 
         ? parsedDeliveredDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -468,7 +484,7 @@ export default function OrderDetailPage() {
   const statusLevels = {
     'Order Placed': 1,
     'Processing': 2,
-    'Confirmed': 2.5, // Between processing and shipped
+    'Confirmed': 2,
     'Shipped': 3,
     'Out for delivery': 3.5, // Between shipped and delivered
     'Delivered': 4,
@@ -477,9 +493,7 @@ export default function OrderDetailPage() {
     'Refund Initiated': 0, // Special case
     'Refunded': 0 // Special case
   };
-  const currentStatusLevel = statusLevels[order.orderStatus] || 1;
-
-  const isLuxeOrder = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
+  const currentStatusLevel = statusLevels[displayStatus] || 1;
 
   // Function to get status icon and color
   const getStatusDisplay = (status, level) => {
@@ -504,11 +518,11 @@ export default function OrderDetailPage() {
         else if (status === 'Delivered') icon = <FaMapMarkerAlt />;
     }
     
-    if (order.orderStatus === 'Cancelled') {
+    if (displayStatus === 'Cancelled') {
         color = 'bg-red-500'; icon = <X />; textColor = 'text-red-500';
-    } else if (order.orderStatus === 'Returned') {
+    } else if (displayStatus === 'Returned') {
         color = 'bg-orange-500'; icon = <FaUndo />; textColor = 'text-orange-500';
-    } else if (order.orderStatus === 'Refund Initiated' || order.orderStatus === 'Refunded') {
+    } else if (displayStatus === 'Refund Initiated' || displayStatus === 'Refunded') {
         color = 'bg-purple-500'; icon = <FaMoneyBillWave />; textColor = 'text-purple-500';
     }
 
@@ -632,7 +646,7 @@ export default function OrderDetailPage() {
               <p className="text-2xl font-bold text-[#e8767a]">{orderNumberToDisplay}</p>
             </motion.div>
 
-            {order.shiprocket?.trackingUrl && !isLuxeOrder && order.orderStatus !== 'Cancelled' && (
+            {order.shiprocket?.trackingUrl && !isLuxeOrder && displayStatus !== 'Cancelled' && (
               <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -667,19 +681,18 @@ export default function OrderDetailPage() {
               variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }}}
               className="text-xl font-bold text-gray-800 mb-6"
             >
-              Order Status: {isLuxeOrder && order.payment ? 'Delivered' : order.orderStatus}
+              Order Status: {displayStatus}
             </motion.h2>
             
             <div className="space-y-4">
               {[
-                { status: 'Order Placed', label: 'Order Confirmed', description: 'Your order has been placed successfully', date: new Date(order.date).toLocaleString(), level: 1 },
-                { status: 'Processing', label: 'Processing', description: 'We\'re preparing your items', date: order.date ? new Date(order.date).toLocaleString() : null, level: 2 },
-                { status: 'Confirmed', label: 'Order Confirmed', description: 'Your order has been confirmed and is being processed', date: order.date ? new Date(order.date).toLocaleString() : null, level: 2.5 },
-                { status: 'Shipped', label: 'Shipped', description: 'On the way to you', date: order.shippedAt ? new Date(order.shippedAt).toLocaleString() : null, level: 3 },
-                { status: 'Out for delivery', label: 'Out for Delivery', description: 'Your package is out for delivery', date: order.shippedAt ? new Date(order.shippedAt).toLocaleString() : null, level: 3.5 },
-                { status: 'Delivered', label: 'Delivered', description: isLuxeOrder ? 'Your Luxe Membership is now active' : 'Package delivered', date: order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : (isLuxeOrder && order.payment ? new Date(order.date).toLocaleString() : null), level: 4 }
+                { status: 'Order Placed', label: 'Order Placed', description: 'Your order has been placed successfully', level: 1 },
+                { status: 'Processing', label: 'Processing', description: displayStatus === 'Confirmed' ? 'Your order has been confirmed and is being processed' : 'We\'re preparing your items', level: 2 },
+                { status: 'Shipped', label: 'Shipped', description: 'On the way to you', level: 3 },
+                { status: 'Out for delivery', label: 'Out for Delivery', description: 'Your package is out for delivery', level: 3.5 },
+                { status: 'Delivered', label: 'Delivered', description: isLuxeOrder ? 'Your Luxe Membership is now active' : 'Package delivered', level: 4 }
               ].filter(s => {
-                  if (order.orderStatus === 'Cancelled') return s.status === 'Order Placed' || s.status === 'Cancelled';
+                  if (displayStatus === 'Cancelled') return s.status === 'Order Placed';
                   if (isLuxeOrder) return s.status === 'Order Placed' || s.status === 'Delivered';
                   return s.statusLevels === 0 ? true : statusLevels[s.status] > 0;
               }).map((statusItem, index, array) => {
@@ -695,13 +708,12 @@ export default function OrderDetailPage() {
                           <div className="flex-1 pt-2">
                               <p className={`font-bold ${textColor}`}>{statusItem.label}</p>
                               <p className="text-sm text-gray-600">{statusItem.description}</p>
-                              {statusItem.date && <p className="text-xs text-gray-400 mt-1">{statusItem.date}</p>}
                           </div>
                       </motion.div>
                   );
               })}
 
-              {order.orderStatus === 'Cancelled' && (
+              {displayStatus === 'Cancelled' && (
                 <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
                     <div className="flex flex-col items-center mr-4">
                         <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
@@ -724,7 +736,7 @@ export default function OrderDetailPage() {
                 </motion.div>
               )}
 
-              {order.refundDetails?.status === 'rejected' && order.orderStatus !== 'Cancelled' && (
+              {order.refundDetails?.status === 'rejected' && displayStatus !== 'Cancelled' && (
                 <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
                     <div className="flex flex-col items-center mr-4">
                         <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
@@ -741,14 +753,14 @@ export default function OrderDetailPage() {
               )}
             </div>
 
-            {!isLuxeOrder && order.orderStatus !== 'Cancelled' && (
+            {!isLuxeOrder && displayStatus !== 'Cancelled' && (
               <motion.div 
                 variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }}
                 className="mt-6 p-4 bg-[#fff5f5] rounded-lg border border-[#f9aeaf]"
               >
                 <div className="flex items-center text-[#e8767a]">
                   <FaCalendarAlt className="mr-2" />
-                  <p className="font-semibold">{order.orderStatus === 'Delivered' ? 'Status' : (order.deliveredAt ? 'Delivered on' : 'Expected Delivery')}: {estimatedDelivery}</p>
+                  <p className="font-semibold">{displayStatus === 'Delivered' ? 'Status' : (order.deliveredAt ? 'Delivered on' : 'Expected Delivery')}: {estimatedDelivery}</p>
                 </div>
               </motion.div>
             )}
@@ -861,7 +873,7 @@ export default function OrderDetailPage() {
                       )}
                     </div>
                   </motion.div>
-                  {order.orderStatus === 'Delivered' && (
+                  {displayStatus === 'Delivered' && (
                     <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100 mt-2">
                       <p className="text-sm font-semibold text-gray-700 mb-2">Rate & Review this product:</p>
                       <Reviews productId={item.productId} />
@@ -942,7 +954,7 @@ export default function OrderDetailPage() {
               </motion.button>
             </Link>
             
-            {!isLuxeOrder && order.orderStatus !== 'Cancelled' ? (
+            {!isLuxeOrder && displayStatus !== 'Cancelled' ? (
               <motion.button
                   onClick={handleDownloadInvoice}
                   whileHover={{ scale: 1.05 }}
@@ -991,7 +1003,7 @@ export default function OrderDetailPage() {
           )}
 
           {/* Return/Exchange Button */}
-          {order.orderStatus === 'Delivered' && (
+          {displayStatus === 'Delivered' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
