@@ -217,7 +217,7 @@ const RefundRequests = ({ token }) => {
                       {req.userId?.name || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-gray-900">
-                      {currency}{req.orderTotal.toFixed(2)}
+                      {currency}{(req.refundDetails?.amount || req.orderTotal || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
@@ -309,9 +309,12 @@ const RefundRequests = ({ token }) => {
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><DollarSign size={12} /> Settlement Amount</h4>
                 <div className="bg-gray-900 text-white p-6 rounded-3xl">
                     <div className="flex justify-between items-end">
-                        <div><p className="text-[10px] font-black uppercase opacity-50">Refundable Amount</p><p className="text-3xl font-black">{currency}{selectedRequest.orderTotal.toFixed(2)}</p></div>
+                        <div><p className="text-[10px] font-black uppercase opacity-50">Refundable Amount</p><p className="text-3xl font-black">{currency}{(selectedRequest.refundDetails?.amount || selectedRequest.orderTotal || 0).toFixed(2)}</p></div>
                         <span className="text-[10px] bg-emerald-500 text-white px-2 py-1 rounded-lg font-black uppercase">{selectedRequest.paymentMethod}</span>
                     </div>
+                    {selectedRequest.refundDetails?.id && (
+                      <p className="text-[10px] font-bold text-emerald-200 mt-3">Gateway Ref: {selectedRequest.refundDetails.id}</p>
+                    )}
                 </div>
               </section>
             </div>

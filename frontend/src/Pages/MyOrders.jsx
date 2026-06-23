@@ -1,17 +1,150 @@
 import React, { useState, useEffect } from "react";
-import { ShoppingBag, ArrowRight, Package, Crown } from "lucide-react";
+import { ShoppingBag, ArrowRight, Package, Crown, X, CreditCard } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import Loader from "../components/Loader";
-import { motion } from "framer-motion"; // AnimatePresence removed
+import { motion, AnimatePresence } from "framer-motion";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL; // Assume backendUrl is accessible
+
+const CancellationModal = ({ order, token, onClose, onCancelled }) => {
+  const [reason, setReason] = useState("");
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: "",
+    accountNumber: "",
+    ifsc: "",
+    bankName: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isCod = order.paymentMethod === "COD";
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setBankDetails(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!reason.trim()) {
+      toast.error("Please select a cancellation reason.");
+      return;
+    }
+
+    if (isCod && (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifsc)) {
+      toast.error("Please provide bank details for COD cancellation.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/order/cancel`,
+        {
+          orderId: order._id,
+          reason,
+          bankDetails: isCod ? bankDetails : null
+        },
+        { headers: { token } }
+      );
+
+      if (response.data.success) {
+        toast.success(response.data.message || "Order cancelled successfully");
+        onCancelled();
+      } else {
+        toast.error(response.data.message || "Failed to cancel order");
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast.error(error.response?.data?.message || "An error occurred while cancelling the order");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+      >
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-black text-slate-900">Cancel Order</h3>
+            <p className="text-xs font-bold text-slate-400 mt-1">#{order._id.slice(-8).toUpperCase()}</p>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          <div>
+            <label htmlFor="cancel-reason" className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Reason</label>
+            <select
+              id="cancel-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full p-3 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-400"
+            >
+              <option value="">Select a reason</option>
+              <option value="Changed my mind">Changed my mind</option>
+              <option value="Ordered by mistake">Ordered by mistake</option>
+              <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+              <option value="Delivery time is too long">Delivery time is too long</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {isCod && (
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <h4 className="font-black text-sm text-slate-800 flex items-center gap-2">
+                <CreditCard size={16} className="text-rose-500" />
+                Bank Details for Admin Refund Log
+              </h4>
+              <input type="text" name="accountHolderName" placeholder="Account Holder Name" value={bankDetails.accountHolderName} onChange={handleInputChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm" required />
+              <input type="text" name="accountNumber" placeholder="Account Number" value={bankDetails.accountNumber} onChange={handleInputChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm" required />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input type="text" name="ifsc" placeholder="IFSC Code" value={bankDetails.ifsc} onChange={handleInputChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm uppercase" required />
+                <input type="text" name="bankName" placeholder="Bank Name" value={bankDetails.bankName} onChange={handleInputChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
+              </div>
+            </div>
+          )}
+
+          {order.paymentMethod === "Razorpay" && order.payment && (
+            <div className="bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl p-4 text-xs font-bold">
+              The full prepaid amount will be refunded to the original Razorpay payment source.
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="px-5 py-3 rounded-xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">
+              Keep Order
+            </button>
+            <button type="submit" disabled={isSubmitting} className="px-5 py-3 rounded-xl bg-rose-600 text-white text-xs font-black uppercase tracking-widest disabled:bg-slate-300">
+              {isSubmitting ? "Cancelling..." : "Confirm Cancel"}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [orderToCancel, setOrderToCancel] = useState(null);
 
   const { token, isAuthenticated } = useAuthStore();
   const navigate = useNavigate(); // Import useNavigate for navigation
@@ -69,29 +202,6 @@ const MyOrders = () => {
 
   const handleViewOrderDetails = (orderId) => {
     navigate(`/order-detail/${orderId}`);
-  };
-
-  const handleCancelOrder = async (orderId) => {
-    const reason = window.prompt("Please enter the reason for cancellation:");
-    if (reason === null) return; // User cancelled prompt
-
-    try {
-      const response = await axios.post(
-        `${backendUrl}/api/order/cancel`,
-        { orderId, reason },
-        { headers: { token } }
-      );
-
-      if (response.data.success) {
-        toast.success("Order cancelled successfully");
-        fetchOrders();
-      } else {
-        toast.error(response.data.message || "Failed to cancel order");
-      }
-    } catch (error) {
-      console.error("Error cancelling order:", error);
-      toast.error("An error occurred while cancelling the order");
-    }
   };
 
   const canCancel = (status) => {
@@ -234,7 +344,7 @@ const MyOrders = () => {
                       <div className="flex items-center gap-3">
                         {canCancel(order.orderStatus) && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleCancelOrder(order._id); }}
+                            onClick={(e) => { e.stopPropagation(); setOrderToCancel(order); }}
                             className="text-xs text-rose-600 hover:text-white font-bold border border-rose-100 hover:bg-rose-500 hover:border-rose-500 px-3.5 py-2 rounded-xl transition-all active:scale-95"
                           >
                             Cancel
@@ -271,6 +381,20 @@ const MyOrders = () => {
         )}
 
       </div>
+
+      <AnimatePresence>
+        {orderToCancel && (
+          <CancellationModal
+            order={orderToCancel}
+            token={token}
+            onClose={() => setOrderToCancel(null)}
+            onCancelled={() => {
+              setOrderToCancel(null);
+              fetchOrders();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

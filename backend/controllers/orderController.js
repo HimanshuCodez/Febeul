@@ -1043,22 +1043,29 @@ const cancelOrder = async (req, res) => {
             return res.json({ success: false, message: `Order cannot be cancelled in '${order.orderStatus}' status.` });
         }
 
+        const refundAmount = order.orderTotal || 0;
+        order.refundDetails.amount = refundAmount;
+
         // 1. Process Refund for Prepaid Orders
         if (order.paymentMethod === 'Razorpay' && order.payment) {
             const paymentId = order.razorpayPaymentId || order.paymentDetails?.razorpay_payment_id;
             if (paymentId) {
-                // For direct cancellation, we refund the full amount or as calculated
-                const refundAmount = order.orderTotal; 
-                const refundResult = await processPrepaidRefund(orderId, paymentId, refundAmount);
-                
-                if (refundResult.success) {
-                    order.refundDetails.status = 'completed';
-                    order.refundDetails.amount = refundAmount;
-                    order.refundDetails.id = refundResult.refundId;
-                    order.refundDetails.processedAt = new Date();
-                    order.orderStatus = 'Refunded';
-                } else {
-                    // If automatic refund fails, mark as pending for admin
+                try {
+                    // Cancellation refunds the complete paid order value.
+                    const refundResult = await processPrepaidRefund(orderId, paymentId, refundAmount);
+
+                    if (refundResult.success) {
+                        order.refundDetails.status = 'completed';
+                        order.refundDetails.id = refundResult.refundId;
+                        order.refundDetails.processedAt = new Date();
+                        order.orderStatus = 'Refunded';
+                    } else {
+                        // If automatic refund fails, keep an admin-visible pending log.
+                        order.refundDetails.status = 'pending';
+                        order.orderStatus = 'Cancelled';
+                    }
+                } catch (refundError) {
+                    console.log("Razorpay refund failed during cancellation:", refundError.message);
                     order.refundDetails.status = 'pending';
                     order.orderStatus = 'Cancelled';
                 }
@@ -1068,8 +1075,8 @@ const cancelOrder = async (req, res) => {
             }
         } else if (order.paymentMethod === 'COD') {
             order.orderStatus = 'Cancelled';
+            order.refundDetails.status = 'pending';
             if (bankDetails) {
-                order.refundDetails.status = 'pending';
                 order.refundDetails.customerPayoutDetails = {
                     type: 'bank',
                     bankAccount: bankDetails.accountNumber,
