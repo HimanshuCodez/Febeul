@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable react/prop-types */
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
@@ -8,7 +9,10 @@ const Images = ({ token }) => {
   const [slides, setSlides] = useState([{ desktop: '', mobile: '', link: '' }]);
   const [spotlight, setSpotlight] = useState([{ image: '', label: '', link: '' }]);
   const [blackBanner, setBlackBanner] = useState({ 
-    video: '', 
+    desktopVideo: '', 
+    mobileVideo: '',
+    desktopDealImage: '',
+    mobileDealImage: '',
     link: '',
     showDeal: false,
     deal: { image: '', title: '', price: '', mrp: '', discount: '', link: '' }
@@ -29,7 +33,22 @@ const Images = ({ token }) => {
 
       if (hero.data.success) setSlides(hero.data.content || [{ desktop: '', mobile: '', link: '' }]);
       if (spot.data.success) setSpotlight(spot.data.content || []);
-      if (banner.data.success) setBlackBanner(prev => ({...prev, ...banner.data.content}));
+      if (banner.data.success) {
+        const content = banner.data.content || {};
+        setBlackBanner(prev => ({
+          ...prev,
+          ...content,
+          desktopVideo: content.desktopVideo || content.video || prev.desktopVideo || '',
+          mobileVideo: content.mobileVideo || content.video || prev.mobileVideo || '',
+          desktopDealImage: content.desktopDealImage || content.deal?.image || prev.desktopDealImage || '',
+          mobileDealImage: content.mobileDealImage || content.deal?.image || prev.mobileDealImage || '',
+          deal: {
+            ...prev.deal,
+            ...(content.deal || {}),
+            image: content.deal?.image || prev.deal.image || '',
+          },
+        }));
+      }
       if (pose.data.success) setPoseSection(pose.data.content || { desktop: '', mobile: '', link: '' });
 
     } catch (error) {
@@ -64,9 +83,17 @@ const Images = ({ token }) => {
           newSpotlight[index].image = url;
           setSpotlight(newSpotlight);
         } else if (type === 'banner') {
-          setBlackBanner({ ...blackBanner, video: url });
+          if (subType === 'mobile') {
+            setBlackBanner({ ...blackBanner, mobileVideo: url });
+          } else {
+            setBlackBanner({ ...blackBanner, desktopVideo: url });
+          }
         } else if (type === 'deal') {
-          setBlackBanner({ ...blackBanner, deal: { ...blackBanner.deal, image: url } });
+          if (subType === 'mobile') {
+            setBlackBanner({ ...blackBanner, mobileDealImage: url });
+          } else {
+            setBlackBanner({ ...blackBanner, desktopDealImage: url });
+          }
         } else if (type === 'pose') {
           if (subType === 'mobile') setPoseSection({ ...poseSection, mobile: url });
           else setPoseSection({ ...poseSection, desktop: url });
@@ -193,14 +220,38 @@ const Images = ({ token }) => {
           <div className="p-6 bg-white space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
-                <h3 className="font-bold text-purple-700 text-sm uppercase tracking-widest">Background Video</h3>
-                <div className="bg-black rounded-lg overflow-hidden aspect-video shadow-xl">
-                  <video src={blackBanner.video} className="w-full h-full object-cover" controls muted />
+                <h3 className="font-bold text-purple-700 text-sm uppercase tracking-widest">Banner Media</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Desktop Version</p>
+                    <div className="bg-black rounded-lg overflow-hidden aspect-video shadow-xl">
+                      {blackBanner.desktopVideo ? (
+                        <video src={blackBanner.desktopVideo} className="w-full h-full object-cover" controls muted />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Desktop media preview</div>
+                      )}
+                    </div>
+                    <label className="block cursor-pointer bg-purple-600 text-white text-center py-2 rounded text-sm font-bold shadow-md hover:bg-purple-700 transition">
+                      Upload Desktop Banner
+                      <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('banner', null, e.target.files[0], 'desktop')} />
+                    </label>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Version</p>
+                    <div className="bg-black rounded-lg overflow-hidden aspect-[9/16] shadow-xl">
+                      {blackBanner.mobileVideo ? (
+                        <video src={blackBanner.mobileVideo} className="w-full h-full object-cover" controls muted />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Mobile media preview</div>
+                      )}
+                    </div>
+                    <label className="block cursor-pointer bg-blue-600 text-white text-center py-2 rounded text-sm font-bold shadow-md hover:bg-blue-700 transition">
+                      Upload Mobile Banner
+                      <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('banner', null, e.target.files[0], 'mobile')} />
+                    </label>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <label className="flex-1 cursor-pointer bg-purple-600 text-white text-center py-2 rounded text-sm font-bold shadow-md hover:bg-purple-700 transition">Upload Video File<input type="file" accept="video/*" className="hidden" onChange={(e) => handleFileUpload('banner', null, e.target.files[0])} /></label>
-                  <input type="text" placeholder="Video Redirect Link" value={blackBanner.link} onChange={(e) => setBlackBanner({...blackBanner, link: e.target.value})} className="flex-1 px-4 py-2 border rounded text-sm outline-none" />
-                </div>
+                <input type="text" placeholder="Banner Redirect Link" value={blackBanner.link} onChange={(e) => setBlackBanner({...blackBanner, link: e.target.value})} className="w-full px-4 py-2 border rounded text-sm outline-none" />
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -213,9 +264,15 @@ const Images = ({ token }) => {
                   <input type="text" placeholder="MRP (e.g. ₹999)" value={blackBanner.deal.mrp} onChange={(e) => setBlackBanner({...blackBanner, deal: {...blackBanner.deal, mrp: e.target.value}})} className="p-3 border rounded bg-gray-50" />
                   <input type="text" placeholder="Discount (e.g. 62%)" value={blackBanner.deal.discount} onChange={(e) => setBlackBanner({...blackBanner, deal: {...blackBanner.deal, discount: e.target.value}})} className="p-3 border rounded bg-gray-50" />
                   <input type="text" placeholder="Product Page Link" value={blackBanner.deal.link} onChange={(e) => setBlackBanner({...blackBanner, deal: {...blackBanner.deal, link: e.target.value}})} className="p-3 border rounded bg-gray-50" />
-                  <div className="col-span-2 flex items-center gap-6 border-t pt-4 mt-2">
-                    <img src={blackBanner.deal.image || ''} className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 shadow-md" />
-                    <label className="cursor-pointer bg-white border border-purple-200 text-purple-700 px-4 py-2 rounded text-xs font-bold shadow-sm hover:bg-purple-50 transition">Upload Deal Image<input type="file" className="hidden" onChange={(e) => handleFileUpload('deal', null, e.target.files[0])} /></label>
+                  <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4 mt-2">
+                    <div className="flex items-center gap-4">
+                      <img src={blackBanner.desktopDealImage || blackBanner.deal.image || ''} className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 shadow-md bg-gray-100" />
+                      <label className="cursor-pointer bg-white border border-purple-200 text-purple-700 px-4 py-2 rounded text-xs font-bold shadow-sm hover:bg-purple-50 transition">Upload Desktop Deal<input type="file" className="hidden" onChange={(e) => handleFileUpload('deal', null, e.target.files[0], 'desktop')} /></label>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <img src={blackBanner.mobileDealImage || blackBanner.deal.image || ''} className="w-16 h-16 rounded-full object-cover border-2 border-blue-200 shadow-md bg-gray-100" />
+                      <label className="cursor-pointer bg-white border border-blue-200 text-blue-700 px-4 py-2 rounded text-xs font-bold shadow-sm hover:bg-blue-50 transition">Upload Mobile Deal<input type="file" className="hidden" onChange={(e) => handleFileUpload('deal', null, e.target.files[0], 'mobile')} /></label>
+                    </div>
                   </div>
                 </div>
               </div>

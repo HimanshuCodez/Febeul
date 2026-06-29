@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
 const BlackBanner = () => {
   const [bannerData, setBannerData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
@@ -12,10 +13,28 @@ const BlackBanner = () => {
       try {
         const response = await axios.get(`${backendUrl}/api/cms/black_banner`);
         if (response.data.success && response.data.content) {
-          setBannerData(response.data.content);
+          const content = response.data.content;
+          setBannerData({
+            ...content,
+            desktopVideo: content.desktopVideo || content.video || "",
+            mobileVideo: content.mobileVideo || content.video || "",
+            desktopDealImage: content.desktopDealImage || content.deal?.image || "",
+            mobileDealImage: content.mobileDealImage || content.deal?.image || "",
+            deal: {
+              image: content.deal?.image || "",
+              title: content.deal?.title || "",
+              price: content.deal?.price || "",
+              mrp: content.deal?.mrp || "",
+              discount: content.deal?.discount || "",
+              link: content.deal?.link || "",
+            },
+          });
         } else {
           setBannerData({ 
-            video: "", 
+            desktopVideo: "", 
+            mobileVideo: "",
+            desktopDealImage: "",
+            mobileDealImage: "",
             link: "",
             showDeal: false,
             deal: null
@@ -24,7 +43,10 @@ const BlackBanner = () => {
       } catch (error) {
         console.error("Error fetching black banner:", error);
         setBannerData({ 
-          video: "", 
+          desktopVideo: "", 
+          mobileVideo: "",
+          desktopDealImage: "",
+          mobileDealImage: "",
           link: "",
           showDeal: false,
           deal: null
@@ -34,6 +56,10 @@ const BlackBanner = () => {
       }
     };
     fetchBanner();
+
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [backendUrl]);
 
   if (loading) {
@@ -45,11 +71,15 @@ const BlackBanner = () => {
   }
 
   const BannerContent = () => {
-    if (bannerData.video) {
+    const mediaSrc = isMobile
+      ? (bannerData.mobileVideo || bannerData.desktopVideo)
+      : (bannerData.desktopVideo || bannerData.mobileVideo);
+
+    if (mediaSrc) {
       return (
         <video
           className="absolute inset-0 w-full h-full object-cover"
-          src={bannerData.video}
+          src={mediaSrc}
           autoPlay
           muted
           loop
@@ -72,12 +102,19 @@ const BlackBanner = () => {
 
   const DealOverlay = ({ deal }) => {
     if (!deal) return null;
+    const dealImage = isMobile
+      ? (bannerData.mobileDealImage || deal.image)
+      : (bannerData.desktopDealImage || deal.image);
+
     return (
-      <Link to={deal.link || "#"} className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg p-4 shadow-2xl pointer-events-auto hover:scale-[1.02] transition-transform duration-300">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-pink-200 flex-shrink-0">
+      <Link
+        to={deal.link || "#"}
+        className="absolute inset-x-3 bottom-3 sm:bottom-8 sm:left-1/2 sm:inset-x-auto sm:-translate-x-1/2 w-auto sm:w-[90%] sm:max-w-2xl bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-2xl pointer-events-auto hover:scale-[1.01] transition-transform duration-300"
+      >
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-pink-200 flex-shrink-0 bg-gray-100">
             <img 
-              src={deal.image || "/bluevid.png"} 
+              src={dealImage || "/bluevid.png"} 
               alt={deal.title} 
               className="w-full h-full object-cover" 
             />
@@ -87,16 +124,16 @@ const BlackBanner = () => {
             <h2 className="text-sm sm:text-base font-medium text-gray-800 mb-1 truncate">
               {deal.title || "Limited Time Deal"}
             </h2>
-            <div className="flex items-center gap-3 mb-1">
-              <span className="text-lg sm:text-xl font-bold text-pink-600">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+              <span className="text-base sm:text-xl font-bold text-pink-600">
                 {deal.discount && <span className="mr-2">{deal.discount}</span>}
                 {deal.price}
               </span>
-              <span className="bg-red-600 text-white text-[10px] sm:text-xs px-2 py-1 rounded uppercase font-bold tracking-wider">
+              <span className="bg-red-600 text-white text-[10px] sm:text-xs px-2 py-1 rounded-full uppercase font-bold tracking-wider">
                 Limited time deal
               </span>
             </div>
-            <div className="text-xs sm:text-sm text-gray-500">
+            <div className="text-[11px] sm:text-sm text-gray-500">
               M.R.P: <span className="line-through">{deal.mrp}</span>
             </div>
           </div>
@@ -106,7 +143,7 @@ const BlackBanner = () => {
   };
 
   return (
-    <section className="relative w-full h-[90vh] sm:h-screen overflow-hidden">
+    <section className="relative w-full h-[72vh] sm:h-[90vh] lg:h-screen overflow-hidden bg-black">
       {/* Background Section */}
       {bannerData.link ? (
         <Link to={bannerData.link} className="block w-full h-full">
