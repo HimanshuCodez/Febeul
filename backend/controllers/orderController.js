@@ -43,6 +43,8 @@ const getNextInvoiceNumber = async () => {
     return counter.seq;
 };
 
+const roundToNearestRupee = (value) => Math.round(Number(value) || 0);
+
 // Helper to get item size data from product variations
 const getSizeData = (product, color, size) => {
     const variation = product.variations.find(v => v.color === color);
@@ -222,10 +224,10 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     let igstAmount = 0;
 
     if (isDelhi) {
-        cgstAmount = totalGst / 2;
-        sgstAmount = totalGst / 2;
+        cgstAmount = roundToNearestRupee(totalGst / 2);
+        sgstAmount = roundToNearestRupee(totalGst / 2);
     } else {
-        igstAmount = totalGst;
+        igstAmount = roundToNearestRupee(totalGst);
     }
 
     const totalCombinedDiscount = totalItemDiscount + couponDiscount;
@@ -281,23 +283,46 @@ const constructEmailHtml = (order, templateHtml) => {
     const isDelhi = order.address.state && order.address.state.trim().toLowerCase() === 'delhi';
     
     let gstRowsHtml = '';
+    let gstRoundingNoteHtml = '';
     if (isDelhi) {
         const splitTax = totalTaxAmount / 2;
+        const roundedCgst = roundToNearestRupee(splitTax);
+        const roundedSgst = roundToNearestRupee(splitTax);
         gstRowsHtml = `
             <tr class="totals-row">
                 <td style="padding: 6px 0; font-size: 14px; color: #666666;">CGST (2.5%)</td>
-                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${splitTax.toFixed(2)}</td>
+                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${roundedCgst.toFixed(0)}</td>
             </tr>
             <tr class="totals-row">
                 <td style="padding: 6px 0; font-size: 14px; color: #666666;">SGST (2.5%)</td>
-                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${splitTax.toFixed(2)}</td>
+                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${roundedSgst.toFixed(0)}</td>
+            </tr>
+        `;
+        gstRoundingNoteHtml = `
+            <tr class="gst-rounding-note">
+                <td colspan="2" style="padding: 0 0 4px; font-size: 11px; color: #999999; text-align: right;">
+                    ${splitTax.toFixed(2)} rounded off to ${roundedCgst}
+                </td>
+            </tr>
+            <tr class="gst-rounding-note">
+                <td colspan="2" style="padding: 0 0 4px; font-size: 11px; color: #999999; text-align: right;">
+                    ${splitTax.toFixed(2)} rounded off to ${roundedSgst}
+                </td>
             </tr>
         `;
     } else {
+        const roundedIgst = roundToNearestRupee(totalTaxAmount);
         gstRowsHtml = `
             <tr class="totals-row">
                 <td style="padding: 6px 0; font-size: 14px; color: #666666;">IGST (5%)</td>
-                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${totalTaxAmount.toFixed(2)}</td>
+                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${roundedIgst.toFixed(0)}</td>
+            </tr>
+        `;
+        gstRoundingNoteHtml = `
+            <tr class="gst-rounding-note">
+                <td colspan="2" style="padding: 0 0 4px; font-size: 11px; color: #999999; text-align: right;">
+                    ${totalTaxAmount.toFixed(2)} rounded off to ${roundedIgst}
+                </td>
             </tr>
         `;
     }
@@ -362,6 +387,7 @@ const constructEmailHtml = (order, templateHtml) => {
         .replace('{{codChargeRow}}', codChargeRow)
         .replace('{{giftWrapRow}}', giftWrapRow)
         .replace('{{gstRows}}', gstRowsHtml)
+        .replace('{{gstRoundingNote}}', gstRoundingNoteHtml)
         .replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
 
     return finalHtml;

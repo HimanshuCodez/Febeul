@@ -6,6 +6,8 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const roundToNearestRupee = (value) => Math.round(Number(value) || 0);
+
 const buildInvoicePDF = (order, res) => {
     // Standard A4 size
     const doc = new PDFDocument({ size: 'A4', margin: 30 });
@@ -254,15 +256,25 @@ const buildInvoicePDF = (order, res) => {
         addTotalRow('Taxable Value:', `INR ${finalTaxableValue.toFixed(2)}`);
 
         const isDelhi = order.address.state && order.address.state.toLowerCase() === 'delhi';
+        const addRoundedTaxRow = (label, rawValue) => {
+            const roundedValue = roundToNearestRupee(rawValue);
+            addTotalRow(label, `INR ${roundedValue.toFixed(0)}`);
+            doc.fontSize(7).font('Helvetica').fillColor(secondaryColor)
+               .text(`${rawValue.toFixed(2)} rounded off to ${roundedValue}`, totalsLabelX, doc.y - 7, {
+                   width: doc.page.width - totalsLabelX - 30,
+                   align: 'right'
+               });
+            doc.moveDown(0.1);
+        };
         
         if (isDelhi) {
             // Intra-state (Delhi to Delhi): CGST + SGST
             const splitTax = totalTax / 2;
-            addTotalRow('CGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
-            addTotalRow('SGST (2.5%):', `INR ${splitTax.toFixed(2)}`);
+            addRoundedTaxRow('CGST (2.5%):', splitTax);
+            addRoundedTaxRow('SGST (2.5%):', splitTax);
         } else {
             // Inter-state: IGST
-            addTotalRow('IGST (5%):', `INR ${totalTax.toFixed(2)}`);
+            addRoundedTaxRow('IGST (5%):', totalTax);
         }
 
         // Subtotal row (Placed below taxation as requested)
