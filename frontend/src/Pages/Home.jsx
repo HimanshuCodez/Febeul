@@ -1,6 +1,5 @@
 import React from 'react'
 import Hero from '../components/HeroSection'
-import PromoBanner from '../components/PromoBanner'
 import OfferBar from '../components/ReturnBanner'
 import StylesSection from '../components/Banner'
 import Spotlight from '../components/Spotlight'
@@ -10,7 +9,26 @@ import AboutUs from '../components/AboutUs'
 import LingerieRobeSection from '../components/Pose'
 import DiscountBanner from '../components/JoinNow'
 import Aboutt from '../components/Aboutt'
-import AllProducts from './AllProducts'
+import AllProductsCarousel from '../components/Extras/AllProductsCarousel'
+import BestSellerCarousel from '../components/Extras/BestSellerCarousel'
+
+const SectionHeading = ({ title, subtitle }) => (
+  <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.35em] text-pink-500">
+        Collection
+      </p>
+      <h2 className="text-3xl font-light tracking-tight text-gray-900 sm:text-4xl">
+        {title}
+      </h2>
+    </div>
+    {subtitle ? (
+      <p className="max-w-xl text-sm leading-6 text-gray-500">
+        {subtitle}
+      </p>
+    ) : null}
+  </div>
+);
 
 const Home = () => {
   return (
@@ -25,7 +43,20 @@ const Home = () => {
       <div className='mt-5'><StylesSection /></div>
       <AboutUs />
       <div><Aboutt /></div>
-      <div><AllProducts /></div>
+      <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8">
+        <SectionHeading
+          title="Trendings"
+          subtitle="Browse the full collection in a smooth horizontal carousel with looped autoplay and quick navigation."
+        />
+        <AllProductsCarousel />
+      </section>
+      <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8">
+        <SectionHeading
+          title="Our Best Seller"
+          subtitle="The most popular picks, presented in the same looping carousel format."
+        />
+        <BestSellerCarousel />
+      </section>
       <div><Aboutt /></div>
 
     </div>
