@@ -102,6 +102,12 @@
             color: #999999;
             text-align: right;
         }
+        .grand-total-note td {
+            padding: 0 0 4px;
+            font-size: 11px;
+            color: #999999;
+            text-align: right;
+        }
         .totals-section {
             margin-top: 30px;
             background-color: #fafafa;
@@ -248,11 +254,11 @@
                     {{codChargeRow}}
                     {{giftWrapRow}}
                     {{gstRows}}
-                    {{gstRoundingNote}}
                     <tr class="totals-row">
                         <td class="grand-total">Grand Total</td>
                         <td align="right" class="grand-total">₹{{totalAmount}}</td>
                     </tr>
+                    {{grandTotalRoundOffNote}}
                 </table>
             </div>
 

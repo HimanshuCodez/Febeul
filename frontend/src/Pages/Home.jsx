@@ -10,6 +10,7 @@ import AboutUs from '../components/AboutUs'
 import LingerieRobeSection from '../components/Pose'
 import DiscountBanner from '../components/JoinNow'
 import Aboutt from '../components/Aboutt'
+import AllProducts from './AllProducts'
 
 const Home = () => {
   return (
@@ -24,6 +25,9 @@ const Home = () => {
       <div className='mt-5'><StylesSection /></div>
       <AboutUs />
       <div><Aboutt /></div>
+      <div><AllProducts /></div>
+      <div><Aboutt /></div>
+
     </div>
   )
 }

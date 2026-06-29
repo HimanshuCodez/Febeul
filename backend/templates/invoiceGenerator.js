@@ -256,25 +256,18 @@ const buildInvoicePDF = (order, res) => {
         addTotalRow('Taxable Value:', `INR ${finalTaxableValue.toFixed(2)}`);
 
         const isDelhi = order.address.state && order.address.state.toLowerCase() === 'delhi';
-        const addRoundedTaxRow = (label, rawValue) => {
-            const roundedValue = roundToNearestRupee(rawValue);
-            addTotalRow(label, `INR ${roundedValue.toFixed(0)}`);
-            doc.fontSize(7).font('Helvetica').fillColor(secondaryColor)
-               .text(`${rawValue.toFixed(2)} rounded off to ${roundedValue}`, totalsLabelX, doc.y - 7, {
-                   width: doc.page.width - totalsLabelX - 30,
-                   align: 'right'
-               });
-            doc.moveDown(0.1);
+        const addExactTaxRow = (label, rawValue) => {
+            addTotalRow(label, `INR ${rawValue.toFixed(2)}`);
         };
         
         if (isDelhi) {
             // Intra-state (Delhi to Delhi): CGST + SGST
             const splitTax = totalTax / 2;
-            addRoundedTaxRow('CGST (2.5%):', splitTax);
-            addRoundedTaxRow('SGST (2.5%):', splitTax);
+            addExactTaxRow('CGST (2.5%):', splitTax);
+            addExactTaxRow('SGST (2.5%):', splitTax);
         } else {
             // Inter-state: IGST
-            addRoundedTaxRow('IGST (5%):', totalTax);
+            addExactTaxRow('IGST (5%):', totalTax);
         }
 
         // Subtotal row (Placed below taxation as requested)
@@ -313,7 +306,16 @@ const buildInvoicePDF = (order, res) => {
         
         doc.fontSize(11).font('Helvetica-Bold');
         doc.text('Grand Total:', totalsLabelX, doc.y, { width: 110, align: 'right' });
-        doc.text(`INR ${order.orderTotal.toFixed(2)}`, totalsValX, doc.y - 11, { width: 65, align: 'right' });
+        const roundedGrandTotal = roundToNearestRupee(order.orderTotal);
+        const grandTotalRoundOff = Math.abs((Number(order.orderTotal) || 0) - roundedGrandTotal);
+        doc.text(`INR ${roundedGrandTotal.toFixed(0)}`, totalsValX, doc.y - 11, { width: 65, align: 'right' });
+        if (grandTotalRoundOff > 0) {
+            doc.fontSize(7).font('Helvetica').fillColor(secondaryColor)
+               .text(`(Rounded off by INR ${grandTotalRoundOff.toFixed(2)})`, totalsLabelX, doc.y + 2, {
+                   width: doc.page.width - totalsLabelX - 30,
+                   align: 'right'
+               });
+        }
 
         // 
         // TERMS & FOOTER
