@@ -46,14 +46,14 @@ const Home = () => {
       <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8">
         <SectionHeading
           title="Trendings"
-          subtitle="Browse the full collection in a smooth horizontal carousel with looped autoplay and quick navigation."
+          subtitle="Browse the full collection"
         />
         <AllProductsCarousel />
       </section>
       <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8">
         <SectionHeading
           title="Our Best Seller"
-          subtitle="The most popular picks, presented in the same looping carousel format."
+          subtitle="The most popular picks"
         />
         <BestSellerCarousel />
       </section>
