@@ -14,6 +14,7 @@ export default function SearchBar() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const debounceTimeout = useRef(null);
   const searchBarRef = useRef(null); // Add this line
+  const inputRef = useRef(null);
   const [history, setHistory] = useState([]); // Initialize as empty array
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -91,14 +92,23 @@ export default function SearchBar() {
   // Update filtered to use searchResults directly
   const filtered = searchResults; // No client-side filtering needed here anymore
 
+  const closeSearch = () => {
+    setShowResults(false);
+    setSearchResults([]);
+    setLoadingSearch(false);
+    setQuery("");
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+  };
+
   const handleProductSelect = (product) => {
     const newHistory = [
       product.name,
       ...history.filter((item) => item !== product.name).slice(0, 4),
     ];
     setHistory(newHistory);
-    setQuery(product.name);
-    setShowResults(false);
+    closeSearch();
 
     if (product.isLuxePrive && !isLuxeMember) {
       navigate('/luxe');
@@ -117,8 +127,7 @@ export default function SearchBar() {
       ...history.filter((hItem) => hItem !== item).slice(0, 4),
     ];
     setHistory(newHistory);
-    setQuery(item);
-    setShowResults(false);
+    closeSearch();
     setTimeout(() => { // Add setTimeout
       navigate(`/products?search=${encodeURIComponent(item)}`);
     }, 50); // Small delay to allow UI update
@@ -132,7 +141,7 @@ export default function SearchBar() {
         ...history.filter((item) => item !== query.trim()).slice(0, 4),
       ];
       setHistory(newHistory);
-      setShowResults(false);
+      closeSearch();
       navigate(`/products?search=${encodeURIComponent(query.trim())}`);
     }
   };
@@ -151,6 +160,7 @@ export default function SearchBar() {
             <path d="M13 3C7.489 3 3 7.489 3 13s4.489 10 10 10a9.95 9.95 0 0 0 6.322-2.264l5.971 5.971a1 1 0 1 0 1.414-1.414l-5.97-5.97A9.95 9.95 0 0 0 23 13c0-5.511-4.489-10-10-10m0 2c4.43 0 8 3.57 8 8s-3.57 8-8 8-8-3.57-8-8 3.57-8 8-8" />
           </svg>
           <input
+            ref={inputRef}
             type="text"
             placeholder="Search"
             value={query}
