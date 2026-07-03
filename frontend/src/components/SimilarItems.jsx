@@ -102,7 +102,8 @@ const SimilarItems = ({ productId, token }) => {
             if (price && sku && activeCoupons.length) {
               let maxDiscount = 0;
               activeCoupons.forEach(coupon => {
-                const isApplicableSKU = !coupon.applicableSKUs || coupon.applicableSKUs.length === 0 || coupon.applicableSKUs.includes(sku);
+                const isApplicableSKU = !coupon.applicableSKUs || coupon.applicableSKUs.length === 0 || 
+                  coupon.applicableSKUs.some(item => item.trim().toLowerCase() === sku.trim().toLowerCase());
                 const isMinAmountMet = price >= (coupon.minOrderAmount || 0);
                 const isLuxeMatch = coupon.userType !== 'luxe' || isLuxeMember;
 

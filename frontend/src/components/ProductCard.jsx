@@ -125,7 +125,8 @@ const ProductCard = ({ product, onWishlistToggle }) => {
 
     let maxDiscount = 0;
     activeCoupons.forEach(coupon => {
-      const isApplicableSKU = !coupon.applicableSKUs || coupon.applicableSKUs.length === 0 || coupon.applicableSKUs.includes(sku);
+      const isApplicableSKU = !coupon.applicableSKUs || coupon.applicableSKUs.length === 0 || 
+        coupon.applicableSKUs.some(item => item.trim().toLowerCase() === sku.trim().toLowerCase());
       const isMinAmountMet = displayPrice >= (coupon.minOrderAmount || 0);
       const isLuxeMatch = coupon.userType !== 'luxe' || isLuxeMember;
 

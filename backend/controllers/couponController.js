@@ -456,3 +456,22 @@ export const applyProductCoupon = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error applying product coupon.' });
     }
 };
+
+// Get all public active coupons (no auth required)
+export const getPublicActiveCoupons = async (req, res) => {
+    try {
+        const coupons = await couponModel.find({ 
+            isActive: true,
+            expiryDate: { $gt: new Date() },
+            $or: [
+                { specificUsers: { $exists: false } },
+                { specificUsers: { $size: 0 } }
+            ]
+        }).sort({ createdAt: -1 });
+
+        res.json({ success: true, coupons });
+    } catch (error) {
+        console.error('Error fetching public coupons:', error);
+        res.status(500).json({ success: false, message: 'Error fetching coupons.' });
+    }
+};
