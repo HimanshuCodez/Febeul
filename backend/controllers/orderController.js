@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
@@ -453,7 +454,7 @@ const placeOrder = async (req,res) => {
         // Update gift wrap usage
         if (giftWrapData && giftWrapData._id) {
             await giftWrapModel.findByIdAndUpdate(giftWrapData._id, {
-                $push: { usersWhoUsed: { userId } }
+                $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }
             });
         }
 
@@ -463,7 +464,7 @@ const placeOrder = async (req,res) => {
                 { code: couponCode },
                 { 
                     $inc: { usageCount: 1 },
-                    $push: { usersWhoUsed: { userId } }
+                    $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }
                 }
             );
         }
@@ -681,7 +682,7 @@ const verifyStripe = async (req,res) => {
                 // Update gift wrap usage
                 if (updatedOrder.giftWrap && updatedOrder.giftWrap._id) {
                     await giftWrapModel.findByIdAndUpdate(updatedOrder.giftWrap._id, {
-                        $push: { usersWhoUsed: { userId } }
+                        $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }
                     });
                 }
 
@@ -691,7 +692,7 @@ const verifyStripe = async (req,res) => {
                         { code: updatedOrder.couponCode },
                         { 
                             $inc: { usageCount: 1 },
-                            $push: { usersWhoUsed: { userId } }
+                            $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }
                         }
                     );
                 }
@@ -881,7 +882,7 @@ const verifyRazorpay = async (req,res) => {
                             { code: order.couponCode },
                             { 
                                 $inc: { usageCount: 1 },
-                                $push: { usersWhoUsed: { userId } }
+                                $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }
                             }
                         );
                     }
@@ -897,7 +898,7 @@ const verifyRazorpay = async (req,res) => {
                     // Update gift wrap usage
                     if (order.giftWrap && order.giftWrap._id) {
                         await giftWrapModel.findByIdAndUpdate(order.giftWrap._id, {
-                            $push: { usersWhoUsed: { userId } }
+                            $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }
                         });
                     }
 

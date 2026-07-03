@@ -138,7 +138,27 @@ export const getCouponUsage = async (req, res) => {
         if (!coupon) {
             return res.status(404).json({ success: false, message: 'Coupon not found.' });
         }
-        res.json({ success: true, users: coupon.usersWhoUsed });
+
+        // Fallback for unpopulated string userIds
+        const users = await Promise.all(coupon.usersWhoUsed.map(async (item) => {
+            if (item.userId && typeof item.userId === 'object' && item.userId.email) {
+                return item;
+            }
+            if (item.userId) {
+                const userIdStr = typeof item.userId === 'object' ? item.userId.toString() : item.userId;
+                try {
+                    const userDoc = await userModel.findById(userIdStr).select('name email mobile');
+                    if (userDoc) {
+                        return { _id: item._id, userId: userDoc };
+                    }
+                } catch (e) {
+                    console.error('Error in coupon usage fallback findById:', e);
+                }
+            }
+            return item;
+        }));
+
+        res.json({ success: true, users });
     } catch (error) {
         console.error('Error fetching coupon usage:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch coupon usage.' });
@@ -152,12 +172,26 @@ export const getAllCouponUsage = async (req, res) => {
         
         let allUsage = [];
 
-        coupons.forEach(coupon => {
+        for (const coupon of coupons) {
             const usageByCoupon = {};
             
-            coupon.usersWhoUsed.forEach(usage => {
-                const user = usage.userId;
-                if (!user) return;
+            for (const usage of coupon.usersWhoUsed) {
+                let user = usage.userId;
+                if (!user) continue;
+
+                if (typeof user === 'string' || (typeof user === 'object' && !user.email)) {
+                    const userIdStr = typeof user === 'object' ? user.toString() : user;
+                    try {
+                        const fetchedUser = await userModel.findById(userIdStr).select('name email mobile');
+                        if (fetchedUser) {
+                            user = fetchedUser;
+                        } else {
+                            continue;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
                 
                 const userId = user._id.toString();
                 if (!usageByCoupon[userId]) {
@@ -170,10 +204,10 @@ export const getAllCouponUsage = async (req, res) => {
                     };
                 }
                 usageByCoupon[userId].count += 1;
-            });
+            }
 
             allUsage = allUsage.concat(Object.values(usageByCoupon));
-        });
+        }
 
         res.json({ success: true, allUsage });
     } catch (error) {

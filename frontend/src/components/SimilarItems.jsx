@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { toast } from 'react-hot-toast';
 import Loader from './Loader';
+import { Tag } from 'lucide-react';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -147,28 +148,22 @@ const SimilarItems = ({ productId, token }) => {
                   <p className="text-gray-600 text-xs mt-1">
                     {product.category}
                   </p>
-                  <div className="flex items-center mt-2 gap-1.5 flex-wrap">
-                    {bestCouponPrice ? (
-                      <>
-                        <span className="text-md font-bold text-green-600">
-                          ₹{bestCouponPrice.toLocaleString('en-IN')}
+                  <div className="flex flex-col mt-2 gap-1 text-left w-full">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-md font-bold text-gray-900">
+                        ₹{price || 'N/A'}
+                      </span>
+                      {mrp > price && (
+                        <span className="text-xs text-gray-500 line-through">
+                          ₹{mrp}
                         </span>
-                        <span className="text-[10px] text-gray-400 line-through">
-                          ₹{price.toLocaleString('en-IN')}
-                        </span>
-                        <span className="text-[9px] font-bold text-green-600 bg-green-50 px-1 py-0.5 rounded border border-green-100 uppercase tracking-tighter">Coupon</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-md font-bold text-gray-900">
-                          ₹{price || 'N/A'}
-                        </span>
-                        {mrp > price && (
-                          <span className="text-xs text-gray-500 line-through ml-2">
-                            ₹{mrp}
-                          </span>
-                        )}
-                      </>
+                      )}
+                    </div>
+                    {bestCouponPrice && (
+                      <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200 w-fit text-[9px] font-bold uppercase tracking-wider mt-0.5">
+                        <Tag size={9} className="fill-current text-emerald-600 shrink-0" />
+                        <span>Save ₹{(price - bestCouponPrice).toLocaleString('en-IN')} with coupon</span>
+                      </div>
                     )}
                   </div>
                 </div>

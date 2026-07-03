@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, ShoppingCart, Eye, Sparkles } from 'lucide-react';
+import { Heart, ShoppingCart, Eye, Sparkles, Tag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
@@ -273,21 +273,19 @@ const ProductCard = ({ product, onWishlistToggle }) => {
           </Link>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                {bestCouponPrice ? (
-                  <>
-                    <span className="text-base font-black text-green-600">₹{bestCouponPrice.toLocaleString('en-IN')}</span>
-                    <span className="text-xs text-gray-400 line-through font-medium">₹{displayPrice?.toLocaleString('en-IN')}</span>
-                    <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 uppercase tracking-tighter">Coupon</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-base font-black text-gray-900">₹{displayPrice?.toLocaleString('en-IN')}</span>
-                    {displayMrp > displayPrice && (
-                      <span className="text-xs text-gray-400 line-through font-medium">₹{displayMrp.toLocaleString('en-IN')}</span>
-                    )}
-                  </>
+            <div className="flex flex-col gap-1 text-left w-full">
+              <div className="flex items-center gap-2">
+                <span className="text-base font-black text-gray-900">₹{displayPrice?.toLocaleString('en-IN')}</span>
+                {displayMrp > displayPrice && (
+                  <span className="text-xs text-gray-400 line-through font-medium">₹{displayMrp.toLocaleString('en-IN')}</span>
                 )}
+              </div>
+              {bestCouponPrice && (
+                <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 w-fit text-[10px] font-bold uppercase tracking-wider mt-0.5">
+                  <Tag size={10} className="fill-current text-emerald-600 shrink-0" />
+                  <span>Save ₹{(displayPrice - bestCouponPrice).toLocaleString('en-IN')} with coupon</span>
+                </div>
+              )}
             </div>
           </div>
           

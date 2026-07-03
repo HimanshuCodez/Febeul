@@ -16,6 +16,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
+  const [pendingCoupon, setPendingCoupon] = useState(null);
 
   useEffect(() => {
     const fetchCoupons = async () => {
@@ -42,6 +43,14 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
     fetchCoupons();
   }, [token]);
 
+  useEffect(() => {
+    if (appliedCoupon && pendingCoupon && appliedCoupon.code === pendingCoupon.code) {
+      setSelectedCoupon(pendingCoupon);
+      setIsModalOpen(true);
+      setPendingCoupon(null);
+    }
+  }, [appliedCoupon, pendingCoupon]);
+
   const handleRedeemClick = (coupon) => {
     if (coupon.userType === 'luxe' && !user?.isLuxeMember) {
       toast.error("This coupon is reserved for Luxe Members only.");
@@ -66,8 +75,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
       toast.success(`Replacing coupon ${appliedCoupon.code} with ${coupon.code}`);
     }
 
-    setSelectedCoupon(coupon);
-    setIsModalOpen(true);
+    setPendingCoupon(coupon);
     onRedeem(coupon.code);
   };
 
@@ -130,7 +138,8 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
           
           const isPaymentRestricted = false;
 
-          const isDisabled = isLuxeRestricted || isQuantityRestricted || isAmountRestricted;
+          const isAnotherApplied = appliedCoupon && appliedCoupon.code !== coupon.code;
+          const isDisabled = isLuxeRestricted || isQuantityRestricted || isAmountRestricted || isAnotherApplied;
 
           return (
             <div key={coupon._id} className={`flex-shrink-0 snap-start w-[280px] flex flex-col justify-between gap-3 p-4 border rounded-xl transition-all ${
@@ -173,18 +182,22 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
                 {!isApplied ? (
                   <button
                     onClick={() => handleRedeemClick(coupon)}
-                    disabled={(isQuantityRestricted || isAmountRestricted) && !isLuxeRestricted}
+                    disabled={isDisabled && !isLuxeRestricted}
                     className={`w-full mt-2 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
                       isLuxeRestricted 
                       ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' 
                       : isDisabled
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : appliedCoupon 
-                      ? 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200' 
                       : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-100'
                     }`}
                   >
-                    {isLuxeRestricted ? 'Join Luxe' : (isQuantityRestricted || isAmountRestricted) ? 'Locked' : appliedCoupon ? 'Apply' : 'Redeem'}
+                    {isLuxeRestricted 
+                      ? 'Join Luxe' 
+                      : isAnotherApplied 
+                      ? 'Coupon Active' 
+                      : (isQuantityRestricted || isAmountRestricted) 
+                      ? 'Locked' 
+                      : 'Apply'}
                   </button>
                 ) : (
                   <div className="flex items-center gap-2 mt-2">
