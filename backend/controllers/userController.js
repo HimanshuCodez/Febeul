@@ -367,7 +367,6 @@ const getProfile = async (req,res) => {
         // --- Membership Expiration Check ---
         if (user.isLuxeMember && user.luxeMembershipExpires && user.luxeMembershipExpires < new Date()) {
             user.isLuxeMember = false;
-            user.luxeMembershipExpires = null;
             user.giftWrapsLeft = 0;
             await user.save(); // Save the updated user status
         }

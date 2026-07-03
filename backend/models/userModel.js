@@ -4,8 +4,8 @@ const userSchema = new mongoose.Schema({
     name: { type: String }, // Made optional
     email: { type: String, unique: true, required: true },
     password: { type: String }, // Made optional
-    mobile: { type: String, unique: true },
-    googleId: { type: String, unique: true, },
+    mobile: { type: String, unique: true, sparse: true },
+    googleId: { type: String, unique: true, sparse: true },
     isLuxeMember: { type: Boolean, default: false },
     luxeMembershipExpires: { type: Date, default: null },
     giftWrapsLeft: { type: Number, default: 0 },

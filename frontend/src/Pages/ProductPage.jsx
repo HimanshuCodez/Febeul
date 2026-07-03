@@ -724,7 +724,7 @@ const ProductDetailPage = () => {
 
           {/* Luxe Prive Section */}
           {luxeProducts.length > 0 && (
-            <div className="mt-0 pt-16 border-t border-gray-400 bg-white pb-16">
+            <div className="mt-0 pt-16 border-t border-gray-200 bg-white pb-16">
               <div className="text-center mb-10 flex flex-col items-center gap-2">
                 <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-[10px] font-bold">Member Exclusive</p>
                 <h2 className="text-4xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">LUXE PRIVE COLLECTION</h2>
@@ -738,22 +738,20 @@ const ProductDetailPage = () => {
           )}
 
           {/* Specifications & Description Section */}
-          <div className="max-w-full mx-auto px-0 border-t border-gray-400 mt-0">
+          <div className="max-w-full mx-auto px-0 border-t border-gray-200 mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-              <div className="p-8 lg:p-16 border-b lg:border-b-0 lg:border-r border-gray-400">
+              <div className="p-6 sm:p-8 lg:p-16 border-b lg:border-b-0 lg:border-r border-gray-200">
                 <h2 className="text-xl font-playfair font-bold text-gray-900 mb-8 uppercase tracking-[0.3em]">  
                   Specifications
                 </h2>
-                <div className="space-y-1">
+                <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                   {specsToShow.map((detail, index) => (
                     <DetailRow
                       key={index}
                       label={detail.label}
                       value={detail.value}
-                      isLast={
-                        !isProdDetailsExpanded &&
-                        index === specsToShow.length - 1
-                      }
+                      isEven={index % 2 === 0}
+                      isLast={index === specsToShow.length - 1}
                     />
                   ))}
                 </div>
@@ -762,14 +760,14 @@ const ProductDetailPage = () => {
                     onClick={() =>
                       setIsProdDetailsExpanded(!isProdDetailsExpanded)
                     }
-                    className="text-[10px] font-black uppercase tracking-[0.2em] text-pink-600 mt-10 hover:underline flex items-center gap-2"
+                    className="text-[10px] font-black uppercase tracking-[0.2em] text-pink-600 mt-8 hover:underline flex items-center gap-2"
                   >
                     {isProdDetailsExpanded ? "Collapse" : "View All Specifications"}
                     <ChevronDown size={14} className={isProdDetailsExpanded ? 'rotate-180 transition-transform' : ''} />
                   </button>
                 )}
               </div>
-              <div className="p-8 lg:p-16">
+              <div className="p-6 sm:p-8 lg:p-16">
                 <h2 className="text-xl font-playfair font-bold text-gray-900 mb-8 uppercase tracking-[0.3em]">  
                   Product Description
                 </h2>
@@ -781,7 +779,7 @@ const ProductDetailPage = () => {
             </div>
           </div>
 
-          <div className="bg-white py-16 border-t border-gray-400 mt-0">
+          <div className="bg-white py-16 border-t border-gray-200 mt-0">
              <div className="max-w-full mx-auto px-8">
                 
                 <Reviews productId={productId} />
@@ -793,7 +791,7 @@ const ProductDetailPage = () => {
           Collection item not found.
         </div>
       )}
-      <div className="mt-0 pt-12 border-t border-gray-400 bg-white p-8">
+      <div className="mt-0 pt-12 border-t border-gray-200 bg-white p-8">
         
         <SimilarItems productId={productId} token={token} />
       </div>
@@ -816,14 +814,22 @@ const ProductDetailPage = () => {
   );
 };
 
-const DetailRow = ({ label, value, isLast = false }) => (
+const DetailRow = ({ label, value, isLast = false, isEven = false }) => (
   <div
-    className={`grid grid-cols-3 gap-6 items-center py-5 ${
-      !isLast ? "border-b border-gray-400" : ""
-    }`}
+    className={`grid grid-cols-12 items-stretch ${
+      !isLast ? "border-b border-gray-200" : ""
+    } ${isEven ? "bg-slate-50/50" : "bg-white"}`}
   >
-    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] col-span-1">{label}</span> 
-    <span className="text-sm text-gray-900 col-span-2 font-medium tracking-tight">{value}</span>
+    <div className="px-3 sm:px-4 py-3 bg-slate-50/50 flex items-center col-span-4 border-r border-gray-200">
+      <span className="text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-normal sm:tracking-wider leading-tight break-words w-full">
+        {label}
+      </span>
+    </div>
+    <div className="px-3 sm:px-4 py-3 flex items-center col-span-8">
+      <span className="text-xs sm:text-sm text-slate-800 font-medium tracking-tight break-words w-full">
+        {value}
+      </span>
+    </div>
   </div>
 );
 

@@ -35,7 +35,7 @@ import Footer from "./components/Footer";
 import Header from "./components/Navbar";
 import LuxePage from "./Pages/Luxe";
 import Bestseller from "./Pages/BestSeller";
-import PrimeMember from "./Pages/PrimeMember";
+
 import CheckoutPage from "./Pages/Checkout";
 import OrderSuccess from "./Pages/OrderSuccess";
 import MyOrders from "./Pages/MyOrders"; // Import MyOrders component
@@ -194,7 +194,7 @@ const AppContent = () => {
         <Route path="/luxe" element={<LuxePage />} />
         <Route path="/new-and-now" element={<NewAndNow />} />
         <Route path="/bestsellers" element={<Bestseller />} />
-        <Route path="/PrimeMember" element={<PrimeMember />} />
+       
         <Route path="/Checkout" element={<CheckoutPage />} />
         <Route path="/myorders" element={<MyOrders />} /> {/* Route for MyOrders component */}
         <Route path="/Success" element={<OrderSuccess />} />

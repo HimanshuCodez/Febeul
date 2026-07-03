@@ -1,5 +1,6 @@
 import reviewModel from '../models/reviewModel.js';
 import productModel from '../models/productModel.js';
+import orderModel from '../models/orderModel.js';
 import { v2 as cloudinary } from 'cloudinary';
 
 // Add new review
@@ -13,6 +14,16 @@ const addReview = async (req, res) => {
         const existingReview = await reviewModel.findOne({ productId, userId });
         if (existingReview) {
             return res.json({ success: false, message: "You have already reviewed this product." });
+        }
+
+        // Check if the user has purchased and received the product
+        const deliveredOrder = await orderModel.findOne({
+            userId,
+            orderStatus: 'Delivered',
+            'items.productId': productId
+        });
+        if (!deliveredOrder) {
+            return res.json({ success: false, message: "You can only review products that have been delivered to you." });
         }
 
         if (!productId || !rating || !comment) {
@@ -67,7 +78,18 @@ const getMyProductReview = async (req, res) => {
         const review = await reviewModel.findOne({ productId, userId })
                                         .populate('productId', 'name image');
 
-        res.json({ success: true, review });
+        // Check if the user has purchased and received the product
+        const deliveredOrder = await orderModel.findOne({
+            userId,
+            orderStatus: 'Delivered',
+            'items.productId': productId
+        });
+
+        res.json({ 
+            success: true, 
+            review,
+            eligibleToReview: !!deliveredOrder 
+        });
 
     } catch (error) {
         console.log(error);
