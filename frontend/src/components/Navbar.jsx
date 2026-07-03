@@ -140,6 +140,17 @@ export default function Header() {
     setOpenMegaMenus({});
   }, [location]);
 
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMenuOpen]);
+
   const toggleMegaMenu = (index) => {
     setOpenMegaMenus((prev) => ({
       ...prev,
@@ -381,7 +392,7 @@ export default function Header() {
         onClick={() => setIsMenuOpen(false)} // Close when clicking overlay
       >
         <div
-          className={`fixed top-0 left-0 h-full w-64 bg-white shadow-xl transform transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`fixed top-0 left-0 h-full w-64 bg-white shadow-xl overflow-y-auto transform transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
           onClick={(e) => e.stopPropagation()} // Prevent closing when clicking menu content
         >
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
