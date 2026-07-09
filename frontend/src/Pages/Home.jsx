@@ -57,7 +57,7 @@ const Home = () => {
         />
         <BestSellerCarousel />
       </section>
-      <div><Aboutt /></div>
+      {/* <div><Aboutt /></div> */}
 
     </div>
   )

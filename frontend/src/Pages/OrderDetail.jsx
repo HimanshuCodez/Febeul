@@ -22,7 +22,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from "../store/authStore";
 import Loader from '../components/Loader';
-import { X } from 'lucide-react';
+import { X, XCircle, Check } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import SimilarItems from '../components/SimilarItems';
@@ -331,6 +331,7 @@ export default function OrderDetailPage() {
   const navigate = useNavigate();
 
   const [order, setOrder] = useState(null);
+  const [trackingData, setTrackingData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
@@ -349,6 +350,7 @@ export default function OrderDetailPage() {
       });
       if (response.data.success) {
         setOrder(response.data.order);
+        setTrackingData(response.data.trackingData || null);
       } else {
         setError(response.data.message || 'Failed to fetch order details.');
       }
@@ -473,13 +475,64 @@ export default function OrderDetailPage() {
   
   const parsedDeliveredDate = new Date(order.deliveredAt);
 
-  const estimatedDelivery = displayStatus === 'Delivered'
-    ? 'Marked as Delivered'
-    : (order.deliveredAt 
-        ? parsedDeliveredDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-        : (order.shippedAt 
-            ? `Est: ${new Date(new Date(order.shippedAt).setDate(new Date(order.shippedAt).getDate() + 5)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` 
-            : (siteSettings.expectedDeliveryDays || '5 to 7 days')));
+  const getExpectedDelivery = () => {
+    if (displayStatus === 'Delivered') {
+      return 'Delivered';
+    }
+    
+    // Check if we have EDD from Shiprocket
+    const srEdd = trackingData?.tracking_data?.shipment_track?.[0]?.edd;
+    if (srEdd) {
+      return new Date(srEdd).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+    
+    // Fallback to older estimation logic
+    if (order.deliveredAt) {
+      return new Date(order.deliveredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    if (order.shippedAt) {
+      const estDate = new Date(order.shippedAt);
+      estDate.setDate(estDate.getDate() + 5);
+      return `Est: ${estDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    }
+    return siteSettings.expectedDeliveryDays || '5 to 7 days';
+  };
+
+  const estimatedDelivery = getExpectedDelivery();
+
+  const getStatusDate = (status) => {
+    if (status === 'Order Placed') {
+      return new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    if (status === 'Processing' || status === 'Confirmed') {
+      return new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    if (status === 'Shipped') {
+      if (order.shippedAt) return new Date(order.shippedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      const shipActivity = trackingData?.tracking_data?.shipment_track_activities?.find(
+        act => act.status?.toLowerCase().includes('shipped') || act.activity?.toLowerCase().includes('shipped')
+      );
+      return shipActivity ? new Date(shipActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+    }
+    if (status === 'Out for delivery') {
+      const ofdActivity = trackingData?.tracking_data?.shipment_track_activities?.find(
+        act => act.status?.toLowerCase().includes('out for delivery') || act.activity?.toLowerCase().includes('out for delivery')
+      );
+      return ofdActivity ? new Date(ofdActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+    }
+    if (status === 'Delivered') {
+      if (order.deliveredAt) return new Date(order.deliveredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      const delActivity = trackingData?.tracking_data?.shipment_track_activities?.find(
+        act => act.status?.toLowerCase().includes('delivered') || act.activity?.toLowerCase().includes('delivered')
+      );
+      return delActivity ? new Date(delActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+    }
+    return null;
+  };
   
   const statusLevels = {
     'Order Placed': 1,
@@ -497,21 +550,21 @@ export default function OrderDetailPage() {
 
   // Function to get status icon and color
   const getStatusDisplay = (status, level) => {
-    let icon = <FaCheckCircle />;
+    let icon = <Check size={16} />;
     let color = 'bg-gray-200';
     let textColor = 'text-gray-400';
 
     if (isLuxeOrder && order.payment && status === 'Delivered') {
-      color = 'bg-green-500';
+      color = 'bg-green-500 text-white';
       textColor = 'text-gray-800';
-      icon = <FaCheckCircle />;
+      icon = <Check size={16} />;
       return { icon, color, textColor };
     }
 
     if (level <= currentStatusLevel && statusLevels[status] <= currentStatusLevel) {
-        color = 'bg-[#e8767a]'; // Active color
+        color = 'bg-[#e8767a] text-white'; // Active color
         textColor = 'text-gray-800'; // Active text color
-        if (status === 'Order Placed' || status === 'Confirmed') icon = <FaCheckCircle />;
+        if (status === 'Order Placed' || status === 'Confirmed') icon = <Check size={16} />;
         else if (status === 'Processing') icon = <FaBox />;
         else if (status === 'Shipped') icon = <FaShippingFast />;
         else if (status === 'Out for delivery') icon = <FaTruckLoading />;
@@ -519,13 +572,12 @@ export default function OrderDetailPage() {
     }
     
     if (displayStatus === 'Cancelled') {
-        color = 'bg-red-500'; icon = <X />; textColor = 'text-red-500';
+        color = 'bg-red-500 text-white'; icon = <X size={16} />; textColor = 'text-red-500';
     } else if (displayStatus === 'Returned') {
-        color = 'bg-orange-500'; icon = <FaUndo />; textColor = 'text-orange-500';
+        color = 'bg-orange-500 text-white'; icon = <FaUndo />; textColor = 'text-orange-500';
     } else if (displayStatus === 'Refund Initiated' || displayStatus === 'Refunded') {
-        color = 'bg-purple-500'; icon = <FaMoneyBillWave />; textColor = 'text-purple-500';
+        color = 'bg-purple-500 text-white'; icon = <FaMoneyBillWave />; textColor = 'text-purple-500';
     }
-
 
     return { icon, color, textColor };
   };
@@ -640,10 +692,10 @@ export default function OrderDetailPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.7 }}
-              className="mt-6 p-4 bg-[#fff5f5] border-2 border-[#e8767a] rounded-lg inline-block"
+              className="mt-6 p-4 bg-[#fff5f5] border-2 border-[#e8767a] rounded-2xl w-full max-w-sm sm:max-w-md mx-auto"
             >
-              <p className="text-sm text-gray-600">Order Number</p>
-              <p className="text-2xl font-bold text-[#e8767a]">{orderNumberToDisplay}</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Order ID</p>
+              <p className="text-sm sm:text-lg font-bold text-[#e8767a] break-all select-all font-mono mt-1">{orderNumberToDisplay}</p>
             </motion.div>
 
             {order.shiprocket?.trackingUrl && !isLuxeOrder && displayStatus !== 'Cancelled' && (
@@ -651,17 +703,17 @@ export default function OrderDetailPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8 }}
-                  className="text-sm text-blue-500 mt-4 flex items-center justify-center hover:underline cursor-pointer"
+                  className="text-sm text-[#e8767a] hover:text-rose-600 font-bold mt-4 flex items-center justify-center hover:underline cursor-pointer"
                   onClick={() => window.open(order.shiprocket.trackingUrl, '_blank')}
               >
                   <FaShippingFast className="mr-2" />
-                  Track Order
+                  Track on Shiprocket
               </motion.p>
             )}
 
           </motion.div>
 
-          {/* Order Timeline */}
+          {/* Redesigned Live Order Tracking Timeline (Meesho / Flipkart style) */}
           <motion.div
             variants={{
               hidden: { opacity: 0 },
@@ -675,16 +727,61 @@ export default function OrderDetailPage() {
             }}
             initial="hidden"
             animate="visible"
-            className="bg-white rounded-lg shadow-md p-6 mb-6"
+            className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6"
           >
-            <motion.h2 
-              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }}}
-              className="text-xl font-bold text-gray-800 mb-6"
-            >
-              Order Status: {displayStatus}
-            </motion.h2>
-            
-            <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 mb-6 gap-3 text-left">
+              <div>
+                <h2 className="text-lg font-black text-slate-800 tracking-tight">
+                  Shipment Tracking
+                </h2>
+                <p className="text-xs text-slate-500 font-bold mt-0.5">Real-time status updates of your package</p>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black capitalize w-fit ${
+                displayStatus === "Processing" || displayStatus === "Confirmed" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                displayStatus === "Shipped" || displayStatus === "Out for delivery" ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                displayStatus === "Delivered" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                displayStatus === "Cancelled" ? "bg-rose-50 text-rose-700 border border-rose-100" :
+                "bg-slate-50 text-slate-700 border border-slate-100"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  displayStatus === "Processing" || displayStatus === "Confirmed" ? "bg-amber-500 animate-pulse" :
+                  displayStatus === "Shipped" || displayStatus === "Out for delivery" ? "bg-blue-500" :
+                  displayStatus === "Delivered" ? "bg-emerald-500" :
+                  displayStatus === "Cancelled" ? "bg-rose-500" :
+                  "bg-slate-500"
+                }`} />
+                Status: {displayStatus}
+              </span>
+            </div>
+
+            {/* Shiprocket Courier Details */}
+            {order.shiprocket && order.shiprocket.awb && !isLuxeOrder && (
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-left">
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Courier Partner</span>
+                  <span className="text-sm font-extrabold text-slate-800">{order.shiprocket.courier || 'Shiprocket'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">AWB Number</span>
+                  <span className="text-sm font-extrabold text-[#e8767a] select-all">#{order.shiprocket.awb}</span>
+                </div>
+                {order.shiprocket.trackingUrl && (
+                  <div className="flex items-center">
+                    <a 
+                      href={order.shiprocket.trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center bg-slate-900 text-white font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl hover:bg-black transition-all"
+                    >
+                      Track Courier Portal
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Timeline Steps (Vertical path) */}
+            <div className="space-y-6 relative pl-4 text-left">
               {[
                 { status: 'Order Placed', label: 'Order Placed', description: 'Your order has been placed successfully', level: 1 },
                 { status: 'Processing', label: 'Processing', description: displayStatus === 'Confirmed' ? 'Your order has been confirmed and is being processed' : 'We\'re preparing your items', level: 2 },
@@ -694,41 +791,73 @@ export default function OrderDetailPage() {
               ].filter(s => {
                   if (displayStatus === 'Cancelled') return s.status === 'Order Placed';
                   if (isLuxeOrder) return s.status === 'Order Placed' || s.status === 'Delivered';
-                  return s.statusLevels === 0 ? true : statusLevels[s.status] > 0;
+                  return statusLevels[s.status] > 0;
               }).map((statusItem, index, array) => {
                   const { icon, color, textColor } = getStatusDisplay(statusItem.status, statusItem.level);
+                  
+                  // Check if this step represents the current status
+                  const isCurrent = displayStatus === statusItem.status || 
+                    (statusItem.status === 'Processing' && displayStatus === 'Confirmed') ||
+                    (statusItem.status === 'Shipped' && displayStatus === 'Shipped') ||
+                    (statusItem.status === 'Out for delivery' && displayStatus === 'Out for delivery') ||
+                    (statusItem.status === 'Delivered' && displayStatus === 'Delivered');
+                  
+                  const isCompleted = statusItem.level <= currentStatusLevel;
+                  const stepDate = getStatusDate(statusItem.status);
+
                   return (
-                      <motion.div key={index} variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
-                          <div className="flex flex-col items-center mr-4">
-                              <div className={`w-10 h-10 ${color} rounded-full flex items-center justify-center`}>
-                                  {icon}
-                              </div>
-                              {index < array.length - 1 && <div className={`w-1 h-16 ${statusItem.level < currentStatusLevel || (isLuxeOrder && order.payment) ? 'bg-[#f9aeaf]' : 'bg-gray-200'} mt-2`}></div>}
+                      <motion.div 
+                        key={index} 
+                        variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0, transition: { duration: 0.4 } } }} 
+                        className="flex gap-4 relative"
+                      >
+                          {/* Connector Line */}
+                          {index < array.length - 1 && (
+                            <div className={`absolute left-5 top-10 w-0.5 h-12 ${
+                              statusItem.level < currentStatusLevel ? 'bg-[#e8767a]' : 'bg-slate-200'
+                            }`} />
+                          )}
+
+                          {/* Icon Circle */}
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 transition-all duration-500 shadow-sm ${
+                            isCompleted ? 'bg-[#e8767a] text-white shadow-rose-100' : 'bg-slate-100 text-slate-400'
+                          } ${isCurrent ? 'ring-4 ring-rose-100 animate-pulse' : ''}`}>
+                              {icon}
                           </div>
-                          <div className="flex-1 pt-2">
-                              <p className={`font-bold ${textColor}`}>{statusItem.label}</p>
-                              <p className="text-sm text-gray-600">{statusItem.description}</p>
+
+                          {/* Details */}
+                          <div className="flex-1 pt-1.5 pb-4">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                <p className={`font-bold text-sm sm:text-base ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>
+                                  {statusItem.label}
+                                </p>
+                                {stepDate && (
+                                  <span className="text-[10px] sm:text-xs font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
+                                    {stepDate}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs sm:text-sm text-slate-500 mt-1">{statusItem.description}</p>
                           </div>
                       </motion.div>
                   );
               })}
 
+              {/* Cancelled State */}
               {displayStatus === 'Cancelled' && (
-                <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
-                    <div className="flex flex-col items-center mr-4">
-                        <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
-                            <X className="text-white" />
-                        </div>
+                <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
+                    <div className="w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center shrink-0 z-10 ring-4 ring-red-100 animate-pulse">
+                        <X size={18} />
                     </div>
-                    <div className="flex-1 pt-2">
-                        <p className="font-bold text-red-600 uppercase tracking-widest">Cancelled</p>
-                        <p className="text-sm text-gray-600">The order has been cancelled.</p>
+                    <div className="flex-1 pt-1.5">
+                        <p className="font-bold text-red-500 text-sm sm:text-base uppercase tracking-wider">Cancelled</p>
+                        <p className="text-xs sm:text-sm text-slate-500 mt-1">The order has been cancelled.</p>
                         {order.refundDetails?.status !== 'none' && (
-                            <div className="mt-2 bg-red-50 p-2 rounded border border-red-100">
+                            <div className="mt-3 bg-red-50/50 p-3 rounded-2xl border border-red-100">
                                 <p className="text-xs font-bold text-red-800">Refund Status: {order.refundDetails.status.toUpperCase()}</p>
-                                {order.refundDetails.reason && <p className="text-[10px] text-red-600 mt-1 italic">Reason: {order.refundDetails.reason}</p>}
+                                {order.refundDetails.reason && <p className="text-[11px] text-red-600 mt-1 italic">Reason: {order.refundDetails.reason}</p>}
                                 {order.refundDetails.status === 'rejected' && order.refundDetails.rejectionReason && (
-                                    <p className="text-[10px] text-red-800 mt-1 font-bold">Rejection Reason: {order.refundDetails.rejectionReason}</p>
+                                    <p className="text-[11px] text-red-800 mt-1 font-bold">Rejection Reason: {order.refundDetails.rejectionReason}</p>
                                 )}
                             </div>
                         )}
@@ -736,31 +865,83 @@ export default function OrderDetailPage() {
                 </motion.div>
               )}
 
+              {/* Rejected State */}
               {order.refundDetails?.status === 'rejected' && displayStatus !== 'Cancelled' && (
-                <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }} className="flex items-start">
-                    <div className="flex flex-col items-center mr-4">
-                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                            <XCircle size={20} className="text-red-600" />
-                        </div>
+                <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
+                    <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <X size={18} />
                     </div>
-                    <div className="flex-1 pt-2">
-                        <p className="font-bold text-red-600 uppercase tracking-widest text-xs">Request Rejected</p>
-                        <div className="mt-2 bg-red-50 p-3 rounded-lg border border-red-100 shadow-sm">
-                            <p className="text-xs font-bold text-red-800 italic">" {order.refundDetails.rejectionReason} "</p>
+                    <div className="flex-1 pt-1.5">
+                        <p className="font-bold text-red-600 text-sm sm:text-base uppercase tracking-wider">Refund Request Rejected</p>
+                        <div className="mt-2 bg-red-50/50 p-3 rounded-2xl border border-red-100">
+                            <p className="text-xs text-red-800 font-bold italic">"{order.refundDetails.rejectionReason}"</p>
                         </div>
                     </div>
                 </motion.div>
               )}
             </div>
 
+            {/* Live Journey Log (Meesho / Flipkart style) */}
+            {trackingData?.tracking_data?.shipment_track_activities && trackingData.tracking_data.shipment_track_activities.length > 0 && (
+              <div className="mt-8 border-t border-slate-100 pt-6">
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <FaTruckLoading className="text-[#e8767a]" /> Live Shipment Journey
+                </h3>
+                <div className="relative pl-6 border-l border-slate-100 space-y-6">
+                  {trackingData.tracking_data.shipment_track_activities.map((act, index) => {
+                    const isLatest = index === 0;
+                    return (
+                      <div key={index} className="relative text-left">
+                        {/* Bullet point */}
+                        <span className="absolute -left-[30px] top-1 flex h-4.5 w-4.5 items-center justify-center">
+                          {isLatest ? (
+                            <span className="relative flex h-3.5 w-3.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8767a] opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3 h-3 bg-[#e8767a]"></span>
+                            </span>
+                          ) : (
+                            <span className="h-2 w-2 rounded-full bg-slate-300"></span>
+                          )}
+                        </span>
+                        
+                        <div>
+                          <p className={`text-xs sm:text-sm font-bold ${isLatest ? 'text-[#e8767a]' : 'text-slate-700'}`}>
+                            {act.activity || act.status}
+                          </p>
+                          {act.location && (
+                            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                              Location: {act.location}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-slate-400 font-bold mt-1">
+                            {new Date(act.date).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Expected Delivery Banner */}
             {!isLuxeOrder && displayStatus !== 'Cancelled' && (
               <motion.div 
-                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }}
-                className="mt-6 p-4 bg-[#fff5f5] rounded-lg border border-[#f9aeaf]"
+                variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+                className="mt-6 p-4 bg-[#fff5f5] rounded-2xl border border-[#f9aeaf] flex items-center justify-center text-center"
               >
-                <div className="flex items-center text-[#e8767a]">
-                  <FaCalendarAlt className="mr-2" />
-                  <p className="font-semibold">{displayStatus === 'Delivered' ? 'Status' : (order.deliveredAt ? 'Delivered on' : 'Expected Delivery')}: {estimatedDelivery}</p>
+                <div className="flex items-center gap-2.5 text-[#e8767a]">
+                  <FaCalendarAlt />
+                  <p className="font-black text-sm uppercase tracking-wider">
+                    {displayStatus === 'Delivered' ? 'Delivery Status' : (order.deliveredAt ? 'Delivered On' : 'Expected Delivery')}: {estimatedDelivery}
+                  </p>
                 </div>
               </motion.div>
             )}

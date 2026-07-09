@@ -263,16 +263,15 @@ const MyOrders = () => {
                   whileHover={{ y: -2 }}
                   className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
                 >
-                  {/* Top bar of the card */}
                   <div className="bg-slate-50/60 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                       <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order ID</span>
-                        <span className="text-sm font-extrabold text-slate-800">#{order._id.slice(-8).toUpperCase()}</span>
+                        <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order ID</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-slate-800 break-all select-all">#{order._id.slice(-8).toUpperCase()}</span>
                       </div>
                       <div className="h-6 w-[1px] bg-slate-200" />
                       <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Date Placed</span>
+                        <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Date Placed</span>
                         <span className="text-xs font-bold text-slate-600">
                           {new Date(order.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>

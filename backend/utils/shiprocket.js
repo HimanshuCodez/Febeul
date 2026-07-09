@@ -77,3 +77,22 @@ export const createShiprocketOrder = async (order, token, paymentMethod) => {
         throw new Error("Failed to create Shiprocket order");
     }
 };
+
+export const trackShipment = async (awb) => {
+    try {
+        const token = await shiprocketLogin();
+        const response = await axios.get(
+            `https://apiv2.shiprocket.in/v1/external/courier/track/awb/${awb}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error tracking Shiprocket shipment:", error.response ? error.response.data : error.message);
+        return null;
+    }
+};
+

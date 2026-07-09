@@ -3,7 +3,7 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
-import { shiprocketLogin, createShiprocketOrder } from '../utils/shiprocket.js';
+import { shiprocketLogin, createShiprocketOrder, trackShipment } from '../utils/shiprocket.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
@@ -1052,7 +1052,48 @@ const getOrderById = async (req, res) => {
         if (!order) {
             return res.json({ success: false, message: 'Order not found' });
         }
-        res.json({ success: true, order });
+
+        let trackingData = null;
+        if (order.shiprocket && order.shiprocket.awb) {
+            trackingData = await trackShipment(order.shiprocket.awb);
+            
+            // Sync status with Shiprocket tracking data
+            if (trackingData && trackingData.tracking_data && trackingData.tracking_data.shipment_track && trackingData.tracking_data.shipment_track[0]) {
+                const currentStatus = trackingData.tracking_data.shipment_track[0].current_status;
+                if (currentStatus) {
+                    let mappedStatus = 'UNKNOWN';
+                    const statusUpper = currentStatus.toUpperCase();
+                    if (statusUpper.includes('DELIVERED')) mappedStatus = 'DELIVERED';
+                    else if (statusUpper.includes('OUT FOR DELIVERY') || statusUpper.includes('OUT_FOR_DELIVERY') || statusUpper.includes('OUTFORDELIVERY')) {
+                        mappedStatus = 'IN_TRANSIT';
+                    }
+                    else if (statusUpper.includes('TRANSIT')) mappedStatus = 'IN_TRANSIT';
+                    else if (statusUpper.includes('SHIPPED')) mappedStatus = 'SHIPPED';
+                    else if (statusUpper.includes('PICKUP SCHEDULED') || statusUpper.includes('PICKUP_SCHEDULED')) mappedStatus = 'PICKUP SCHEDULED';
+                    else if (statusUpper.includes('CANCEL')) mappedStatus = 'CANCELLED';
+                    else if (statusUpper.includes('RTO') || statusUpper.includes('RETURN')) mappedStatus = 'RTO';
+                    else if (statusUpper.includes('NEW')) mappedStatus = 'NEW';
+                    
+                    if (mappedStatus !== 'UNKNOWN' && order.shiprocketStatus !== mappedStatus) {
+                        order.shiprocketStatus = mappedStatus;
+                        
+                        if (mappedStatus === 'DELIVERED') {
+                            order.orderStatus = 'Delivered';
+                            order.deliveredAt = order.deliveredAt || new Date();
+                        } else if (mappedStatus === 'SHIPPED') {
+                            order.orderStatus = 'Shipped';
+                            order.shippedAt = order.shippedAt || new Date();
+                        } else if (mappedStatus === 'CANCELLED') {
+                            order.orderStatus = 'Cancelled';
+                        }
+                        
+                        await order.save();
+                    }
+                }
+            }
+        }
+
+        res.json({ success: true, order, trackingData });
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: 'Error fetching order' });
