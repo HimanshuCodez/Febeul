@@ -29,6 +29,7 @@ import DataPrivacy from "./components/FooterItems/DataPrivacy";
 import GrievanceRedressals from "./components/FooterItems/GrievanceRedressals";
 import PaymentPolicy from "./components/FooterItems/PaymentPolicy";
 import ReturnRefund from "./components/FooterItems/ReturnRefund";
+import TermsConditions from "./components/FooterItems/TermsConditions";
 import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
 import DynamicPolicy from "./components/FooterItems/DynamicPolicy";
 import GiftWrapSelector from "./Pages/GiftWrap";
