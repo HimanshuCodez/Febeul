@@ -1,5 +1,5 @@
 import express from 'express';
-import { getPolicies, getPolicyByName, createOrUpdatePolicy } from '../controllers/policyController.js';
+import { getPolicies, getPolicyByName, createOrUpdatePolicy, deletePolicy } from '../controllers/policyController.js';
 import adminAuth from '../middleware/adminAuth.js';
 
 const router = express.Router();
@@ -9,6 +9,7 @@ router.route('/')
     .post(adminAuth, createOrUpdatePolicy);
 
 router.route('/:policyName')
-    .get(getPolicyByName);
+    .get(getPolicyByName)
+    .delete(adminAuth, deletePolicy);
 
 export default router;

@@ -1,8 +1,30 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Youtube, Twitter, AtSign } from "lucide-react";
+import axios from "axios";
 
 const Footer = () => {
+  const [customPolicies, setCustomPolicies] = useState([]);
+
+  useEffect(() => {
+    const fetchCustomPolicies = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/policy`);
+        const allPolicies = response.data || [];
+        const predefined = [
+          'dataprivacy', 'faq', 'giftwrappolicy', 'grievanceredressals', 
+          'luxepolicy', 'paymentpolicy', 'returnrefund', 'reviewrating', 
+          'termsconditions'
+        ];
+        // Filter out predefined ones
+        const filtered = allPolicies.filter(p => !predefined.includes(p.policyName.toLowerCase()));
+        setCustomPolicies(filtered);
+      } catch (error) {
+        console.error("Error loading policies in footer:", error);
+      }
+    };
+    fetchCustomPolicies();
+  }, []);
   return (
     <footer className="bg-black text-gray-300 pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -86,6 +108,13 @@ const Footer = () => {
                 <li><Link to="/DataPrivacy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Data Privacy</Link></li>
                 <li><Link to="/LuxePolicy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Luxe membership policy</Link></li>
                 <li><Link to="/GiftWrapPolicy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Gift Wrap Policy</Link></li>
+                {customPolicies && customPolicies.map((p) => (
+                  <li key={p.policyName}>
+                    <Link to={`/policy/${p.policyName}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                      {p.pageTitle}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

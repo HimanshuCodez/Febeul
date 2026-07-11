@@ -55,4 +55,21 @@ const createOrUpdatePolicy = async (req, res) => {
     }
 };
 
-export { getPolicies, getPolicyByName, createOrUpdatePolicy };
+// @desc    Delete a policy
+// @route   DELETE /api/policy/:policyName
+// @access  Private/Admin
+const deletePolicy = async (req, res) => {
+    try {
+        const { policyName } = req.params;
+        const result = await policyModel.findOneAndDelete({ policyName });
+        if (result) {
+            res.json({ success: true, message: 'Policy deleted successfully' });
+        } else {
+            res.status(404).json({ success: false, message: 'Policy not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error });
+    }
+};
+
+export { getPolicies, getPolicyByName, createOrUpdatePolicy, deletePolicy };

@@ -416,6 +416,8 @@ const placeOrder = async (req,res) => {
 
         const invoiceNumber = await getNextInvoiceNumber();
 
+        const finalCouponCode = couponCode || (processedItems.find(item => item.appliedCoupon)?.appliedCoupon || undefined);
+
         const orderData = {
             userId,
             items: processedItems,
@@ -428,7 +430,7 @@ const placeOrder = async (req,res) => {
             payment:false,
             date: Date.now(),
             giftWrap: giftWrapData,
-            couponCode,
+            couponCode: finalCouponCode,
             couponOfferType,
             couponDiscount: totalCombinedDiscount,
             invoiceNumber,
@@ -459,9 +461,20 @@ const placeOrder = async (req,res) => {
         }
 
         // Update coupon usage
-        if (couponCode) {
+        const usedCoupons = new Set();
+        if (finalCouponCode) {
+            usedCoupons.add(finalCouponCode.toUpperCase());
+        }
+        if (processedItems && Array.isArray(processedItems)) {
+            processedItems.forEach(item => {
+                if (item.appliedCoupon) {
+                    usedCoupons.add(item.appliedCoupon.toUpperCase());
+                }
+            });
+        }
+        for (const code of usedCoupons) {
             await couponModel.updateOne(
-                { code: couponCode },
+                { code: code },
                 { 
                     $inc: { usageCount: 1 },
                     $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }
@@ -545,6 +558,8 @@ const placeOrderStripe = async (req,res) => {
 
         const invoiceNumber = await getNextInvoiceNumber();
 
+        const finalCouponCode = couponCode || (processedItems.find(item => item.appliedCoupon)?.appliedCoupon || undefined);
+
         const orderData = {
             userId,
             items: processedItems,
@@ -558,7 +573,7 @@ const placeOrderStripe = async (req,res) => {
             date: Date.now(),
             giftWrap: giftWrapData,
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
-            couponCode,
+            couponCode: finalCouponCode,
             couponOfferType,
             couponDiscount,
             invoiceNumber,
@@ -687,9 +702,20 @@ const verifyStripe = async (req,res) => {
                 }
 
                 // Update coupon usage
+                const usedCoupons = new Set();
                 if (updatedOrder.couponCode) {
+                    usedCoupons.add(updatedOrder.couponCode.toUpperCase());
+                }
+                if (updatedOrder.items && Array.isArray(updatedOrder.items)) {
+                    updatedOrder.items.forEach(item => {
+                        if (item.appliedCoupon) {
+                            usedCoupons.add(item.appliedCoupon.toUpperCase());
+                        }
+                    });
+                }
+                for (const code of usedCoupons) {
                     await couponModel.updateOne(
-                        { code: updatedOrder.couponCode },
+                        { code: code },
                         { 
                             $inc: { usageCount: 1 },
                             $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }
@@ -780,6 +806,8 @@ const placeOrderRazorpay = async (req,res) => {
 
         const invoiceNumber = await getNextInvoiceNumber();
 
+        const finalCouponCode = couponCode || (processedItems.find(item => item.appliedCoupon)?.appliedCoupon || undefined);
+
         const orderData = {
             userId,
             items: processedItems,
@@ -793,7 +821,7 @@ const placeOrderRazorpay = async (req,res) => {
             date: Date.now(),
             giftWrap: giftWrapData,
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
-            couponCode,
+            couponCode: finalCouponCode,
             couponOfferType,
             couponDiscount: totalCombinedDiscount,
             invoiceNumber,
@@ -877,9 +905,20 @@ const verifyRazorpay = async (req,res) => {
                     await userModel.findByIdAndUpdate(userId, { cartData: [] });
 
                     // Update coupon usage
+                    const usedCoupons = new Set();
                     if (order.couponCode) {
+                        usedCoupons.add(order.couponCode.toUpperCase());
+                    }
+                    if (order.items && Array.isArray(order.items)) {
+                        order.items.forEach(item => {
+                            if (item.appliedCoupon) {
+                                usedCoupons.add(item.appliedCoupon.toUpperCase());
+                            }
+                        });
+                    }
+                    for (const code of usedCoupons) {
                         await couponModel.updateOne(
-                            { code: order.couponCode },
+                            { code: code },
                             { 
                                 $inc: { usageCount: 1 },
                                 $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } }

@@ -29,7 +29,8 @@ import DataPrivacy from "./components/FooterItems/DataPrivacy";
 import GrievanceRedressals from "./components/FooterItems/GrievanceRedressals";
 import PaymentPolicy from "./components/FooterItems/PaymentPolicy";
 import ReturnRefund from "./components/FooterItems/ReturnRefund";
-import TermsConditions from "./components/FooterItems/TermsConditions";
+import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
+import DynamicPolicy from "./components/FooterItems/DynamicPolicy";
 import GiftWrapSelector from "./Pages/GiftWrap";
 import Footer from "./components/Footer";
 import Header from "./components/Navbar";
@@ -41,7 +42,6 @@ import OrderSuccess from "./Pages/OrderSuccess";
 import MyOrders from "./Pages/MyOrders"; // Import MyOrders component
 import OrderDetailPage from "./Pages/OrderDetail"; // Import OrderDetailPage
 import { Toaster } from "react-hot-toast";
-import GiftWrapPolicy from "./components/FooterItems/GiftWrapPolicy";
 import MaintenancePage from "./Pages/Maintenance";
 import SwipingMessages from "./components/SwippingMsgs";
 import FebeulLoader from "./components/Loader";
@@ -211,6 +211,7 @@ const AppContent = () => {
         <Route path="/ReturnRefund" element={<ReturnRefund />} />
         <Route path="/TermsConditions" element={<TermsConditions />} />
         <Route path="/GiftWrapPolicy" element={<GiftWrapPolicy />} />
+        <Route path="/policy/:policyName" element={<DynamicPolicy />} />
         {/*      
         <Route path="/contact" element={<Contact />} />  */}
         {/* Other routes */}
