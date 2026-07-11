@@ -41,8 +41,8 @@ const Home = () => {
       <div className='mt-5'><DiscountBanner /></div>
       <div className='mt-5'><LingerieRobeSection /></div>
       <div className='mt-5'><StylesSection /></div>
-      <AboutUs />
-      <div><Aboutt /></div>
+      {/* <AboutUs />
+      <div><Aboutt /></div> */}
       <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8">
         <SectionHeading
           title="Trendings"
