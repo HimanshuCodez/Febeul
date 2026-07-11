@@ -488,6 +488,19 @@ const ProductDetailPage = () => {
     ? allSpecifications
     : allSpecifications.slice(0, 6);
 
+  const getProductEDD = () => {
+    const today = new Date();
+    const minDate = new Date(today);
+    minDate.setDate(today.getDate() + 5);
+    const maxDate = new Date(today);
+    maxDate.setDate(today.getDate() + 7);
+    
+    const options = { day: 'numeric', month: 'short' };
+    const minStr = minDate.toLocaleDateString('en-IN', options);
+    const maxStr = maxDate.toLocaleDateString('en-IN', { ...options, year: 'numeric' });
+    return `${minStr} - ${maxStr}`;
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 overflow-x-hidden selection:bg-pink-100 selection:text-pink-900">
       <style>{`
@@ -675,7 +688,7 @@ const ProductDetailPage = () => {
                         </div>
                         <div>
                            <p className="font-black text-black uppercase tracking-widest text-xs">Express Shipping</p>
-                           <p className="text-sm">Estimated arrival: {siteSettings?.expectedDeliveryDays || "5 to 7 Days"}</p>
+                           <p className="text-sm">Estimated arrival: {getProductEDD()}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 group">
@@ -825,12 +838,12 @@ const DetailRow = ({ label, value, isLast = false, isEven = false }) => (
       !isLast ? "border-b border-gray-200" : ""
     } ${isEven ? "bg-slate-50/50" : "bg-white"}`}
   >
-    <div className="px-3 sm:px-4 py-3 bg-slate-50/50 flex items-center col-span-4 border-r border-gray-200">
+    <div className="px-3 sm:px-4 py-[18px] bg-slate-50/50 flex items-center col-span-4 border-r border-gray-200">
       <span className="text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-normal sm:tracking-wider leading-tight break-words w-full">
         {label}
       </span>
     </div>
-    <div className="px-3 sm:px-4 py-3 flex items-center col-span-8">
+    <div className="px-3 sm:px-4 py-[18px] flex items-center col-span-8">
       <span className="text-xs sm:text-sm text-slate-800 font-medium tracking-tight break-words w-full">
         {value}
       </span>

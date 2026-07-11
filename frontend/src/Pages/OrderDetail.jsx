@@ -499,7 +499,22 @@ export default function OrderDetailPage() {
       estDate.setDate(estDate.getDate() + 5);
       return `Est: ${estDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
     }
-    return siteSettings.expectedDeliveryDays || '5 to 7 days';
+    
+    // Calculate dynamic 5 to 7 days range from order date
+    if (order.date) {
+      const orderDate = new Date(order.date);
+      const minDate = new Date(orderDate);
+      minDate.setDate(orderDate.getDate() + 5);
+      const maxDate = new Date(orderDate);
+      maxDate.setDate(orderDate.getDate() + 7);
+      
+      const options = { day: 'numeric', month: 'short' };
+      const minStr = minDate.toLocaleDateString('en-IN', options);
+      const maxStr = maxDate.toLocaleDateString('en-IN', { ...options, year: 'numeric' });
+      return `${minStr} - ${maxStr}`;
+    }
+    
+    return '5 to 7 days';
   };
 
   const estimatedDelivery = getExpectedDelivery();
@@ -905,14 +920,16 @@ export default function OrderDetailPage() {
                         </span>
                         
                         <div>
-                          <p className={`text-xs sm:text-sm font-bold ${isLatest ? 'text-[#e8767a]' : 'text-slate-700'}`}>
-                            {act.activity || act.status}
-                          </p>
-                          {act.location && (
-                            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-                              Location: {act.location}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className={`text-xs sm:text-sm font-bold ${isLatest ? 'text-[#e8767a]' : 'text-slate-700'}`}>
+                              {act.activity || act.status}
                             </p>
-                          )}
+                            {act.location && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full shadow-sm">
+                                📍 {act.location}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] text-slate-400 font-bold mt-1">
                             {new Date(act.date).toLocaleDateString('en-IN', {
                               day: '2-digit',
