@@ -557,46 +557,51 @@ const ProductDetailPage = () => {
 
               {/* --- Product Info & Buy Box (Right) --- */}
               <div className="lg:col-span-5 px-6 lg:px-2 py-8 lg:py-0">
-                <div className="space-y-0">
-                  <div className="pb-6 border-b border-gray-400">
-                    <h1 className="text-3xl lg:text-4xl font-playfair font-medium text-gray-900 leading-[1.1] tracking-tight">
-                      {product.name}
-                    </h1>
-                  </div>
-
-                  <div className="py-4 border-b border-gray-400 flex items-center gap-3">
-                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-full">
-                      <span className="text-xs font-black">{averageRating.toFixed(1)}</span>
-                      <Star size={10} className="text-yellow-500 fill-current" />
+                  {/* Product Header Box (Name, Reviews & Price) */}
+                  <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-200 bg-white">
+                    {/* Title */}
+                    <div className="p-5 bg-slate-50/10">
+                      <h1 className="text-2xl lg:text-3xl font-playfair font-medium text-gray-900 leading-[1.2] tracking-tight">
+                        {product.name}
+                      </h1>
                     </div>
-                    <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest border-l border-gray-400 pl-3">
-                      {numOfReviews} reviews
-                    </span>
-                  </div>
 
-                  {/* Price Section */}
-                  <div className="py-6 border-b border-gray-400">
-                    <div className="flex items-baseline gap-3 mb-1">
-                      <span className="text-4xl font-black text-gray-900 tracking-tighter">
-                        ₹{finalDisplayPrice?.toLocaleString('en-IN')}
+                    {/* Ratings */}
+                    <div className="px-5 py-3.5 flex items-center gap-3 bg-slate-50/30">
+                      <div className="flex items-center gap-1 bg-white border border-gray-200 px-2 py-0.5 rounded-full shadow-sm">
+                        <span className="text-xs font-black text-gray-800">{averageRating.toFixed(1)}</span>
+                        <Star size={10} className="text-yellow-500 fill-current" />
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest border-l border-gray-200 pl-3">
+                        {numOfReviews} reviews
                       </span>
-                      {displayMrp > displayPrice && (
-                        <span className="text-xl text-gray-300 line-through font-light decoration-pink-500/30"> 
-                          ₹{displayMrp?.toLocaleString('en-IN')}
+                    </div>
+
+                    {/* Price */}
+                    <div className="p-5">
+                      <div className="flex items-baseline gap-3 mb-1">
+                        <span className="text-3xl font-black text-gray-900 tracking-tighter">
+                          ₹{finalDisplayPrice?.toLocaleString('en-IN')}
+                        </span>
+                        {displayMrp > displayPrice && (
+                          <span className="text-lg text-gray-400 line-through font-light decoration-pink-500/30"> 
+                            ₹{displayMrp?.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+                      {discount > 0 && (
+                        <span className="inline-block bg-pink-500 text-white text-[10px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider shadow-sm shadow-pink-100">
+                          {discount}% OFF
                         </span>
                       )}
                     </div>
-                    {discount > 0 && (
-                      <span className="inline-block bg-pink-500 text-white text-[10px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider shadow-sm shadow-pink-100">
-                        {discount}% OFF
-                      </span>
-                    )}
                   </div>
 
-                  <div className="space-y-0">
+                  {/* Product Options Box (Color, Size & Shipping) */}
+                  <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm mt-6 divide-y divide-gray-200 bg-white">
                     {/* Variations */}
-                    <div className="py-6 border-b border-gray-400">
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">    
+                    <div className="p-5">
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">    
                         Color: <span className="text-black">{selectedVariation.color}</span>
                       </div>
                       <div className="flex gap-2 flex-wrap">
@@ -638,8 +643,8 @@ const ProductDetailPage = () => {
                     </div>
 
                     {/* Sizes */}
-                    <div className="py-6 border-b border-gray-400">
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">    
+                    <div className="p-5">
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">    
                          Size: <span className="text-black">{selectedSizeValue || 'Select'}</span>
                       </div>
                       <div className="flex gap-2 flex-wrap">
@@ -661,25 +666,26 @@ const ProductDetailPage = () => {
                         })}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-4 py-6 border-b border-gray-400 text-sm font-medium text-gray-500">    
-                    <div className="flex items-center gap-4 group">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
-                        <Truck size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
+                    {/* Shipping & Location info */}
+                    <div className="p-5 space-y-4 text-sm font-medium text-gray-500">
+                      <div className="flex items-center gap-4 group">
+                        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
+                          <Truck size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
+                        </div>
+                        <div>
+                           <p className="font-black text-black uppercase tracking-widest text-xs">Express Shipping</p>
+                           <p className="text-sm">Estimated arrival: {siteSettings?.expectedDeliveryDays || "5 to 7 Days"}</p>
+                        </div>
                       </div>
-                      <div>
-                         <p className="font-black text-black uppercase tracking-widest text-xs">Express Shipping</p>
-                         <p className="text-sm">Estimated arrival: {siteSettings?.expectedDeliveryDays || "5 to 7 Days"}</p>
+                      <div className="flex items-center gap-4 group">
+                        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
+                          <MapPin size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
+                        </div>
+                        <button onClick={() => setIsAddressModalOpen(true)} className="text-sm font-black uppercase tracking-widest hover:text-pink-600 transition-colors text-left">
+                          {selectedAddress ? `Shipping to ${selectedAddress.city}, ${selectedAddress.zip}` : "Select destination"}
+                        </button>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4 group">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-pink-50 transition-colors">
-                        <MapPin size={18} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
-                      </div>
-                      <button onClick={() => setIsAddressModalOpen(true)} className="text-sm font-black uppercase tracking-widest hover:text-pink-600 transition-colors text-left">
-                        {selectedAddress ? `Shipping to ${selectedAddress.city}, ${selectedAddress.zip}` : "Select destination"}
-                      </button>
                     </div>
                   </div>
 
@@ -717,7 +723,6 @@ const ProductDetailPage = () => {
                       appliedCoupon={appliedCoupon}
                     />
                   </div>
-                </div>
               </div>
             </div>
           </div>
