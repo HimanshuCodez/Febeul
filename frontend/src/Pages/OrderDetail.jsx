@@ -721,8 +721,7 @@ export default function OrderDetailPage() {
                   className="text-sm text-[#e8767a] hover:text-rose-600 font-bold mt-4 flex items-center justify-center hover:underline cursor-pointer"
                   onClick={() => window.open(order.shiprocket.trackingUrl, '_blank')}
               >
-                  <FaShippingFast className="mr-2" />
-                  Track on Shiprocket
+                  
               </motion.p>
             )}
 
