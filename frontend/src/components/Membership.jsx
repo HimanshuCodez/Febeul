@@ -17,7 +17,7 @@ import useAuthStore from "../store/authStore";
 const benefits = [
   { name: "Priority Delivery", desc: "Shipped on the fast track", icon: Zap, color: "from-amber-400 to-orange-500" },
   { name: "15 Gift Wraps", desc: "Complimentary wrap option", icon: Gift, color: "from-pink-400 to-rose-500" },
-  { name: "Luxe Prive", desc: "Access to private sales", icon: Sparkles, color: "from-yellow-400 to-amber-500" },
+  { name: "Luxe Prive", desc: "Access to prive sales", icon: Sparkles, color: "from-yellow-400 to-amber-500" },
   { name: "Order Rewards", desc: "Exclusive coupon deals", icon: Tag, color: "from-emerald-400 to-teal-500" },
   { name: "VIP Support", desc: "Dedicated fast assistance", icon: Headphones, color: "from-purple-400 to-indigo-500" },
   { name: "Free Shipping", desc: "Zero delivery fees always", icon: Truck, color: "from-cyan-400 to-blue-500" },
