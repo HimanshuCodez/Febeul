@@ -241,7 +241,7 @@ const Chatbot = () => {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-300"></span>
           </span>
           <MessageCircle className="w-5 h-5 shrink-0" />
-          <span className="text-xs font-black tracking-widest uppercase">Chat With Us</span>
+         
         </motion.button>
       )}
 
