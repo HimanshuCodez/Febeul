@@ -96,3 +96,24 @@ export const trackShipment = async (awb) => {
     }
 };
 
+export const assignShiprocketAwb = async (shipmentId, token) => {
+    try {
+        const response = await axios.post(
+            "https://apiv2.shiprocket.in/v1/external/courier/assign/awb",
+            {
+                shipment_id: shipmentId
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error assigning Shiprocket AWB:", error.response ? error.response.data : error.message);
+        return null;
+    }
+};
+
+
