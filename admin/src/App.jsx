@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import { Routes, Route } from 'react-router-dom'
 import Add from './pages/Add'
 import List from './pages/List'
+import LuxeList from './pages/LuxeList..jsx'
 import Orders from './pages/Orders'
 import Update from './pages/Update' // Import the Update component
 import AllUsers from './pages/AllUsers'
@@ -78,6 +79,7 @@ const App = () => {
                 {/* Other Routes protected by isAllowed */}
                 {isAllowed('/add') && <Route path='/add' element={<Add token={token} />} />}
                 {isAllowed('/list') && <Route path='/list' element={<List token={token} />} />}
+                {isAllowed('/luxelist') && <Route path='/luxelist' element={<LuxeList token={token} />} />}
                 {isAllowed('/orders') && <Route path='/orders' element={<Orders token={token} />} />}
                 {isAllowed('/refund-requests') && <Route path='/refund-requests' element={<RefundRequests token={token} />} />}
                 {isAllowed('/update') && <Route path='/update/:productId' element={<Update token={token} />} />}

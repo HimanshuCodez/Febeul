@@ -42,7 +42,7 @@ const Sidebar = ({ role, permissions = [] }) => {
   const location = useLocation();
   
   const [isProductListingOpen, setIsProductListingOpen] = useState(
-    location.pathname === '/add' || location.pathname === '/list' || location.pathname.includes('/update')
+    location.pathname === '/add' || location.pathname === '/list' || location.pathname === '/luxelist' || location.pathname.includes('/update')
   );
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(
@@ -50,7 +50,7 @@ const Sidebar = ({ role, permissions = [] }) => {
   );
 
   useEffect(() => {
-    if (location.pathname === '/add' || location.pathname === '/list' || location.pathname.includes('/update')) {
+    if (location.pathname === '/add' || location.pathname === '/list' || location.pathname === '/luxelist' || location.pathname.includes('/update')) {
       setIsProductListingOpen(true);
     }
     if (location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography') {
@@ -64,7 +64,7 @@ const Sidebar = ({ role, permissions = [] }) => {
     return permissions.includes(path);
   };
 
-  const showProductListing = isAllowed('/add') || isAllowed('/list');
+  const showProductListing = isAllowed('/add') || isAllowed('/list') || isAllowed('/luxelist');
   const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize') || isAllowed('/typography');
 
   return (
@@ -100,6 +100,9 @@ const Sidebar = ({ role, permissions = [] }) => {
                             )}
                             {isAllowed('/list') && (
                                 <SidebarItem to="/list" icon={List} label="List Items" />
+                            )}
+                            {isAllowed('/luxelist') && (
+                                <SidebarItem to="/luxelist" icon={List} label="Luxe Items" />
                             )}
                             {location.pathname.includes('/update') && isAllowed('/list') && (
                                 <SidebarItem to={location.pathname} icon={PlusCircle} label="Update Item" />
