@@ -306,16 +306,7 @@ const buildInvoicePDF = (order, res) => {
         
         doc.fontSize(11).font('Helvetica-Bold');
         doc.text('Grand Total:', totalsLabelX, doc.y, { width: 110, align: 'right' });
-        const roundedGrandTotal = roundToNearestRupee(order.orderTotal);
-        const grandTotalRoundOff = Math.abs((Number(order.orderTotal) || 0) - roundedGrandTotal);
-        doc.text(`INR ${roundedGrandTotal.toFixed(0)}`, totalsValX, doc.y - 11, { width: 65, align: 'right' });
-        if (grandTotalRoundOff > 0) {
-            doc.fontSize(7).font('Helvetica').fillColor(secondaryColor)
-               .text(`(Rounded off by INR ${grandTotalRoundOff.toFixed(2)})`, totalsLabelX, doc.y + 2, {
-                   width: doc.page.width - totalsLabelX - 30,
-                   align: 'right'
-               });
-        }
+        doc.text(`INR ${order.orderTotal.toFixed(2)}`, totalsValX, doc.y - 11, { width: 65, align: 'right' });
 
         // 
         // TERMS & FOOTER

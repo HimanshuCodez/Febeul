@@ -138,15 +138,16 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
 
     let giftWrapPrice = giftWrapData ? parseFloat(giftWrapData.price || 0) : 0;
 
-    let shippingCharge = 0;
-    let codCharge = 0; 
-    
-    if (paymentMethod === 'COD') {
-        codCharge = siteSettings.codCharge || 50;
-    }
     const user = await userModel.findById(userId); 
     const isLuxeMember = user?.isLuxeMember || false;
     const giftWrapsLeft = user?.giftWrapsLeft || 0;
+
+    let shippingCharge = 0;
+    let codCharge = 0; 
+    
+    if (paymentMethod === 'COD' && !isLuxeMember) {
+        codCharge = siteSettings.codCharge || 50;
+    }
 
     if (isLuxeMember && giftWrapData && giftWrapsLeft > 0) { 
         giftWrapPrice = 0; 
@@ -364,17 +365,6 @@ const constructEmailHtml = (order, templateHtml) => {
 
     const orderDateFormatted = new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     const sequentialInvoice = order.invoiceNumber ? order.invoiceNumber.toString().padStart(4, '0') : order._id.toString().slice(-8).toUpperCase();
-    const roundedGrandTotal = roundToNearestRupee(emailOrderTotal);
-    const grandTotalRoundOff = Math.abs(emailOrderTotal - roundedGrandTotal);
-    const grandTotalRoundOffHtml = grandTotalRoundOff > 0
-        ? `
-            <tr class="grand-total-note">
-                <td colspan="2" style="padding: 0 0 4px; font-size: 11px; color: #999999; text-align: right;">
-                    (Rounded off by INR ${grandTotalRoundOff.toFixed(2)})
-                </td>
-            </tr>
-        `
-        : '';
 
     let finalHtml = templateHtml
         .replace('{{orderId}}', order._id.toString().slice(-8).toUpperCase())
@@ -399,8 +389,7 @@ const constructEmailHtml = (order, templateHtml) => {
         .replace('{{codChargeRow}}', codChargeRow)
         .replace('{{giftWrapRow}}', giftWrapRow)
         .replace('{{gstRows}}', gstRowsHtml)
-        .replace('{{grandTotalRoundOffNote}}', grandTotalRoundOffHtml)
-        .replace('{{totalAmount}}', roundedGrandTotal.toFixed(0));
+        .replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
 
     return finalHtml;
 };
