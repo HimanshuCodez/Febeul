@@ -369,6 +369,25 @@ const Orders = ({ token }) => {
                           </div>
                         )}
                       </div>
+
+                      {/* Cancellation / Refund Info */}
+                      {(order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned' || order.orderStatus === 'Refunded' || order.orderStatus === 'Refund Initiated') && (
+                        <div>
+                          <p className='font-semibold text-red-700 mb-3 flex items-center gap-2'><AlertCircle size={16}/> Cancellation / Refund Info</p>
+                          <div className='space-y-2 text-sm text-gray-600 bg-red-50/50 p-4 rounded-xl border border-red-100'>
+                            {order.orderStatus === 'Cancelled' && <p className="font-bold text-red-800">Order Cancelled</p>}
+                            {order.refundDetails?.reason && (
+                              <p><span className="font-semibold text-gray-700">Reason:</span> <span className="italic text-gray-600">"{order.refundDetails.reason}"</span></p>
+                            )}
+                            {order.refundDetails?.status && order.refundDetails.status !== 'none' && (
+                              <p><span className="font-semibold text-gray-700">Refund Status:</span> <span className="font-medium capitalize">{order.refundDetails.status}</span></p>
+                            )}
+                            {order.refundDetails?.amount > 0 && (
+                              <p><span className="font-semibold text-gray-700">Refunded Amount:</span> <span className="font-bold text-gray-800">{currency}{order.refundDetails.amount.toFixed(2)}</span></p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

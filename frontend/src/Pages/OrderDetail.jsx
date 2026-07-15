@@ -214,12 +214,14 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
 // --- Cancellation Modal Component ---
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
     const [reason, setReason] = useState('');
+    const [customReason, setCustomReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!reason) {
-            toast.error("Please select a reason for cancellation.");
+        const finalReason = reason === 'Other' ? customReason : reason;
+        if (!finalReason.trim()) {
+            toast.error("Please provide a reason for cancellation.");
             return;
         }
         setIsSubmitting(true);
@@ -227,7 +229,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
         try {
             const response = await axios.post(`${backendUrl}/api/order/cancel`, {
                 orderId: order._id,
-                reason,
+                reason: finalReason,
                 bankDetails: null
             }, {
                 headers: { token }
@@ -268,7 +270,12 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
                         <select
                             id="reason"
                             value={reason}
-                            onChange={(e) => setReason(e.target.value)}
+                            onChange={(e) => {
+                                setReason(e.target.value);
+                                if (e.target.value !== 'Other') {
+                                    setCustomReason('');
+                                }
+                            }}
                             className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#e8767a] focus:border-[#e8767a]"
                         >
                             <option value="">Select a reason</option>
@@ -279,6 +286,21 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
                             <option value="Other">Other</option>
                         </select>
                     </div>
+
+                    {reason === 'Other' && (
+                        <div>
+                            <label htmlFor="customReason" className="block text-sm font-medium text-gray-700 mb-1">Please specify the reason</label>
+                            <input
+                                type="text"
+                                id="customReason"
+                                value={customReason}
+                                onChange={(e) => setCustomReason(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#e8767a] focus:border-[#e8767a]"
+                                placeholder="Type your reason here..."
+                                required
+                            />
+                        </div>
+                    )}
 
                     {order.paymentMethod === 'Razorpay' && order.payment && (
                         <div className="bg-blue-50 border border-blue-100 text-blue-700 rounded-lg p-4 text-xs font-bold">

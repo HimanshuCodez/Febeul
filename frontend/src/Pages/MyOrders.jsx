@@ -25,13 +25,15 @@ const getOrderDisplayStatus = (order) => {
 
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
   const [reason, setReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const finalReason = reason === "Other" ? customReason : reason;
 
-    if (!reason.trim()) {
-      toast.error("Please select a cancellation reason.");
+    if (!finalReason.trim()) {
+      toast.error("Please select or specify a cancellation reason.");
       return;
     }
 
@@ -41,7 +43,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
         `${backendUrl}/api/order/cancel`,
         {
           orderId: order._id,
-          reason,
+          reason: finalReason,
           bankDetails: null
         },
         { headers: { token } }
@@ -90,7 +92,12 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
             <select
               id="cancel-reason"
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => {
+                setReason(e.target.value);
+                if (e.target.value !== "Other") {
+                  setCustomReason("");
+                }
+              }}
               className="w-full p-3 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-400"
             >
               <option value="">Select a reason</option>
@@ -101,6 +108,21 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
               <option value="Other">Other</option>
             </select>
           </div>
+
+          {reason === "Other" && (
+            <div>
+              <label htmlFor="custom-reason" className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Please specify the reason</label>
+              <input
+                type="text"
+                id="custom-reason"
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-400"
+                placeholder="Type your reason here..."
+                required
+              />
+            </div>
+          )}
 
           {order.paymentMethod === "Razorpay" && order.payment && (
             <div className="bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl p-4 text-xs font-bold">
