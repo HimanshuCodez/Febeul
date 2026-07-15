@@ -25,31 +25,13 @@ const getOrderDisplayStatus = (order) => {
 
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
   const [reason, setReason] = useState("");
-  const [bankDetails, setBankDetails] = useState({
-    accountHolderName: "",
-    accountNumber: "",
-    ifsc: "",
-    bankName: ""
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const isCod = order.paymentMethod === "COD";
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setBankDetails(prev => ({ ...prev, [name]: value }));
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!reason.trim()) {
       toast.error("Please select a cancellation reason.");
-      return;
-    }
-
-    if (isCod && (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifsc)) {
-      toast.error("Please provide bank details for COD cancellation.");
       return;
     }
 
@@ -60,7 +42,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
         {
           orderId: order._id,
           reason,
-          bankDetails: isCod ? bankDetails : null
+          bankDetails: null
         },
         { headers: { token } }
       );
@@ -119,21 +101,6 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
               <option value="Other">Other</option>
             </select>
           </div>
-
-          {isCod && (
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <h4 className="font-black text-sm text-slate-800 flex items-center gap-2">
-                <CreditCard size={16} className="text-rose-500" />
-                Bank Details for Admin Refund Log
-              </h4>
-              <input type="text" name="accountHolderName" placeholder="Account Holder Name" value={bankDetails.accountHolderName} onChange={handleInputChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm" required />
-              <input type="text" name="accountNumber" placeholder="Account Number" value={bankDetails.accountNumber} onChange={handleInputChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm" required />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input type="text" name="ifsc" placeholder="IFSC Code" value={bankDetails.ifsc} onChange={handleInputChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm uppercase" required />
-                <input type="text" name="bankName" placeholder="Bank Name" value={bankDetails.bankName} onChange={handleInputChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
-              </div>
-            </div>
-          )}
 
           {order.paymentMethod === "Razorpay" && order.payment && (
             <div className="bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl p-4 text-xs font-bold">

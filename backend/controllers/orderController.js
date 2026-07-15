@@ -1227,16 +1227,7 @@ const cancelOrder = async (req, res) => {
             }
         } else if (order.paymentMethod === 'COD') {
             order.orderStatus = 'Cancelled';
-            order.refundDetails.status = 'pending';
-            if (bankDetails) {
-                order.refundDetails.customerPayoutDetails = {
-                    type: 'bank',
-                    bankAccount: bankDetails.accountNumber,
-                    ifsc: bankDetails.ifsc,
-                    accountHolderName: bankDetails.accountHolderName,
-                    bankName: bankDetails.bankName
-                };
-            }
+            order.refundDetails.status = 'none';
         } else {
             order.orderStatus = 'Cancelled';
         }

@@ -214,25 +214,12 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
 // --- Cancellation Modal Component ---
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
     const [reason, setReason] = useState('');
-    const [bankDetails, setBankDetails] = useState({
-        accountHolderName: '',
-        accountNumber: '',
-        ifsc: '',
-        bankName: ''
-    });
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const isCod = order.paymentMethod === 'COD';
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setBankDetails(prev => ({ ...prev, [name]: value }));
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isCod && (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifsc)) {
-            toast.error("Please provide bank details for refund (Industry standard).");
+        if (!reason) {
+            toast.error("Please select a reason for cancellation.");
             return;
         }
         setIsSubmitting(true);
@@ -241,7 +228,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
             const response = await axios.post(`${backendUrl}/api/order/cancel`, {
                 orderId: order._id,
                 reason,
-                bankDetails: isCod ? bankDetails : null
+                bankDetails: null
             }, {
                 headers: { token }
             });
@@ -293,22 +280,9 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
                         </select>
                     </div>
 
-                    {isCod && (
-                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                <FaCreditCard className="text-[#e8767a]" />
-                                Bank Details for Refund
-                            </h3>
-                            <p className="text-xs text-gray-500 italic">Industry standard: Provide details to receive your refund for this COD order.</p>
-                            
-                            <div className="grid grid-cols-1 gap-4">
-                                <input type="text" name="accountHolderName" placeholder="Account Holder Name" value={bankDetails.accountHolderName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
-                                <input type="text" name="accountNumber" placeholder="Account Number" value={bankDetails.accountNumber} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
-                                <div className="grid grid-cols-2 gap-4">
-                                    <input type="text" name="ifsc" placeholder="IFSC Code" value={bankDetails.ifsc} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm uppercase" required />
-                                    <input type="text" name="bankName" placeholder="Bank Name" value={bankDetails.bankName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" />
-                                </div>
-                            </div>
+                    {order.paymentMethod === 'Razorpay' && order.payment && (
+                        <div className="bg-blue-50 border border-blue-100 text-blue-700 rounded-lg p-4 text-xs font-bold">
+                            The full prepaid amount will be refunded directly to your original Razorpay payment source.
                         </div>
                     )}
 
