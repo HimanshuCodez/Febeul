@@ -148,7 +148,7 @@ const Support = () => {
         e.preventDefault();
         if (isSubmitting) return;
         if (!token) {
-            toast.error("You must be logged in to create a ticket.");
+            toast.error("login to create ticket");
             return;
         }
 
@@ -226,7 +226,16 @@ const Support = () => {
                             >
                                 Refresh
                             </button>
-                            <button onClick={() => setIsCreating(!isCreating)} className="bg-pink-500 text-white py-2 px-4 rounded-md font-semibold hover:bg-pink-600 transition-colors flex items-center space-x-2">
+                            <button
+                                onClick={() => {
+                                    if (!token) {
+                                        toast.error("login to create ticket");
+                                        return;
+                                    }
+                                    setIsCreating(!isCreating);
+                                }}
+                                className="bg-pink-500 text-white py-2 px-4 rounded-md font-semibold hover:bg-pink-600 transition-colors flex items-center space-x-2"
+                            >
                                 <Plus size={20} />
                                 <span>{isCreating ? 'Cancel' : 'New Ticket'}</span>
                             </button>
