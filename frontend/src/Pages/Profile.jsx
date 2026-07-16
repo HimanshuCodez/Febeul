@@ -10,6 +10,7 @@ import { toast } from "react-hot-toast";
 import MembershipStatus from "../components/MembershipStatus";
 import MyOrders from "./MyOrders"; 
 import CouponShows from "../components/CouponShows";
+import ScrollToTop from "../components/ScrollToTop";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -169,6 +170,7 @@ export default function Profile() {
 
   return (
     <div className={`min-h-screen ${user.isLuxeMember ? 'bg-gradient-to-br from-amber-50 via-white to-yellow-50' : 'bg-pink-50/50'} font-sans py-12 px-4 sm:px-6 lg:px-8 relative`}>
+      <ScrollToTop />
       {user.isLuxeMember && <LuxeSparkles />}
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="lg:grid lg:grid-cols-12 lg:gap-8">
@@ -260,36 +262,20 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
 const ProfileInfo = ({ user, editedUser, isEditing, setIsEditing, handleInputChange, handleSave, cardStyles }) => (
   <div className={cardStyles}>
     <MembershipStatus user={user} />
-    <div className="flex justify-between items-center border-b pb-4 mb-6">
-      <h2 className={`text-xl font-bold ${user.isLuxeMember ? 'text-amber-800' : 'text-gray-800'}`}>Personal Information</h2>
-      <button 
-        onClick={() => setIsEditing(!isEditing)}
-        className={`flex items-center space-x-2 text-sm font-medium transition-colors ${user.isLuxeMember ? 'text-amber-600 hover:text-amber-800' : 'text-pink-500 hover:text-pink-700'}`}
-      >
-        {isEditing ? <><X size={16}/><span>Cancel</span></> : <><Edit size={16} /><span>Edit</span></>}
-      </button>
-    </div>
-    {isEditing ? (
-      <ProfileForm user={editedUser} onInputChange={handleInputChange} onSave={handleSave} isLuxe={user.isLuxeMember} />
-    ) : (
-      <ProfileDetails user={user} />
-    )}
+    
+    
   </div>
 );
 
 const ProfileDetails = ({ user }) => {
   const primaryAddress = user.addresses?.[0];
-  const formattedAddress = primaryAddress
-    ? `${primaryAddress.address}, ${primaryAddress.locality ? primaryAddress.locality + ', ' : ''}${primaryAddress.city}, ${primaryAddress.country} - ${primaryAddress.zip}`
-    : 'Not provided';
-  const phoneNumber = primaryAddress?.phone || 'Not provided';
+  const phoneNumber = user.phone || primaryAddress?.phone || 'Not provided';
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <InfoItem icon={User} label="Full Name" value={user.name} isLuxe={user.isLuxeMember} />
       <InfoItem icon={Mail} label="Email Address" value={user.email} isLuxe={user.isLuxeMember} />
       <InfoItem icon={Phone} label="Phone Number" value={phoneNumber} isLuxe={user.isLuxeMember} />
-      <InfoItem icon={MapPin} label="Address" value={formattedAddress} isLuxe={user.isLuxeMember} wide />
     </div>
   );
 };
@@ -302,7 +288,6 @@ const ProfileForm = ({ user, onInputChange, onSave, isLuxe }) => (
       <FormInput name="phone" label="Phone Number" value={user.phone || ''} onChange={onInputChange} />
       <FormInput name="dob" label="Date of Birth" value={user.dob ? user.dob.split('T')[0] : ''} onChange={onInputChange} type="date" />
     </div>
-    <FormInput name="address" label="Address" value={user.address || ''} onChange={onInputChange} />
     <div className="flex justify-end pt-4">
       <button onClick={onSave} className={`flex items-center space-x-2 text-white px-6 py-2 rounded-full font-bold shadow-lg transition-all transform hover:scale-105 ${isLuxe ? 'bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700' : 'bg-pink-500 hover:bg-pink-600'}`}>
         <Save size={16} />
