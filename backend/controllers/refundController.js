@@ -2,6 +2,7 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Razorpay from "razorpay";
 import { v2 as cloudinary } from "cloudinary";
+import { createReturnOrder, buildShiprocketOrderPayload } from "../utils/shiprocket.js";
 
 const razorpayInstance = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -110,7 +111,7 @@ const processCodRefund = async (orderId, refundAmount, customerPayoutDetails) =>
 
 // --- 5. Admin Approve Refund Handler ---
 const approveRefund = async (req, res) => {
-    const { orderId, returnReason, manualRefundAmount } = req.body;
+    const { orderId, returnReason, manualRefundAmount, adminRefundComment, isPartialRefund } = req.body;
 
     try {
         const order = await orderModel.findById(orderId).populate('userId');
@@ -142,7 +143,37 @@ const approveRefund = async (req, res) => {
             order.refundDetails.amount = refundAmount;
             order.refundDetails.id = refundResult.refundId;
             order.refundDetails.processedAt = new Date();
+            order.refundDetails.adminRefundComment = adminRefundComment || "";
+            order.refundDetails.isPartialRefund = isPartialRefund || (refundAmount < order.orderTotal);
             order.isRefundable = false;
+
+            // If the customer physically has the item (delivered-item return,
+            // evidenced by the required 4 verification photos), schedule a
+            // Shiprocket reverse pickup so the courier collects it back.
+            // Best-effort: refund still succeeds even if this fails, but the
+            // failure reason is recorded so admin can arrange pickup manually.
+            const needsPickup = order.refundDetails.images?.length > 0 && order.refundDetails.pickup.status === 'none';
+            if (needsPickup) {
+                try {
+                    const payload = buildShiprocketOrderPayload(order);
+                    const returnResponse = await createReturnOrder(payload);
+
+                    if (returnResponse && returnResponse.order_id) {
+                        order.refundDetails.pickup.status = 'scheduled';
+                        order.refundDetails.pickup.shiprocketReturnOrderId = returnResponse.order_id;
+                        order.refundDetails.pickup.shipmentId = returnResponse.shipment_id;
+                        order.refundDetails.pickup.scheduledDate = new Date();
+                    } else {
+                        order.refundDetails.pickup.status = 'failed';
+                        order.refundDetails.pickup.failureReason = 'Shiprocket did not return a valid return order.';
+                    }
+                } catch (pickupError) {
+                    console.log("Error scheduling Shiprocket reverse pickup:", pickupError.message);
+                    order.refundDetails.pickup.status = 'failed';
+                    order.refundDetails.pickup.failureReason = pickupError.message;
+                }
+            }
+
             await order.save();
             return res.json({ success: true, message: `Refund successful. Amount: ₹${refundAmount}` });
         }
@@ -212,47 +243,4 @@ const requestRefund = async (req, res) => {
     }
 };
 
-const updateShiprocketStatusWebhook = async (req, res) => {
-    try {
-        const { order_id, current_status } = req.body;
-        const statusText = (current_status || '').toString().trim().toUpperCase();
-        const order = await orderModel.findOne({
-            $or: [
-                { 'shiprocket.srOrderId': order_id },
-                { 'shiprocket.ourOrderId': order_id },
-                { 'shiprocket.shipmentId': order_id }
-            ]
-        }) || await orderModel.findById(order_id);
-        if (!order) return res.json({ success: false, message: "Order not found." });
-
-        if (statusText === 'DELIVERED') {
-            order.orderStatus = 'Delivered';
-            order.deliveredAt = new Date();
-            order.shiprocketStatus = 'DELIVERED';
-        } else if (statusText === 'OUT FOR DELIVERY' || statusText === 'OUT_FOR_DELIVERY') {
-            order.orderStatus = 'Out for delivery';
-            order.shiprocketStatus = 'IN_TRANSIT';
-        } else if (['SHIPPED', 'IN_TRANSIT', 'IN TRANSIT'].includes(statusText)) {
-            order.orderStatus = 'Shipped';
-            order.shiprocketStatus = statusText === 'SHIPPED' ? 'SHIPPED' : 'IN_TRANSIT';
-        } else if (statusText === 'PICKUP SCHEDULED' || statusText === 'PICKUP_SCHEDULED') {
-            order.orderStatus = 'Processing';
-            order.shiprocketStatus = 'PICKUP SCHEDULED';
-        } else if (statusText.includes('RTO')) {
-            order.orderStatus = 'Returned';
-            order.shiprocketStatus = 'RTO';
-        } else if (statusText === 'CANCELLED') {
-            order.orderStatus = 'Cancelled';
-            order.shiprocketStatus = 'CANCELLED';
-        } else {
-            order.shiprocketStatus = 'UNKNOWN';
-        }
-
-        await order.save();
-        res.json({ success: true, message: "Status updated." });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-
-export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, approveRefund, rejectRefund, updateShiprocketStatusWebhook };
+export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, approveRefund, rejectRefund };

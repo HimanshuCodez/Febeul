@@ -686,17 +686,33 @@ const Orders = ({ token }) => {
                               <div className='mt-4 pt-3 border-t border-gray-100'>
                                 <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5'><Truck size={14}/> Logistics</p>
                                 <div className='space-y-1 text-[11px] text-gray-600 bg-gray-50 p-2 rounded-lg border'>
+                                  {order.shiprocketStatus && (
+                                    <p>Live Status: <span className="font-bold text-gray-900 uppercase">{order.shiprocketStatus.replace(/_/g, ' ')}</span></p>
+                                  )}
                                   {order.shiprocket.awb && <p>AWB: <span className="font-bold">{order.shiprocket.awb}</span></p>}
                                   {order.shiprocket.courier && <p>Courier: <span className="font-semibold">{order.shiprocket.courier}</span></p>}
+                                  {order.shiprocket.lastTrackedAt && (
+                                    <p className="text-[10px] text-gray-400">Last synced: {formatDate(order.shiprocket.lastTrackedAt)}</p>
+                                  )}
                                   {order.shiprocket.trackingUrl && (
-                                    <a 
-                                      href={order.shiprocket.trackingUrl} 
-                                      target='_blank' 
+                                    <a
+                                      href={order.shiprocket.trackingUrl}
+                                      target='_blank'
                                       rel='noopener noreferrer'
                                       className='text-pink-600 hover:underline flex items-center gap-1 font-bold mt-1 text-[10px] uppercase'
                                     >
                                       <FileText size={12}/> Track Shipment
                                     </a>
+                                  )}
+                                  {order.shiprocket.trackingHistory?.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
+                                      {[...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3).map((act, i) => (
+                                        <p key={i} className="text-[10px] text-gray-500">
+                                          <span className="font-bold text-gray-700">{act.activity || act.status}</span>
+                                          {act.location ? ` · ${act.location}` : ''} · {formatDate(act.date)}
+                                        </p>
+                                      ))}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -720,6 +736,15 @@ const Orders = ({ token }) => {
                                 )}
                                 {order.refundDetails?.requestedAt && (
                                   <p><span className="font-bold text-gray-700">Claimed Date:</span> <span className="font-medium text-gray-600">{formatDate(order.refundDetails.requestedAt)}</span></p>
+                                )}
+                                {order.refundDetails?.pickup && order.refundDetails.pickup.status !== 'none' && (
+                                  <div className="mt-2 pt-2 border-t border-red-100">
+                                    <p><span className="font-bold text-gray-700">Pickup status:</span> <span className="font-bold text-gray-900 uppercase text-[10px] bg-white px-2 py-0.5 rounded shadow-sm border">{order.refundDetails.pickup.status.replace(/_/g, ' ')}</span></p>
+                                    {order.refundDetails.pickup.awb && <p className="text-[10px] text-gray-500 mt-1">Return AWB: <span className="font-bold">{order.refundDetails.pickup.awb}</span> {order.refundDetails.pickup.courier ? `(${order.refundDetails.pickup.courier})` : ''}</p>}
+                                    {order.refundDetails.pickup.status === 'failed' && order.refundDetails.pickup.failureReason && (
+                                      <p className="text-[10px] text-red-600 italic mt-1">Auto-schedule failed: {order.refundDetails.pickup.failureReason} — arrange pickup manually.</p>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>

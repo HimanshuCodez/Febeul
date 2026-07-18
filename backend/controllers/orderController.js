@@ -3,7 +3,8 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
-import { shiprocketLogin, createShiprocketOrder, trackShipment, assignShiprocketAwb } from '../utils/shiprocket.js';
+import { trackShipment, createAndAssignShipment, cancelShiprocketOrder } from '../utils/shiprocket.js';
+import { mapShiprocketStatus, mergeTrackingHistory } from '../utils/shiprocketStatusMap.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
@@ -474,59 +475,14 @@ const placeOrder = async (req,res) => {
         const order = await orderModel.findById(newOrder._id).populate('userId');
 
         // Shiprocket integration
-        try {
-            const shiprocketToken = await shiprocketLogin();
-            const shiprocketOrderData = {
-                _id: order._id,
-                shippingAddress: { // Ensure this matches Shiprocket's expected structure
-                    name: order.address.name.split(' ')[0] || '', // First name
-                    lastName: order.address.name.split(' ').slice(1).join(' ') || '.', // Last name (use dot if empty)
-                    address: order.address.address,
-                    address2: `${order.address.locality || ''}${order.address.landmark ? ', ' + order.address.landmark : ''}`.trim(),
-                    city: order.address.city,
-                    pincode: order.address.zip, // Use zip from frontend
-                    state: order.address.state,
-                    country: "India",
-                    phone: order.address.phone,
-                    email: order.userId.email // Assuming userId is populated and has email
-                },
-                user: order.userId,
-                items: order.items,
-                totalPrice: order.productAmount,
-            };
-            const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "COD");
-
-            let awbCode = null;
-            let courierName = null;
-
-            if (shiprocketResponse && shiprocketResponse.shipment_id) {
-                try {
-                    const awbResponse = await assignShiprocketAwb(shiprocketResponse.shipment_id, shiprocketToken);
-                    if (awbResponse && awbResponse.awb_assign_status === 1) {
-                        awbCode = awbResponse.response?.data?.awb_code || null;
-                        courierName = awbResponse.response?.data?.courier_name || null;
-                    }
-                } catch (awbError) {
-                    console.log("Error assigning Shiprocket AWB for COD order:", awbError.message);
-                }
-            }
-
-            order.shiprocket = {
-                ourOrderId: order._id.toString(),
-                srOrderId: shiprocketResponse.order_id,
-                shipmentId: shiprocketResponse.shipment_id,
-                awb: awbCode,
-                courier: courierName,
-                trackingUrl: awbCode ? `https://shiprocket.co/tracking/${awbCode}` : ''
-            };
+        const shiprocketData = await createAndAssignShipment(order, "COD");
+        if (shiprocketData) {
+            order.shiprocket = shiprocketData;
             order.orderStatus = "Processing";
             order.shiprocketStatus = "NEW";
             await order.save();
-
-        } catch (error) {
-            console.log("Error with Shiprocket:", error.message);
-            // If shiprocket fails, the order is still placed, but not shipped.
         }
+        // If Shiprocket fails, the order is still placed, but not shipped yet.
 
         res.json({success:true,message:"Order Placed", order: newOrder})
 
@@ -728,62 +684,13 @@ const verifyStripe = async (req,res) => {
                 }
 
                 // Shiprocket integration
-                try {
-                    const shiprocketToken = await shiprocketLogin();
-                    const shiprocketOrderData = {
-                        _id: updatedOrder._id,
-                        shippingAddress: { // Ensure this matches Shiprocket's expected structure
-                            name: (updatedOrder || order).address.name.split(' ')[0] || '', // First name
-                            lastName: (updatedOrder || order).address.name.split(' ').slice(1).join(' ') || '.', // Last name (use dot if empty)
-                            address: (updatedOrder || order).address.address,
-                            address2: `${(updatedOrder || order).address.locality || ''}${(updatedOrder || order).address.landmark ? ', ' + (updatedOrder || order).address.landmark : ''}`.trim(),
-                            city: (updatedOrder || order).address.city,
-                            pincode: (updatedOrder || order).address.zip, // Use zip from frontend
-                            state: (updatedOrder || order).address.state,
-                            country: "India",
-                            phone: (updatedOrder || order).address.phone,
-                            email: (updatedOrder || order).userId.email
-                        },
-                        user: updatedOrder.userId,
-                        items: updatedOrder.items,
-                        totalPrice: updatedOrder.productAmount, // Use productAmount for subtotal
-                        shippingCharge: updatedOrder.shippingCharge,
-                        codCharge: updatedOrder.codCharge
-                    };
-                    const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
-
-                    let awbCode = null;
-                    let courierName = null;
-
-                    if (shiprocketResponse && shiprocketResponse.shipment_id) {
-                        try {
-                            const awbResponse = await assignShiprocketAwb(shiprocketResponse.shipment_id, shiprocketToken);
-                            if (awbResponse && awbResponse.awb_assign_status === 1) {
-                                awbCode = awbResponse.response?.data?.awb_code || null;
-                                courierName = awbResponse.response?.data?.courier_name || null;
-                            }
-                        } catch (awbError) {
-                            console.log("Error assigning Shiprocket AWB for Stripe order:", awbError.message);
-                        }
-                    }
-
-                    updatedOrder.shiprocket = {
-                        ourOrderId: updatedOrder._id.toString(),
-                        srOrderId: shiprocketResponse.order_id,
-                        shipmentId: shiprocketResponse.shipment_id,
-                        awb: awbCode,
-                        courier: courierName,
-                        trackingUrl: awbCode ? `https://shiprocket.co/tracking/${awbCode}` : ''
-                    };
-                    updatedOrder.orderStatus = "Confirmed"; // The order is paid and confirmed
-                    updatedOrder.shiprocketStatus = "NEW"; // It's a new order for Shiprocket
-                    updatedOrder.shippedAt = new Date(); // Set shippedAt timestamp
-                    await updatedOrder.save(); // Save after all updates
-                } catch (error) {
-                    console.log("Error with Shiprocket:", error.message);
-                    // If shiprocket fails, update order status accordingly but don't fail the entire payment verification
-                    await orderModel.findByIdAndUpdate(orderId, { orderStatus: 'Confirmed', shiprocketStatus: 'NEW' }); // Keep Confirmed status if Shiprocket fails
+                const shiprocketData = await createAndAssignShipment(updatedOrder, "Prepaid");
+                if (shiprocketData) {
+                    updatedOrder.shiprocket = shiprocketData;
                 }
+                updatedOrder.orderStatus = "Confirmed"; // The order is paid and confirmed
+                updatedOrder.shiprocketStatus = "NEW"; // It's a new order for Shiprocket
+                await updatedOrder.save();
             }
 
             res.json({success: true});
@@ -961,62 +868,13 @@ const verifyRazorpay = async (req,res) => {
                     }
 
                     // Shiprocket integration
-                    try {
-                        const shiprocketToken = await shiprocketLogin();
-                        const shiprocketOrderData = {
-                            _id: order._id,
-                        shippingAddress: { // Ensure this matches Shiprocket's expected structure
-                                name: order.address.name.split(' ')[0] || '', // First name
-                                lastName: order.address.name.split(' ').slice(1).join(' ') || '.', // Last name (use dot if empty)
-                                address: order.address.address,
-                                address2: `${order.address.locality || ''}${order.address.landmark ? ', ' + order.address.landmark : ''}`.trim(),
-                                city: order.address.city,
-                                pincode: order.address.zip, // Use zip from frontend
-                                state: order.address.state,
-                                country: "India",
-                                phone: order.address.phone,
-                                email: order.userId.email // Assuming userId is populated and has email
-                            },
-                            user: order.userId,
-                            items: order.items,
-                            totalPrice: order.productAmount, // Use productAmount for subtotal
-                            shippingCharge: order.shippingCharge, // Pass shippingCharge to shiprocket
-                            codCharge: order.codCharge // Pass codCharge to shiprocket
-                        };
-                        const shiprocketResponse = await createShiprocketOrder(shiprocketOrderData, shiprocketToken, "Prepaid");
-
-                        let awbCode = null;
-                        let courierName = null;
-
-                        if (shiprocketResponse && shiprocketResponse.shipment_id) {
-                            try {
-                                const awbResponse = await assignShiprocketAwb(shiprocketResponse.shipment_id, shiprocketToken);
-                                if (awbResponse && awbResponse.awb_assign_status === 1) {
-                                    awbCode = awbResponse.response?.data?.awb_code || null;
-                                    courierName = awbResponse.response?.data?.courier_name || null;
-                                }
-                            } catch (awbError) {
-                                console.log("Error assigning Shiprocket AWB for Razorpay order:", awbError.message);
-                            }
-                        }
-
-                        order.shiprocket = {
-                            ourOrderId: order._id.toString(),
-                            srOrderId: shiprocketResponse.order_id,
-                            shipmentId: shiprocketResponse.shipment_id,
-                            awb: awbCode,
-                            courier: courierName,
-                            trackingUrl: awbCode ? `https://shiprocket.co/tracking/${awbCode}` : ''
-                        };
-                        order.orderStatus = "Confirmed"; // The order is paid and confirmed
-                        order.shiprocketStatus = "NEW"; // It's a new order for Shiprocket
-                        order.shippedAt = new Date(); // Set shippedAt timestamp
-                        await order.save();
-                    } catch (error) {
-                        console.log("Error with Shiprocket:", error.message);
-                        // If shiprocket fails, the order is still placed, but not shipped.
-                        // You might want to add more robust error handling here, like a retry mechanism.
+                    const shiprocketData = await createAndAssignShipment(order, "Prepaid");
+                    if (shiprocketData) {
+                        order.shiprocket = shiprocketData;
                     }
+                    order.orderStatus = "Confirmed"; // The order is paid and confirmed
+                    order.shiprocketStatus = "NEW"; // It's a new order for Shiprocket
+                    await order.save();
 
                     // Send Order Confirmation Email
                     try {
@@ -1119,6 +977,11 @@ const generateInvoice = async (req, res) => {
     }
 };
 
+// How long persisted tracking data is trusted before we bother re-polling
+// Shiprocket's live API. Webhooks keep this fresh in the common case; this
+// is just a safety-net refresh for when a webhook delivery was missed.
+const TRACKING_STALE_MS = 15 * 60 * 1000;
+
 const getOrderById = async (req, res) => {
     try {
         const order = await orderModel.findById(req.params.id).populate('userId', 'name email'); // Populate userId
@@ -1127,43 +990,34 @@ const getOrderById = async (req, res) => {
         }
 
         let trackingData = null;
-        if (order.shiprocket && order.shiprocket.awb) {
+        const isStale = !order.shiprocket?.lastTrackedAt ||
+            (Date.now() - new Date(order.shiprocket.lastTrackedAt).getTime()) > TRACKING_STALE_MS;
+
+        if (order.shiprocket?.awb && isStale) {
             trackingData = await trackShipment(order.shiprocket.awb);
-            
-            // Sync status with Shiprocket tracking data
-            if (trackingData && trackingData.tracking_data && trackingData.tracking_data.shipment_track && trackingData.tracking_data.shipment_track[0]) {
-                const currentStatus = trackingData.tracking_data.shipment_track[0].current_status;
-                if (currentStatus) {
-                    let mappedStatus = 'UNKNOWN';
-                    const statusUpper = currentStatus.toUpperCase();
-                    if (statusUpper.includes('DELIVERED')) mappedStatus = 'DELIVERED';
-                    else if (statusUpper.includes('OUT FOR DELIVERY') || statusUpper.includes('OUT_FOR_DELIVERY') || statusUpper.includes('OUTFORDELIVERY')) {
-                        mappedStatus = 'IN_TRANSIT';
-                    }
-                    else if (statusUpper.includes('TRANSIT')) mappedStatus = 'IN_TRANSIT';
-                    else if (statusUpper.includes('SHIPPED')) mappedStatus = 'SHIPPED';
-                    else if (statusUpper.includes('PICKUP SCHEDULED') || statusUpper.includes('PICKUP_SCHEDULED')) mappedStatus = 'PICKUP SCHEDULED';
-                    else if (statusUpper.includes('CANCEL')) mappedStatus = 'CANCELLED';
-                    else if (statusUpper.includes('RTO') || statusUpper.includes('RETURN')) mappedStatus = 'RTO';
-                    else if (statusUpper.includes('NEW')) mappedStatus = 'NEW';
-                    
-                    if (mappedStatus !== 'UNKNOWN' && order.shiprocketStatus !== mappedStatus) {
-                        order.shiprocketStatus = mappedStatus;
-                        
-                        if (mappedStatus === 'DELIVERED') {
-                            order.orderStatus = 'Delivered';
-                            order.deliveredAt = order.deliveredAt || new Date();
-                        } else if (mappedStatus === 'SHIPPED') {
-                            order.orderStatus = 'Shipped';
-                            order.shippedAt = order.shippedAt || new Date();
-                        } else if (mappedStatus === 'CANCELLED') {
-                            order.orderStatus = 'Cancelled';
-                        }
-                        
-                        await order.save();
-                    }
-                }
+            const activities = trackingData?.tracking_data?.shipment_track_activities || [];
+            const currentStatus = trackingData?.tracking_data?.shipment_track?.[0]?.current_status;
+
+            if (activities.length > 0) {
+                const newEntries = activities.map(act => ({
+                    status: mapShiprocketStatus(act.status || act.activity)?.shiprocketStatus || 'UNKNOWN',
+                    activity: act.activity || act.status || '',
+                    location: act.location || '',
+                    date: act.date
+                }));
+                order.shiprocket.trackingHistory = mergeTrackingHistory(order.shiprocket.trackingHistory, newEntries);
             }
+
+            const mapped = mapShiprocketStatus(currentStatus);
+            if (mapped && order.shiprocketStatus !== mapped.shiprocketStatus) {
+                order.shiprocketStatus = mapped.shiprocketStatus;
+                order.orderStatus = mapped.orderStatus;
+                if (mapped.orderStatus === 'Delivered') order.deliveredAt = order.deliveredAt || new Date();
+                if (mapped.orderStatus === 'Shipped') order.shippedAt = order.shippedAt || new Date();
+            }
+
+            order.shiprocket.lastTrackedAt = new Date();
+            await order.save();
         }
 
         res.json({ success: true, order, trackingData });
@@ -1193,6 +1047,17 @@ const cancelOrder = async (req, res) => {
         const nonCancellableStatuses = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
         if (nonCancellableStatuses.includes(order.orderStatus)) {
             return res.json({ success: false, message: `Order cannot be cancelled in '${order.orderStatus}' status.` });
+        }
+
+        // Best-effort: also cancel the shipment on Shiprocket's side so the
+        // courier doesn't attempt pickup/delivery for an order we've cancelled.
+        // Non-blocking — cancellation proceeds locally even if this fails.
+        if (order.shiprocket?.srOrderId) {
+            try {
+                await cancelShiprocketOrder([order.shiprocket.srOrderId]);
+            } catch (shiprocketError) {
+                console.log("Error cancelling Shiprocket order during customer cancellation:", shiprocketError.message);
+            }
         }
 
         const refundAmount = order.orderTotal || 0;

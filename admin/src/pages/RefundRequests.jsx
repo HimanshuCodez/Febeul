@@ -27,6 +27,9 @@ const RefundRequests = ({ token }) => {
   const [selectedReason, setSelectedReason] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [refundType, setRefundType] = useState('full');
+  const [customRefundAmount, setCustomRefundAmount] = useState('');
+  const [adminRefundComment, setAdminRefundComment] = useState('');
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -51,14 +54,40 @@ const RefundRequests = ({ token }) => {
     fetchRequests();
   }, [token]);
 
+  useEffect(() => {
+    if (selectedRequest) {
+      setRefundType('full');
+      setCustomRefundAmount('');
+      setAdminRefundComment('');
+      setSelectedReason('');
+    }
+  }, [selectedRequest]);
+
   const handleApproveRefund = async (orderId) => {
-    if (!window.confirm("Are you sure you want to approve and process this refund? This will trigger the payment gateway (Razorpay) for prepaid orders.")) return;
+    const isPartial = refundType === 'partial';
+    const amount = isPartial ? parseFloat(customRefundAmount) : undefined;
+    
+    if (isPartial && (isNaN(amount) || amount <= 0)) {
+      toast.error("Please enter a valid partial refund amount.");
+      return;
+    }
+    
+    const maxRefundable = selectedRequest.refundDetails?.amount || selectedRequest.orderTotal || 0;
+    if (isPartial && amount > maxRefundable) {
+      toast.error(`Partial refund amount cannot exceed the total refundable amount of ${currency}${maxRefundable}`);
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to approve and process this ${isPartial ? 'partial' : 'full'} refund? This will trigger the payment gateway (Razorpay) for prepaid orders.`)) return;
     
     setIsUpdating(true);
     try {
       const response = await axios.post(`${backendUrl}/api/refund/approve`, {
         orderId,
-        returnReason: selectedReason || undefined
+        returnReason: selectedReason || undefined,
+        manualRefundAmount: amount,
+        adminRefundComment,
+        isPartialRefund: isPartial
       }, { headers: { token } });
 
       if (response.data.success) {
@@ -317,29 +346,122 @@ const RefundRequests = ({ token }) => {
                     )}
                 </div>
               </section>
+
+              {selectedRequest.refundDetails?.pickup && selectedRequest.refundDetails.pickup.status !== 'none' && (
+                <section>
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><RotateCcw size={12} /> Return Pickup Tracking</h4>
+                  <div className={`p-6 rounded-3xl border space-y-2 ${
+                    selectedRequest.refundDetails.pickup.status === 'failed' ? 'bg-amber-50 border-amber-100' : 'bg-orange-50 border-orange-100'
+                  }`}>
+                    <p className={`text-[10px] font-black uppercase ${selectedRequest.refundDetails.pickup.status === 'failed' ? 'text-amber-600' : 'text-orange-600'}`}>
+                      {selectedRequest.refundDetails.pickup.status.replace(/_/g, ' ')}
+                    </p>
+                    {selectedRequest.refundDetails.pickup.status === 'failed' ? (
+                      <p className="text-xs text-amber-800 font-medium">Auto-scheduling failed: {selectedRequest.refundDetails.pickup.failureReason || 'Unknown error.'} Arrange courier pickup manually with Shiprocket.</p>
+                    ) : (
+                      <>
+                        {selectedRequest.refundDetails.pickup.awb && (
+                          <p className="text-sm font-bold text-gray-900">Return AWB: {selectedRequest.refundDetails.pickup.awb} {selectedRequest.refundDetails.pickup.courier ? `(${selectedRequest.refundDetails.pickup.courier})` : ''}</p>
+                        )}
+                        {selectedRequest.refundDetails.pickup.scheduledDate && (
+                          <p className="text-xs text-gray-600">Scheduled: {new Date(selectedRequest.refundDetails.pickup.scheduledDate).toLocaleDateString()}</p>
+                        )}
+                        {selectedRequest.refundDetails.pickup.trackingHistory?.length > 0 && (
+                          <div className="pt-2 mt-2 border-t border-orange-100 space-y-1">
+                            {[...selectedRequest.refundDetails.pickup.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3).map((act, i) => (
+                              <p key={i} className="text-[10px] text-gray-600">
+                                <span className="font-bold">{act.activity || act.status}</span> · {new Date(act.date).toLocaleDateString()}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </section>
+              )}
             </div>
 
             <div className="p-8 border-t border-gray-100 bg-gray-50 flex flex-col gap-4">
                 {selectedRequest.refundDetails.status === 'pending' && (
-                    <div className="flex flex-col gap-3 p-4 bg-white rounded-3xl border border-gray-200 shadow-sm">
+                    <div className="flex flex-col gap-4 p-4 bg-white rounded-3xl border border-gray-200 shadow-sm">
                         {!showRejectForm ? (
-                          <div className="flex gap-2">
-                            <select value={selectedReason} onChange={(e) => setSelectedReason(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none">
-                                <option value="">Auto-calculate</option>
-                                <option value="buyer_fault">Buyer Fault (-150)</option>
-                                <option value="seller_fault">Seller Fault (Full)</option>
-                                <option value="courier_fault">Courier Fault (Full)</option>
-                            </select>
-                            <button onClick={() => handleApproveRefund(selectedRequest._id)} disabled={isUpdating} className="bg-pink-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-pink-700 disabled:opacity-50">
-                                {selectedRequest.paymentMethod === 'Razorpay' ? 'Pay & Refund' : 'Approve'}
-                            </button>
-                            <button onClick={() => setShowRejectForm(true)} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-50 hover:text-red-600">Reject</button>
+                          <div className="space-y-4">
+                            {/* Refund Type Selector */}
+                            <div>
+                              <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Refund Type</p>
+                              <div className="flex gap-4">
+                                <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                                  <input 
+                                    type="radio" 
+                                    name="refundType" 
+                                    value="full" 
+                                    checked={refundType === 'full'} 
+                                    onChange={() => setRefundType('full')} 
+                                    className="accent-pink-500 cursor-pointer h-4 w-4" 
+                                  />
+                                  Full Refund
+                                </label>
+                                <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                                  <input 
+                                    type="radio" 
+                                    name="refundType" 
+                                    value="partial" 
+                                    checked={refundType === 'partial'} 
+                                    onChange={() => setRefundType('partial')} 
+                                    className="accent-pink-500 cursor-pointer h-4 w-4" 
+                                  />
+                                  Partial Refund
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Partial Refund Amount Input */}
+                            {refundType === 'partial' && (
+                              <div className="space-y-1 animate-in fade-in duration-200">
+                                <label className="text-[10px] font-black text-gray-400 uppercase">Refund Amount ({currency})</label>
+                                <input 
+                                  type="number" 
+                                  placeholder={`Max: ${currency}${(selectedRequest.refundDetails?.amount || selectedRequest.orderTotal || 0).toFixed(2)}`} 
+                                  value={customRefundAmount} 
+                                  onChange={(e) => setCustomRefundAmount(e.target.value)} 
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/10" 
+                                />
+                              </div>
+                            )}
+
+                            {/* Reason for refund (For Partial Refund) */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black text-gray-400 uppercase">Reason/Comment for Customer</label>
+                              <textarea 
+                                placeholder="Explain why this refund is being processed (visible to buyer)..." 
+                                value={adminRefundComment} 
+                                onChange={(e) => setAdminRefundComment(e.target.value)} 
+                                rows="2" 
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-medium outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/10" 
+                              />
+                            </div>
+
+                            <div className="flex gap-2 pt-2 border-t border-gray-100">
+                              {refundType === 'full' && (
+                                <select value={selectedReason} onChange={(e) => setSelectedReason(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none max-w-[150px]">
+                                    <option value="">Auto-calculate</option>
+                                    <option value="buyer_fault">Buyer Fault (-150)</option>
+                                    <option value="seller_fault">Seller Fault (Full)</option>
+                                    <option value="courier_fault">Courier Fault (Full)</option>
+                                </select>
+                              )}
+                              <button onClick={() => handleApproveRefund(selectedRequest._id)} disabled={isUpdating} className="bg-pink-600 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-pink-700 disabled:opacity-50 flex-1">
+                                  {selectedRequest.paymentMethod === 'Razorpay' ? 'Pay & Refund' : 'Approve'}
+                              </button>
+                              <button onClick={() => setShowRejectForm(true)} className="bg-gray-100 text-gray-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-50 hover:text-red-600">Reject</button>
+                            </div>
                           </div>
                         ) : (
                           <div className="space-y-3">
                             <textarea placeholder="Reason for rejection (Customer will see this)..." value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-medium outline-none focus:border-red-500" rows="2" />
                             <div className="flex gap-2">
-                              <button onClick={() => handleRejectRefund(selectedRequest._id)} disabled={isUpdating} className="flex-1 bg-red-600 text-white py-2 rounded-xl text-xs font-black uppercase tracking-widest">Confirm Rejection</button>
+                              <button onClick={() => handleRejectRefund(selectedRequest._id)} disabled={isUpdating} className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-widest">Confirm Rejection</button>
                               <button onClick={() => { setShowRejectForm(false); setRejectionReason(''); }} className="px-4 bg-gray-100 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest">Cancel</button>
                             </div>
                           </div>

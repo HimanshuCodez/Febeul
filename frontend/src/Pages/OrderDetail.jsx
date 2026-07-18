@@ -428,11 +428,13 @@ export default function OrderDetailPage() {
     const shiprocketStatus = (order.shiprocketStatus || '').toUpperCase();
     if (isLuxeOrder && order.payment) return 'Delivered';
     if (order.deliveredAt || shiprocketStatus === 'DELIVERED') return 'Delivered';
-    if (shiprocketStatus === 'RTO') return 'Returned';
+    if (shiprocketStatus === 'RTO' || shiprocketStatus === 'RTO_INITIATED' || shiprocketStatus === 'RTO_DELIVERED') return 'Returned';
     if (shiprocketStatus === 'CANCELLED') return 'Cancelled';
+    if (shiprocketStatus === 'OUT_FOR_DELIVERY') return 'Out for delivery';
     if (shiprocketStatus === 'IN_TRANSIT') return order.orderStatus === 'Out for delivery' ? 'Out for delivery' : 'Shipped';
-    if (shiprocketStatus === 'SHIPPED') return 'Shipped';
+    if (shiprocketStatus === 'SHIPPED' || shiprocketStatus === 'PICKED UP') return 'Shipped';
     if (shiprocketStatus === 'PICKUP SCHEDULED') return 'Processing';
+    if (shiprocketStatus === 'UNDELIVERED' || shiprocketStatus === 'LOST') return 'Failed';
     return order.orderStatus;
   };
 
@@ -515,6 +517,34 @@ export default function OrderDetailPage() {
 
   const estimatedDelivery = getExpectedDelivery();
 
+  // Persisted, webhook-fed tracking history is the source of truth (always
+  // available, no live API call needed on every page load). Fall back to a
+  // raw live-poll response for orders placed before this history existed.
+  const shipmentActivities = (order.shiprocket?.trackingHistory?.length > 0)
+    ? [...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
+    : (trackingData?.tracking_data?.shipment_track_activities || []);
+
+  const normalizeText = (s) => (s || '').toLowerCase().replace(/_/g, ' ');
+
+  const findActivity = (keyword) => shipmentActivities.find(
+    act => normalizeText(act.status).includes(keyword) || normalizeText(act.activity).includes(keyword)
+  );
+
+  // Reverse pickup tracking (courier collecting a returned item), populated
+  // once admin approves a delivered-item return request.
+  const pickup = order.refundDetails?.pickup;
+  const hasPickup = pickup && pickup.status !== 'none';
+  const pickupActivities = pickup?.trackingHistory?.length > 0
+    ? [...pickup.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
+    : [];
+  const pickupStatusLabels = {
+    scheduled: 'Pickup Scheduled',
+    failed: 'Pickup Arrangement Pending',
+    picked_up: 'Picked Up',
+    in_transit: 'In Transit to Warehouse',
+    delivered_to_warehouse: 'Received at Warehouse'
+  };
+
   const getStatusDate = (status) => {
     if (status === 'Order Placed') {
       return new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -524,27 +554,21 @@ export default function OrderDetailPage() {
     }
     if (status === 'Shipped') {
       if (order.shippedAt) return new Date(order.shippedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      const shipActivity = trackingData?.tracking_data?.shipment_track_activities?.find(
-        act => act.status?.toLowerCase().includes('shipped') || act.activity?.toLowerCase().includes('shipped')
-      );
+      const shipActivity = findActivity('shipped') || findActivity('picked up');
       return shipActivity ? new Date(shipActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
     }
     if (status === 'Out for delivery') {
-      const ofdActivity = trackingData?.tracking_data?.shipment_track_activities?.find(
-        act => act.status?.toLowerCase().includes('out for delivery') || act.activity?.toLowerCase().includes('out for delivery')
-      );
+      const ofdActivity = findActivity('out for delivery');
       return ofdActivity ? new Date(ofdActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
     }
     if (status === 'Delivered') {
       if (order.deliveredAt) return new Date(order.deliveredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      const delActivity = trackingData?.tracking_data?.shipment_track_activities?.find(
-        act => act.status?.toLowerCase().includes('delivered') || act.activity?.toLowerCase().includes('delivered')
-      );
+      const delActivity = findActivity('delivered');
       return delActivity ? new Date(delActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
     }
     return null;
   };
-  
+
   const statusLevels = {
     'Order Placed': 1,
     'Processing': 2,
@@ -892,13 +916,13 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Live Journey Log (Meesho / Flipkart style) */}
-            {trackingData?.tracking_data?.shipment_track_activities && trackingData.tracking_data.shipment_track_activities.length > 0 && (
+            {shipmentActivities.length > 0 && (
               <div className="mt-8 border-t border-slate-100 pt-6">
                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <FaTruckLoading className="text-[#e8767a]" /> Live Shipment Journey
                 </h3>
                 <div className="relative pl-6 border-l border-slate-100 space-y-6">
-                  {trackingData.tracking_data.shipment_track_activities.map((act, index) => {
+                  {shipmentActivities.map((act, index) => {
                     const isLatest = index === 0;
                     return (
                       <div key={index} className="relative text-left">
@@ -958,6 +982,105 @@ export default function OrderDetailPage() {
               </motion.div>
             )}
           </motion.div>
+
+          {/* Return Pickup Tracking (Flipkart-style reverse pickup) */}
+          {hasPickup && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 mb-6 gap-3 text-left">
+                <div>
+                  <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <FaUndo className="text-orange-500" /> Return Pickup Tracking
+                  </h2>
+                  <p className="text-xs text-slate-500 font-bold mt-0.5">Courier collection status for your returned item</p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black capitalize w-fit ${
+                  pickup.status === 'delivered_to_warehouse' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                  pickup.status === 'failed' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                  'bg-blue-50 text-blue-700 border border-blue-100'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    pickup.status === 'delivered_to_warehouse' ? 'bg-emerald-500' :
+                    pickup.status === 'failed' ? 'bg-amber-500' : 'bg-blue-500 animate-pulse'
+                  }`} />
+                  {pickupStatusLabels[pickup.status] || pickup.status}
+                </span>
+              </div>
+
+              {pickup.status === 'failed' ? (
+                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-xs font-bold text-amber-800">
+                  We couldn't auto-schedule a courier pickup for this return. Our support team will arrange collection manually — no action needed from you.
+                </div>
+              ) : (
+                <>
+                  {(pickup.awb || pickup.courier) && (
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-left">
+                      {pickup.courier && (
+                        <div>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Courier Partner</span>
+                          <span className="text-sm font-extrabold text-slate-800">{pickup.courier}</span>
+                        </div>
+                      )}
+                      {pickup.awb && (
+                        <div>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Return AWB</span>
+                          <span className="text-sm font-extrabold text-[#e8767a] select-all">#{pickup.awb}</span>
+                        </div>
+                      )}
+                      {pickup.scheduledDate && (
+                        <div>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Scheduled On</span>
+                          <span className="text-sm font-extrabold text-slate-800">{new Date(pickup.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {pickupActivities.length > 0 ? (
+                    <div className="relative pl-6 border-l border-slate-100 space-y-6">
+                      {pickupActivities.map((act, index) => {
+                        const isLatest = index === 0;
+                        return (
+                          <div key={index} className="relative text-left">
+                            <span className="absolute -left-[30px] top-1 flex h-4.5 w-4.5 items-center justify-center">
+                              {isLatest ? (
+                                <span className="relative flex h-3.5 w-3.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                                </span>
+                              ) : (
+                                <span className="h-2 w-2 rounded-full bg-slate-300"></span>
+                              )}
+                            </span>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className={`text-xs sm:text-sm font-bold ${isLatest ? 'text-orange-600' : 'text-slate-700'}`}>
+                                  {act.activity || act.status}
+                                </p>
+                                {act.location && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full shadow-sm">
+                                    📍 {act.location}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-bold mt-1">
+                                {new Date(act.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 font-bold">Waiting for the courier to pick up your return.</p>
+                  )}
+                </>
+              )}
+            </motion.div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Delivery Address */}

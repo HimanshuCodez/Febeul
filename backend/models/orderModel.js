@@ -20,7 +20,7 @@ const orderSchema = new mongoose.Schema({
     razorpayPaymentId: { type: String }, // For prepaid refunds
     address: { type: Object, required: true },
     orderStatus: { type: String, enum: ['Order Placed', 'Processing', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refund Initiated', 'Refunded', 'Failed'], default:'Order Placed' },
-    shiprocketStatus: { type: String, enum: ['NEW', 'PICKUP SCHEDULED', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'RTO', 'CANCELLED', 'UNKNOWN'], default: 'NEW' }, // Shiprocket status
+    shiprocketStatus: { type: String, enum: ['NEW', 'PICKUP SCHEDULED', 'PICKED UP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RTO', 'RTO_INITIATED', 'RTO_DELIVERED', 'UNDELIVERED', 'LOST', 'CANCELLED', 'UNKNOWN'], default: 'NEW' }, // Shiprocket status
     shippedAt: { type: Date },
     deliveredAt: { type: Date },
     paymentMethod: { type: String, required: true, enum: ['COD', 'Stripe', 'Razorpay'] },
@@ -44,6 +44,8 @@ const orderSchema = new mongoose.Schema({
         id: { type: String }, // Razorpay refund ID
         reason: { type: String },
         rejectionReason: { type: String }, // Reason for rejecting the refund/return
+        adminRefundComment: { type: String }, // Explanation for partial/full refund sent to customer
+        isPartialRefund: { type: Boolean, default: false }, // Flag for partial refunds
         images: { type: [String], default: [] }, // Added images for refund request
         requestedAt: { type: Date },
         processedAt: { type: Date },
@@ -54,10 +56,27 @@ const orderSchema = new mongoose.Schema({
             ifsc: { type: String },
             accountHolderName: { type: String },
             bankName: { type: String }
+        },
+        // Reverse pickup (courier collecting the returned item from the customer)
+        pickup: {
+            status: { type: String, enum: ['none', 'scheduled', 'failed', 'picked_up', 'in_transit', 'delivered_to_warehouse'], default: 'none' },
+            shiprocketReturnOrderId: { type: String },
+            shipmentId: { type: String },
+            awb: { type: String },
+            courier: { type: String },
+            trackingUrl: { type: String },
+            scheduledDate: { type: Date },
+            failureReason: { type: String }, // Set when auto-scheduling with Shiprocket fails, so admin can arrange manually
+            trackingHistory: [{
+                status: { type: String },
+                activity: { type: String },
+                location: { type: String },
+                date: { type: Date }
+            }]
         }
     },
     // To prevent double refunds or conflicting operations
-    isRefundable: { type: Boolean, default: true }, 
+    isRefundable: { type: Boolean, default: true },
     isCancelled: { type: Boolean, default: false },
     giftWrap: {
         name: { type: String },
@@ -71,7 +90,14 @@ const orderSchema = new mongoose.Schema({
         shipmentId: { type: String },
         awb: { type: String },
         courier: { type: String },
-        trackingUrl: { type: String }
+        trackingUrl: { type: String },
+        lastTrackedAt: { type: Date }, // Last time we polled Shiprocket's live tracking API
+        trackingHistory: [{
+            status: { type: String }, // Our normalized shiprocketStatus at this point
+            activity: { type: String }, // Raw courier scan description (e.g. "Shipment out for delivery")
+            location: { type: String },
+            date: { type: Date }
+        }]
     }
 })
 

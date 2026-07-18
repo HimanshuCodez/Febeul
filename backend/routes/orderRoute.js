@@ -1,6 +1,7 @@
 import express from 'express'
 import {placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, verifyStripe, verifyRazorpay, getRazorpayKey, generateInvoice, getOrderById, cancelOrder} from '../controllers/orderController.js'
-import { requestRefund, updateShiprocketStatusWebhook } from '../controllers/refundController.js'; // Import new refund functions
+import { requestRefund } from '../controllers/refundController.js'; // Import new refund functions
+import { handleWebhook } from '../controllers/shiprocketWebhookController.js';
 import adminAuth  from '../middleware/adminAuth.js'
 import authUser from '../middleware/auth.js'
 
@@ -29,7 +30,7 @@ orderRouter.post('/cancel', authUser, cancelOrder)
 
 // Refund System Routes
 orderRouter.post('/refund-request', authUser, requestRefund);
-orderRouter.post('/shiprocket-webhook', updateShiprocketStatusWebhook); // Webhook should be unauthenticated
+orderRouter.post('/shiprocket-webhook', handleWebhook); // Legacy URL, now backed by the same authenticated handler as /api/tracking/tracking-updates
 
 // Invoice Generation
 orderRouter.get('/invoice/:orderId', authUser, generateInvoice)

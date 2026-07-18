@@ -15,12 +15,39 @@ const getOrderDisplayStatus = (order) => {
 
   if (isLuxe && order.payment) return "Delivered";
   if (order.deliveredAt || shiprocketStatus === "DELIVERED") return "Delivered";
-  if (shiprocketStatus === "RTO") return "Returned";
+  if (shiprocketStatus === "RTO" || shiprocketStatus === "RTO_INITIATED" || shiprocketStatus === "RTO_DELIVERED") return "Returned";
   if (shiprocketStatus === "CANCELLED") return "Cancelled";
+  if (shiprocketStatus === "OUT_FOR_DELIVERY") return "Out for delivery";
   if (shiprocketStatus === "IN_TRANSIT") return order.orderStatus === "Out for delivery" ? "Out for delivery" : "Shipped";
-  if (shiprocketStatus === "SHIPPED") return "Shipped";
+  if (shiprocketStatus === "SHIPPED" || shiprocketStatus === "PICKED UP") return "Shipped";
   if (shiprocketStatus === "PICKUP SCHEDULED") return "Processing";
+  if (shiprocketStatus === "UNDELIVERED" || shiprocketStatus === "LOST") return "Failed";
   return order.orderStatus;
+};
+
+const JOURNEY_STAGES = ["Order Placed", "Processing", "Shipped", "Out for delivery", "Delivered"];
+const STAGE_LEVELS = { "Order Placed": 0, "Processing": 1, "Confirmed": 1, "Shipped": 2, "Out for delivery": 3, "Delivered": 4 };
+
+const OrderProgressStrip = ({ status }) => {
+  if (["Cancelled", "Returned", "Refund Initiated", "Refunded", "Failed"].includes(status)) return null;
+  const currentLevel = STAGE_LEVELS[status] ?? 0;
+
+  return (
+    <div className="flex items-center w-full mt-1">
+      {JOURNEY_STAGES.map((stage, index) => {
+        const stageLevel = STAGE_LEVELS[stage];
+        const isDone = stageLevel <= currentLevel;
+        return (
+          <React.Fragment key={stage}>
+            <div className={`w-2 h-2 rounded-full shrink-0 ${isDone ? "bg-pink-500" : "bg-slate-200"}`} />
+            {index < JOURNEY_STAGES.length - 1 && (
+              <div className={`flex-1 h-0.5 ${stageLevel < currentLevel ? "bg-pink-500" : "bg-slate-200"}`} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 };
 
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
@@ -286,6 +313,10 @@ const MyOrders = () => {
                         {displayStatus}
                       </span>
                     </div>
+                  </div>
+
+                  <div className="px-5 pt-4">
+                    <OrderProgressStrip status={displayStatus} />
                   </div>
 
                   {/* Body of the card (Items thumbnail strip & pricing) */}
