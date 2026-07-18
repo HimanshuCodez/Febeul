@@ -22,7 +22,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from "../store/authStore";
 import Loader from '../components/Loader';
-import { X, XCircle, Check } from 'lucide-react';
+import { X, XCircle, Check, Bike } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import SimilarItems from '../components/SimilarItems';
@@ -321,6 +321,84 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
 };
 
 
+// --- Horizontal delivery-bike progress tracker (Flipkart-style) ---
+const BIKE_STAGES = [
+  { key: 'Order Placed', label: 'Placed' },
+  { key: 'Processing', label: 'Processing' },
+  { key: 'Shipped', label: 'Shipped' },
+  { key: 'Out for delivery', label: 'Out for Delivery' },
+  { key: 'Delivered', label: 'Delivered' }
+];
+
+const HorizontalBikeTracker = ({ displayStatus }) => {
+  const normalizedStatus = displayStatus === 'Confirmed' ? 'Processing' : displayStatus;
+  const stageIndex = Math.max(0, BIKE_STAGES.findIndex(s => s.key === normalizedStatus));
+  const progressPercent = (stageIndex / (BIKE_STAGES.length - 1)) * 100;
+  const isInTransit = normalizedStatus === 'Shipped' || normalizedStatus === 'Out for delivery';
+  const isDelivered = normalizedStatus === 'Delivered';
+
+  return (
+    <div className="mb-8 px-2 sm:px-6 pt-2 pb-8">
+      <div className="relative h-1.5 rounded-full bg-slate-100">
+        <motion.div
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#f9aeaf] to-[#e8767a]"
+          initial={{ width: 0 }}
+          animate={{ width: `${progressPercent}%` }}
+          transition={{ duration: 0.9, ease: 'easeInOut' }}
+        />
+
+        {/* Delivery bike riding along the progress line */}
+        <motion.div
+          className="absolute -top-[15px]"
+          initial={{ left: 0 }}
+          animate={{ left: `${progressPercent}%` }}
+          transition={{ duration: 0.9, ease: 'easeInOut' }}
+          style={{ transform: 'translateX(-50%)' }}
+        >
+          <motion.div
+            animate={isInTransit ? { y: [0, -4, 0], rotate: [-4, 4, -4] } : { y: 0, rotate: 0 }}
+            transition={isInTransit ? { duration: 0.7, repeat: Infinity, ease: 'easeInOut' } : {}}
+            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 border-white ${
+              isDelivered ? 'bg-emerald-500' : 'bg-[#e8767a]'
+            }`}
+          >
+            {isDelivered ? <Check size={18} className="text-white" /> : <Bike size={18} className="text-white" />}
+          </motion.div>
+        </motion.div>
+
+        {/* Stage dots */}
+        {BIKE_STAGES.map((stage, index) => {
+          const dotPercent = (index / (BIKE_STAGES.length - 1)) * 100;
+          const isDone = index <= stageIndex;
+          return (
+            <div
+              key={stage.key}
+              className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-sm ${
+                isDone ? 'bg-[#e8767a]' : 'bg-slate-200'
+              }`}
+              style={{ left: `${dotPercent}%`, transform: 'translate(-50%, -50%)' }}
+            />
+          );
+        })}
+      </div>
+
+      <div className="flex justify-between mt-3">
+        {BIKE_STAGES.map((stage, index) => (
+          <span
+            key={stage.key}
+            className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-center ${
+              index <= stageIndex ? 'text-[#e8767a]' : 'text-slate-300'
+            }`}
+            style={{ width: `${100 / BIKE_STAGES.length}%` }}
+          >
+            {stage.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function OrderDetailPage() {
   const { orderId } = useParams();
   const { token, isAuthenticated, siteSettings, fetchSiteSettings } = useAuthStore();
@@ -478,8 +556,10 @@ export default function OrderDetailPage() {
       return 'Delivered';
     }
     
-    // Check if we have EDD from Shiprocket
-    const srEdd = trackingData?.tracking_data?.shipment_track?.[0]?.edd;
+    // Persisted live EDD (saved server-side whenever Shiprocket is polled) is
+    // the source of truth so it survives across page loads, not just the
+    // exact request that happened to trigger a live poll.
+    const srEdd = order.shiprocket?.edd || trackingData?.tracking_data?.shipment_track?.[0]?.edd;
     if (srEdd) {
       return new Date(srEdd).toLocaleDateString('en-IN', {
         day: 'numeric',
@@ -787,6 +867,10 @@ export default function OrderDetailPage() {
                 Status: {displayStatus}
               </span>
             </div>
+
+            {!isLuxeOrder && !['Cancelled', 'Returned', 'Refund Initiated', 'Refunded', 'Failed'].includes(displayStatus) && (
+              <HorizontalBikeTracker displayStatus={displayStatus} />
+            )}
 
             {/* Shiprocket Courier Details */}
             {order.shiprocket && order.shiprocket.awb && !isLuxeOrder && (

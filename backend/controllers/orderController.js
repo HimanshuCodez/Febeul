@@ -997,6 +997,12 @@ const getOrderById = async (req, res) => {
             trackingData = await trackShipment(order.shiprocket.awb);
             const activities = trackingData?.tracking_data?.shipment_track_activities || [];
             const currentStatus = trackingData?.tracking_data?.shipment_track?.[0]?.current_status;
+            const edd = trackingData?.tracking_data?.shipment_track?.[0]?.edd;
+
+            if (edd) {
+                const parsedEdd = new Date(edd);
+                if (!isNaN(parsedEdd.getTime())) order.shiprocket.edd = parsedEdd;
+            }
 
             if (activities.length > 0) {
                 const newEntries = activities.map(act => ({

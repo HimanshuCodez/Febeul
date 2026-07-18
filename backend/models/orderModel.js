@@ -92,6 +92,7 @@ const orderSchema = new mongoose.Schema({
         courier: { type: String },
         trackingUrl: { type: String },
         lastTrackedAt: { type: Date }, // Last time we polled Shiprocket's live tracking API
+        edd: { type: Date }, // Estimated Delivery Date, as reported by Shiprocket's live tracking API
         trackingHistory: [{
             status: { type: String }, // Our normalized shiprocketStatus at this point
             activity: { type: String }, // Raw courier scan description (e.g. "Shipment out for delivery")

@@ -53,7 +53,6 @@ const Footer = () => {
             <p className="text-xs text-gray-400">
               Timings: 10:00 AM to 6:30 PM  
               (Monday–Saturday)
-              (Monday–Saturday)
             </p>
             {/* Payment Gateway Logos Placeholder */}
             <div className="mt-4 flex flex-wrap justify-center sm:justify-start gap-2">
