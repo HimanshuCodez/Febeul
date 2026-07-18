@@ -6,7 +6,6 @@ import {
   FaMapMarkerAlt,
   FaMoneyBillWave,
   FaCalendarAlt,
-  FaBox,
   FaEnvelope,
   FaFileInvoice,
   FaHome,
@@ -604,12 +603,6 @@ export default function OrderDetailPage() {
     ? [...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
     : (trackingData?.tracking_data?.shipment_track_activities || []);
 
-  const normalizeText = (s) => (s || '').toLowerCase().replace(/_/g, ' ');
-
-  const findActivity = (keyword) => shipmentActivities.find(
-    act => normalizeText(act.status).includes(keyword) || normalizeText(act.activity).includes(keyword)
-  );
-
   // Reverse pickup tracking (courier collecting a returned item), populated
   // once admin approves a delivered-item return request.
   const pickup = order.refundDetails?.pickup;
@@ -625,29 +618,55 @@ export default function OrderDetailPage() {
     delivered_to_warehouse: 'Received at Warehouse'
   };
 
-  const getStatusDate = (status) => {
-    if (status === 'Order Placed') {
-      return new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  // --- Unified status + live-update timeline (Flipkart/Meesho style) ---
+  // Merges the always-known "Order Placed" moment with every real courier
+  // scan event, then buckets them under the same 4 milestones the customer
+  // sees elsewhere on this page — so status and live tracking are ONE view,
+  // not two disconnected sections.
+  const getOrdinalSuffix = (day) => {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
     }
-    if (status === 'Processing' || status === 'Confirmed') {
-      return new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-    if (status === 'Shipped') {
-      if (order.shippedAt) return new Date(order.shippedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      const shipActivity = findActivity('shipped') || findActivity('picked up');
-      return shipActivity ? new Date(shipActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-    }
-    if (status === 'Out for delivery') {
-      const ofdActivity = findActivity('out for delivery');
-      return ofdActivity ? new Date(ofdActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-    }
-    if (status === 'Delivered') {
-      if (order.deliveredAt) return new Date(order.deliveredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      const delActivity = findActivity('delivered');
-      return delActivity ? new Date(delActivity.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-    }
-    return null;
   };
+
+  const formatMilestoneDate = (date) => {
+    const d = new Date(date);
+    const weekday = d.toLocaleDateString('en-IN', { weekday: 'short' });
+    const day = d.getDate();
+    const month = d.toLocaleDateString('en-IN', { month: 'short' });
+    const year = d.getFullYear().toString().slice(-2);
+    return `${weekday}, ${day}${getOrdinalSuffix(day)} ${month} '${year}`;
+  };
+
+  const formatMilestoneTime = (date) => new Date(date)
+    .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
+    .toLowerCase()
+    .replace(/\s/g, '');
+
+  const DEFAULT_ACTIVITY_TEXT = {
+    ORDER_PLACED: 'Your order has been placed.',
+    NEW: 'Seller has processed your order.',
+    'PICKUP SCHEDULED': 'Pickup has been scheduled with the courier partner.',
+    'PICKED UP': 'Your item has been picked up by the delivery partner.',
+    SHIPPED: 'Your item has been shipped.',
+    IN_TRANSIT: 'Your item has been received in the hub nearest to you.',
+    OUT_FOR_DELIVERY: 'Your item is out for delivery.',
+    DELIVERED: isLuxeOrder ? 'Your Luxe Membership is now active.' : 'Your item has been delivered.'
+  };
+
+  const orderPlacedActivity = { status: 'ORDER_PLACED', activity: DEFAULT_ACTIVITY_TEXT.ORDER_PLACED, date: order.date };
+  const allActivities = [orderPlacedActivity, ...[...shipmentActivities].sort((a, b) => new Date(a.date) - new Date(b.date))];
+
+  const MILESTONE_GROUPS = [
+    { key: 'confirmed', label: 'Order Confirmed', level: 2, statuses: ['ORDER_PLACED', 'NEW', 'PICKUP SCHEDULED', 'PICKED UP'], icon: <Check size={16} />, fallbackDescription: 'Your order has been placed successfully' },
+    { key: 'shipped', label: 'Shipped', level: 3, statuses: ['SHIPPED', 'IN_TRANSIT'], icon: <FaShippingFast />, fallbackDescription: 'On the way to you' },
+    { key: 'out_for_delivery', label: 'Out for Delivery', level: 3.5, statuses: ['OUT_FOR_DELIVERY'], icon: <FaTruckLoading />, fallbackDescription: 'Your package will be out for delivery soon' },
+    { key: 'delivered', label: 'Delivered', level: 4, statuses: ['DELIVERED'], icon: <FaMapMarkerAlt />, fallbackDescription: isLuxeOrder ? 'Your Luxe Membership is now active' : 'Package delivered' }
+  ];
 
   const statusLevels = {
     'Order Placed': 1,
@@ -662,41 +681,6 @@ export default function OrderDetailPage() {
     'Refunded': 0 // Special case
   };
   const currentStatusLevel = statusLevels[displayStatus] || 1;
-
-  // Function to get status icon and color
-  const getStatusDisplay = (status, level) => {
-    let icon = <Check size={16} />;
-    let color = 'bg-gray-200';
-    let textColor = 'text-gray-400';
-
-    if (isLuxeOrder && order.payment && status === 'Delivered') {
-      color = 'bg-green-500 text-white';
-      textColor = 'text-gray-800';
-      icon = <Check size={16} />;
-      return { icon, color, textColor };
-    }
-
-    if (level <= currentStatusLevel && statusLevels[status] <= currentStatusLevel) {
-        color = 'bg-[#e8767a] text-white'; // Active color
-        textColor = 'text-gray-800'; // Active text color
-        if (status === 'Order Placed' || status === 'Confirmed') icon = <Check size={16} />;
-        else if (status === 'Processing') icon = <FaBox />;
-        else if (status === 'Shipped') icon = <FaShippingFast />;
-        else if (status === 'Out for delivery') icon = <FaTruckLoading />;
-        else if (status === 'Delivered') icon = <FaMapMarkerAlt />;
-    }
-    
-    if (displayStatus === 'Cancelled') {
-        color = 'bg-red-500 text-white'; icon = <X size={16} />; textColor = 'text-red-500';
-    } else if (displayStatus === 'Returned') {
-        color = 'bg-orange-500 text-white'; icon = <FaUndo />; textColor = 'text-orange-500';
-    } else if (displayStatus === 'Refund Initiated' || displayStatus === 'Refunded') {
-        color = 'bg-purple-500 text-white'; icon = <FaMoneyBillWave />; textColor = 'text-purple-500';
-    }
-
-    return { icon, color, textColor };
-  };
-
 
   return (
     <>
@@ -898,41 +882,29 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {/* Timeline Steps (Vertical path) */}
-            <div className="space-y-6 relative pl-4 text-left">
-              {[
-                { status: 'Order Placed', label: 'Order Placed', description: 'Your order has been placed successfully', level: 1 },
-                { status: 'Processing', label: 'Processing', description: displayStatus === 'Confirmed' ? 'Your order has been confirmed and is being processed' : 'We\'re preparing your items', level: 2 },
-                { status: 'Shipped', label: 'Shipped', description: 'On the way to you', level: 3 },
-                { status: 'Out for delivery', label: 'Out for Delivery', description: 'Your package is out for delivery', level: 3.5 },
-                { status: 'Delivered', label: 'Delivered', description: isLuxeOrder ? 'Your Luxe Membership is now active' : 'Package delivered', level: 4 }
-              ].filter(s => {
-                  if (displayStatus === 'Cancelled') return s.status === 'Order Placed';
-                  if (isLuxeOrder) return s.status === 'Order Placed' || s.status === 'Delivered';
-                  return statusLevels[s.status] > 0;
-              }).map((statusItem, index, array) => {
-                  const { icon, color, textColor } = getStatusDisplay(statusItem.status, statusItem.level);
-                  
-                  // Check if this step represents the current status
-                  const isCurrent = displayStatus === statusItem.status || 
-                    (statusItem.status === 'Processing' && displayStatus === 'Confirmed') ||
-                    (statusItem.status === 'Shipped' && displayStatus === 'Shipped') ||
-                    (statusItem.status === 'Out for delivery' && displayStatus === 'Out for delivery') ||
-                    (statusItem.status === 'Delivered' && displayStatus === 'Delivered');
-                  
-                  const isCompleted = statusItem.level <= currentStatusLevel;
-                  const stepDate = getStatusDate(statusItem.status);
+            {/* Unified Status + Live Update Timeline (Flipkart / Meesho style) */}
+            <div className="space-y-2 relative pl-4 text-left">
+              {MILESTONE_GROUPS.filter(group => {
+                  if (displayStatus === 'Cancelled') return false;
+                  if (isLuxeOrder) return group.key === 'confirmed' || group.key === 'delivered';
+                  return true;
+              }).map((group, index, array) => {
+                  const groupActivities = allActivities.filter(a => group.statuses.includes(a.status));
+                  const hasData = groupActivities.length > 0;
+                  const isCompleted = group.level <= currentStatusLevel;
+                  const isCurrent = Math.floor(currentStatusLevel) === Math.floor(group.level) || currentStatusLevel === group.level;
+                  const headerDate = hasData ? groupActivities[groupActivities.length - 1].date : null;
 
                   return (
-                      <motion.div 
-                        key={index} 
-                        variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0, transition: { duration: 0.4 } } }} 
+                      <motion.div
+                        key={group.key}
+                        variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0, transition: { duration: 0.4 } } }}
                         className="flex gap-4 relative"
                       >
                           {/* Connector Line */}
                           {index < array.length - 1 && (
-                            <div className={`absolute left-5 top-10 w-0.5 h-12 ${
-                              statusItem.level < currentStatusLevel ? 'bg-[#e8767a]' : 'bg-slate-200'
+                            <div className={`absolute left-5 top-10 bottom-0 w-0.5 ${
+                              group.level < currentStatusLevel ? 'bg-[#e8767a]' : 'bg-slate-200'
                             }`} />
                           )}
 
@@ -940,22 +912,49 @@ export default function OrderDetailPage() {
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 transition-all duration-500 shadow-sm ${
                             isCompleted ? 'bg-[#e8767a] text-white shadow-rose-100' : 'bg-slate-100 text-slate-400'
                           } ${isCurrent ? 'ring-4 ring-rose-100 animate-pulse' : ''}`}>
-                              {icon}
+                              {group.icon}
                           </div>
 
                           {/* Details */}
-                          <div className="flex-1 pt-1.5 pb-4">
+                          <div className="flex-1 pt-1.5 pb-6">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                                 <p className={`font-bold text-sm sm:text-base ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>
-                                  {statusItem.label}
+                                  {group.label}
                                 </p>
-                                {stepDate && (
+                                {headerDate && (
                                   <span className="text-[10px] sm:text-xs font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
-                                    {stepDate}
+                                    {formatMilestoneDate(headerDate)}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs sm:text-sm text-slate-500 mt-1">{statusItem.description}</p>
+
+                              {group.key === 'shipped' && !isLuxeOrder && (order.shiprocket?.courier || order.shiprocket?.awb) && (
+                                <p className="text-xs font-bold text-slate-600 mt-1.5">
+                                  {order.shiprocket.courier || 'Courier'}{order.shiprocket.awb ? ` - ${order.shiprocket.awb}` : ''}
+                                </p>
+                              )}
+
+                              {hasData ? (
+                                <div className="mt-2 space-y-2.5">
+                                  {groupActivities.map((act, i) => (
+                                    <div key={i} className="flex flex-wrap items-baseline gap-x-2">
+                                      <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                                        {act.activity || DEFAULT_ACTIVITY_TEXT[act.status] || group.fallbackDescription}
+                                      </p>
+                                      {act.location && (
+                                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-full">
+                                          📍 {act.location}
+                                        </span>
+                                      )}
+                                      <span className="text-[10px] text-slate-400 font-bold w-full">
+                                        {formatMilestoneDate(act.date)} - {formatMilestoneTime(act.date)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs sm:text-sm text-slate-400 mt-1">{group.fallbackDescription}</p>
+                              )}
                           </div>
                       </motion.div>
                   );
@@ -998,58 +997,6 @@ export default function OrderDetailPage() {
                 </motion.div>
               )}
             </div>
-
-            {/* Live Journey Log (Meesho / Flipkart style) */}
-            {shipmentActivities.length > 0 && (
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <FaTruckLoading className="text-[#e8767a]" /> Live Shipment Journey
-                </h3>
-                <div className="relative pl-6 border-l border-slate-100 space-y-6">
-                  {shipmentActivities.map((act, index) => {
-                    const isLatest = index === 0;
-                    return (
-                      <div key={index} className="relative text-left">
-                        {/* Bullet point */}
-                        <span className="absolute -left-[30px] top-1 flex h-4.5 w-4.5 items-center justify-center">
-                          {isLatest ? (
-                            <span className="relative flex h-3.5 w-3.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8767a] opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-3 h-3 bg-[#e8767a]"></span>
-                            </span>
-                          ) : (
-                            <span className="h-2 w-2 rounded-full bg-slate-300"></span>
-                          )}
-                        </span>
-                        
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className={`text-xs sm:text-sm font-bold ${isLatest ? 'text-[#e8767a]' : 'text-slate-700'}`}>
-                              {act.activity || act.status}
-                            </p>
-                            {act.location && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full shadow-sm">
-                                📍 {act.location}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-slate-400 font-bold mt-1">
-                            {new Date(act.date).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
             {/* Expected Delivery Banner */}
             {!isLuxeOrder && displayStatus !== 'Cancelled' && (
