@@ -600,26 +600,6 @@ const Orders = ({ token }) => {
                         >
                           <FileText size={18} />
                         </button>
-                        
-                        {/* Status Handler Select */}
-                        <select 
-                          onChange={(event) => statusHandler(event, order._id)} 
-                          value={order.orderStatus} 
-                          className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-bold rounded-xl text-gray-700 shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-                        >
-                          <option value="Order Placed">Order Placed</option>
-                          <option value="Processing">Processing</option>
-                          <option value="Confirmed">Confirmed</option>
-                          <option value="Shipped">Shipped</option>
-                          <option value="Out for delivery">Out for delivery</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Cancelled">Cancelled</option>
-                          <option value="Returned">Returned</option>
-                          <option value="Refund Initiated">Refund Initiated</option>
-                          <option value="Refunded">Refunded</option>
-                          <option value="Failed">Failed</option>
-                        </select>
-
                         <StatusBadge status={order.orderStatus} />
                         <button
                           onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
