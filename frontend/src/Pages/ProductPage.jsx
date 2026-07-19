@@ -37,9 +37,8 @@ const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLef
           key={src}
           src={src}
           alt={alt}
-          className={`w-full h-full transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} touch-pan-y`}
+          className={`w-full h-full object-contain lg:object-cover transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} touch-pan-y`}
           style={{
-            objectFit: 'cover',
             transform: 'scale(1.02)'
           }}
           initial={{ opacity: 0, x: 20 }}
