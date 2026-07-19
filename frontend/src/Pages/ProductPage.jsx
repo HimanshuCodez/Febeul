@@ -30,14 +30,14 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLeft, onSwipeRight, currentIndex, totalImages }) => {
   return (
     <div
-      className="relative mx-auto overflow-hidden bg-white shadow-sm w-full h-[75vh] lg:h-[calc(100vh-100px)] flex items-center justify-center cursor-default"
+      className="relative mx-auto overflow-hidden bg-white shadow-sm w-full aspect-[3/4] lg:aspect-auto lg:h-[calc(100vh-100px)] flex items-center justify-center cursor-default"
     >
       <AnimatePresence initial={false} mode="wait">
         <motion.img
           key={src}
           src={src}
           alt={alt}
-          className={`w-full h-full object-contain transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} touch-pan-y`}
+          className={`w-full h-full object-cover lg:object-contain transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} touch-pan-y`}
           style={{
             transform: 'scale(1.02)'
           }}
