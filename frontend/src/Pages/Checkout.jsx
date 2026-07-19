@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaMapMarkerAlt, 
   FaMoneyBillWave, 
@@ -49,6 +49,47 @@ const countries = [
   "Zambia", "Zimbabwe"
 ];
 
+const ORDER_SUCCESS_REDIRECT_DELAY_MS = 1600;
+
+// Flipkart-style full-screen success tick — deliberately shows nothing
+// beyond the checkmark itself before handing off to the order detail page.
+const OrderPlacedOverlay = () => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center"
+  >
+    <motion.div
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+      className="w-28 h-28 rounded-full bg-green-500 flex items-center justify-center shadow-xl"
+    >
+      <motion.svg viewBox="0 0 24 24" className="w-14 h-14" fill="none">
+        <motion.path
+          d="M5 13l4 4L19 7"
+          stroke="white"
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.5, delay: 0.2, ease: 'easeInOut' }}
+        />
+      </motion.svg>
+    </motion.div>
+    <motion.p
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 }}
+      className="text-xl font-black text-gray-800 mt-6"
+    >
+      Order Placed!
+    </motion.p>
+  </motion.div>
+);
+
 export default function CheckoutPage() {
   const { user, token, isAuthenticated, getProfile, siteSettings, fetchSiteSettings } = useAuthStore();
   const navigate = useNavigate();
@@ -65,6 +106,7 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState(null);
 
   useEffect(() => {
     fetchSiteSettings();
@@ -381,9 +423,11 @@ export default function CheckoutPage() {
     try {
         const response = await axios.post(`${backendUrl}/api/order/place`, orderData, { headers: { token } });
         if (response.data.success) {
-            toast.success("Order placed successfully!");
-            const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice, couponDiscount: (totalProductDiscount + couponDiscount) };
-            navigate("/Success", { state: { order: response.data.order, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
+            const newOrderId = response.data.order._id;
+            setPlacedOrderId(newOrderId);
+            setTimeout(() => {
+                navigate(`/order-detail/${newOrderId}`);
+            }, ORDER_SUCCESS_REDIRECT_DELAY_MS);
         } else {
             toast.error(response.data.message || "Failed to place order.");
         }
@@ -473,10 +517,11 @@ export default function CheckoutPage() {
             );
 
             if (verifyResponse.data.success) {
-              toast.success("Payment successful!");
-              const localOrder = { _id: order.receipt, ...orderPayload };
-              const pricingDetails = { subtotal, shipping: shippingCharge, cod: codCharge, total, giftWrapPrice, couponDiscount: (totalProductDiscount + couponDiscount) };
-              navigate('/Success', { state: { order: localOrder, items: cartItems, address: addresses[selectedAddress], pricingDetails } });
+              const newOrderId = order.receipt;
+              setPlacedOrderId(newOrderId);
+              setTimeout(() => {
+                navigate(`/order-detail/${newOrderId}`);
+              }, ORDER_SUCCESS_REDIRECT_DELAY_MS);
             } else {
               toast.error("Payment verification failed.");
             }
@@ -505,7 +550,10 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#f9aeaf] py-8 px-4">
-      <GiftWrapModal 
+      <AnimatePresence>
+        {placedOrderId && <OrderPlacedOverlay />}
+      </AnimatePresence>
+      <GiftWrapModal
         isOpen={isGiftWrapModalOpen}
         onClose={() => setIsGiftWrapModalOpen(false)}
         onSelect={handleSelectGiftWrap}
