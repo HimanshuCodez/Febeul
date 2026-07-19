@@ -64,6 +64,7 @@ export default function CheckoutPage() {
   const [isGiftWrapModalOpen, setIsGiftWrapModalOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   useEffect(() => {
     fetchSiteSettings();
@@ -392,10 +393,16 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = async () => {
-    if (selectedPayment === 'cod') {
-      await placeCodOrder();
-    } else if (selectedPayment === 'card') {
-      await handleRazorpayPayment();
+    if (isPlacingOrder) return;
+    setIsPlacingOrder(true);
+    try {
+      if (selectedPayment === 'cod') {
+        await placeCodOrder();
+      } else if (selectedPayment === 'card') {
+        await handleRazorpayPayment();
+      }
+    } finally {
+      setIsPlacingOrder(false);
     }
   }
 
@@ -1084,13 +1091,18 @@ export default function CheckoutPage() {
               {step === 3 && (
                 <motion.button
                   onClick={handlePlaceOrder}
+                  disabled={isPlacingOrder}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-6"
+                  whileHover={!isPlacingOrder ? { scale: 1.05 } : {}}
+                  whileTap={!isPlacingOrder ? { scale: 0.95 } : {}}
+                  className={`w-full font-bold py-3 px-6 rounded-lg transition-colors mt-6 ${
+                    isPlacingOrder
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#e8767a] hover:bg-[#d5666a] text-white'
+                  }`}
                 >
-                  Place Order
+                  {isPlacingOrder ? 'Placing Order...' : 'Place Order'}
                 </motion.button>
               )}
             </motion.div>
