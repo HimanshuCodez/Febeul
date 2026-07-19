@@ -10,6 +10,7 @@ const razorpayInstance = new Razorpay({
 });
 
 const BUYER_FAULT_CONVENIENCE_FEE = 150;
+const MAX_RETURNS_BEFORE_BLOCK = 5;
 
 // --- 1. Refund Calculation Function ---
 const calculateRefundAmount = async (order, returnReason, currentShiprocketStatus) => {
@@ -237,6 +238,12 @@ const requestRefund = async (req, res) => {
         if (order.paymentMethod === 'COD' && payoutDetails) updateData['refundDetails.customerPayoutDetails'] = JSON.parse(payoutDetails);
 
         await orderModel.findByIdAndUpdate(orderId, updateData);
+
+        const returnCount = await orderModel.countDocuments({ userId, 'refundDetails.status': { $ne: 'none' } });
+        if (returnCount > MAX_RETURNS_BEFORE_BLOCK) {
+            await userModel.findByIdAndUpdate(userId, { isBlocked: true, blockedAt: new Date() });
+        }
+
         res.json({ success: true, message: "Request submitted successfully." });
     } catch (error) {
         res.json({ success: false, message: error.message });

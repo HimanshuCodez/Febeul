@@ -41,7 +41,9 @@ const userSchema = new mongoose.Schema({
         sundayDelivery: { type: Boolean, default: true },
     }],
     role: { type: String, default: 'user' },
-    permissions: [{ type: String }]
+    permissions: [{ type: String }],
+    isBlocked: { type: Boolean, default: false },
+    blockedAt: { type: Date, default: null }
 }, { minimize: false, timestamps: true })
 
 const userModel = mongoose.models.user || mongoose.model('user',userSchema);

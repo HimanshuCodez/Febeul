@@ -1,7 +1,7 @@
 import express from 'express';
 import adminAuth from '../middleware/adminAuth.js';
 import * as adminController from '../controllers/adminController.js';
-import { updateStaffPermissions } from '../controllers/userController.js';
+import { updateStaffPermissions, toggleBlockUser } from '../controllers/userController.js';
 
 const adminRouter = express.Router();
 
@@ -15,5 +15,6 @@ adminRouter.get('/sku-stocks', adminAuth, adminController.getSkuStocks);
 adminRouter.get('/export-report', adminAuth, adminController.exportReport);
 adminRouter.post('/send-marketing-mail', adminAuth, adminController.sendMarketingMail);
 adminRouter.post('/update-permissions', adminAuth, updateStaffPermissions);
+adminRouter.post('/toggle-block', adminAuth, toggleBlockUser);
 
 export default adminRouter;

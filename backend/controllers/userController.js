@@ -561,6 +561,28 @@ const updateStaffPermissions = async (req, res) => {
 };
 
 
+// Block or unblock a user (admin action)
+const toggleBlockUser = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await userModel.findById(userId);
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        user.isBlocked = !user.isBlocked;
+        user.blockedAt = user.isBlocked ? new Date() : null;
+        await user.save();
+
+        res.json({ success: true, message: user.isBlocked ? "User blocked" : "User unblocked", isBlocked: user.isBlocked });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error updating block status" });
+    }
+};
+
+
 // Send OTP for Admin Login
 const sendAdminOTP = async (req, res) => {
     try {
@@ -643,4 +665,4 @@ const adminOtpLogin = async (req, res) => {
 }
 
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions, sendAdminOTP, adminOtpLogin }
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions, toggleBlockUser, sendAdminOTP, adminOtpLogin }

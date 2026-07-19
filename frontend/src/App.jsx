@@ -43,6 +43,7 @@ import MyOrders from "./Pages/MyOrders"; // Import MyOrders component
 import OrderDetailPage from "./Pages/OrderDetail"; // Import OrderDetailPage
 import { Toaster } from "react-hot-toast";
 import MaintenancePage from "./Pages/Maintenance";
+import BlockedPage from "./Pages/Blocked";
 import SwipingMessages from "./components/SwippingMsgs";
 import FebeulLoader from "./components/Loader";
 import ScrollToTop from "./components/ScrollToTop";
@@ -163,6 +164,13 @@ const AppContent = () => {
 
   if (showMaintenance) {
     return <MaintenancePage />;
+  }
+
+  // Blocked customers are locked out of the entire site until an admin unblocks them
+  const showBlocked = user?.isBlocked === true && user?.role !== 'admin' && user?.role !== 'staff';
+
+  if (showBlocked) {
+    return <BlockedPage />;
   }
 
   return (

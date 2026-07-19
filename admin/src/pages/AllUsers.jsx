@@ -57,6 +57,28 @@ const AllUsers = ({ token }) => {
     setShowModal(true);
   };
 
+  const handleToggleBlock = async (user) => {
+    const confirmMessage = user.isBlocked
+      ? `Unblock ${user.email}? They will regain full access to the site.`
+      : `Block ${user.email}? They will be locked out of the site until unblocked.`;
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/toggle-block`, {
+        userId: user._id
+      }, { headers: { token } });
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+        fetchUsers();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (err) {
+      toast.error("Failed to update block status");
+    }
+  };
+
   const handleSavePermissions = async () => {
     try {
       const response = await axios.post(`${backendUrl}/api/admin/update-permissions`, {
@@ -243,6 +265,7 @@ const AllUsers = ({ token }) => {
                   <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Role</th>
                   <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Luxe</th>
                   <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Gift Wraps</th>
+                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Status</th>
                   <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Actions</th>
                 </tr>
               </thead>
@@ -263,12 +286,27 @@ const AllUsers = ({ token }) => {
                     <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.isLuxeMember ? 'Yes' : 'No'}</td>
                     <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.giftWrapsLeft}</td>
                     <td className='py-3 px-4 whitespace-nowrap text-sm'>
-                      <button 
-                        onClick={() => openPermissionsModal(user)}
-                        className='text-blue-600 hover:text-blue-800 font-medium underline'
-                      >
-                        View Permissions
-                      </button>
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        user.isBlocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                      }`}>
+                        {user.isBlocked ? 'Blocked' : 'Active'}
+                      </span>
+                    </td>
+                    <td className='py-3 px-4 whitespace-nowrap text-sm'>
+                      <div className='flex items-center gap-3'>
+                        <button
+                          onClick={() => openPermissionsModal(user)}
+                          className='text-blue-600 hover:text-blue-800 font-medium underline'
+                        >
+                          View Permissions
+                        </button>
+                        <button
+                          onClick={() => handleToggleBlock(user)}
+                          className={`font-medium underline ${user.isBlocked ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'}`}
+                        >
+                          {user.isBlocked ? 'Unblock' : 'Block'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
