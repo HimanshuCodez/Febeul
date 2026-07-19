@@ -516,7 +516,7 @@ export default function Header() {
         <div className="md:hidden fixed inset-0 bg-white z-50 p-4">
           <div className="flex items-center gap-2">
             <div className="flex-grow">
-              <SearchBar />
+              <SearchBar onNavigate={() => setIsSearchOpen(false)} />
             </div>
             <button onClick={() => setIsSearchOpen(false)}>
               <X className="h-6 w-6 text-gray-600" />

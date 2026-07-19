@@ -7,7 +7,7 @@ import { toast } from "react-hot-toast";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-export default function SearchBar() {
+export default function SearchBar({ onNavigate }) {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -113,11 +113,13 @@ export default function SearchBar() {
     if (product.isLuxePrive && !isLuxeMember) {
       navigate('/luxe');
       toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
+      onNavigate?.();
       return;
     }
 
     setTimeout(() => { // Add setTimeout
       navigate(`/product/${product._id}`);
+      onNavigate?.();
     }, 50); // Small delay to allow UI update
   };
 
@@ -130,6 +132,7 @@ export default function SearchBar() {
     closeSearch();
     setTimeout(() => { // Add setTimeout
       navigate(`/products?search=${encodeURIComponent(item)}`);
+      onNavigate?.();
     }, 50); // Small delay to allow UI update
   };
 
@@ -143,6 +146,7 @@ export default function SearchBar() {
       setHistory(newHistory);
       closeSearch();
       navigate(`/products?search=${encodeURIComponent(query.trim())}`);
+      onNavigate?.();
     }
   };
 
