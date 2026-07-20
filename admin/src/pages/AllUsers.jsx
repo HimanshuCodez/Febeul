@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { backendUrl } from '../App'; 
+import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
+import { CalendarRange, X } from 'lucide-react';
 
 const AllUsers = ({ token }) => {
   const [users, setUsers] = useState([]);
@@ -17,6 +18,8 @@ const AllUsers = ({ token }) => {
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -130,13 +133,22 @@ const AllUsers = ({ token }) => {
       (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.mobile && user.mobile.includes(searchTerm));
     
-    const matchesRole = 
-      roleFilter === 'all' || 
+    const matchesRole =
+      roleFilter === 'all' ||
       (roleFilter === 'staff' && (user.role === 'staff' || user.role === 'admin')) ||
       (roleFilter === 'user' && user.role === 'user');
 
-    return matchesSearch && matchesRole;
+    const joinedTime = user.createdAt ? new Date(user.createdAt).getTime() : null;
+    const matchesStart = !startDate || (joinedTime !== null && joinedTime >= new Date(startDate).setHours(0, 0, 0, 0));
+    const matchesEnd = !endDate || (joinedTime !== null && joinedTime <= new Date(endDate).setHours(23, 59, 59, 999));
+
+    return matchesSearch && matchesRole && matchesStart && matchesEnd;
   });
+
+  const clearDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+  };
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -144,7 +156,7 @@ const AllUsers = ({ token }) => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, roleFilter]);
+  }, [searchTerm, roleFilter, startDate, endDate]);
 
   if (loading) {
     return <p className="p-4">Loading users...</p>;
@@ -180,7 +192,32 @@ const AllUsers = ({ token }) => {
             <option value="staff">Staff/Admin</option>
             <option value="user">Normal Users</option>
           </select>
-          <button 
+          <div className={`flex items-center gap-2 rounded-md px-3 py-2 border transition-colors ${(startDate || endDate) ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-300'}`}>
+            <CalendarRange size={15} className={(startDate || endDate) ? 'text-pink-500' : 'text-gray-400'} />
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+              aria-label="Joined from"
+            />
+            <span className="text-gray-300 text-xs font-bold">→</span>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+              aria-label="Joined to"
+            />
+            {(startDate || endDate) && (
+              <button onClick={clearDateFilter} title="Clear date filter" className="text-pink-400 hover:text-red-500 transition-colors">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
             onClick={() => openPermissionsModal()}
             className='bg-black text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition-colors whitespace-nowrap'
           >
@@ -357,7 +394,7 @@ const AllUsers = ({ token }) => {
           )}
         </>
       ) : (
-        <p className='p-4 text-gray-500'>No users found matching your search.</p>
+        <p className='p-4 text-gray-500'>No users found matching your search or date range.</p>
       )}
 
     </div>
