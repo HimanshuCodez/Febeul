@@ -270,29 +270,30 @@ const Support = () => {
                                     className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-400 transition-all"
                                 />
                             </div>
-                            <div className="flex items-center gap-1.5 border border-slate-200 rounded-xl px-2.5 py-2 bg-white shrink-0">
+                            <div className={`flex items-center gap-2 rounded-xl px-3 py-2 shrink-0 border transition-colors ${(startDate || endDate) ? 'bg-pink-50 border-pink-200' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+                                <CalendarRange size={15} className={(startDate || endDate) ? 'text-pink-500' : 'text-slate-300'} />
                                 <input
                                     type="date"
                                     value={startDate}
                                     max={endDate || undefined}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    className="text-xs font-semibold text-slate-600 focus:outline-none bg-transparent"
+                                    className="text-xs font-bold text-slate-600 focus:outline-none bg-transparent w-[92px] cursor-pointer"
                                     aria-label="From date"
                                 />
-                                <span className="text-slate-300 text-xs">–</span>
+                                <span className="text-slate-300 text-xs font-bold">→</span>
                                 <input
                                     type="date"
                                     value={endDate}
                                     min={startDate || undefined}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    className="text-xs font-semibold text-slate-600 focus:outline-none bg-transparent"
+                                    className="text-xs font-bold text-slate-600 focus:outline-none bg-transparent w-[92px] cursor-pointer"
                                     aria-label="To date"
                                 />
                                 {(startDate || endDate) && (
                                     <button
                                         onClick={clearDateFilter}
                                         title="Clear date filter"
-                                        className="text-slate-300 hover:text-rose-500 transition-colors"
+                                        className="text-pink-400 hover:text-rose-500 transition-colors"
                                     >
                                         <X size={14} />
                                     </button>

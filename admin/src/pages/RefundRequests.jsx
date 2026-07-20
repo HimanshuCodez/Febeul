@@ -14,7 +14,8 @@ import {
   User,
   CreditCard,
   MessageSquare,
-  Image as ImageIcon
+  Image as ImageIcon,
+  CalendarRange
 } from 'lucide-react';
 
 const RefundRequests = ({ token }) => {
@@ -22,6 +23,8 @@ const RefundRequests = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedRequest, setSelectedTicket] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
@@ -150,13 +153,23 @@ const RefundRequests = ({ token }) => {
   };
 
   const filteredRequests = requests.filter(req => {
-    const matchesSearch = 
-        req._id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch =
+        req._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.userId?.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || req.refundDetails.status === filterStatus;
-    return matchesSearch && matchesStatus;
+
+    const reqTime = new Date(req.refundDetails.requestedAt || req.date).getTime();
+    const matchesStart = !startDate || reqTime >= new Date(startDate).setHours(0, 0, 0, 0);
+    const matchesEnd = !endDate || reqTime <= new Date(endDate).setHours(23, 59, 59, 999);
+
+    return matchesSearch && matchesStatus && matchesStart && matchesEnd;
   });
+
+  const clearDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -200,14 +213,39 @@ const RefundRequests = ({ token }) => {
                 key={status}
                 onClick={() => setFilterStatus(status)}
                 className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                  filterStatus === status 
-                    ? 'bg-gray-900 text-white shadow-lg' 
+                  filterStatus === status
+                    ? 'bg-gray-900 text-white shadow-lg'
                     : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
                 }`}
               >
                 {status}
               </button>
             ))}
+            <div className={`flex items-center gap-2 rounded-xl px-3 py-2 border transition-colors shrink-0 ${(startDate || endDate) ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-200'}`}>
+              <CalendarRange size={15} className={(startDate || endDate) ? 'text-pink-500' : 'text-gray-400'} />
+              <input
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="text-xs font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+                aria-label="From date"
+              />
+              <span className="text-gray-300 text-xs font-bold">→</span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="text-xs font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+                aria-label="To date"
+              />
+              {(startDate || endDate) && (
+                <button onClick={clearDateFilter} title="Clear date filter" className="text-pink-400 hover:text-red-500 transition-colors">
+                  <XCircle size={14} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

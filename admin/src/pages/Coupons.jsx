@@ -4,9 +4,9 @@ import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { CSVLink } from 'react-csv';
 import { 
-  Download, Search, FileText, Trash2, Plus, 
-  Calendar, Tag, User, Users, Info, 
-  ChevronRight, Edit, X, CheckCircle2, AlertCircle, TrendingUp 
+  Download, Search, FileText, Trash2, Plus,
+  Calendar, CalendarRange, Tag, User, Users, Info,
+  ChevronRight, Edit, X, CheckCircle2, AlertCircle, TrendingUp
 } from 'lucide-react';
 
 const Coupons = ({ token }) => {
@@ -14,6 +14,8 @@ const Coupons = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const role = localStorage.getItem('role');
   const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [editingCouponId, setEditingCouponId] = useState(null);
   const [showFormModal, setShowFormModal] = useState(false);
   
@@ -225,10 +227,21 @@ const Coupons = ({ token }) => {
     fetchCoupons();
   }, [token]);
 
-  const filteredCoupons = coupons.filter(coupon => 
-    coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (coupon.description && coupon.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredCoupons = coupons.filter(coupon => {
+    const matchesSearch = coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (coupon.description && coupon.description.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const createdTime = coupon.createdAt ? new Date(coupon.createdAt).getTime() : null;
+    const matchesStart = !startDate || (createdTime !== null && createdTime >= new Date(startDate).setHours(0, 0, 0, 0));
+    const matchesEnd = !endDate || (createdTime !== null && createdTime <= new Date(endDate).setHours(23, 59, 59, 999));
+
+    return matchesSearch && matchesStart && matchesEnd;
+  });
+
+  const clearDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+  };
 
   const stats = {
     total: coupons.length,
@@ -381,8 +394,33 @@ const Coupons = ({ token }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className='flex items-center gap-2'>
-            <span className='text-xs font-bold text-slate-400 mr-2'>{filteredCoupons.length} Results</span>
+          <div className='flex items-center gap-3'>
+            <div className={`flex items-center gap-2 rounded-2xl px-3 py-2 border transition-colors ${(startDate || endDate) ? 'bg-pink-50 border-pink-200' : 'bg-white border-slate-200'}`}>
+              <CalendarRange size={15} className={(startDate || endDate) ? 'text-pink-500' : 'text-slate-400'} />
+              <input
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="text-xs font-bold text-slate-600 bg-transparent focus:outline-none cursor-pointer"
+                aria-label="Created from"
+              />
+              <span className="text-slate-300 text-xs font-bold">→</span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="text-xs font-bold text-slate-600 bg-transparent focus:outline-none cursor-pointer"
+                aria-label="Created to"
+              />
+              {(startDate || endDate) && (
+                <button onClick={clearDateFilter} title="Clear date filter" className="text-pink-400 hover:text-rose-500 transition-colors">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <span className='text-xs font-bold text-slate-400'>{filteredCoupons.length} Results</span>
           </div>
         </div>
 

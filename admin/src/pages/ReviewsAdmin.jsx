@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { Star } from 'lucide-react';
+import { Star, CalendarRange, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 // Assuming an admin auth context exists to get the token
 // import useAdminAuth from '../hooks/useAdminAuth'; 
@@ -13,6 +13,8 @@ const ReviewsAdmin = ({ token }) => {
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const role = localStorage.getItem('role');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     useEffect(() => {
         if (token) { // Only fetch if a valid token is provided
@@ -94,14 +96,55 @@ const ReviewsAdmin = ({ token }) => {
         }
     };
 
+    const clearDateFilter = () => {
+        setStartDate('');
+        setEndDate('');
+    };
+
+    const filteredReviews = reviews.filter(review => {
+        const reviewTime = new Date(review.date).getTime();
+        const matchesStart = !startDate || reviewTime >= new Date(startDate).setHours(0, 0, 0, 0);
+        const matchesEnd = !endDate || reviewTime <= new Date(endDate).setHours(23, 59, 59, 999);
+        return matchesStart && matchesEnd;
+    });
+
     return (
         <div className="p-6 bg-gray-100 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-8">All Customer Reviews (Admin)</h1>
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+                <h1 className="text-3xl font-bold text-gray-800">All Customer Reviews (Admin)</h1>
+                <div className={`flex items-center gap-2 rounded-xl px-3 py-2 border transition-colors shrink-0 ${(startDate || endDate) ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-300'}`}>
+                    <CalendarRange size={16} className={(startDate || endDate) ? 'text-pink-500' : 'text-gray-400'} />
+                    <input
+                        type="date"
+                        value={startDate}
+                        max={endDate || undefined}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+                        aria-label="From date"
+                    />
+                    <span className="text-gray-300 text-xs font-bold">→</span>
+                    <input
+                        type="date"
+                        value={endDate}
+                        min={startDate || undefined}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+                        aria-label="To date"
+                    />
+                    {(startDate || endDate) && (
+                        <button onClick={clearDateFilter} title="Clear date filter" className="text-pink-400 hover:text-red-500 transition-colors">
+                            <X size={14} />
+                        </button>
+                    )}
+                </div>
+            </div>
 
             {loading ? (
                 <div className="text-center text-gray-600">Loading reviews...</div>
-            ) : reviews.length === 0 ? (
-                <div className="text-center text-gray-600 py-10 border rounded-lg bg-white">No reviews found.</div>
+            ) : filteredReviews.length === 0 ? (
+                <div className="text-center text-gray-600 py-10 border rounded-lg bg-white">
+                    {reviews.length === 0 ? 'No reviews found.' : 'No reviews match the selected date range.'}
+                </div>
             ) : (
                 <div className="bg-white rounded-lg shadow-md p-8">
                     <div className="overflow-x-auto">
@@ -118,7 +161,7 @@ const ReviewsAdmin = ({ token }) => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {reviews.map(review => (
+                                {filteredReviews.map(review => (
                                     <tr key={review._id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">

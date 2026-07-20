@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { assets } from '../assets/assets'; // Assuming icons like parcel_icon, order_icon are useful
-import { Paperclip, X, Download } from 'lucide-react'; // Import Paperclip, X, and Download
+import { Paperclip, X, Download, CalendarRange } from 'lucide-react'; // Import Paperclip, X, Download, and CalendarRange
 import { CSVLink } from 'react-csv';
 
 const Tickets = ({ token }) => {
@@ -12,6 +12,8 @@ const Tickets = ({ token }) => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'open', 'closed', 'pending'
   const [searchTerm, setSearchTerm] = useState(''); // New state for search
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [adminMessage, setAdminMessage] = useState(''); // New state for admin message
   const [adminAttachments, setAdminAttachments] = useState([]); // New state for admin chat attachments
   const [isSending, setIsSending] = useState(false);
@@ -141,8 +143,18 @@ const Tickets = ({ token }) => {
     const userEmail = ticket.user?.email?.toLowerCase() || '';
     const ticketId = String(ticket.ticketNumber || ticket._id?.slice(-6) || ''); // Support new and old tickets
     const matchesSearch = userName.includes(searchTerm.toLowerCase()) || userEmail.includes(searchTerm.toLowerCase()) || ticketId.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+
+    const ticketTime = new Date(ticket.createdAt).getTime();
+    const matchesStart = !startDate || ticketTime >= new Date(startDate).setHours(0, 0, 0, 0);
+    const matchesEnd = !endDate || ticketTime <= new Date(endDate).setHours(23, 59, 59, 999);
+
+    return matchesStatus && matchesSearch && matchesStart && matchesEnd;
   });
+
+  const clearDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+  };
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
@@ -150,7 +162,7 @@ const Tickets = ({ token }) => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus]);
+  }, [searchTerm, filterStatus, startDate, endDate]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -223,7 +235,7 @@ const Tickets = ({ token }) => {
           </button>
         </div>
         
-        <div className='flex gap-4 w-full md:w-auto'>
+        <div className='flex flex-wrap gap-4 w-full md:w-auto'>
           <input
             type="text"
             placeholder="Search by customer name or email..."
@@ -231,6 +243,31 @@ const Tickets = ({ token }) => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 flex-1 md:w-64"
           />
+          <div className={`flex items-center gap-2 rounded-md px-3 py-2 border transition-colors ${(startDate || endDate) ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-300'}`}>
+            <CalendarRange size={16} className={(startDate || endDate) ? 'text-pink-500' : 'text-gray-400'} />
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+              aria-label="From date"
+            />
+            <span className="text-gray-300 text-xs font-bold">→</span>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+              aria-label="To date"
+            />
+            {(startDate || endDate) && (
+              <button onClick={clearDateFilter} title="Clear date filter" className="text-pink-400 hover:text-red-500 transition-colors">
+                <X size={14} />
+              </button>
+            )}
+          </div>
           <button
             onClick={fetchTickets}
             className="px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
