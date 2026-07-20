@@ -16,7 +16,8 @@ import {
     User,
     ImagePlus,
     MessageCircle,
-    LifeBuoy
+    LifeBuoy,
+    CalendarRange
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from 'axios';
@@ -41,6 +42,8 @@ const Support = () => {
     const isSendingRef = useRef(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [searchTerm, setSearchTerm] = useState(""); // New state for search
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [formData, setFormData] = useState({ subject: "", message: "", images: [] });
     const [currentMessage, setCurrentMessage] = useState(''); // New state for message input
     const [currentAttachments, setCurrentAttachments] = useState([]); // New state for chat attachments
@@ -214,8 +217,19 @@ const Support = () => {
         const subject = ticket.subject?.toLowerCase() || '';
         const ticketId = String(ticket.ticketNumber || ticket._id?.slice(-6) || '');
         const search = searchTerm.toLowerCase().trim();
-        return subject.includes(search) || ticketId.toLowerCase().includes(search);
+        const matchesSearch = subject.includes(search) || ticketId.toLowerCase().includes(search);
+
+        const ticketTime = new Date(ticket.createdAt || ticket.updatedAt).getTime();
+        const matchesStart = !startDate || ticketTime >= new Date(startDate).setHours(0, 0, 0, 0);
+        const matchesEnd = !endDate || ticketTime <= new Date(endDate).setHours(23, 59, 59, 999);
+
+        return matchesSearch && matchesStart && matchesEnd;
     });
+
+    const clearDateFilter = () => {
+        setStartDate("");
+        setEndDate("");
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-pink-50/60 to-white font-sans py-12 px-4 sm:px-6 lg:px-8">
@@ -255,6 +269,34 @@ const Support = () => {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-400 transition-all"
                                 />
+                            </div>
+                            <div className="flex items-center gap-1.5 border border-slate-200 rounded-xl px-2.5 py-2 bg-white shrink-0">
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    max={endDate || undefined}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="text-xs font-semibold text-slate-600 focus:outline-none bg-transparent"
+                                    aria-label="From date"
+                                />
+                                <span className="text-slate-300 text-xs">–</span>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    min={startDate || undefined}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="text-xs font-semibold text-slate-600 focus:outline-none bg-transparent"
+                                    aria-label="To date"
+                                />
+                                {(startDate || endDate) && (
+                                    <button
+                                        onClick={clearDateFilter}
+                                        title="Clear date filter"
+                                        className="text-slate-300 hover:text-rose-500 transition-colors"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                )}
                             </div>
                             <button
                                 onClick={fetchUserTickets}
@@ -404,10 +446,10 @@ const Support = () => {
                                 <Inbox className="w-8 h-8 text-slate-300" />
                             </div>
                             <h3 className="text-base font-black text-slate-700">
-                                {searchTerm ? 'No matching tickets' : 'No Support Tickets Yet'}
+                                {searchTerm || startDate || endDate ? 'No matching tickets' : 'No Support Tickets Yet'}
                             </h3>
                             <p className="text-slate-400 text-sm font-medium mt-1 max-w-sm mx-auto">
-                                {searchTerm ? 'Try a different subject or ticket ID.' : "Need help? Create a ticket and we'll get back to you soon."}
+                                {searchTerm || startDate || endDate ? 'Try a different subject, ticket ID, or date range.' : "Need help? Create a ticket and we'll get back to you soon."}
                             </p>
                         </div>
                     )}

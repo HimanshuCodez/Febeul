@@ -29,6 +29,9 @@ const Orders = ({ token }) => {
   const [refundSearch, setRefundSearch] = useState('');
   const [refundStateFilter, setRefundStateFilter] = useState('');
 
+  const [orderStartDate, setOrderStartDate] = useState('');
+  const [orderEndDate, setOrderEndDate] = useState('');
+
   // Sorting Configs
   const [pincodeSort, setPincodeSort] = useState({ key: 'orderCount', direction: 'desc' });
   const [stateSort, setStateSort] = useState({ key: 'orderCount', direction: 'desc' });
@@ -318,9 +321,28 @@ const Orders = ({ token }) => {
     };
   }, [orders]);
 
+  // Date-filtered Orders
+  const filteredOrders = useMemo(() => {
+    if (!orderStartDate && !orderEndDate) return orders;
+    const start = orderStartDate ? new Date(orderStartDate).setHours(0, 0, 0, 0) : null;
+    const end = orderEndDate ? new Date(orderEndDate).setHours(23, 59, 59, 999) : null;
+    return orders.filter(order => {
+      const orderTime = new Date(order.date).getTime();
+      if (start !== null && orderTime < start) return false;
+      if (end !== null && orderTime > end) return false;
+      return true;
+    });
+  }, [orders, orderStartDate, orderEndDate]);
+
+  const clearDateFilter = () => {
+    setOrderStartDate('');
+    setOrderEndDate('');
+    setCurrentPage(1);
+  };
+
   // Pagination Logic for main Orders
-  const totalPages = Math.ceil(orders.length / itemsPerPage);
-  const paginatedOrders = orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // Sorting Helper
   const sortData = (data, sortConfig) => {
@@ -456,7 +478,7 @@ const Orders = ({ token }) => {
           }`}
         >
           <Package size={16} />
-          All Orders ({orders.length})
+          All Orders ({filteredOrders.length})
         </button>
         <button
           onClick={() => setActiveTab('pincodes')}
@@ -512,11 +534,38 @@ const Orders = ({ token }) => {
               <Package className="text-pink-500" size={20} />
               <span className="text-sm font-bold text-gray-700">Orders List Manager</span>
             </div>
-            <div className='flex items-center gap-4'>
+            <div className='flex flex-wrap items-center gap-4'>
+              <div className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200'>
+                <Calendar size={14} className="text-gray-400" />
+                <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>From</span>
+                <input
+                  type="date"
+                  value={orderStartDate}
+                  max={orderEndDate || undefined}
+                  onChange={(e) => { setOrderStartDate(e.target.value); setCurrentPage(1); }}
+                  className='text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer'
+                />
+                <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>To</span>
+                <input
+                  type="date"
+                  value={orderEndDate}
+                  min={orderStartDate || undefined}
+                  onChange={(e) => { setOrderEndDate(e.target.value); setCurrentPage(1); }}
+                  className='text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer'
+                />
+                {(orderStartDate || orderEndDate) && (
+                  <button
+                    onClick={clearDateFilter}
+                    className='text-xs font-bold text-pink-500 hover:text-pink-700 uppercase tracking-wider ml-1'
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <div className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200'>
                 <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Show</span>
-                <select 
-                  value={itemsPerPage} 
+                <select
+                  value={itemsPerPage}
                   onChange={handleItemsPerPageChange}
                   className='text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer'
                 >
@@ -533,8 +582,10 @@ const Orders = ({ token }) => {
           </div>
 
           <div className='space-y-6'>
-            {orders.length === 0 ? (
-              <p className="text-center text-gray-500 text-lg py-10">No orders found.</p>
+            {filteredOrders.length === 0 ? (
+              <p className="text-center text-gray-500 text-lg py-10">
+                {orders.length === 0 ? 'No orders found.' : 'No orders match the selected date range.'}
+              </p>
             ) : (
               <>
                 {paginatedOrders.map((order) => (
