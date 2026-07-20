@@ -3,10 +3,11 @@ import axios from 'axios'
 import { backendUrl, currency } from '../App'
 import { toast } from 'react-toastify'
 import { assets } from '../assets/assets'
-import { 
-  Package, User, Mail, Phone, MapPin, Truck, Calendar, DollarSign, 
-  CreditCard, Tag, BadgeCheck, AlertCircle, ChevronDown, ChevronUp, 
-  FileText, TrendingUp, Users, RefreshCcw, Search, ArrowUpDown, Percent, Map 
+import { CSVLink } from 'react-csv'
+import {
+  Package, User, Mail, Phone, MapPin, Truck, Calendar, DollarSign,
+  CreditCard, Tag, BadgeCheck, AlertCircle, ChevronDown, ChevronUp,
+  FileText, TrendingUp, Users, RefreshCcw, Search, ArrowUpDown, Percent, Map, Download
 } from 'lucide-react';
 
 const Orders = ({ token }) => {
@@ -340,6 +341,55 @@ const Orders = ({ token }) => {
     setCurrentPage(1);
   };
 
+  // Excel/CSV Export Data
+  const orderCsvHeaders = [
+    { label: 'Order ID', key: 'orderId' },
+    { label: 'Date', key: 'date' },
+    { label: 'Customer Name', key: 'customerName' },
+    { label: 'Customer Email', key: 'customerEmail' },
+    { label: 'Phone', key: 'phone' },
+    { label: 'Luxe Member', key: 'isLuxeMember' },
+    { label: 'Items', key: 'items' },
+    { label: 'Payment Method', key: 'paymentMethod' },
+    { label: 'Payment Status', key: 'paymentStatus' },
+    { label: 'Order Status', key: 'orderStatus' },
+    { label: 'Coupon Code', key: 'couponCode' },
+    { label: 'Coupon Discount', key: 'couponDiscount' },
+    { label: 'Shipping Charge', key: 'shippingCharge' },
+    { label: 'COD Charge', key: 'codCharge' },
+    { label: 'Order Total', key: 'orderTotal' },
+    { label: 'Address', key: 'address' },
+    { label: 'City', key: 'city' },
+    { label: 'State', key: 'state' },
+    { label: 'Pincode', key: 'pincode' },
+    { label: 'AWB', key: 'awb' },
+    { label: 'Courier', key: 'courier' },
+  ];
+
+  const orderCsvData = useMemo(() => filteredOrders.map(order => ({
+    orderId: order._id,
+    date: order.date ? new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
+    customerName: order.userId?.name || order.address?.name || 'N/A',
+    customerEmail: order.userId?.email || order.address?.email || 'N/A',
+    phone: order.address?.phone || 'N/A',
+    isLuxeMember: order.userId?.isLuxeMember ? 'Yes' : 'No',
+    items: order.items?.map(item => `${item.name} (${item.quantity}${item.size ? `, ${item.size}` : ''})`).join(' | ') || '',
+    paymentMethod: order.paymentMethod,
+    paymentStatus: order.payment ? 'Paid' : order.orderStatus === 'Cancelled' ? 'Cancelled' : 'Pending',
+    orderStatus: order.orderStatus,
+    couponCode: order.couponCode || '',
+    couponDiscount: order.couponDiscount || 0,
+    shippingCharge: order.shippingCharge || 0,
+    codCharge: order.codCharge || 0,
+    orderTotal: order.orderTotal,
+    address: `${order.address?.address || ''}${order.address?.locality ? `, ${order.address.locality}` : ''}`,
+    city: order.address?.city || '',
+    state: order.address?.state || '',
+    pincode: order.address?.zip || '',
+    awb: order.shiprocket?.awb || '',
+    courier: order.shiprocket?.courier || '',
+  })), [filteredOrders]);
+
   // Pagination Logic for main Orders
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -578,6 +628,14 @@ const Orders = ({ token }) => {
               {totalPages > 1 && (
                 <span className='text-sm text-gray-500 font-medium'>Page {currentPage} of {totalPages}</span>
               )}
+              <CSVLink
+                data={orderCsvData}
+                headers={orderCsvHeaders}
+                filename={`Orders_Export_${new Date().toISOString().split('T')[0]}.csv`}
+                className='flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95'
+              >
+                <Download size={14} /> Export to Excel
+              </CSVLink>
             </div>
           </div>
 
