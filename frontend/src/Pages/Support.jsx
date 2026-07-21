@@ -332,35 +332,27 @@ const Support = () => {
                                 exit={{ opacity: 0, height: 0 }}
                                 className="mb-8 overflow-hidden"
                             >
-                                <form onSubmit={handleSubmit} className="space-y-5 p-6 bg-slate-50/60 border border-slate-100 rounded-2xl">
-                                    <div>
-                                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Create a new ticket</h3>
-                                        <p className="text-xs text-slate-400 font-medium mt-1">Our support team typically responds within 24 hours.</p>
+                                <div className="max-w-xl mx-auto bg-slate-50/60 border border-slate-100 rounded-2xl p-5 sm:p-7">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-10 h-10 rounded-xl bg-white border border-pink-100 shadow-sm flex items-center justify-center shrink-0">
+                                            <LifeBuoy className="text-pink-500" size={18} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-black text-slate-800 tracking-wide">Create a new ticket</h3>
+                                            <p className="text-xs text-slate-400 font-medium mt-0.5">Our support team typically responds within 24 hours.</p>
+                                        </div>
                                     </div>
-                                    <FormInput label="Subject" name="subject" value={formData.subject} onChange={handleChange} placeholder="e.g., Issue with my order" required />
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Message</label>
-                                        <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Please provide all the details here..." rows="5" required className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-pink-100 focus:border-pink-400 text-sm transition-all"></textarea>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Attach Photos (Max 2)</label>
-                                        {formData.images.length < 2 && (
-                                            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl p-6 cursor-pointer hover:border-pink-300 hover:bg-pink-50/40 transition-colors text-center">
-                                                <ImagePlus className="text-slate-400" size={22} />
-                                                <span className="text-xs font-bold text-slate-500">Click to upload up to 2 photos</span>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    onChange={handleImageChange}
-                                                    className="hidden"
-                                                />
-                                            </label>
-                                        )}
-                                        {formData.images.length > 0 && (
-                                            <div className="flex flex-wrap gap-2 mt-2">
+                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                        <FormInput label="Subject" name="subject" value={formData.subject} onChange={handleChange} placeholder="e.g., Issue with my order" required />
+                                        <div>
+                                            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Message</label>
+                                            <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Please provide all the details here..." rows="4" required className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-pink-100 focus:border-pink-400 text-sm transition-all resize-none"></textarea>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Attach Photos (Max 2)</label>
+                                            <div className="flex flex-wrap items-center gap-2">
                                                 {formData.images.map((image, index) => (
-                                                    <div key={index} className="relative w-20 h-20 border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                                    <div key={index} className="relative w-16 h-16 border border-slate-200 rounded-xl overflow-hidden shadow-sm shrink-0">
                                                         <img src={URL.createObjectURL(image)} alt={`Preview ${index}`} className="w-full h-full object-cover" />
                                                         <button
                                                             type="button"
@@ -371,18 +363,31 @@ const Support = () => {
                                                         </button>
                                                     </div>
                                                 ))}
+                                                {formData.images.length < 2 && (
+                                                    <label className="flex flex-col items-center justify-center gap-1 w-16 h-16 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-pink-300 hover:bg-pink-50/40 transition-colors text-center shrink-0">
+                                                        <ImagePlus className="text-slate-400" size={18} />
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            multiple
+                                                            onChange={handleImageChange}
+                                                            className="hidden"
+                                                        />
+                                                    </label>
+                                                )}
+                                                <span className="text-xs text-slate-400 font-medium">Up to 2 photos</span>
                                             </div>
-                                        )}
-                                    </div>
-                                    <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-3 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-pink-100 hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                                        {isSubmitting ? (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        ) : (
-                                            <Send size={16} />
-                                        )}
-                                        <span>{isSubmitting ? 'Creating Ticket...' : 'Create Ticket'}</span>
-                                    </button>
-                                </form>
+                                        </div>
+                                        <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-3 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-pink-100 hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                                            {isSubmitting ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            ) : (
+                                                <Send size={16} />
+                                            )}
+                                            <span>{isSubmitting ? 'Creating Ticket...' : 'Create Ticket'}</span>
+                                        </button>
+                                    </form>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
