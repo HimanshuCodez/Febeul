@@ -83,7 +83,7 @@ export default function BlockedPage() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, type: 'spring' }}
-        className="relative max-w-lg w-full bg-white rounded-3xl shadow-2xl p-5 sm:p-7 my-8"
+        className="relative max-w-sm sm:max-w-lg w-full bg-white rounded-3xl shadow-2xl p-5 sm:p-8 my-8"
       >
         <div className="text-center">
           <motion.div
@@ -103,18 +103,18 @@ export default function BlockedPage() {
           </p>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
-          <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Blocked On</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">{formatDate(blockedAt) || '—'}</p>
+        <div className="mt-5 grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
+          <div className="bg-slate-50/80 border border-slate-100 rounded-xl px-1.5 py-2.5 sm:p-3">
+            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Blocked On</p>
+            <p className="text-[11px] sm:text-xs font-bold text-slate-700 mt-1">{formatDate(blockedAt) || '—'}</p>
           </div>
-          <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Last Active</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">{formatDate(activeAt) || '—'}</p>
+          <div className="bg-slate-50/80 border border-slate-100 rounded-xl px-1.5 py-2.5 sm:p-3">
+            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Last Active</p>
+            <p className="text-[11px] sm:text-xs font-bold text-slate-700 mt-1">{formatDate(activeAt) || '—'}</p>
           </div>
-          <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Last Appeal</p>
-            <p className="text-xs font-bold text-slate-700 mt-1">{formatDate(lastAppealAt) || '—'}</p>
+          <div className="bg-slate-50/80 border border-slate-100 rounded-xl px-1.5 py-2.5 sm:p-3">
+            <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Last Appeal</p>
+            <p className="text-[11px] sm:text-xs font-bold text-slate-700 mt-1">{formatDate(lastAppealAt) || '—'}</p>
           </div>
         </div>
 
@@ -151,67 +151,66 @@ export default function BlockedPage() {
               onSubmit={handleSubmit}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="mt-5 space-y-3.5 p-4 sm:p-5 bg-slate-50/60 border border-slate-100 rounded-2xl overflow-hidden"
+              className="mt-5 space-y-4 p-4 sm:p-6 bg-slate-50/60 border border-slate-100 rounded-2xl overflow-hidden"
             >
-              <div className="flex items-start gap-2 text-left bg-white border border-amber-100 rounded-xl p-2.5">
-                <ShieldAlert className="text-amber-500 mt-0.5 shrink-0" size={14} />
+              <div className="flex items-start gap-2 text-left bg-white border border-amber-100 rounded-xl p-3">
+                <ShieldAlert className="text-amber-500 mt-0.5 shrink-0" size={15} />
                 <p className="text-xs text-amber-700 font-semibold">
                   If you believe this is a mistake, submit an appeal below — our support team will review your case.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3.5">
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                    Why should your account be unblocked?
-                  </label>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={3}
-                    placeholder="Explain your situation here..."
-                    required
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-pink-100 focus:border-pink-400 text-sm transition-all resize-none"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Why should your account be unblocked?
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={3}
+                  placeholder="Explain your situation here..."
+                  required
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-pink-100 focus:border-pink-400 text-sm transition-all resize-none"
+                />
+              </div>
 
-                <div className="sm:w-40">
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
                     Phone Number
                   </label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="9876543210"
+                    placeholder="e.g., 9876543210"
                     required
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-pink-100 focus:border-pink-400 text-sm transition-all"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">Attach Photos (Optional, Max 2)</label>
-                <div className="flex flex-wrap items-center gap-2">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative w-14 h-14 border border-slate-200 rounded-xl overflow-hidden shadow-sm shrink-0">
-                      <img src={URL.createObjectURL(image)} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-0.5 right-0.5 bg-rose-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                  {images.length < 2 && (
-                    <label className="flex flex-col items-center justify-center gap-0.5 w-14 h-14 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-pink-300 hover:bg-pink-50/40 transition-colors shrink-0">
-                      <ImagePlus className="text-slate-400" size={16} />
-                      <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
-                    </label>
-                  )}
-                  <span className="text-xs text-slate-400 font-medium">Up to 2 photos</span>
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Photos (Optional, Max 2)</label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {images.map((image, index) => (
+                      <div key={index} className="relative w-11 h-11 border border-slate-200 rounded-xl overflow-hidden shadow-sm shrink-0">
+                        <img src={URL.createObjectURL(image)} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-0 right-0 bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center shadow-sm"
+                        >
+                          <X size={9} />
+                        </button>
+                      </div>
+                    ))}
+                    {images.length < 2 && (
+                      <label className="flex items-center justify-center w-11 h-11 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-pink-300 hover:bg-pink-50/40 transition-colors shrink-0">
+                        <ImagePlus className="text-slate-400" size={17} />
+                        <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
 
