@@ -6,6 +6,12 @@ import { assets } from '../assets/assets'; // Assuming icons like parcel_icon, o
 import { Paperclip, X, Download, CalendarRange, ShieldAlert, LifeBuoy, PhoneCall, Unlock } from 'lucide-react'; // Import Paperclip, X, Download, and CalendarRange
 import { CSVLink } from 'react-csv';
 
+const StatusBadge = ({ status, style }) => (
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold capitalize border ${style.badge}`}>
+    <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} /> {status}
+  </span>
+);
+
 const Tickets = ({ token }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,14 +195,12 @@ const Tickets = ({ token }) => {
     setCurrentPage(1);
   }, [searchTerm, filterStatus, startDate, endDate, activeTab]);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'open': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'closed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const STATUS_STYLES = {
+    open: { badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+    pending: { badge: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+    closed: { badge: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500' },
   };
+  const getStatusStyle = (status) => STATUS_STYLES[status] || { badge: 'bg-gray-50 text-gray-600 border-gray-200', dot: 'bg-gray-400' };
 
   // CSV Export Data
   const csvHeaders = [
@@ -230,20 +234,20 @@ const Tickets = ({ token }) => {
   }));
 
   return (
-    <div className='p-6 bg-gray-50 min-h-screen'>
-      <h2 className='text-3xl font-semibold text-gray-800 mb-6'>Support Tickets</h2>
+    <div className='p-4 sm:p-6 bg-gray-50 min-h-screen'>
+      <h2 className='text-2xl sm:text-3xl font-semibold text-gray-800 mb-5 sm:mb-6'>Support Tickets</h2>
 
       {/* Section Tabs */}
-      <div className='flex gap-2 mb-6 border-b border-gray-200'>
+      <div className='flex gap-1 sm:gap-2 mb-6 border-b border-gray-200 overflow-x-auto'>
         <button
           onClick={() => setActiveTab('tickets')}
-          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'tickets' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          className={`flex items-center gap-2 px-3 sm:px-5 py-2.5 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'tickets' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
         >
           <LifeBuoy size={16} /> Support Tickets
         </button>
         <button
           onClick={() => setActiveTab('appeals')}
-          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'appeals' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          className={`flex items-center gap-2 px-3 sm:px-5 py-2.5 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'appeals' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
         >
           <ShieldAlert size={16} /> Appeals
           {appealsCount > 0 && (
@@ -253,98 +257,107 @@ const Tickets = ({ token }) => {
       </div>
 
       {/* Filter and Search */}
-      <div className='mb-6 flex flex-col md:flex-row justify-between items-center gap-4'>
-        <div className='flex flex-wrap gap-4'>
+      <div className='mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3'>
+        <div className='grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto'>
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'all' ? 'bg-pink-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+            className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${filterStatus === 'all' ? 'bg-pink-500 text-white shadow-sm' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
           >
             All
           </button>
           <button
             onClick={() => setFilterStatus('open')}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'open' ? 'bg-green-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+            className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${filterStatus === 'open' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
           >
             Open
           </button>
           <button
             onClick={() => setFilterStatus('pending')}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'pending' ? 'bg-yellow-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+            className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${filterStatus === 'pending' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
           >
             Pending
           </button>
           <button
             onClick={() => setFilterStatus('closed')}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'closed' ? 'bg-red-500 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+            className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${filterStatus === 'closed' ? 'bg-rose-500 text-white shadow-sm' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
           >
             Closed
           </button>
         </div>
-        
-        <div className='flex flex-wrap gap-4 w-full md:w-auto'>
+
+        <div className='flex flex-col sm:flex-row flex-wrap gap-2 w-full lg:w-auto'>
           <input
             type="text"
             placeholder="Search by customer name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 flex-1 md:w-64"
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 w-full sm:w-56"
           />
-          <div className={`flex items-center gap-2 rounded-md px-3 py-2 border transition-colors ${(startDate || endDate) ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-300'}`}>
-            <CalendarRange size={16} className={(startDate || endDate) ? 'text-pink-500' : 'text-gray-400'} />
+          <div className={`flex items-center justify-between sm:justify-start gap-2 rounded-md px-3 py-2 border transition-colors w-full sm:w-auto ${(startDate || endDate) ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-300'}`}>
+            <CalendarRange size={16} className={`shrink-0 ${(startDate || endDate) ? 'text-pink-500' : 'text-gray-400'}`} />
             <input
               type="date"
               value={startDate}
               max={endDate || undefined}
               onChange={(e) => setStartDate(e.target.value)}
-              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer min-w-0 flex-1 sm:flex-none"
               aria-label="From date"
             />
-            <span className="text-gray-300 text-xs font-bold">→</span>
+            <span className="text-gray-300 text-xs font-bold shrink-0">→</span>
             <input
               type="date"
               value={endDate}
               min={startDate || undefined}
               onChange={(e) => setEndDate(e.target.value)}
-              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer min-w-0 flex-1 sm:flex-none"
               aria-label="To date"
             />
             {(startDate || endDate) && (
-              <button onClick={clearDateFilter} title="Clear date filter" className="text-pink-400 hover:text-red-500 transition-colors">
+              <button onClick={clearDateFilter} title="Clear date filter" className="text-pink-400 hover:text-red-500 transition-colors shrink-0">
                 <X size={14} />
               </button>
             )}
           </div>
-          <button
-            onClick={fetchTickets}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-          >
-            Refresh
-          </button>
-          <CSVLink
-            data={csvData}
-            headers={csvHeaders}
-            filename={`tickets_export_${new Date().toISOString().split('T')[0]}.csv`}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            <Download size={16} />
-            Export All
-          </CSVLink>
+          <div className='flex gap-2'>
+            <button
+              onClick={fetchTickets}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+            >
+              Refresh
+            </button>
+            <CSVLink
+              data={csvData}
+              headers={csvHeaders}
+              filename={`tickets_export_${new Date().toISOString().split('T')[0]}.csv`}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <Download size={16} />
+              <span className='hidden sm:inline'>Export All</span>
+              <span className='sm:hidden'>Export</span>
+            </CSVLink>
+          </div>
         </div>
       </div>
 
       {/* Tickets List */}
-      <div className='bg-white rounded-lg shadow-md p-8 mb-8'>
-        <div className='flex justify-between items-center mb-6'>
-          <h3 className='text-xl font-bold text-gray-700'>{activeTab === 'appeals' ? 'Block Appeals' : 'All Tickets'} ({filteredTickets.length})</h3>
+      <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8 mb-8'>
+        <div className='flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6'>
+          <h3 className='text-lg sm:text-xl font-bold text-gray-700'>{activeTab === 'appeals' ? 'Block Appeals' : 'All Tickets'} ({filteredTickets.length})</h3>
           {totalPages > 1 && (
-            <span className='text-sm text-gray-500 font-medium'>Page {currentPage} of {totalPages}</span>
+            <span className='text-xs sm:text-sm text-gray-500 font-medium'>Page {currentPage} of {totalPages}</span>
           )}
         </div>
         {loading ? (
-          <p>Loading tickets...</p>
+          <p className='text-gray-500 text-sm'>Loading tickets...</p>
+        ) : filteredTickets.length === 0 ? (
+          <div className='text-center py-14 bg-gray-50/60 rounded-xl border border-dashed border-gray-200'>
+            <LifeBuoy className='mx-auto text-gray-300 mb-3' size={32} />
+            <p className='text-sm font-semibold text-gray-500'>No tickets found for the selected filters.</p>
+          </div>
         ) : (
           <>
-            <div className='overflow-x-auto'>
+            {/* Desktop table */}
+            <div className='hidden md:block overflow-x-auto'>
               <table className='min-w-full divide-y divide-gray-200'>
                 <thead className='bg-gray-50'>
                   <tr>
@@ -363,7 +376,7 @@ const Tickets = ({ token }) => {
                   {paginatedTickets.map((ticket) => (
                     <tr key={ticket._id} className='hover:bg-gray-50'>
                       <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{ticket.ticketNumber || ticket._id.slice(-6)}</td>
-                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{ticket.subject}</td>
+                      <td className='px-6 py-4 max-w-[220px] truncate text-sm text-gray-500'>{ticket.subject}</td>
                       <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                         <div className='flex flex-col gap-1'>
                           <span className='font-medium text-gray-900'>{ticket.user?.name || 'N/A'}</span>
@@ -382,9 +395,7 @@ const Tickets = ({ token }) => {
                         </td>
                       )}
                       <td className='px-6 py-4 whitespace-nowrap'>
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ticket.status)} capitalize`}>
-                          {ticket.status}
-                        </span>
+                        <StatusBadge status={ticket.status} style={getStatusStyle(ticket.status)} />
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                         {new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString()}
@@ -392,7 +403,7 @@ const Tickets = ({ token }) => {
                       <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                         <button
                           onClick={() => setSelectedTicket(ticket)}
-                          className='text-indigo-600 hover:text-indigo-900'
+                          className='text-indigo-600 hover:text-indigo-900 font-semibold'
                         >
                           View Details
                         </button>
@@ -403,18 +414,54 @@ const Tickets = ({ token }) => {
               </table>
             </div>
 
+            {/* Mobile card list */}
+            <div className='md:hidden space-y-3'>
+              {paginatedTickets.map((ticket) => (
+                <div
+                  key={ticket._id}
+                  onClick={() => setSelectedTicket(ticket)}
+                  className='border border-gray-200 rounded-xl p-4 space-y-2.5 active:bg-gray-50 cursor-pointer'
+                >
+                  <div className='flex items-center justify-between gap-2'>
+                    <span className='text-xs font-bold text-gray-400'>#{ticket.ticketNumber || ticket._id.slice(-6)}</span>
+                    <StatusBadge status={ticket.status} style={getStatusStyle(ticket.status)} />
+                  </div>
+                  <p className='text-sm font-bold text-gray-800 line-clamp-2'>{ticket.subject}</p>
+                  <div className='flex items-center justify-between gap-2'>
+                    <div className='min-w-0'>
+                      <p className='text-sm font-medium text-gray-700 truncate'>{ticket.user?.name || 'N/A'}</p>
+                      <p className='text-xs text-gray-400 truncate'>{ticket.user?.email}</p>
+                    </div>
+                    <p className='text-xs text-gray-400 font-medium shrink-0'>{new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  {ticket.user?.isLuxeMember && (
+                    <span className='inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit'>
+                      <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
+                      Luxe Member
+                    </span>
+                  )}
+                  {activeTab === 'appeals' && (
+                    <p className='text-xs text-gray-600 font-semibold flex items-center gap-1.5'>
+                      <PhoneCall size={12} className='text-gray-400' /> {ticket.appealDetails?.phone || ticket.contactInfo || 'N/A'}
+                    </p>
+                  )}
+                  <button className='text-indigo-600 text-xs font-bold pt-1'>View Details →</button>
+                </div>
+              ))}
+            </div>
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className='flex justify-center items-center gap-2 mt-8'>
+              <div className='flex justify-center items-center gap-1.5 sm:gap-2 mt-8 flex-wrap'>
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className='px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                  className='px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md text-xs sm:text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
                 >
                   Previous
                 </button>
-                
-                <div className='flex gap-1'>
+
+                <div className='hidden sm:flex gap-1'>
                   {[...Array(totalPages)].map((_, i) => {
                     const pageNum = i + 1;
                     if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
@@ -433,11 +480,12 @@ const Tickets = ({ token }) => {
                     return null;
                   })}
                 </div>
+                <span className='sm:hidden text-xs font-bold text-gray-500 px-2'>{currentPage} / {totalPages}</span>
 
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className='px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+                  className='px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md text-xs sm:text-sm font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
                 >
                   Next
                 </button>
@@ -449,21 +497,26 @@ const Tickets = ({ token }) => {
 
       {/* Ticket Details Modal/Panel */}
       {selectedTicket && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto'>
-            <div className='p-6 border-b flex justify-between items-center'>
-              <h3 className='text-2xl font-bold text-gray-800'>Ticket #{selectedTicket.ticketNumber || selectedTicket._id.slice(-6)} - {selectedTicket.subject}</h3>
-              <button onClick={() => setSelectedTicket(null)} className='text-gray-500 hover:text-gray-800 text-xl font-bold'>&times;</button>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4'>
+          <div className='bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto'>
+            <div className='p-4 sm:p-6 border-b flex justify-between items-start sm:items-center gap-3 sticky top-0 bg-white z-10 rounded-t-2xl'>
+              <div className='min-w-0'>
+                <h3 className='text-base sm:text-2xl font-bold text-gray-800 break-words'>
+                  Ticket #{selectedTicket.ticketNumber || selectedTicket._id.slice(-6)}
+                </h3>
+                <p className='text-xs sm:text-sm text-gray-500 font-medium mt-0.5 line-clamp-2'>{selectedTicket.subject}</p>
+              </div>
+              <button onClick={() => setSelectedTicket(null)} className='shrink-0 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center text-xl font-bold transition-colors'>&times;</button>
             </div>
-            <div className='p-6 space-y-4'>
-              <div className='flex justify-between items-start'>
+            <div className='p-4 sm:p-6 space-y-4'>
+              <div className='flex flex-col sm:flex-row justify-between items-start gap-3'>
                 <div>
                   <p className='text-sm font-medium text-gray-700'>Customer:</p>
                   <p className='text-base text-gray-900 font-bold'>{selectedTicket.user?.name || 'N/A'}</p>
-                  <p className='text-xs text-gray-500'>{selectedTicket.user?.email}</p>
+                  <p className='text-xs text-gray-500 break-all'>{selectedTicket.user?.email}</p>
                 </div>
                 {selectedTicket.user?.isLuxeMember && (
-                  <div className='flex flex-col items-end'>
+                  <div className='flex flex-col items-start sm:items-end'>
                     <span className='px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-sm flex items-center gap-1.5 uppercase tracking-widest'>
                       <span className='w-2 h-2 bg-amber-500 rounded-full animate-ping'></span>
                       Luxe Priority
@@ -472,7 +525,7 @@ const Tickets = ({ token }) => {
                   </div>
                 )}
               </div>
-              <div className='grid grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                 <div>
                   <p className='text-sm font-medium text-gray-700'>Status:</p>
                   <select
@@ -492,7 +545,7 @@ const Tickets = ({ token }) => {
               </div>
               {selectedTicket.type === 'appeal' && (
                 <div className='bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3'>
-                  <div className='flex items-center justify-between'>
+                  <div className='flex flex-wrap items-center justify-between gap-2'>
                     <p className='text-sm font-bold text-amber-800 flex items-center gap-1.5'>
                       <ShieldAlert size={16} /> Block Appeal
                     </p>
@@ -500,26 +553,26 @@ const Tickets = ({ token }) => {
                       {selectedTicket.user?.isBlocked ? 'Currently Blocked' : 'Currently Active'}
                     </span>
                   </div>
-                  <div className='grid grid-cols-3 gap-3 text-center'>
+                  <div className='grid grid-cols-3 gap-2 sm:gap-3 text-center'>
                     <div>
-                      <p className='text-[10px] font-black text-amber-600 uppercase tracking-widest'>Blocked At</p>
-                      <p className='text-xs font-bold text-amber-900 mt-1'>
+                      <p className='text-[9px] sm:text-[10px] font-black text-amber-600 uppercase tracking-widest'>Blocked At</p>
+                      <p className='text-[11px] sm:text-xs font-bold text-amber-900 mt-1'>
                         {selectedTicket.appealDetails?.blockedAt || selectedTicket.user?.blockedAt ? new Date(selectedTicket.appealDetails?.blockedAt || selectedTicket.user?.blockedAt).toLocaleDateString() : '—'}
                       </p>
                     </div>
                     <div>
-                      <p className='text-[10px] font-black text-amber-600 uppercase tracking-widest'>Last Active</p>
-                      <p className='text-xs font-bold text-amber-900 mt-1'>
+                      <p className='text-[9px] sm:text-[10px] font-black text-amber-600 uppercase tracking-widest'>Last Active</p>
+                      <p className='text-[11px] sm:text-xs font-bold text-amber-900 mt-1'>
                         {selectedTicket.appealDetails?.activeAt || selectedTicket.user?.activeAt ? new Date(selectedTicket.appealDetails?.activeAt || selectedTicket.user?.activeAt).toLocaleDateString() : '—'}
                       </p>
                     </div>
                     <div>
-                      <p className='text-[10px] font-black text-amber-600 uppercase tracking-widest'>Appealed On</p>
-                      <p className='text-xs font-bold text-amber-900 mt-1'>{new Date(selectedTicket.createdAt).toLocaleDateString()}</p>
+                      <p className='text-[9px] sm:text-[10px] font-black text-amber-600 uppercase tracking-widest'>Appealed On</p>
+                      <p className='text-[11px] sm:text-xs font-bold text-amber-900 mt-1'>{new Date(selectedTicket.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className='flex items-center gap-1.5 text-sm text-amber-900 font-semibold bg-white/70 rounded-md px-3 py-2 border border-amber-100'>
-                    <PhoneCall size={14} className='text-amber-500' /> {selectedTicket.appealDetails?.phone || selectedTicket.contactInfo || 'Not provided'}
+                    <PhoneCall size={14} className='shrink-0 text-amber-500' /> <span className='truncate'>{selectedTicket.appealDetails?.phone || selectedTicket.contactInfo || 'Not provided'}</span>
                   </div>
                   {selectedTicket.user?.isBlocked && (
                     <button
@@ -552,9 +605,9 @@ const Tickets = ({ token }) => {
                 <p className='text-sm font-medium text-gray-700'>Messages:</p>
                 {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
                   selectedTicket.messages.map((msg, index) => (
-                    <div key={index} className={`p-3 rounded-lg ${msg.sender === 'admin' ? 'bg-gray-100' : 'bg-blue-100 ml-auto'} max-w-[80%] flex flex-col`}>
+                    <div key={index} className={`p-3 rounded-lg ${msg.sender === 'admin' ? 'bg-gray-100' : 'bg-blue-100 ml-auto'} max-w-[90%] sm:max-w-[80%] flex flex-col`}>
                       <span className='font-bold text-xs'>{msg.sender === 'admin' ? 'Admin' : selectedTicket.user?.name || 'Customer'}</span>
-                      <p className='text-sm'>{msg.message}</p>
+                      <p className='text-sm break-words'>{msg.message}</p>
                       {msg.images && msg.images.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2">
                               {msg.images.map((imgSrc, imgIndex) => (
