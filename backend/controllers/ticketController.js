@@ -63,6 +63,91 @@ export const createTicket = async (req, res) => {
     }
 };
 
+// User: Create an account-block appeal ticket
+export const createAppeal = async (req, res) => {
+    const { message, phone } = req.body;
+    const files = req.files;
+
+    try {
+        if (!message || !phone) {
+            return res.status(400).json({ success: false, message: 'Please provide a message and phone number.' });
+        }
+
+        const user = await userModel.findById(req.userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        if (!user.isBlocked) {
+            return res.status(400).json({ success: false, message: 'Your account is not blocked.' });
+        }
+
+        const refTime = Math.max(
+            user.lastAppealAt ? new Date(user.lastAppealAt).getTime() : 0,
+            user.activeAt ? new Date(user.activeAt).getTime() : 0
+        );
+        if (refTime > 0) {
+            const nextEligibleAt = new Date(refTime + 30 * 24 * 60 * 60 * 1000);
+            if (new Date() < nextEligibleAt) {
+                return res.status(400).json({
+                    success: false,
+                    message: `You can appeal again on ${nextEligibleAt.toLocaleDateString()}.`,
+                    nextEligibleAt,
+                });
+            }
+        }
+
+        let ticketNumber;
+        let isUnique = false;
+        while (!isUnique) {
+            ticketNumber = Math.floor(100000 + Math.random() * 900000).toString();
+            const existingTicket = await ticketModel.findOne({ ticketNumber });
+            if (!existingTicket) isUnique = true;
+        }
+
+        const imageUrls = [];
+        if (files && files.length > 0) {
+            for (const file of files) {
+                try {
+                    const result = await cloudinary.uploader.upload(file.path, {
+                        folder: 'AdiLove_Tickets',
+                    });
+                    imageUrls.push(result.secure_url);
+                } catch (uploadError) {
+                    console.error('Error uploading image to Cloudinary:', uploadError);
+                }
+            }
+        }
+
+        const newTicket = new ticketModel({
+            user: req.userId,
+            subject: 'Account Blocked - Appeal',
+            description: message,
+            contactInfo: phone,
+            type: 'appeal',
+            appealDetails: {
+                phone,
+                blockedAt: user.blockedAt,
+                activeAt: user.activeAt,
+            },
+            ticketNumber,
+            messages: [{ sender: 'user', message }],
+            images: imageUrls,
+        });
+
+        await newTicket.save();
+
+        user.lastAppealAt = new Date();
+        await user.save();
+
+        res.json({ success: true, message: 'Appeal submitted successfully.', ticket: newTicket });
+
+    } catch (error) {
+        console.error('Error creating appeal:', error);
+        res.status(500).json({ success: false, message: 'Error submitting appeal.' });
+    }
+};
+
 // User: Get all tickets for the logged-in user
 export const getUserTickets = async (req, res) => {
     try {
@@ -77,7 +162,7 @@ export const getUserTickets = async (req, res) => {
 // Admin: Get all tickets
 export const listTickets = async (req, res) => {
     try {
-        const tickets = await ticketModel.find({}).populate('user', 'name email isLuxeMember').sort({ createdAt: -1 });
+        const tickets = await ticketModel.find({}).populate('user', 'name email isLuxeMember isBlocked blockedAt activeAt').sort({ createdAt: -1 });
         res.json({ success: true, tickets });
     } catch (error) {
         console.error('Error listing tickets:', error);
@@ -229,7 +314,7 @@ export const adminPanelReplyToTicket = async (req, res) => {
 // User & Admin: Get a single ticket by ID
 export const getTicketById = async (req, res) => {
     try {
-        const ticket = await ticketModel.findById(req.params.id).populate('user', 'name email isLuxeMember');
+        const ticket = await ticketModel.findById(req.params.id).populate('user', 'name email isLuxeMember isBlocked blockedAt activeAt');
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Ticket not found' });
         }

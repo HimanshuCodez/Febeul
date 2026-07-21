@@ -3,13 +3,15 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { assets } from '../assets/assets'; // Assuming icons like parcel_icon, order_icon are useful
-import { Paperclip, X, Download, CalendarRange } from 'lucide-react'; // Import Paperclip, X, Download, and CalendarRange
+import { Paperclip, X, Download, CalendarRange, ShieldAlert, LifeBuoy, PhoneCall, Unlock } from 'lucide-react'; // Import Paperclip, X, Download, and CalendarRange
 import { CSVLink } from 'react-csv';
 
 const Tickets = ({ token }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const [activeTab, setActiveTab] = useState('tickets'); // 'tickets', 'appeals'
+  const [isUnblocking, setIsUnblocking] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'open', 'closed', 'pending'
   const [searchTerm, setSearchTerm] = useState(''); // New state for search
   const [startDate, setStartDate] = useState('');
@@ -55,6 +57,26 @@ const Tickets = ({ token }) => {
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Failed to update ticket status.');
+    }
+  };
+
+  const handleUnblockUser = async (userId) => {
+    if (!token || !userId || isUnblocking) return;
+    setIsUnblocking(true);
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/toggle-block`, { userId }, { headers: { token } });
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setSelectedTicket((prev) => prev ? ({ ...prev, user: { ...prev.user, isBlocked: response.data.isBlocked } }) : prev);
+        fetchTickets();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error unblocking user:', error);
+      toast.error('Failed to update block status.');
+    } finally {
+      setIsUnblocking(false);
     }
   };
 
@@ -137,7 +159,10 @@ const Tickets = ({ token }) => {
     fetchTickets();
   }, [token]);
 
+  const appealsCount = tickets.filter((t) => t.type === 'appeal').length;
+
   const filteredTickets = tickets.filter((ticket) => {
+    const matchesTab = activeTab === 'appeals' ? ticket.type === 'appeal' : ticket.type !== 'appeal';
     const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
     const userName = ticket.user?.name?.toLowerCase() || '';
     const userEmail = ticket.user?.email?.toLowerCase() || '';
@@ -148,7 +173,7 @@ const Tickets = ({ token }) => {
     const matchesStart = !startDate || ticketTime >= new Date(startDate).setHours(0, 0, 0, 0);
     const matchesEnd = !endDate || ticketTime <= new Date(endDate).setHours(23, 59, 59, 999);
 
-    return matchesStatus && matchesSearch && matchesStart && matchesEnd;
+    return matchesTab && matchesStatus && matchesSearch && matchesStart && matchesEnd;
   });
 
   const clearDateFilter = () => {
@@ -162,7 +187,7 @@ const Tickets = ({ token }) => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus, startDate, endDate]);
+  }, [searchTerm, filterStatus, startDate, endDate, activeTab]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -176,6 +201,7 @@ const Tickets = ({ token }) => {
   // CSV Export Data
   const csvHeaders = [
     { label: "Ticket ID", key: "ticketNumber" },
+    { label: "Type", key: "type" },
     { label: "Subject", key: "subject" },
     { label: "Customer Name", key: "customerName" },
     { label: "Customer Email", key: "customerEmail" },
@@ -190,6 +216,7 @@ const Tickets = ({ token }) => {
 
   const csvData = filteredTickets.map(ticket => ({
     ticketNumber: ticket.ticketNumber || ticket._id?.slice(-6),
+    type: ticket.type === 'appeal' ? 'Block Appeal' : 'Support',
     subject: ticket.subject,
     customerName: ticket.user?.name || 'N/A',
     customerEmail: ticket.user?.email || 'N/A',
@@ -204,7 +231,26 @@ const Tickets = ({ token }) => {
 
   return (
     <div className='p-6 bg-gray-50 min-h-screen'>
-      <h2 className='text-3xl font-semibold text-gray-800 mb-8'>Support Tickets</h2>
+      <h2 className='text-3xl font-semibold text-gray-800 mb-6'>Support Tickets</h2>
+
+      {/* Section Tabs */}
+      <div className='flex gap-2 mb-6 border-b border-gray-200'>
+        <button
+          onClick={() => setActiveTab('tickets')}
+          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'tickets' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          <LifeBuoy size={16} /> Support Tickets
+        </button>
+        <button
+          onClick={() => setActiveTab('appeals')}
+          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'appeals' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          <ShieldAlert size={16} /> Appeals
+          {appealsCount > 0 && (
+            <span className='bg-red-100 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-full'>{appealsCount}</span>
+          )}
+        </button>
+      </div>
 
       {/* Filter and Search */}
       <div className='mb-6 flex flex-col md:flex-row justify-between items-center gap-4'>
@@ -289,7 +335,7 @@ const Tickets = ({ token }) => {
       {/* Tickets List */}
       <div className='bg-white rounded-lg shadow-md p-8 mb-8'>
         <div className='flex justify-between items-center mb-6'>
-          <h3 className='text-xl font-bold text-gray-700'>All Tickets ({filteredTickets.length})</h3>
+          <h3 className='text-xl font-bold text-gray-700'>{activeTab === 'appeals' ? 'Block Appeals' : 'All Tickets'} ({filteredTickets.length})</h3>
           {totalPages > 1 && (
             <span className='text-sm text-gray-500 font-medium'>Page {currentPage} of {totalPages}</span>
           )}
@@ -305,6 +351,9 @@ const Tickets = ({ token }) => {
                     <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>ID</th>
                     <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Subject</th>
                     <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Customer</th>
+                    {activeTab === 'appeals' && (
+                      <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Phone</th>
+                    )}
                     <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Status</th>
                     <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Last Updated</th>
                     <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
@@ -327,6 +376,11 @@ const Tickets = ({ token }) => {
                           )}
                         </div>
                       </td>
+                      {activeTab === 'appeals' && (
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium'>
+                          {ticket.appealDetails?.phone || ticket.contactInfo || 'N/A'}
+                        </td>
+                      )}
                       <td className='px-6 py-4 whitespace-nowrap'>
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ticket.status)} capitalize`}>
                           {ticket.status}
@@ -436,6 +490,54 @@ const Tickets = ({ token }) => {
                   <p className='mt-2.5 text-sm text-gray-600 font-medium'>{new Date(selectedTicket.createdAt).toLocaleString()}</p>
                 </div>
               </div>
+              {selectedTicket.type === 'appeal' && (
+                <div className='bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3'>
+                  <div className='flex items-center justify-between'>
+                    <p className='text-sm font-bold text-amber-800 flex items-center gap-1.5'>
+                      <ShieldAlert size={16} /> Block Appeal
+                    </p>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${selectedTicket.user?.isBlocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {selectedTicket.user?.isBlocked ? 'Currently Blocked' : 'Currently Active'}
+                    </span>
+                  </div>
+                  <div className='grid grid-cols-3 gap-3 text-center'>
+                    <div>
+                      <p className='text-[10px] font-black text-amber-600 uppercase tracking-widest'>Blocked At</p>
+                      <p className='text-xs font-bold text-amber-900 mt-1'>
+                        {selectedTicket.appealDetails?.blockedAt || selectedTicket.user?.blockedAt ? new Date(selectedTicket.appealDetails?.blockedAt || selectedTicket.user?.blockedAt).toLocaleDateString() : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className='text-[10px] font-black text-amber-600 uppercase tracking-widest'>Last Active</p>
+                      <p className='text-xs font-bold text-amber-900 mt-1'>
+                        {selectedTicket.appealDetails?.activeAt || selectedTicket.user?.activeAt ? new Date(selectedTicket.appealDetails?.activeAt || selectedTicket.user?.activeAt).toLocaleDateString() : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className='text-[10px] font-black text-amber-600 uppercase tracking-widest'>Appealed On</p>
+                      <p className='text-xs font-bold text-amber-900 mt-1'>{new Date(selectedTicket.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-1.5 text-sm text-amber-900 font-semibold bg-white/70 rounded-md px-3 py-2 border border-amber-100'>
+                    <PhoneCall size={14} className='text-amber-500' /> {selectedTicket.appealDetails?.phone || selectedTicket.contactInfo || 'Not provided'}
+                  </div>
+                  {selectedTicket.user?.isBlocked && (
+                    <button
+                      onClick={() => handleUnblockUser(selectedTicket.user._id)}
+                      disabled={isUnblocking}
+                      className='w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-2.5 rounded-md font-bold text-sm hover:bg-emerald-700 transition-colors disabled:bg-emerald-300 disabled:cursor-not-allowed'
+                    >
+                      {isUnblocking ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white' />
+                      ) : (
+                        <Unlock size={16} />
+                      )}
+                      {isUnblocking ? 'Unblocking...' : 'Unblock User'}
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div>
                 <p className='text-sm font-medium text-gray-700 border-b pb-1 mb-2'>Contact Info:</p>
                 <div className='bg-gray-50 p-2 rounded-lg border border-gray-100 text-gray-800 text-sm mb-4'>

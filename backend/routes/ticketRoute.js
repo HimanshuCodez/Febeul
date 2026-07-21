@@ -1,5 +1,5 @@
 import express from 'express';
-import { createTicket, getUserTickets, listTickets, updateStatus, userReplyToTicket, adminPanelReplyToTicket, getTicketById } from '../controllers/ticketController.js';
+import { createTicket, getUserTickets, listTickets, updateStatus, userReplyToTicket, adminPanelReplyToTicket, getTicketById, createAppeal } from '../controllers/ticketController.js';
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js'; // Import adminAuth middleware
 import upload from '../middleware/multer.js'; // Import multer middleware
@@ -13,6 +13,7 @@ ticketRouter.post('/admin-reply', adminAuth, upload.array('images', 2), adminPan
 
 // User routes
 ticketRouter.post('/create', auth, upload.array('images', 2), createTicket);
+ticketRouter.post('/appeal', auth, upload.array('images', 2), createAppeal);
 ticketRouter.get('/user', auth, getUserTickets);
 ticketRouter.post('/reply', auth, upload.array('images', 2), userReplyToTicket); // User's own reply
 ticketRouter.get('/:id', auth, getTicketById);

@@ -572,7 +572,12 @@ const toggleBlockUser = async (req, res) => {
         }
 
         user.isBlocked = !user.isBlocked;
-        user.blockedAt = user.isBlocked ? new Date() : null;
+        if (user.isBlocked) {
+            user.blockedAt = new Date();
+        } else {
+            user.blockedAt = null;
+            user.activeAt = new Date();
+        }
         await user.save();
 
         res.json({ success: true, message: user.isBlocked ? "User blocked" : "User unblocked", isBlocked: user.isBlocked });

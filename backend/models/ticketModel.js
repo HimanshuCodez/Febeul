@@ -16,6 +16,12 @@ const ticketSchema = new mongoose.Schema({
     ticketNumber: { type: String, required: true, unique: true }, // Added numeric ticket ID
     messages: [messageSchema],
     images: [{ type: String }], // Array to store Cloudinary image URLs
+    type: { type: String, enum: ['support', 'appeal'], default: 'support' },
+    appealDetails: {
+        phone: { type: String },
+        blockedAt: { type: Date },
+        activeAt: { type: Date },
+    },
 }, { timestamps: true });
 
 export const ticketModel = mongoose.models.ticket || mongoose.model('ticket', ticketSchema);
