@@ -19,6 +19,59 @@ const useAuthStore = create((set, get) => ({
     expectedDeliveryDays: "5 to 7 Days"
   },
 
+  // Seeded with the initial zone/state map so EDD + serviceability checks
+  // work even before an admin has saved anything from Delivery Control.
+  deliveryZones: {
+    zones: [
+      { key: 'local', name: 'Local Zone', priority: 'Local', minDays: 1, maxDays: 2 },
+      { key: 'north', name: 'North Zone', priority: 'Zonal', minDays: 2, maxDays: 4 },
+      { key: 'west', name: 'West Zone', priority: 'Zonal', minDays: 3, maxDays: 5 },
+      { key: 'central', name: 'Central Zone', priority: 'Zonal', minDays: 3, maxDays: 5 },
+      { key: 'south', name: 'South Zone', priority: 'National', minDays: 4, maxDays: 6 },
+      { key: 'east', name: 'East Zone', priority: 'National', minDays: 3, maxDays: 6 },
+      { key: 'northeast', name: 'North East Zone', priority: 'Remote', minDays: 5, maxDays: 9 },
+      { key: 'special', name: 'Special / Remote Zone', priority: 'Remote', minDays: 5, maxDays: 10 },
+    ],
+    states: [
+      { state: 'Delhi (NCT)', isUT: true, zoneKey: 'local', minDays: 1, maxDays: 2, priority: 'Local', active: true },
+      { state: 'Haryana', isUT: false, zoneKey: 'north', minDays: 2, maxDays: 3, priority: 'Zonal', active: true },
+      { state: 'Punjab', isUT: false, zoneKey: 'north', minDays: 2, maxDays: 4, priority: 'Zonal', active: true },
+      { state: 'Chandigarh', isUT: true, zoneKey: 'north', minDays: 2, maxDays: 3, priority: 'Zonal', active: true },
+      { state: 'Uttar Pradesh', isUT: false, zoneKey: 'north', minDays: 2, maxDays: 4, priority: 'Zonal', active: true },
+      { state: 'Uttarakhand', isUT: false, zoneKey: 'north', minDays: 2, maxDays: 4, priority: 'Zonal', active: true },
+      { state: 'Rajasthan', isUT: false, zoneKey: 'north', minDays: 2, maxDays: 4, priority: 'Zonal', active: true },
+      { state: 'Himachal Pradesh', isUT: false, zoneKey: 'north', minDays: 3, maxDays: 5, priority: 'Zonal', active: true },
+      { state: 'Gujarat', isUT: false, zoneKey: 'west', minDays: 3, maxDays: 5, priority: 'Zonal', active: true },
+      { state: 'Maharashtra', isUT: false, zoneKey: 'west', minDays: 3, maxDays: 5, priority: 'Zonal', active: true },
+      { state: 'Goa', isUT: false, zoneKey: 'west', minDays: 4, maxDays: 6, priority: 'Zonal', active: true },
+      { state: 'Dadra & Nagar Haveli and Daman & Diu', isUT: true, zoneKey: 'west', minDays: 4, maxDays: 6, priority: 'Zonal', active: true },
+      { state: 'Madhya Pradesh', isUT: false, zoneKey: 'central', minDays: 3, maxDays: 5, priority: 'Zonal', active: true },
+      { state: 'Chhattisgarh', isUT: false, zoneKey: 'central', minDays: 3, maxDays: 5, priority: 'Zonal', active: true },
+      { state: 'Karnataka', isUT: false, zoneKey: 'south', minDays: 4, maxDays: 6, priority: 'National', active: true },
+      { state: 'Telangana', isUT: false, zoneKey: 'south', minDays: 4, maxDays: 6, priority: 'National', active: true },
+      { state: 'Andhra Pradesh', isUT: false, zoneKey: 'south', minDays: 4, maxDays: 6, priority: 'National', active: true },
+      { state: 'Tamil Nadu', isUT: false, zoneKey: 'south', minDays: 4, maxDays: 6, priority: 'National', active: true },
+      { state: 'Kerala', isUT: false, zoneKey: 'south', minDays: 5, maxDays: 7, priority: 'National', active: true },
+      { state: 'Puducherry', isUT: true, zoneKey: 'south', minDays: 5, maxDays: 7, priority: 'National', active: true },
+      { state: 'West Bengal', isUT: false, zoneKey: 'east', minDays: 4, maxDays: 6, priority: 'National', active: true },
+      { state: 'Odisha', isUT: false, zoneKey: 'east', minDays: 4, maxDays: 6, priority: 'National', active: true },
+      { state: 'Bihar', isUT: false, zoneKey: 'east', minDays: 3, maxDays: 5, priority: 'National', active: true },
+      { state: 'Jharkhand', isUT: false, zoneKey: 'east', minDays: 3, maxDays: 5, priority: 'National', active: true },
+      { state: 'Assam', isUT: false, zoneKey: 'northeast', minDays: 5, maxDays: 7, priority: 'Remote', active: true },
+      { state: 'Sikkim', isUT: false, zoneKey: 'northeast', minDays: 6, maxDays: 8, priority: 'Remote', active: true },
+      { state: 'Tripura', isUT: false, zoneKey: 'northeast', minDays: 6, maxDays: 9, priority: 'Remote', active: true },
+      { state: 'Meghalaya', isUT: false, zoneKey: 'northeast', minDays: 6, maxDays: 9, priority: 'Remote', active: true },
+      { state: 'Manipur', isUT: false, zoneKey: 'northeast', minDays: 6, maxDays: 9, priority: 'Remote', active: true },
+      { state: 'Mizoram', isUT: false, zoneKey: 'northeast', minDays: 6, maxDays: 9, priority: 'Remote', active: true },
+      { state: 'Nagaland', isUT: false, zoneKey: 'northeast', minDays: 6, maxDays: 9, priority: 'Remote', active: true },
+      { state: 'Arunachal Pradesh', isUT: false, zoneKey: 'northeast', minDays: 7, maxDays: 10, priority: 'Remote', active: true },
+      { state: 'Jammu & Kashmir', isUT: true, zoneKey: 'special', minDays: 5, maxDays: 8, priority: 'Remote', active: true },
+      { state: 'Ladakh', isUT: true, zoneKey: 'special', minDays: 7, maxDays: 10, priority: 'Remote', active: true },
+      { state: 'Andaman & Nicobar Islands', isUT: true, zoneKey: 'special', minDays: 8, maxDays: 10, priority: 'Remote', active: true },
+      { state: 'Lakshadweep', isUT: true, zoneKey: 'special', minDays: 8, maxDays: 10, priority: 'Remote', active: true },
+    ],
+  },
+
   fetchSiteSettings: async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/siteSettings`);
@@ -28,6 +81,31 @@ const useAuthStore = create((set, get) => ({
     } catch (error) {
       console.error("Failed to fetch site settings", error);
     }
+  },
+
+  fetchDeliveryZones: async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/deliveryZones`);
+      if (response.data.success && response.data.content && response.data.content.states?.length) {
+        set({ deliveryZones: response.data.content });
+      }
+    } catch (error) {
+      console.error("Failed to fetch delivery zones", error);
+    }
+  },
+
+  // Looks up serviceability + delivery day range for a saved address's state.
+  // Returns null if the state isn't found in the zone map at all.
+  getStateServiceability: (stateName) => {
+    if (!stateName) return null;
+    const normalize = (s) => s.replace(/\(.*?\)/g, '').replace(/[^a-zA-Z\s]/g, '').trim().toLowerCase();
+    const target = normalize(stateName);
+    if (!target) return null;
+    const { states } = get().deliveryZones;
+    return (states || []).find((s) => {
+      const candidate = normalize(s.state);
+      return candidate === target || candidate.includes(target) || target.includes(candidate);
+    }) || null;
   },
 
   fetchWishlistCount: async () => {
@@ -210,5 +288,6 @@ if (localStorage.getItem('token')) {
   useAuthStore.getState().getProfile();
 }
 useAuthStore.getState().fetchSiteSettings();
+useAuthStore.getState().fetchDeliveryZones();
 
 export default useAuthStore;

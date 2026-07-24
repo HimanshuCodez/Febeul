@@ -5,7 +5,7 @@ import {
   ShoppingBag, RotateCcw, Gift, ShieldCheck, Ticket,
   MessageSquare, Star, FileText, Image, Mail, Settings,
   Wrench, Sliders, Zap, Type, ChevronDown, ChevronRight,
-  Menu, X
+  Menu, X, Truck
 } from 'lucide-react'
 
 const SidebarItem = ({ to, icon: Icon, label, active, onClick }) => {
@@ -48,14 +48,14 @@ const Sidebar = ({ role, permissions = [] }) => {
   );
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(
-    location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography'
+    location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography' || location.pathname === '/delivery-control'
   );
 
   useEffect(() => {
     if (location.pathname === '/add' || location.pathname === '/list' || location.pathname === '/luxelist' || location.pathname.includes('/update')) {
       setIsProductListingOpen(true);
     }
-    if (location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography') {
+    if (location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography' || location.pathname === '/delivery-control') {
       setIsSettingsOpen(true);
     }
   }, [location.pathname]);
@@ -72,7 +72,7 @@ const Sidebar = ({ role, permissions = [] }) => {
   };
 
   const showProductListing = isAllowed('/add') || isAllowed('/list') || isAllowed('/luxelist');
-  const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize') || isAllowed('/typography');
+  const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize') || isAllowed('/typography') || isAllowed('/delivery-control');
 
   const navContent = (
     <div className='flex flex-col gap-1'>
@@ -191,6 +191,9 @@ const Sidebar = ({ role, permissions = [] }) => {
                         )}
                         {isAllowed('/configurations') && (
                             <SidebarItem to="/configurations" icon={Sliders} label="Config" />
+                        )}
+                        {isAllowed('/delivery-control') && (
+                            <SidebarItem to="/delivery-control" icon={Truck} label="Delivery Zones" />
                         )}
                         {isAllowed('/image-optimize') && (
                             <SidebarItem to="/image-optimize" icon={Zap} label="Image Opt" />

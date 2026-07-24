@@ -20,6 +20,7 @@ import NewUserMail from './pages/NewUserMail' // Import the NewUserMail componen
 import RefundRequests from './pages/RefundRequests' // Import the RefundRequests component
 import MaintenanceMode from './pages/Settings/MaintenanceMode'
 import Configurations from './pages/Settings/Configurations'
+import DeliveryControl from './pages/DeliveryControl'
 import ImageOptimize from './pages/Settings/ImageOptimize'
 import TypographySettings from './pages/Settings/TypographySettings'
 import Login from './components/Login'
@@ -94,6 +95,7 @@ const App = () => {
                 {isAllowed('/send-mail') && <Route path='/send-mail' element={<NewUserMail token={token} />} />}
                 {isAllowed('/maintenance') && <Route path='/maintenance' element={<MaintenanceMode token={token} />} />}
                 {isAllowed('/configurations') && <Route path='/configurations' element={<Configurations token={token} />} />}
+                {isAllowed('/delivery-control') && <Route path='/delivery-control' element={<DeliveryControl token={token} />} />}
                 {isAllowed('/image-optimize') && <Route path='/image-optimize' element={<ImageOptimize token={token} />} />}
                 {isAllowed('/typography') && <Route path='/typography' element={<TypographySettings token={token} />} />}
                 

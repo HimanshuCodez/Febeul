@@ -91,7 +91,7 @@ const OrderPlacedOverlay = () => (
 );
 
 export default function CheckoutPage() {
-  const { user, token, isAuthenticated, getProfile, siteSettings, fetchSiteSettings } = useAuthStore();
+  const { user, token, isAuthenticated, getProfile, siteSettings, fetchSiteSettings, getStateServiceability } = useAuthStore();
   const navigate = useNavigate();
 
   const [cartItems, setCartItems] = useState([]);
@@ -164,6 +164,11 @@ export default function CheckoutPage() {
             setAddressCity(District);
             setAddressState(State);
             toast.success(`Detected: ${District}, ${State}`);
+
+            const zoneInfo = getStateServiceability(State);
+            if (zoneInfo && zoneInfo.active === false) {
+              toast.error('This pincode is not currently serviceable.');
+            }
           } else {
             toast.error("Invalid Pincode or no data found.");
           }
@@ -287,7 +292,14 @@ export default function CheckoutPage() {
 
   const handleAddAddress = async (e) => {
     e.preventDefault();
-    const addressData = { 
+
+    const zoneInfo = getStateServiceability(addressState);
+    if (zoneInfo && zoneInfo.active === false) {
+      toast.error('This pincode is not currently serviceable.');
+      return;
+    }
+
+    const addressData = {
         name: addressName, 
         address: addressLine, 
         locality: addressLocality,
@@ -438,6 +450,13 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (isPlacingOrder) return;
+
+    const zoneInfo = getStateServiceability(addresses[selectedAddress]?.state);
+    if (zoneInfo && zoneInfo.active === false) {
+      toast.error('This pincode is not currently serviceable.');
+      return;
+    }
+
     setIsPlacingOrder(true);
     try {
       if (selectedPayment === 'cod') {
@@ -806,7 +825,14 @@ export default function CheckoutPage() {
                       key={addr._id}
                       variants={{hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 }}}
                       whileHover={{ scale: 1.02 }}
-                      onClick={() => setSelectedAddress(idx)}
+                      onClick={() => {
+                        const zoneInfo = getStateServiceability(addr.state);
+                        if (zoneInfo && zoneInfo.active === false) {
+                          toast.error('This pincode is not currently serviceable.');
+                          return;
+                        }
+                        setSelectedAddress(idx);
+                      }}
                       className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                         selectedAddress === idx 
                           ? 'border-[#e8767a] bg-[#fff5f5]' 
@@ -851,7 +877,14 @@ export default function CheckoutPage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setStep(2)}
+                    onClick={() => {
+                      const zoneInfo = getStateServiceability(addresses[selectedAddress]?.state);
+                      if (zoneInfo && zoneInfo.active === false) {
+                        toast.error('This pincode is not currently serviceable.');
+                        return;
+                      }
+                      setStep(2);
+                    }}
                     className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4"
                   >
                     Use this address

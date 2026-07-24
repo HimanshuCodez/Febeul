@@ -142,7 +142,7 @@ const ProductDetailPage = () => {
   const colorParam = searchParams.get('color');
   const couponParam = searchParams.get('coupon');
   const navigate = useNavigate();
-  const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount } = useAuthStore();
+  const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount, getStateServiceability, siteSettings: globalSiteSettings } = useAuthStore();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -487,13 +487,26 @@ const ProductDetailPage = () => {
     ? allSpecifications
     : allSpecifications.slice(0, 6);
 
+  // Zone info for the customer's currently selected shipping address, if any.
+  const addressZoneInfo = selectedAddress?.state ? getStateServiceability(selectedAddress.state) : null;
+
   const getProductEDD = () => {
+    if (addressZoneInfo && addressZoneInfo.active === false) {
+      return null; // signals "not serviceable" to the caller
+    }
+
+    // No selected address (or its state isn't in the zone map) — fall back to
+    // the generic delivery text configured in Settings > Configurations.
+    if (!addressZoneInfo) {
+      return globalSiteSettings?.expectedDeliveryDays || '5 to 7 Days';
+    }
+
     const today = new Date();
     const minDate = new Date(today);
-    minDate.setDate(today.getDate() + 5);
+    minDate.setDate(today.getDate() + addressZoneInfo.minDays);
     const maxDate = new Date(today);
-    maxDate.setDate(today.getDate() + 7);
-    
+    maxDate.setDate(today.getDate() + addressZoneInfo.maxDays);
+
     const options = { day: 'numeric', month: 'short' };
     const minStr = minDate.toLocaleDateString('en-IN', options);
     const maxStr = maxDate.toLocaleDateString('en-IN', { ...options, year: 'numeric' });
@@ -687,7 +700,11 @@ const ProductDetailPage = () => {
                         </div>
                         <div>
                            <p className="font-black text-black uppercase tracking-widest text-xs">Express Shipping</p>
-                           <p className="text-sm">Estimated arrival: {getProductEDD()}</p>
+                           {getProductEDD() ? (
+                             <p className="text-sm">Estimated arrival: {getProductEDD()}</p>
+                           ) : (
+                             <p className="text-sm text-red-500 font-semibold">Not deliverable to your selected address</p>
+                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-4 group">

@@ -38,7 +38,7 @@ const countries = [
 const Address = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { token, user } = useAuthStore(); // Get user from auth store
+    const { token, user, getStateServiceability } = useAuthStore(); // Get user from auth store
     
     const [address, setAddress] = useState({
         name: '',
@@ -104,6 +104,11 @@ const Address = () => {
                             state: State
                         }));
                         toast.success(`Detected: ${District}, ${State}`);
+
+                        const zoneInfo = getStateServiceability(State);
+                        if (zoneInfo && zoneInfo.active === false) {
+                            toast.error('This pincode is not currently serviceable.');
+                        }
                     }
                 } catch (error) {
                     console.error("Pincode API error:", error);
@@ -134,6 +139,13 @@ const Address = () => {
 
     const handleSave = async (e) => {
         e.preventDefault();
+
+        const zoneInfo = getStateServiceability(address.state);
+        if (zoneInfo && zoneInfo.active === false) {
+            toast.error('This pincode is not currently serviceable.');
+            return;
+        }
+
         setIsSaving(true);
         try {
             if (!user?._id) {
