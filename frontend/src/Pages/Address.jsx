@@ -38,7 +38,7 @@ const countries = [
 const Address = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { token, user, getStateServiceability } = useAuthStore(); // Get user from auth store
+    const { token, user, getStateServiceability, getPincodeServiceability } = useAuthStore(); // Get user from auth store
     
     const [address, setAddress] = useState({
         name: '',
@@ -106,8 +106,11 @@ const Address = () => {
                         toast.success(`Detected: ${District}, ${State}`);
 
                         const zoneInfo = getStateServiceability(State);
-                        if (zoneInfo && zoneInfo.active === false) {
+                        const pinInfo = getPincodeServiceability(address.zip);
+                        if ((zoneInfo && zoneInfo.active === false) || (pinInfo && pinInfo.blockPincode)) {
                             toast.error('This pincode is not currently serviceable.');
+                        } else if (pinInfo && pinInfo.blockCod) {
+                            toast('Cash on Delivery is not available in your area.', { icon: '⚠️' });
                         }
                     }
                 } catch (error) {
@@ -141,7 +144,8 @@ const Address = () => {
         e.preventDefault();
 
         const zoneInfo = getStateServiceability(address.state);
-        if (zoneInfo && zoneInfo.active === false) {
+        const pinInfo = getPincodeServiceability(address.zip);
+        if ((zoneInfo && zoneInfo.active === false) || (pinInfo && pinInfo.blockPincode)) {
             toast.error('This pincode is not currently serviceable.');
             return;
         }

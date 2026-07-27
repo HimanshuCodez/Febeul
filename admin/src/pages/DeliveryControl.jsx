@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
-import { Truck, MapPin, Save, RefreshCcw, Search, Info } from 'lucide-react';
+import { Truck, MapPin, Save, RefreshCcw, Search, Info, Ban, Trash2 } from 'lucide-react';
 
 const DEFAULT_ZONES = [
     { key: 'local', name: 'Local Zone', priority: 'Local', minDays: 1, maxDays: 2 },
@@ -78,8 +78,18 @@ const DeliveryControl = ({ token }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
+    // Pincode-level overrides: block a pincode entirely, or just block COD for it
+    const [pincodeEntries, setPincodeEntries] = useState([]);
+    const [pincodeInput, setPincodeInput] = useState('');
+    const [pincodeFetchedInfo, setPincodeFetchedInfo] = useState(null);
+    const [isPincodeFetching, setIsPincodeFetching] = useState(false);
+    const [newBlockPincode, setNewBlockPincode] = useState(false);
+    const [newBlockCod, setNewBlockCod] = useState(true);
+    const [isSavingPincodes, setIsSavingPincodes] = useState(false);
+
     useEffect(() => {
         fetchSettings();
+        fetchPincodeBlocklist();
     }, []);
 
     const fetchSettings = async () => {
@@ -118,6 +128,100 @@ const DeliveryControl = ({ token }) => {
             toast.error('An error occurred while saving');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const fetchPincodeBlocklist = async () => {
+        try {
+            const response = await axios.get(`${backendUrl}/api/cms/pincodeBlocklist`);
+            if (response.data.success && response.data.content?.entries) {
+                setPincodeEntries(response.data.content.entries);
+            }
+        } catch (error) {
+            console.error('Error fetching pincode blocklist:', error);
+        }
+    };
+
+    const handleFetchPincodeArea = async () => {
+        const zip = pincodeInput.trim();
+        if (!/^\d{6}$/.test(zip)) {
+            toast.error('Enter a valid 6-digit pincode');
+            return;
+        }
+        setIsPincodeFetching(true);
+        setPincodeFetchedInfo(null);
+        try {
+            const response = await axios.get(`${backendUrl}/api/user/pincode-check/${zip}`);
+            const data = response.data?.[0];
+            if (data?.Status === 'Success' && data.PostOffice?.length > 0) {
+                const { District, State } = data.PostOffice[0];
+                setPincodeFetchedInfo({ district: District, state: State });
+            } else {
+                toast.error('Invalid pincode or no data found');
+            }
+        } catch (error) {
+            console.error('Error fetching pincode area:', error);
+            toast.error('Failed to fetch pincode area');
+        } finally {
+            setIsPincodeFetching(false);
+        }
+    };
+
+    const handleAddPincodeEntry = () => {
+        const zip = pincodeInput.trim();
+        if (!pincodeFetchedInfo) {
+            toast.error('Fetch the area for this pincode first');
+            return;
+        }
+        setPincodeEntries((prev) => {
+            const existingIndex = prev.findIndex((e) => e.pincode === zip);
+            const entry = {
+                pincode: zip,
+                district: pincodeFetchedInfo.district,
+                state: pincodeFetchedInfo.state,
+                blockPincode: newBlockPincode,
+                blockCod: newBlockCod,
+            };
+            if (existingIndex !== -1) {
+                const next = [...prev];
+                next[existingIndex] = entry;
+                return next;
+            }
+            return [...prev, entry];
+        });
+        toast.success(`Override saved locally for ${zip} — click "Save Pincode Rules" to publish`);
+        setPincodeInput('');
+        setPincodeFetchedInfo(null);
+        setNewBlockPincode(false);
+        setNewBlockCod(true);
+    };
+
+    const updatePincodeEntry = (pincode, field, value) => {
+        setPincodeEntries((prev) => prev.map((e) => (e.pincode === pincode ? { ...e, [field]: value } : e)));
+    };
+
+    const removePincodeEntry = (pincode) => {
+        setPincodeEntries((prev) => prev.filter((e) => e.pincode !== pincode));
+    };
+
+    const handleSavePincodes = async () => {
+        setIsSavingPincodes(true);
+        try {
+            const response = await axios.post(`${backendUrl}/api/cms`, {
+                name: 'pincodeBlocklist',
+                content: { entries: pincodeEntries }
+            }, { headers: { token } });
+
+            if (response.data.success) {
+                toast.success('Pincode rules updated successfully');
+            } else {
+                toast.error('Failed to update pincode rules');
+            }
+        } catch (error) {
+            console.error('Error updating pincode rules:', error);
+            toast.error('An error occurred while saving');
+        } finally {
+            setIsSavingPincodes(false);
         }
     };
 
@@ -356,6 +460,107 @@ const DeliveryControl = ({ token }) => {
                 </div>
             </div>
 
+            {/* Pincode-level overrides */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                        <Ban className="text-rose-500" size={20} />
+                        <h3 className="font-bold text-gray-800">Pincode-level overrides</h3>
+                    </div>
+                    <button
+                        onClick={handleSavePincodes}
+                        disabled={isSavingPincodes}
+                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-black text-white hover:bg-gray-800 transition-all font-medium text-sm disabled:bg-gray-400"
+                    >
+                        {isSavingPincodes ? <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full"></div> : <Save size={16} />}
+                        Save Pincode Rules
+                    </button>
+                </div>
+                <p className="text-xs text-gray-400 mb-6">Block a specific pincode entirely, or just disable Cash on Delivery for it</p>
+
+                <div className="rounded-xl border border-gray-200 p-4 flex flex-wrap items-end gap-4">
+                    <div className="space-y-1">
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase">Pincode</label>
+                        <input
+                            type="text"
+                            maxLength={6}
+                            placeholder="e.g. 110042"
+                            value={pincodeInput}
+                            onChange={(e) => { setPincodeInput(e.target.value.replace(/\D/g, '')); setPincodeFetchedInfo(null); }}
+                            className="w-36 px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-rose-500 outline-none text-sm"
+                        />
+                    </div>
+                    <button
+                        onClick={handleFetchPincodeArea}
+                        disabled={isPincodeFetching}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-all font-medium text-sm text-gray-700 disabled:opacity-50"
+                    >
+                        {isPincodeFetching ? <div className="animate-spin h-4 w-4 border-b-2 border-gray-500 rounded-full"></div> : <Search size={16} />}
+                        Fetch Area
+                    </button>
+
+                    {pincodeFetchedInfo && (
+                        <div className="text-sm text-gray-600">
+                            <span className="font-semibold text-gray-800">{pincodeFetchedInfo.district}</span>, {pincodeFetchedInfo.state}
+                        </div>
+                    )}
+
+                    {pincodeFetchedInfo && (
+                        <>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-gray-500">Block Pincode</span>
+                                <Toggle active={newBlockPincode} onChange={() => setNewBlockPincode((v) => !v)} />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-gray-500">Block COD</span>
+                                <Toggle active={newBlockCod} onChange={() => setNewBlockCod((v) => !v)} />
+                            </div>
+                            <button
+                                onClick={handleAddPincodeEntry}
+                                className="px-5 py-2 rounded-lg bg-rose-500 text-white hover:bg-rose-600 transition-all font-medium text-sm"
+                            >
+                                Add / Update Rule
+                            </button>
+                        </>
+                    )}
+                </div>
+
+                {pincodeEntries.length > 0 && (
+                    <div className="overflow-x-auto mt-6">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                                    <th className="py-3 pr-3">Pincode</th>
+                                    <th className="py-3 px-3">Area</th>
+                                    <th className="py-3 px-3">Block Pincode</th>
+                                    <th className="py-3 px-3">Block COD</th>
+                                    <th className="py-3 px-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {pincodeEntries.map((entry) => (
+                                    <tr key={entry.pincode}>
+                                        <td className="py-3 pr-3 font-semibold text-gray-800">{entry.pincode}</td>
+                                        <td className="py-3 px-3 text-gray-600">{entry.district}, {entry.state}</td>
+                                        <td className="py-3 px-3">
+                                            <Toggle active={entry.blockPincode} onChange={() => updatePincodeEntry(entry.pincode, 'blockPincode', !entry.blockPincode)} />
+                                        </td>
+                                        <td className="py-3 px-3">
+                                            <Toggle active={entry.blockCod} onChange={() => updatePincodeEntry(entry.pincode, 'blockCod', !entry.blockCod)} />
+                                        </td>
+                                        <td className="py-3 px-3">
+                                            <button onClick={() => removePincodeEntry(entry.pincode)} className="text-gray-400 hover:text-rose-600 transition-colors">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
             <div className="p-6 rounded-2xl bg-amber-50 border border-amber-100 flex gap-4">
                 <div className="p-2 h-fit bg-amber-100 rounded-lg text-amber-600">
                     <Info size={20} />
@@ -367,6 +572,9 @@ const DeliveryControl = ({ token }) => {
                         customers will see a warning toast when adding or selecting an address in that state on checkout, the
                         address page, and the delivery address modal. The delivery day range shown here also drives the
                         "Estimated arrival" date on product pages once a customer has a shipping address selected.
+                        Pincode-level overrides above take precedence over the state table: "Block Pincode" makes that exact
+                        pincode unserviceable regardless of its state, and "Block COD" only hides the Cash on Delivery option
+                        for orders shipping to that pincode.
                     </p>
                 </div>
             </div>

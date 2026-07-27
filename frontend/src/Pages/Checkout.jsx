@@ -91,7 +91,7 @@ const OrderPlacedOverlay = () => (
 );
 
 export default function CheckoutPage() {
-  const { user, token, isAuthenticated, getProfile, siteSettings, fetchSiteSettings, getStateServiceability } = useAuthStore();
+  const { user, token, isAuthenticated, getProfile, siteSettings, fetchSiteSettings, getStateServiceability, getPincodeServiceability } = useAuthStore();
   const navigate = useNavigate();
 
   const [cartItems, setCartItems] = useState([]);
@@ -166,8 +166,11 @@ export default function CheckoutPage() {
             toast.success(`Detected: ${District}, ${State}`);
 
             const zoneInfo = getStateServiceability(State);
-            if (zoneInfo && zoneInfo.active === false) {
+            const pinInfo = getPincodeServiceability(addressZip);
+            if ((zoneInfo && zoneInfo.active === false) || (pinInfo && pinInfo.blockPincode)) {
               toast.error('This pincode is not currently serviceable.');
+            } else if (pinInfo && pinInfo.blockCod) {
+              toast('Cash on Delivery is not available in your area.', { icon: '⚠️' });
             }
           } else {
             toast.error("Invalid Pincode or no data found.");
@@ -249,6 +252,23 @@ export default function CheckoutPage() {
     }
   }, [selectedPayment, appliedCoupon]);
 
+  // Combines the state-level "Active" toggle with pincode-level overrides
+  // from Delivery Control to decide if an address can be delivered to at all.
+  const isAddressServiceable = (addr) => {
+    if (!addr) return true;
+    const zoneInfo = getStateServiceability(addr.state);
+    if (zoneInfo && zoneInfo.active === false) return false;
+    const pinInfo = getPincodeServiceability(addr.zip);
+    if (pinInfo && pinInfo.blockPincode) return false;
+    return true;
+  };
+
+  const isCodBlockedForAddress = (addr) => {
+    if (!addr) return false;
+    const pinInfo = getPincodeServiceability(addr.zip);
+    return !!(pinInfo && pinInfo.blockCod);
+  };
+
   const handleCountrySelect = (c) => {
     setAddressCountry(c);
     setCountrySearch("");
@@ -293,8 +313,7 @@ export default function CheckoutPage() {
   const handleAddAddress = async (e) => {
     e.preventDefault();
 
-    const zoneInfo = getStateServiceability(addressState);
-    if (zoneInfo && zoneInfo.active === false) {
+    if (!isAddressServiceable({ state: addressState, zip: addressZip })) {
       toast.error('This pincode is not currently serviceable.');
       return;
     }
@@ -381,6 +400,14 @@ export default function CheckoutPage() {
     const igst = totalGst;
 
     const addresses = user?.addresses || [];
+    const codBlockedForSelectedAddress = isCodBlockedForAddress(selectedAddr);
+
+  useEffect(() => {
+    if (selectedPayment === 'cod' && isCodBlockedForAddress(addresses[selectedAddress])) {
+      toast.error('Cash on Delivery is not available in your area.');
+      setSelectedPayment('');
+    }
+  }, [selectedAddress]);
 
   const handleSelectGiftWrap = (wrap) => {
     setSelectedGiftWrap(wrap);
@@ -451,9 +478,13 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (isPlacingOrder) return;
 
-    const zoneInfo = getStateServiceability(addresses[selectedAddress]?.state);
-    if (zoneInfo && zoneInfo.active === false) {
+    if (!isAddressServiceable(addresses[selectedAddress])) {
       toast.error('This pincode is not currently serviceable.');
+      return;
+    }
+
+    if (selectedPayment === 'cod' && isCodBlockedForAddress(addresses[selectedAddress])) {
+      toast.error('Cash on Delivery is not available in your area.');
       return;
     }
 
@@ -826,8 +857,7 @@ export default function CheckoutPage() {
                       variants={{hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 }}}
                       whileHover={{ scale: 1.02 }}
                       onClick={() => {
-                        const zoneInfo = getStateServiceability(addr.state);
-                        if (zoneInfo && zoneInfo.active === false) {
+                        if (!isAddressServiceable(addr)) {
                           toast.error('This pincode is not currently serviceable.');
                           return;
                         }
@@ -878,8 +908,7 @@ export default function CheckoutPage() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
-                      const zoneInfo = getStateServiceability(addresses[selectedAddress]?.state);
-                      if (zoneInfo && zoneInfo.active === false) {
+                      if (!isAddressServiceable(addresses[selectedAddress])) {
                         toast.error('This pincode is not currently serviceable.');
                         return;
                       }
@@ -966,23 +995,33 @@ export default function CheckoutPage() {
                     </motion.div>
 
                     <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      onClick={() => setSelectedPayment('cod')}
-                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                        selectedPayment === 'cod' 
-                          ? 'border-[#e8767a] bg-[#fff5f5]' 
-                          : 'border-gray-200 hover:border-[#f9aeaf]'
+                      whileHover={!codBlockedForSelectedAddress ? { scale: 1.02 } : {}}
+                      onClick={() => {
+                        if (codBlockedForSelectedAddress) {
+                          toast.error('Cash on Delivery is not available in your area.');
+                          return;
+                        }
+                        setSelectedPayment('cod');
+                      }}
+                      className={`border-2 rounded-lg p-4 transition-all ${
+                        codBlockedForSelectedAddress
+                          ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                          : selectedPayment === 'cod'
+                            ? 'border-[#e8767a] bg-[#fff5f5] cursor-pointer'
+                            : 'border-gray-200 hover:border-[#f9aeaf] cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <FaMoneyBillWave className="text-2xl text-[#e8767a] mr-3" />
+                          <FaMoneyBillWave className={`text-2xl mr-3 ${codBlockedForSelectedAddress ? 'text-gray-400' : 'text-[#e8767a]'}`} />
                           <div>
                             <p className="font-bold text-gray-800">Cash on Delivery</p>
-                            <p className="text-sm text-gray-600">Pay with cash when you receive</p>
+                            <p className="text-sm text-gray-600">
+                              {codBlockedForSelectedAddress ? 'COD not available in your area' : 'Pay with cash when you receive'}
+                            </p>
                           </div>
                         </div>
-                        {selectedPayment === 'cod' && (
+                        {selectedPayment === 'cod' && !codBlockedForSelectedAddress && (
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}

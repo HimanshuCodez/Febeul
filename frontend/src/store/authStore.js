@@ -94,6 +94,31 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Admin-managed per-pincode overrides: either block the pincode entirely
+  // (not serviceable) or just block COD for that pincode.
+  pincodeBlocklist: { entries: [] },
+
+  fetchPincodeBlocklist: async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/pincodeBlocklist`);
+      if (response.data.success && response.data.content) {
+        set({ pincodeBlocklist: { entries: response.data.content.entries || [] } });
+      }
+    } catch (error) {
+      console.error("Failed to fetch pincode blocklist", error);
+    }
+  },
+
+  // Looks up admin-configured overrides for a given pincode. Returns null if
+  // the pincode has no override entry.
+  getPincodeServiceability: (zip) => {
+    if (!zip) return null;
+    const target = String(zip).trim();
+    if (!target) return null;
+    const { entries } = get().pincodeBlocklist;
+    return (entries || []).find((e) => String(e.pincode).trim() === target) || null;
+  },
+
   // Looks up serviceability + delivery day range for a saved address's state.
   // Returns null if the state isn't found in the zone map at all.
   getStateServiceability: (stateName) => {
@@ -289,5 +314,6 @@ if (localStorage.getItem('token')) {
 }
 useAuthStore.getState().fetchSiteSettings();
 useAuthStore.getState().fetchDeliveryZones();
+useAuthStore.getState().fetchPincodeBlocklist();
 
 export default useAuthStore;
