@@ -367,12 +367,17 @@ const constructEmailHtml = (order, templateHtml) => {
     const orderDateFormatted = new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     const sequentialInvoice = order.invoiceNumber ? order.invoiceNumber.toString().padStart(4, '0') : order._id.toString().slice(-8).toUpperCase();
 
+    const luxeMemberBadge = (order.isLuxeMemberAtTimeOfOrder || order.userId?.isLuxeMember)
+        ? '<span class="luxe-member-badge">✨ Luxe Member</span>'
+        : '';
+
     let finalHtml = templateHtml
         .replace('{{orderId}}', order._id.toString().slice(-8).toUpperCase())
         .replace('{{orderDate}}', orderDateFormatted)
         .replace('{{invoiceNumber}}', `INV-${sequentialInvoice}`)
         .replace('{{invoiceDate}}', orderDateFormatted)
         .replace('{{paymentMethod}}', order.paymentMethod)
+        .replace('{{luxeMemberBadge}}', luxeMemberBadge)
         .replace('{{billingAddressName}}', order.address.name)
         .replace('{{billingAddressAddress}}', order.address.address)
         .replace('{{billingAddressCity}}', order.address.city)

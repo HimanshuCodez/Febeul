@@ -8,15 +8,9 @@ import Loading from '../../components/Loading';
 const Images = ({ token }) => {
   const [slides, setSlides] = useState([{ desktop: '', mobile: '', link: '' }]);
   const [spotlight, setSpotlight] = useState([{ image: '', label: '', link: '' }]);
-  const [blackBanner, setBlackBanner] = useState({ 
-    desktopVideo: '', 
-    mobileVideo: '',
-    desktopDealImage: '',
-    mobileDealImage: '',
-    link: '',
-    showDeal: false,
-    deal: { image: '', title: '', price: '', mrp: '', discount: '', link: '' }
-  });
+  const [shows, setShows] = useState([
+    { desktopVideo: '', mobileVideo: '', thumbnail: '', title: '', subtitle: '', productLink: '' }
+  ]);
   const [poseSection, setPoseSection] = useState({ desktop: '', mobile: '', link: '' });
   const [loading, setLoading] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState('hero');
@@ -35,19 +29,19 @@ const Images = ({ token }) => {
       if (spot.data.success) setSpotlight(spot.data.content || []);
       if (banner.data.success) {
         const content = banner.data.content || {};
-        setBlackBanner(prev => ({
-          ...prev,
-          ...content,
-          desktopVideo: content.desktopVideo || content.video || prev.desktopVideo || '',
-          mobileVideo: content.mobileVideo || content.video || prev.mobileVideo || '',
-          desktopDealImage: content.desktopDealImage || content.deal?.image || prev.desktopDealImage || '',
-          mobileDealImage: content.mobileDealImage || content.deal?.image || prev.mobileDealImage || '',
-          deal: {
-            ...prev.deal,
-            ...(content.deal || {}),
-            image: content.deal?.image || prev.deal.image || '',
-          },
-        }));
+        if (Array.isArray(content.shows) && content.shows.length > 0) {
+          setShows(content.shows);
+        } else if (content.desktopVideo || content.mobileVideo || content.video) {
+          // Migrate legacy single-video banner shape into the new shows array
+          setShows([{
+            desktopVideo: content.desktopVideo || content.video || '',
+            mobileVideo: content.mobileVideo || content.video || '',
+            thumbnail: content.desktopDealImage || content.deal?.image || '',
+            title: content.deal?.title || '',
+            subtitle: '',
+            productLink: content.deal?.link || content.link || '',
+          }]);
+        }
       }
       if (pose.data.success) setPoseSection(pose.data.content || { desktop: '', mobile: '', link: '' });
 
@@ -82,18 +76,12 @@ const Images = ({ token }) => {
           const newSpotlight = [...spotlight];
           newSpotlight[index].image = url;
           setSpotlight(newSpotlight);
-        } else if (type === 'banner') {
-          if (subType === 'mobile') {
-            setBlackBanner({ ...blackBanner, mobileVideo: url });
-          } else {
-            setBlackBanner({ ...blackBanner, desktopVideo: url });
-          }
-        } else if (type === 'deal') {
-          if (subType === 'mobile') {
-            setBlackBanner({ ...blackBanner, mobileDealImage: url });
-          } else {
-            setBlackBanner({ ...blackBanner, desktopDealImage: url });
-          }
+        } else if (type === 'show') {
+          const newShows = [...shows];
+          if (subType === 'mobile') newShows[index].mobileVideo = url;
+          else if (subType === 'thumbnail') newShows[index].thumbnail = url;
+          else newShows[index].desktopVideo = url;
+          setShows(newShows);
         } else if (type === 'pose') {
           if (subType === 'mobile') setPoseSection({ ...poseSection, mobile: url });
           else setPoseSection({ ...poseSection, desktop: url });
@@ -210,74 +198,81 @@ const Images = ({ token }) => {
         )}
       </div>
 
-      {/* Black Banner & Deal */}
+      {/* Live Shopping Videos (Black Banner) */}
       <div className="mb-6 border rounded-lg overflow-hidden shadow-sm">
         <button onClick={() => setActiveAccordion(activeAccordion === 'banner' ? null : 'banner')} className={`w-full flex justify-between items-center p-4 transition-colors font-semibold text-lg ${activeAccordion === 'banner' ? 'bg-purple-50 text-purple-700' : 'bg-gray-50'}`}>
-          <span>Black Banner & Deal Card</span>
+          <span>Live Shopping Videos (Black Banner)</span>
           <span>{activeAccordion === 'banner' ? '−' : '+'}</span>
         </button>
         {activeAccordion === 'banner' && (
           <div className="p-6 bg-white space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <h3 className="font-bold text-purple-700 text-sm uppercase tracking-widest">Banner Media</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <p className="text-xs text-gray-500 -mt-2">The first video plays center-stage; the rest appear in the &quot;Watch More&quot; rail. Visitors can click any thumbnail to switch the playing video.</p>
+            {shows.map((show, index) => (
+              <div key={index} className="border p-4 rounded-md relative bg-gray-50 shadow-inner space-y-4">
+                {shows.length > 1 && (
+                  <button onClick={() => setShows(shows.filter((_, i) => i !== index))} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">X</button>
+                )}
+                <p className="font-bold text-purple-700 text-xs uppercase tracking-widest">{index === 0 ? 'Main Video (Center Stage)' : `Watch More Video #${index}`}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-3">
                     <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Desktop Version</p>
                     <div className="bg-black rounded-lg overflow-hidden aspect-video shadow-xl">
-                      {blackBanner.desktopVideo ? (
-                        <video src={blackBanner.desktopVideo} className="w-full h-full object-cover" controls muted />
+                      {show.desktopVideo ? (
+                        <video src={show.desktopVideo} className="w-full h-full object-cover" controls muted />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Desktop media preview</div>
                       )}
                     </div>
                     <label className="block cursor-pointer bg-purple-600 text-white text-center py-2 rounded text-sm font-bold shadow-md hover:bg-purple-700 transition">
-                      Upload Desktop Banner
-                      <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('banner', null, e.target.files[0], 'desktop')} />
+                      Upload Desktop Video
+                      <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'desktop')} />
                     </label>
                   </div>
                   <div className="space-y-3">
                     <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Version</p>
                     <div className="bg-black rounded-lg overflow-hidden aspect-[9/16] shadow-xl">
-                      {blackBanner.mobileVideo ? (
-                        <video src={blackBanner.mobileVideo} className="w-full h-full object-cover" controls muted />
+                      {show.mobileVideo ? (
+                        <video src={show.mobileVideo} className="w-full h-full object-cover" controls muted />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Mobile media preview</div>
                       )}
                     </div>
                     <label className="block cursor-pointer bg-blue-600 text-white text-center py-2 rounded text-sm font-bold shadow-md hover:bg-blue-700 transition">
-                      Upload Mobile Banner
-                      <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('banner', null, e.target.files[0], 'mobile')} />
+                      Upload Mobile Video
+                      <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'mobile')} />
+                    </label>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="font-bold text-pink-600 uppercase text-[10px] tracking-wider">Watch More Thumbnail</p>
+                    <div className="bg-gray-200 rounded-lg overflow-hidden aspect-video shadow-xl">
+                      {show.thumbnail ? (
+                        <img src={show.thumbnail} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Thumbnail preview</div>
+                      )}
+                    </div>
+                    <label className="block cursor-pointer bg-pink-600 text-white text-center py-2 rounded text-sm font-bold shadow-md hover:bg-pink-700 transition">
+                      Upload Thumbnail
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'thumbnail')} />
                     </label>
                   </div>
                 </div>
-                <input type="text" placeholder="Banner Redirect Link" value={blackBanner.link} onChange={(e) => setBlackBanner({...blackBanner, link: e.target.value})} className="w-full px-4 py-2 border rounded text-sm outline-none" />
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-purple-700 text-sm uppercase tracking-widest">Deal Overlay Card</h3>
-                  <label className="flex items-center gap-2 cursor-pointer bg-purple-100 px-3 py-1 rounded-full text-xs font-bold text-purple-700"><input type="checkbox" checked={blackBanner.showDeal} onChange={(e) => setBlackBanner({...blackBanner, showDeal: e.target.checked})} /> ENABLE DEAL</label>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <input type="text" placeholder="Product Title" value={blackBanner.deal.title} onChange={(e) => setBlackBanner({...blackBanner, deal: {...blackBanner.deal, title: e.target.value}})} className="p-3 border rounded col-span-2 bg-gray-50" />
-                  <input type="text" placeholder="Price (e.g. ₹379)" value={blackBanner.deal.price} onChange={(e) => setBlackBanner({...blackBanner, deal: {...blackBanner.deal, price: e.target.value}})} className="p-3 border rounded bg-gray-50" />
-                  <input type="text" placeholder="MRP (e.g. ₹999)" value={blackBanner.deal.mrp} onChange={(e) => setBlackBanner({...blackBanner, deal: {...blackBanner.deal, mrp: e.target.value}})} className="p-3 border rounded bg-gray-50" />
-                  <input type="text" placeholder="Discount (e.g. 62%)" value={blackBanner.deal.discount} onChange={(e) => setBlackBanner({...blackBanner, deal: {...blackBanner.deal, discount: e.target.value}})} className="p-3 border rounded bg-gray-50" />
-                  <input type="text" placeholder="Product Page Link" value={blackBanner.deal.link} onChange={(e) => setBlackBanner({...blackBanner, deal: {...blackBanner.deal, link: e.target.value}})} className="p-3 border rounded bg-gray-50" />
-                  <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4 mt-2">
-                    <div className="flex items-center gap-4">
-                      <img src={blackBanner.desktopDealImage || blackBanner.deal.image || ''} className="w-16 h-16 rounded-full object-cover border-2 border-purple-200 shadow-md bg-gray-100" />
-                      <label className="cursor-pointer bg-white border border-purple-200 text-purple-700 px-4 py-2 rounded text-xs font-bold shadow-sm hover:bg-purple-50 transition">Upload Desktop Deal<input type="file" className="hidden" onChange={(e) => handleFileUpload('deal', null, e.target.files[0], 'desktop')} /></label>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <img src={blackBanner.mobileDealImage || blackBanner.deal.image || ''} className="w-16 h-16 rounded-full object-cover border-2 border-blue-200 shadow-md bg-gray-100" />
-                      <label className="cursor-pointer bg-white border border-blue-200 text-blue-700 px-4 py-2 rounded text-xs font-bold shadow-sm hover:bg-blue-50 transition">Upload Mobile Deal<input type="file" className="hidden" onChange={(e) => handleFileUpload('deal', null, e.target.files[0], 'mobile')} /></label>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                  <div>
+                    <p className="mb-1 font-medium text-sm">Video Title</p>
+                    <input type="text" placeholder="e.g. Night Skincare Essentials Under ₹500" value={show.title} onChange={(e) => { const n = [...shows]; n[index].title = e.target.value; setShows(n); }} className="w-full px-3 py-2 border rounded outline-none bg-white text-sm" />
+                  </div>
+                  <div>
+                    <p className="mb-1 font-medium text-sm">Buy Now Link (product page)</p>
+                    <input type="text" placeholder="/product/507f1f77bcf86cd799439011" value={show.productLink} onChange={(e) => { const n = [...shows]; n[index].productLink = e.target.value; setShows(n); }} className="w-full px-3 py-2 border rounded outline-none bg-white text-sm" />
                   </div>
                 </div>
               </div>
+            ))}
+            <div className="flex gap-4">
+              <button onClick={() => setShows([...shows, { desktopVideo: '', mobileVideo: '', thumbnail: '', title: '', subtitle: '', productLink: '' }])} className="bg-purple-600 text-white px-6 py-2 rounded text-sm font-medium">Add Another Video</button>
+              <button onClick={() => saveContent('black_banner', { shows })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Live Videos</button>
             </div>
-            <button onClick={() => saveContent('black_banner', blackBanner)} className="bg-black text-white px-12 py-3 rounded font-bold text-sm tracking-widest hover:scale-105 transition">SAVE BANNER SETTINGS</button>
           </div>
         )}
       </div>
