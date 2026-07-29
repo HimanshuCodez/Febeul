@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaGift, FaCrown, FaCheck, FaPlus, FaMinus, FaShoppingCart, FaStar } from 'react-icons/fa';
+import { FaGift, FaCrown, FaCheck, FaShoppingCart, FaStar } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
@@ -12,7 +12,6 @@ export default function GiftWrapPage() {
   const [giftWraps, setGiftWraps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedWrap, setSelectedWrap] = useState(null);
-  const [quantity, setQuantity] = useState(1);
   const [showPromo, setShowPromo] = useState(true);
   const { user, fetchCartCount, getProfile, cartItems } = useAuthStore();
 
@@ -53,8 +52,8 @@ export default function GiftWrapPage() {
     return wrap.price;
   };
 
-  const totalPrice = selectedWrap 
-    ? getCalculatedPrice(selectedWrap) * quantity 
+  const totalPrice = selectedWrap
+    ? getCalculatedPrice(selectedWrap)
     : 0;
   
   const handleAddToCart = async () => {
@@ -192,39 +191,6 @@ export default function GiftWrapPage() {
                 </div>
               </div>
   
-              {/* Quantity Selector */}
-              {selectedWrap && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-lg shadow-sm p-6"
-                >
-                  <h2 className="text-2xl font-light mb-6 text-gray-800 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#f47b7d' }}>2</span>
-                    Gift Wrap Quantity
-                  </h2>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 rounded-full border-2 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                      style={{ borderColor: '#f47b7d', color: '#f47b7d' }}
-                    >
-                      <FaMinus className="text-sm" />
-                    </button>
-                    <span className="text-2xl font-light text-gray-800 w-12 text-center">{quantity}</span>
-                    <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 rounded-full border-2 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                      style={{ borderColor: '#f47b7d', color: '#f47b7d' }}
-                    >
-                      <FaPlus className="text-sm" />
-                    </button>
-                    <span className="text-sm text-gray-600 ml-4">
-                      {getDisplayedPrice(selectedWrap)} × {quantity} = {isLuxeMember && giftWrapsLeft > 0 ? 'FREE' : `₹${selectedWrap.price * quantity}`}
-                    </span>
-                  </div>
-                </motion.div>
-              )}
             </div>
   
             {/* Right Column - Summary */}
@@ -246,10 +212,6 @@ export default function GiftWrapPage() {
                     <div className="flex justify-between items-center mb-1">
                       <p className="text-sm text-gray-800">{selectedWrap.name}</p>
                       <p className="text-sm">{getDisplayedPrice(selectedWrap)}</p>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-gray-500">Quantity: {quantity}</p>
-                      <p className="text-sm font-semibold">{isLuxeMember && giftWrapsLeft > 0 ? 'FREE' : `₹${selectedWrap.price * quantity}`}</p>
                     </div>
                   </div>
                 )}
