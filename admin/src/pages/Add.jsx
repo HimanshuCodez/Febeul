@@ -580,7 +580,7 @@ const Add = ({ token }) => {
           {/* Category & Attributes */}
           <section>
             <div className="flex items-center gap-2 mb-6 border-b pb-2">
-              <Sparkles className="text-purple-500" size={20} />
+              
               <h3 className="font-bold text-gray-800">Category & Attributes</h3>
             </div>
 
