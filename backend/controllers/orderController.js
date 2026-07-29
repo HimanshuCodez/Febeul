@@ -910,12 +910,20 @@ const verifyRazorpay = async (req,res) => {
 }
 
 
+// Orders created for Razorpay/Stripe are written to the DB before payment is
+// confirmed (so the gateway has a receipt to reconcile against). If the user
+// abandons the checkout/payment sheet, that record is left behind with
+// payment:false — this filter keeps those unpaid attempts out of the visible
+// order lists until verifyRazorpay/verifyStripe confirms payment. COD orders
+// are unaffected since payment:false is their normal, expected state.
+const PLACED_ORDER_FILTER = { $or: [ { paymentMethod: 'COD' }, { payment: true } ] };
+
 // All Orders data for Admin Panel
 const allOrders = async (req,res) => {
 
     try {
-        
-        const orders = await orderModel.find({})
+
+        const orders = await orderModel.find(PLACED_ORDER_FILTER)
             .populate('userId', 'name email isLuxeMember') // Populate user name, email and luxe status
             .populate('items.productId', 'name variations'); // Populate product name and variations
 
@@ -935,7 +943,7 @@ const userOrders = async (req,res) => {
         if (!userId) { // Basic check for safety
             return res.json({ success: false, message: 'User ID not found in token' });
         }
-        const orders = await orderModel.find({ userId })
+        const orders = await orderModel.find({ userId, ...PLACED_ORDER_FILTER })
         res.json({success:true,orders})
 
     } catch (error) {

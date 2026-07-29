@@ -587,6 +587,11 @@ export default function CheckoutPage() {
         theme: {
           color: "#f9aeaf",
         },
+        modal: {
+          ondismiss: function () {
+            toast('Payment cancelled. Your order was not placed.', { icon: '⚠️' });
+          },
+        },
       };
 
       const rzp = new window.Razorpay(options);
