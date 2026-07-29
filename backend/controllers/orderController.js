@@ -1134,6 +1134,7 @@ const cancelOrder = async (req, res) => {
 
         order.isCancelled = true;
         order.refundDetails.reason = reason || 'Customer requested cancellation';
+        order.refundDetails.requestType = 'cancellation';
         order.refundDetails.requestedAt = new Date();
 
         await order.save();

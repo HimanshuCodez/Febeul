@@ -29,6 +29,8 @@ const AllUsers = ({ token }) => {
     { label: 'Add Items', path: '/add' },
     { label: 'List Items', path: '/list' },
     { label: 'Orders', path: '/orders' },
+    { label: 'Refund Requests', path: '/refund-requests' },
+    { label: 'Return Requests', path: '/return-requests' },
     { label: 'Gift Wraps', path: '/gift-wraps' },
     { label: 'Policy Update', path: '/policy-update' },
     { label: 'Generate Coupon', path: '/coupons' },
@@ -39,6 +41,7 @@ const AllUsers = ({ token }) => {
     { label: 'Email Marketing', path: '/send-mail' },
     { label: 'Maintenance Mode', path: '/maintenance' },
     { label: 'Configurations', path: '/configurations' },
+    { label: 'Product Taxonomy', path: '/product-taxonomy' },
   ];
 
   const togglePermission = (path) => {

@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { assets } from "../assets/assets";
 import axios from "axios";
 import { backendUrl } from "../App";
 import { toast } from "react-toastify";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import Loading from "../components/Loading";
+import EditableSelect from "../components/EditableSelect";
+import { DEFAULT_TAXONOMY, fetchTaxonomy, saveTaxonomy } from "../utils/taxonomy";
+import {
+  PackagePlus,
+  Palette,
+  ScrollText,
+  Truck,
+  Sparkles,
+  ImagePlus,
+  Trash2,
+} from "lucide-react";
 
 const Add = ({ token }) => {
   const [type, setType] = useState("");
@@ -15,7 +25,8 @@ const Add = ({ token }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("BABYDOLL");
-  
+  const [taxonomy, setTaxonomy] = useState(DEFAULT_TAXONOMY);
+
   const [bestseller, setBestseller] = useState(false);
   const [isLuxePrive, setIsLuxePrive] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,7 +59,7 @@ const Add = ({ token }) => {
       try {
         const response = await axios.get(backendUrl + "/api/product/list");
         if (response.data.success) {
-          const skus = response.data.products.flatMap(p => 
+          const skus = response.data.products.flatMap(p =>
             p.variations.map(v => v.sku)
           ).filter(sku => sku);
           setExistingSkus(skus);
@@ -59,6 +70,73 @@ const Add = ({ token }) => {
     };
     fetchExistingSkus();
   }, []);
+
+  useEffect(() => {
+    const loadTaxonomy = async () => {
+      const data = await fetchTaxonomy(backendUrl);
+      setTaxonomy(data);
+    };
+    loadTaxonomy();
+  }, []);
+
+  const handleCategoryChange = (newCategory) => {
+    setCategory(newCategory);
+    const validTypes = taxonomy.typesByCategory[newCategory] || [];
+    if (type && !validTypes.includes(type)) {
+      setType("");
+    }
+  };
+
+  const addCategory = async (newName) => {
+    const updated = {
+      ...taxonomy,
+      categories: taxonomy.categories.includes(newName) ? taxonomy.categories : [...taxonomy.categories, newName],
+      typesByCategory: { ...taxonomy.typesByCategory, [newName]: taxonomy.typesByCategory[newName] || [] },
+    };
+    try {
+      await saveTaxonomy(backendUrl, token, updated);
+      setTaxonomy(updated);
+      toast.success(`Category "${newName}" added.`);
+    } catch (error) {
+      toast.error("Failed to save new category, but you can still use it for this product.");
+    }
+  };
+
+  const addFabric = async (newName) => {
+    const updated = {
+      ...taxonomy,
+      fabrics: taxonomy.fabrics.includes(newName) ? taxonomy.fabrics : [...taxonomy.fabrics, newName],
+    };
+    try {
+      await saveTaxonomy(backendUrl, token, updated);
+      setTaxonomy(updated);
+      toast.success(`Fabric "${newName}" added.`);
+    } catch (error) {
+      toast.error("Failed to save new fabric, but you can still use it for this product.");
+    }
+  };
+
+  const addType = async (newName) => {
+    if (!category) {
+      toast.error("Please select a Category before adding a Type.");
+      throw new Error("No category selected");
+    }
+    const existingTypes = taxonomy.typesByCategory[category] || [];
+    const updated = {
+      ...taxonomy,
+      typesByCategory: {
+        ...taxonomy.typesByCategory,
+        [category]: existingTypes.includes(newName) ? existingTypes : [...existingTypes, newName],
+      },
+    };
+    try {
+      await saveTaxonomy(backendUrl, token, updated);
+      setTaxonomy(updated);
+      toast.success(`Type "${newName}" added to ${category}.`);
+    } catch (error) {
+      toast.error("Failed to save new type, but you can still use it for this product.");
+    }
+  };
 
   const isSkuDuplicate = (sku, index) => {
     if (!sku) return false;
@@ -265,463 +343,387 @@ const Add = ({ token }) => {
     }
   };
 
+  const typeOptions = taxonomy.typesByCategory[category] || [];
+
   return (
-    <form
-      onSubmit={onSubmitHandler}
-      className="flex flex-col w-full items-start gap-3"
-    >
-      {variations.map((variation, v_index) => (
-        <div
-          key={v_index}
-          className="flex flex-wrap md:flex-row gap-4 border p-4 rounded-md w-full relative"
-        >
-          <p className="font-semibold">Variation {v_index + 1}</p>
-
-          <div className="flex flex-wrap gap-4 w-full">
-            <div className="flex-1 min-w-[200px]">
-              <p className="mb-2">Color</p>
-              <input
-                name="color"
-                onChange={(e) => handleVariationChange(v_index, e)}
-                value={variation.color}
-                className="w-full px-3 py-2 border rounded-md"
-                type="text"
-                placeholder="e.g. Red"
-                required
-              />
-            </div>
-
-            <div className="flex-1 min-w-[200px]">
-              <p className="mb-2 flex items-center gap-2">
-                SKU 
-                {isSkuDuplicate(variation.sku, v_index) && (
-                  <span className="text-red-500 text-[10px] font-bold">sku already listed try another</span>
-                )}
-              </p>
-              <input
-                name="sku"
-                onChange={(e) => handleVariationChange(v_index, e)}
-                value={variation.sku}
-                className={`w-full px-3 py-2 border rounded-md ${isSkuDuplicate(variation.sku, v_index) ? 'border-red-500 bg-red-50' : ''}`}
-                type="text"
-                placeholder="e.g. S-110"
-              />
-            </div>
+    <form onSubmit={onSubmitHandler} className="max-w-5xl mx-auto pb-10">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+        <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Add New Product</h2>
+            <p className="text-gray-500 text-sm mt-1">Create a new listing with variations, pricing, and compliance details</p>
           </div>
+          <div className="p-3 rounded-xl bg-pink-100 text-pink-600">
+            <PackagePlus size={28} />
+          </div>
+        </div>
 
-          <div className="flex flex-wrap md:flex-row gap-4 w-full">
-            <div className="flex-1 min-w-[300px]">
-              <p className="mb-2">Sizes & Pricing</p>
-              {variation.sizes.map((sizeData, s_index) => (
-                <div key={s_index} className="flex gap-2 items-end mb-2">
-                  <div className="w-24">
-                    <p className="text-sm mb-1">Size</p>
-                    <input
-                      name="size"
-                      value={sizeData.size}
-                      readOnly
-                      className="w-full px-2 py-1 border rounded-md bg-gray-100"
-                    />
+        <div className="p-8 space-y-10">
+          {/* Variations */}
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b pb-2">
+              <Palette className="text-pink-500" size={20} />
+              <h3 className="font-bold text-gray-800">Variations</h3>
+            </div>
+
+            <div className="space-y-4">
+              {variations.map((variation, v_index) => (
+                <div
+                  key={v_index}
+                  className="flex flex-wrap md:flex-row gap-4 border border-gray-200 bg-gray-50/40 p-5 rounded-2xl w-full relative"
+                >
+                  <p className="font-semibold text-gray-700 w-full">Variation {v_index + 1}</p>
+
+                  <div className="flex flex-wrap gap-4 w-full">
+                    <div className="flex-1 min-w-[200px]">
+                      <p className="mb-2 text-sm font-semibold text-gray-600">Color</p>
+                      <input
+                        name="color"
+                        onChange={(e) => handleVariationChange(v_index, e)}
+                        value={variation.color}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-pink-400 outline-none text-sm"
+                        type="text"
+                        placeholder="e.g. Red"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-[200px]">
+                      <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-600">
+                        SKU
+                        {isSkuDuplicate(variation.sku, v_index) && (
+                          <span className="text-red-500 text-[10px] font-bold">sku already listed try another</span>
+                        )}
+                      </p>
+                      <input
+                        name="sku"
+                        onChange={(e) => handleVariationChange(v_index, e)}
+                        value={variation.sku}
+                        className={`w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400 ${isSkuDuplicate(variation.sku, v_index) ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
+                        type="text"
+                        placeholder="e.g. S-110"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm mb-1">MRP</p>
-                    <input
-                      name="mrp"
-                      onChange={(e) => handleSizeChange(v_index, s_index, e)}
-                      value={sizeData.mrp}
-                      className="w-full max-w-[100px] px-2 py-1 border rounded-md"
-                      type="number"
-                      placeholder="MRP"
-                      required
-                    />
+
+                  <div className="flex flex-wrap md:flex-row gap-4 w-full">
+                    <div className="flex-1 min-w-[300px]">
+                      <p className="mb-2 text-sm font-semibold text-gray-600">Sizes & Pricing</p>
+                      {variation.sizes.map((sizeData, s_index) => (
+                        <div key={s_index} className="flex gap-2 items-end mb-2">
+                          <div className="w-24">
+                            <p className="text-xs mb-1 text-gray-500">Size</p>
+                            <input
+                              name="size"
+                              value={sizeData.size}
+                              readOnly
+                              className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-100 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-xs mb-1 text-gray-500">MRP</p>
+                            <input
+                              name="mrp"
+                              onChange={(e) => handleSizeChange(v_index, s_index, e)}
+                              value={sizeData.mrp}
+                              className="w-full max-w-[100px] px-2 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400"
+                              type="number"
+                              placeholder="MRP"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <p className="text-xs mb-1 text-gray-500">Price</p>
+                            <input
+                              name="price"
+                              onChange={(e) => handleSizeChange(v_index, s_index, e)}
+                              value={sizeData.price}
+                              className="w-full max-w-[100px] px-2 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400"
+                              type="number"
+                              placeholder="Price"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <p className="text-xs mb-1 text-gray-500">Stock</p>
+                            <input
+                              name="stock"
+                              onChange={(e) => handleSizeChange(v_index, s_index, e)}
+                              value={sizeData.stock}
+                              className="w-full max-w-[100px] px-2 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400"
+                              type="number"
+                              placeholder="Stock"
+                              required
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSize(v_index, s_index)}
+                            className="bg-red-50 text-red-600 hover:bg-red-100 rounded-lg px-2.5 py-1.5 text-sm h-fit transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        {availableSizes
+                          .filter((size) => !variation.sizes.some((s) => s.size === size))
+                          .map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => addSize(v_index, size)}
+                              className="bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:border-pink-300 hover:text-pink-600 transition-colors"
+                            >
+                              + {size}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-[200px]">
+                      <p className="mb-2 text-sm font-semibold text-gray-600">Images</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {variation.images.map((image, i_index) => (
+                          <div key={i_index} className="relative group">
+                            <img
+                              className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                              src={URL.createObjectURL(image)}
+                              alt=""
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(v_index, i_index)}
+                              className="absolute -top-1.5 -right-1.5 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-sm hover:bg-red-600"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        <label className="cursor-pointer w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-pink-300 hover:bg-pink-50/40 transition-colors">
+                          <ImagePlus size={20} className="text-gray-400" />
+                          <input
+                            onChange={(e) => handleImageChange(v_index, e)}
+                            type="file"
+                            multiple
+                            hidden
+                          />
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm mb-1">Price</p>
-                    <input
-                      name="price"
-                      onChange={(e) => handleSizeChange(v_index, s_index, e)}
-                      value={sizeData.price}
-                      className="w-full max-w-[100px] px-2 py-1 border rounded-md"
-                      type="number"
-                      placeholder="Price"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm mb-1">Stock</p>
-                    <input
-                      name="stock"
-                      onChange={(e) => handleSizeChange(v_index, s_index, e)}
-                      value={sizeData.stock}
-                      className="w-full max-w-[100px] px-2 py-1 border rounded-md"
-                      type="number"
-                      placeholder="Stock"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeSize(v_index, s_index)}
-                    className="bg-red-500 text-white rounded-md px-2 py-1 text-sm h-fit"
-                  >
-                    -
-                  </button>
+                  {variations.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeVariation(v_index)}
+                      className="absolute top-3 right-3 bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Remove Variation
+                    </button>
+                  )}
                 </div>
               ))}
-              <div className="flex gap-2 mt-3 flex-wrap">
-                {availableSizes
-                  .filter((size) => !variation.sizes.some((s) => s.size === size))
-                  .map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => addSize(v_index, size)}
-                      className="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-300"
-                    >
-                      Add {size}
-                    </button>
-                  ))}
-              </div>
             </div>
 
-            <div className="flex-1 min-w-[200px]">
-              <p className="mb-2">Images</p>
-              <div className="flex gap-2 flex-wrap">
-                {variation.images.map((image, i_index) => (
-                  <div key={i_index} className="relative">
-                    <img
-                      className="w-20 object-cover"
-                      src={URL.createObjectURL(image)}
-                      alt=""
-                    />
-                    <p
-                      onClick={() => removeImage(v_index, i_index)}
-                      className="absolute top-1 right-1 cursor-pointer bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                    >
-                      x
-                    </p>
-                  </div>
-                ))}
-                <label className="cursor-pointer">
-                  <img
-                    className="w-20 object-cover"
-                    src={assets.upload_area}
-                    alt=""
-                  />
-                  <input
-                    onChange={(e) => handleImageChange(v_index, e)}
-                    type="file"
-                    multiple
-                    hidden
-                  />
-                </label>
-              </div>
-            </div>
-          </div>
-          {variations.length > 1 && (
             <button
               type="button"
-              onClick={() => removeVariation(v_index)}
-              className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm"
+              onClick={addVariation}
+              className="mt-4 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
             >
-              Remove Variation
+              + Add Variation
             </button>
-          )}
-        </div>
-      ))}
+          </section>
 
-      <button
-        type="button"
-        onClick={addVariation}
-        className="bg-blue-500 text-white px-3 py-1 rounded-md"
-      >
-        Add Variation
-      </button>
+          {/* Basic Info */}
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b pb-2">
+              <ScrollText className="text-blue-500" size={20} />
+              <h3 className="font-bold text-gray-800">Basic Info</h3>
+            </div>
 
-      <div className="w-full">
-        <p className="mb-2">Product name</p>
-        <input
-          onChange={(e) => setName(e.target.value)}
-          value={name}
-          className="w-full max-w-[500px] px-3 py-2"
-          type="text"
-          placeholder="Type here"
-          required
-        />
-      </div>
+            <div className="space-y-6">
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Product name</p>
+                <input
+                  onChange={(e) => setName(e.target.value)}
+                  value={name}
+                  className="w-full max-w-[500px] px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+                  type="text"
+                  placeholder="Type here"
+                  required
+                />
+              </div>
 
-      <div className="w-full">
-        <p className="mb-2">Product description</p>
-        <ReactQuill
-          theme="snow"
-          value={description}
-          onChange={setDescription}
-          className="w-full max-w-[500px] min-h-40 mb-12"
-          required
-        />
-      </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Product description</p>
+                <ReactQuill
+                  theme="snow"
+                  value={description}
+                  onChange={setDescription}
+                  className="w-full max-w-[500px] min-h-40 mb-12"
+                />
+              </div>
 
-      <div className="w-full">
-        <p className="mb-2">Product Keywords</p>
-        <input
-          onChange={(e) => setKeywords(e.target.value)}
-          value={keywords}
-          className="w-full max-w-[500px] px-3 py-2"
-          type="text"
-          placeholder="Enter comma-separated keywords"
-        />
-      </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Product Keywords</p>
+                <input
+                  onChange={(e) => setKeywords(e.target.value)}
+                  value={keywords}
+                  className="w-full max-w-[500px] px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+                  type="text"
+                  placeholder="Enter comma-separated keywords"
+                />
+              </div>
+            </div>
+          </section>
 
-      <div className="flex flex-col sm:flex-row gap-2 w-full sm:gap-8">
-        <div>
-          <p className="mb-2">Product Category</p>
-          <select
-            onChange={(e) => setCategory(e.target.value)}
-            value={category}
-            className="w-full px-3 py-2"
-          >
-            <option value="BABYDOLL">BABYDOLL</option>
-            <option value="LINGERIE">LINGERIE</option>
-            <option value="NIGHTY">NIGHTY</option>
-            <option value="PAJAMAS">PAJAMAS</option>
-            
-          </select>
-        </div>
-      </div>
+          {/* Category & Attributes */}
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b pb-2">
+              <Sparkles className="text-purple-500" size={20} />
+              <h3 className="font-bold text-gray-800">Category & Attributes</h3>
+            </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <EditableSelect
+                label="Category"
+                options={taxonomy.categories}
+                value={category}
+                onChange={handleCategoryChange}
+                onAddNew={addCategory}
+                required
+              />
+              <EditableSelect
+                label="Fabric"
+                options={taxonomy.fabrics}
+                value={fabric}
+                onChange={setFabric}
+                onAddNew={addFabric}
+              />
+              <EditableSelect
+                label="Type"
+                options={typeOptions}
+                value={type}
+                onChange={setType}
+                onAddNew={addType}
+              />
 
-        <div className="w-full">
-          <p className="mb-2">Country of Origin</p>
-          <input
-            onChange={(e) => setCountryOfOrigin(e.target.value)}
-            value={countryOfOrigin}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="India"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Manufacturer</p>
-          <input
-            onChange={(e) => setManufacturer(e.target.value)}
-            value={manufacturer}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="King style knitwear"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Packer</p>
-          <input
-            onChange={(e) => setPacker(e.target.value)}
-            value={packer}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="King style knitwear"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Included Components</p>
-          <input
-            onChange={(e) => setIncludedComponents(e.target.value)}
-            value={includedComponents}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="1 shirt, 1 pant"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Fabric</p>
-          <select
-            onChange={(e) => setFabric(e.target.value)}
-            value={fabric}
-            className="w-full px-3 py-2"
-          >
-            <option value="">Select Fabric</option>
-            <option value="Satin">Satin</option>
-            <option value="Lace">Lace</option>
-            <option value="Net">Net</option>
-            <option value="Silk Satin">Silk Satin</option>
-          </select>
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Type</p>
-          <select
-            onChange={(e) => setType(e.target.value)}
-            value={type}
-            className="w-full px-3 py-2"
-          >
-            <option value="">Select Type</option>
-            <option value="above-knee-b-doll">Above knee B'doll</option>
-            <option value="knee-length-b-doll">Knee Length B'doll</option>
-            <option value="one-piece-b-doll">One piece B'doll</option>
-            <option value="two-piece-b-doll">Two Piece B-doll</option>
-            <option value="teddy-choker-lingz">Teddy Choker Lingz</option>
-            <option value="bra-panty-lingz">Bra Panty Lingz</option>
-            <option value="silk-satin">Silk Satin</option>
-            <option value="sheer-mesh">Sheer Mesh</option>
-          </select>
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Pattern</p>
-          <input
-            onChange={(e) => setPattern(e.target.value)}
-            value={pattern}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="indo western"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Sleeve Style</p>
-          <input
-            onChange={(e) => setSleeveStyle(e.target.value)}
-            value={sleeveStyle}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="straight with cutwork"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Sleeve Length</p>
-          <input
-            onChange={(e) => setSleeveLength(e.target.value)}
-            value={sleeveLength}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="19.5"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Neck</p>
-          <input
-            onChange={(e) => setNeck(e.target.value)}
-            value={neck}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="round"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">HSN</p>
-          <input
-            onChange={(e) => setHsn(e.target.value)}
-            value={hsn}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="6204"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Material Composition</p>
-          <input
-            onChange={(e) => setMaterialComposition(e.target.value)}
-            value={materialComposition}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="92% Net, 8% Lace"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Care Instructions</p>
-          <input
-            onChange={(e) => setCareInstructions(e.target.value)}
-            value={careInstructions}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="Machine Wash"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Closure Type</p>
-          <input
-            onChange={(e) => setClosureType(e.target.value)}
-            value={closureType}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="Tie"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Material Type</p>
-          <input
-            onChange={(e) => setMaterialType(e.target.value)}
-            value={materialType}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="Lace, Net"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Item Weight</p>
-          <input
-            onChange={(e) => setItemWeight(e.target.value)}
-            value={itemWeight}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="150 g"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Item Dimensions LxWxH</p>
-          <input
-            onChange={(e) => setItemDimensionsLxWxH(e.target.value)}
-            value={itemDimensionsLxWxH}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="22 x 20 x 2 Centimeters"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Net Quantity</p>
-          <input
-            onChange={(e) => setNetQuantity(e.target.value)}
-            value={netQuantity}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="1.0 Count"
-          />
-        </div>
-        <div className="w-full">
-          <p className="mb-2">Generic Name</p>
-          <input
-            onChange={(e) => setGenericName(e.target.value)}
-            value={genericName}
-            className="w-full px-3 py-2"
-            type="text"
-            placeholder="Nightgown"
-          />
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Pattern</p>
+                <input onChange={(e) => setPattern(e.target.value)} value={pattern} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="indo western" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Sleeve Style</p>
+                <input onChange={(e) => setSleeveStyle(e.target.value)} value={sleeveStyle} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="straight with cutwork" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Sleeve Length</p>
+                <input onChange={(e) => setSleeveLength(e.target.value)} value={sleeveLength} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="19.5" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Neck</p>
+                <input onChange={(e) => setNeck(e.target.value)} value={neck} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="round" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Material Composition</p>
+                <input onChange={(e) => setMaterialComposition(e.target.value)} value={materialComposition} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="92% Net, 8% Lace" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Closure Type</p>
+                <input onChange={(e) => setClosureType(e.target.value)} value={closureType} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="Tie" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Material Type</p>
+                <input onChange={(e) => setMaterialType(e.target.value)} value={materialType} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="Lace, Net" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Care Instructions</p>
+                <input onChange={(e) => setCareInstructions(e.target.value)} value={careInstructions} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="Machine Wash" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Generic Name</p>
+                <input onChange={(e) => setGenericName(e.target.value)} value={genericName} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-pink-400" type="text" placeholder="Nightgown" />
+              </div>
+            </div>
+          </section>
+
+          {/* Compliance & Shipping Details */}
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b pb-2">
+              <Truck className="text-emerald-500" size={20} />
+              <h3 className="font-bold text-gray-800">Compliance & Shipping Details</h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Country of Origin</p>
+                <input onChange={(e) => setCountryOfOrigin(e.target.value)} value={countryOfOrigin} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400" type="text" placeholder="India" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Manufacturer</p>
+                <input onChange={(e) => setManufacturer(e.target.value)} value={manufacturer} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400" type="text" placeholder="King style knitwear" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Packer</p>
+                <input onChange={(e) => setPacker(e.target.value)} value={packer} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400" type="text" placeholder="King style knitwear" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Included Components</p>
+                <input onChange={(e) => setIncludedComponents(e.target.value)} value={includedComponents} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400" type="text" placeholder="1 shirt, 1 pant" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">HSN</p>
+                <input onChange={(e) => setHsn(e.target.value)} value={hsn} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400" type="text" placeholder="6204" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Item Weight</p>
+                <input onChange={(e) => setItemWeight(e.target.value)} value={itemWeight} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400" type="text" placeholder="150 g" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Item Dimensions LxWxH</p>
+                <input onChange={(e) => setItemDimensionsLxWxH(e.target.value)} value={itemDimensionsLxWxH} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400" type="text" placeholder="22 x 20 x 2 Centimeters" />
+              </div>
+              <div className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-600">Net Quantity</p>
+                <input onChange={(e) => setNetQuantity(e.target.value)} value={netQuantity} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400" type="text" placeholder="1.0 Count" />
+              </div>
+            </div>
+          </section>
+
+          {/* Flags */}
+          <section>
+            <div className="flex flex-wrap gap-6">
+              <label htmlFor="isLuxePrive" className="flex items-center gap-2 cursor-pointer bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5">
+                <input
+                  onChange={() => setIsLuxePrive((prev) => !prev)}
+                  checked={isLuxePrive}
+                  type="checkbox"
+                  id="isLuxePrive"
+                  className="accent-amber-500 w-4 h-4"
+                />
+                <span className="text-sm font-medium text-amber-800">Add to Luxe Prive Sale</span>
+              </label>
+
+              <label htmlFor="isBestseller" className="flex items-center gap-2 cursor-pointer bg-pink-50 border border-pink-100 rounded-lg px-4 py-2.5">
+                <input
+                  onChange={() => setBestseller((prev) => !prev)}
+                  checked={bestseller}
+                  type="checkbox"
+                  id="isBestseller"
+                  className="accent-pink-500 w-4 h-4"
+                />
+                <span className="text-sm font-medium text-pink-700">Add to Bestseller</span>
+              </label>
+            </div>
+          </section>
+
+          <div className="pt-4 border-t border-gray-50">
+            <button type="submit" className="px-8 py-3 rounded-xl bg-black text-white font-medium hover:bg-gray-800 transition-colors">
+              ADD PRODUCT
+            </button>
+          </div>
         </div>
       </div>
-
-      <div className="flex gap-2 mt-2">
-        <input
-          onChange={() => setIsLuxePrive((prev) => !prev)}
-          checked={isLuxePrive}
-          type="checkbox"
-          id="isLuxePrive"
-        />
-        <label className="cursor-pointer" htmlFor="isLuxePrive">
-          Add to Luxe Prive Sale
-        </label>
-      </div>
-      
-      <div className="flex gap-2 mt-2">
-        <input
-          onChange={() => setBestseller((prev) => !prev)}
-          checked={bestseller}
-          type="checkbox"
-          id="isBestseller"
-        />
-        <label className="cursor-pointer" htmlFor="isBestseller">
-          Add to Bestseller
-        </label>
-      </div>
-
-      <button type="submit" className="w-28 py-3 mt-4 bg-black text-white">
-        ADD
-      </button>
       {loading && <Loading progress={uploadProgress} />}
     </form>
   );

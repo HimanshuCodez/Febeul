@@ -1,5 +1,6 @@
 import orderModel from '../models/orderModel.js';
 import { mapShiprocketStatus, parseShiprocketTimestamp, mergeTrackingHistory } from '../utils/shiprocketStatusMap.js';
+import { autoRefundOnCourierReturn } from './refundController.js';
 
 // Single authenticated entry point for all Shiprocket webhook deliveries.
 // Two routes point here (backend/routes/webhookRoute.js and the legacy
@@ -117,6 +118,13 @@ export const handleWebhook = async (req, res) => {
         // status didn't change, so the timeline UI has every scan event.
         await order.save();
         console.log(`Order ${order._id} ${matchedPickup ? 'pickup ' : ''}tracking updated (statusChanged=${statusChanged}) for Shiprocket status: ${current_status}`);
+
+        // The parcel is confirmed back at origin — a prepaid customer never
+        // received it, so refund it automatically rather than waiting on an
+        // admin to notice. COD orders are a no-op (nothing was ever charged).
+        if (!matchedPickup && mapped?.shiprocketStatus === 'RTO_DELIVERED') {
+            await autoRefundOnCourierReturn(order);
+        }
 
         res.status(200).json({ success: true, message: 'Webhook received successfully' });
 

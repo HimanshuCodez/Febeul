@@ -15,6 +15,7 @@ const getRequiredPermission = (fullPath) => {
     if (fullPath.startsWith('/api/product/add')) return '/add';
     if (fullPath.startsWith('/api/product/remove') || fullPath.startsWith('/api/product/update')) return '/list';
     if (fullPath.startsWith('/api/order')) return '/orders';
+    if (fullPath.startsWith('/api/refund')) return '/refund-requests';
     if (fullPath.startsWith('/api/giftwrap')) return '/gift-wraps';
     if (fullPath.startsWith('/api/policy')) return '/policy-update';
     if (fullPath.startsWith('/api/ticket')) return '/tickets';

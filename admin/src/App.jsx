@@ -18,11 +18,13 @@ import Cms from './pages/Texts/Cms' // Import the Cms component
 import FebeulDashboard from './pages/Dashboard' // Import the Dashboard component
 import NewUserMail from './pages/NewUserMail' // Import the NewUserMail component
 import RefundRequests from './pages/RefundRequests' // Import the RefundRequests component
+import ReturnRequests from './pages/ReturnRequests' // Import the ReturnRequests component
 import MaintenanceMode from './pages/Settings/MaintenanceMode'
 import Configurations from './pages/Settings/Configurations'
 import DeliveryControl from './pages/DeliveryControl'
 import ImageOptimize from './pages/Settings/ImageOptimize'
 import TypographySettings from './pages/Settings/TypographySettings'
+import ProductTaxonomy from './pages/Settings/ProductTaxonomy'
 import Login from './components/Login'
 import ForgetPass from './pages/ForgetPass'
 import { ToastContainer } from 'react-toastify';
@@ -83,6 +85,7 @@ const App = () => {
                 {isAllowed('/luxelist') && <Route path='/luxelist' element={<LuxeList token={token} />} />}
                 {isAllowed('/orders') && <Route path='/orders' element={<Orders token={token} />} />}
                 {isAllowed('/refund-requests') && <Route path='/refund-requests' element={<RefundRequests token={token} />} />}
+                {isAllowed('/return-requests') && <Route path='/return-requests' element={<ReturnRequests token={token} />} />}
                 {isAllowed('/update') && <Route path='/update/:productId' element={<Update token={token} />} />}
                 {isAllowed('/allusers') && <Route path='/allusers' element={<AllUsers token={token} />} />}
                 {isAllowed('/gift-wraps') && <Route path='/gift-wraps' element={<ManageGiftWraps token={token} />} />}
@@ -98,6 +101,7 @@ const App = () => {
                 {isAllowed('/delivery-control') && <Route path='/delivery-control' element={<DeliveryControl token={token} />} />}
                 {isAllowed('/image-optimize') && <Route path='/image-optimize' element={<ImageOptimize token={token} />} />}
                 {isAllowed('/typography') && <Route path='/typography' element={<TypographySettings token={token} />} />}
+                {isAllowed('/product-taxonomy') && <Route path='/product-taxonomy' element={<ProductTaxonomy token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}

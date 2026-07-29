@@ -2,7 +2,9 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Razorpay from "razorpay";
 import { v2 as cloudinary } from "cloudinary";
-import { createReturnOrder, buildShiprocketOrderPayload } from "../utils/shiprocket.js";
+import { createReturnOrder, buildShiprocketOrderPayload, cancelShiprocketOrder } from "../utils/shiprocket.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import { returnRequestCreatedEmailTemplate, refundProcessedEmailTemplate } from "../templates/returnEmail.js";
 
 const razorpayInstance = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -148,12 +150,12 @@ const approveRefund = async (req, res) => {
             order.refundDetails.isPartialRefund = isPartialRefund || (refundAmount < order.orderTotal);
             order.isRefundable = false;
 
-            // If the customer physically has the item (delivered-item return,
-            // evidenced by the required 4 verification photos), schedule a
-            // Shiprocket reverse pickup so the courier collects it back.
-            // Best-effort: refund still succeeds even if this fails, but the
-            // failure reason is recorded so admin can arrange pickup manually.
-            const needsPickup = order.refundDetails.images?.length > 0 && order.refundDetails.pickup.status === 'none';
+            // Only a physical-item "return" (as opposed to a money-only "refund"
+            // claim, e.g. item never arrived) has anything for the courier to
+            // collect. Best-effort: refund still succeeds even if scheduling
+            // fails, but the failure reason is recorded so admin can arrange
+            // pickup manually.
+            const needsPickup = order.refundDetails.requestType === 'return' && order.refundDetails.pickup.status === 'none';
             if (needsPickup) {
                 try {
                     const payload = buildShiprocketOrderPayload(order);
@@ -176,6 +178,15 @@ const approveRefund = async (req, res) => {
             }
 
             await order.save();
+
+            if (order.userId?.email) {
+                sendEmail(
+                    order.userId.email,
+                    'Your Febeul Refund Has Been Processed',
+                    refundProcessedEmailTemplate(order.userId.name || 'Customer', order._id, refundAmount, order.paymentMethod)
+                );
+            }
+
             return res.json({ success: true, message: `Refund successful. Amount: ₹${refundAmount}` });
         }
         res.json({ success: false, message: refundResult.message });
@@ -204,7 +215,7 @@ const rejectRefund = async (req, res) => {
 
 // --- 7. Request Refund Handler ---
 const requestRefund = async (req, res) => {
-    const { orderId, reason, payoutDetails } = req.body;
+    const { orderId, reason, payoutDetails, requestType } = req.body;
     const userId = req.userId;
     const uploadedImages = req.files;
 
@@ -231,6 +242,7 @@ const requestRefund = async (req, res) => {
         const updateData = {
             'refundDetails.status': 'pending',
             'refundDetails.reason': reason,
+            'refundDetails.requestType': requestType === 'return' ? 'return' : 'refund',
             'refundDetails.images': imageUrls,
             'refundDetails.requestedAt': new Date(),
         };
@@ -244,10 +256,111 @@ const requestRefund = async (req, res) => {
             await userModel.findByIdAndUpdate(userId, { isBlocked: true, blockedAt: new Date() });
         }
 
+        const user = await userModel.findById(userId);
+        if (user?.email) {
+            sendEmail(
+                user.email,
+                'We Received Your Request',
+                returnRequestCreatedEmailTemplate(user.name || 'Customer', order._id, updateData['refundDetails.requestType'])
+            );
+        }
+
         res.json({ success: true, message: "Request submitted successfully." });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
 };
 
-export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, approveRefund, rejectRefund };
+// --- 8. Auto-refund a prepaid order once Shiprocket confirms the courier
+// has fully returned it to origin (RTO_DELIVERED). Mirrors the instant
+// refund already done for pre-ship cancellations, closing the gap where an
+// RTO'd prepaid order would otherwise sit unrefunded until an admin noticed
+// it. Idempotent against webhook redelivery via the refundDetails.status
+// guard. Called from shiprocketWebhookController.js.
+const autoRefundOnCourierReturn = async (order) => {
+    try {
+        if (order.paymentMethod !== 'Razorpay' || !order.payment || order.refundDetails.status !== 'none') {
+            return;
+        }
+
+        const paymentId = order.razorpayPaymentId || order.paymentDetails?.razorpay_payment_id;
+        if (!paymentId) return;
+
+        const refundAmount = order.orderTotal || 0;
+        const refundResult = await processPrepaidRefund(order._id, paymentId, refundAmount);
+
+        if (!refundResult.success) {
+            console.log("Auto-refund on courier RTO failed:", refundResult.message);
+            return;
+        }
+
+        order.refundDetails.status = 'completed';
+        order.refundDetails.requestType = 'courier_return';
+        order.refundDetails.amount = refundAmount;
+        order.refundDetails.id = refundResult.refundId;
+        order.refundDetails.processedAt = new Date();
+        order.refundDetails.reason = order.refundDetails.reason || 'Courier returned the parcel to origin (RTO)';
+        order.isRefundable = false;
+        await order.save();
+
+        const user = await userModel.findById(order.userId);
+        if (user?.email) {
+            sendEmail(
+                user.email,
+                'Your Febeul Refund Has Been Processed',
+                refundProcessedEmailTemplate(user.name || 'Customer', order._id, refundAmount, order.paymentMethod)
+            );
+        }
+    } catch (error) {
+        console.log("Error auto-refunding courier return:", error.message);
+    }
+};
+
+// --- 9. Customer Cancels Their Own Return/Refund Request ---
+// Allowed only while the courier hasn't collected the item yet — i.e. before
+// refundDetails.pickup.status reaches 'picked_up'.
+const cancelReturnRequest = async (req, res) => {
+    const { orderId } = req.body;
+    const userId = req.userId;
+
+    try {
+        const order = await orderModel.findById(orderId);
+        if (!order) return res.json({ success: false, message: "Order not found." });
+        if (order.userId.toString() !== userId) return res.json({ success: false, message: "Unauthorized." });
+
+        const cancellableRequestStatuses = ['pending', 'initiated', 'processing'];
+        const cancellablePickupStatuses = ['none', 'scheduled', 'failed'];
+
+        if (!cancellableRequestStatuses.includes(order.refundDetails.status)) {
+            return res.json({ success: false, message: "This request can no longer be cancelled." });
+        }
+        if (!cancellablePickupStatuses.includes(order.refundDetails.pickup?.status)) {
+            return res.json({ success: false, message: "The courier has already picked up this item, so the request can't be cancelled anymore." });
+        }
+
+        if (order.refundDetails.pickup?.shiprocketReturnOrderId) {
+            try {
+                await cancelShiprocketOrder([order.refundDetails.pickup.shiprocketReturnOrderId]);
+            } catch (shiprocketError) {
+                console.log("Error cancelling Shiprocket reverse pickup:", shiprocketError.message);
+            }
+        }
+
+        if (order.orderStatus === 'Refund Initiated') {
+            order.orderStatus = 'Delivered';
+        }
+        order.refundDetails.status = 'none';
+        order.refundDetails.requestType = undefined;
+        order.refundDetails.reason = undefined;
+        order.refundDetails.images = [];
+        order.refundDetails.customerPayoutDetails = undefined;
+        order.refundDetails.pickup = { status: 'none' };
+
+        await order.save();
+        res.json({ success: true, message: "Your request has been cancelled." });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, approveRefund, rejectRefund, autoRefundOnCourierReturn, cancelReturnRequest };

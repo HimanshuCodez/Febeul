@@ -268,7 +268,23 @@ const MyOrders = () => {
             {orders.map((order) => {
               const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
               const displayStatus = getOrderDisplayStatus(order);
-              
+              // "Returned" always means the courier sent it back (a customer
+              // return uses refundDetails.pickup, not this field) — only the
+              // label shown is renamed, all the logic above stays on 'Returned'.
+              const displayStatusLabel = displayStatus === "Returned" ? "Courier Return" : displayStatus;
+              const refundStatus = order.refundDetails?.status;
+              const pickupStatus = order.refundDetails?.pickup?.status;
+              const refundSubLabel = refundStatus === 'completed'
+                ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed`
+                : refundStatus === 'rejected'
+                ? 'Refund request rejected'
+                : refundStatus && ['pending', 'initiated', 'processing'].includes(refundStatus)
+                ? (pickupStatus === 'picked_up' || pickupStatus === 'in_transit' ? 'Return: Picked up by courier'
+                  : pickupStatus === 'delivered_to_warehouse' ? 'Return: Received at warehouse'
+                  : pickupStatus === 'scheduled' ? 'Return: Pickup scheduled'
+                  : 'Return/Refund: Under review')
+                : null;
+
               return (
                 <motion.div
                   key={order._id}
@@ -310,13 +326,18 @@ const MyOrders = () => {
                           displayStatus === "Cancelled" ? "bg-rose-500" :
                           "bg-slate-500"
                         }`} />
-                        {displayStatus}
+                        {displayStatusLabel}
                       </span>
                     </div>
                   </div>
 
                   <div className="px-5 pt-4">
                     <OrderProgressStrip status={displayStatus} />
+                    {refundSubLabel && (
+                      <p className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1 inline-block mt-1">
+                        {refundSubLabel}
+                      </p>
+                    )}
                   </div>
 
                   {/* Body of the card (Items thumbnail strip & pricing) */}

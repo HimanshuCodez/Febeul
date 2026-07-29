@@ -5,7 +5,7 @@ import {
   ShoppingBag, RotateCcw, Gift, ShieldCheck, Ticket,
   MessageSquare, Star, FileText, Image, Mail, Settings,
   Wrench, Sliders, Zap, Type, ChevronDown, ChevronRight,
-  Menu, X, Truck
+  Menu, X, Truck, Undo2, Tags
 } from 'lucide-react'
 
 const SidebarItem = ({ to, icon: Icon, label, active, onClick }) => {
@@ -48,14 +48,14 @@ const Sidebar = ({ role, permissions = [] }) => {
   );
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(
-    location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography' || location.pathname === '/delivery-control'
+    location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography' || location.pathname === '/delivery-control' || location.pathname === '/product-taxonomy'
   );
 
   useEffect(() => {
     if (location.pathname === '/add' || location.pathname === '/list' || location.pathname === '/luxelist' || location.pathname.includes('/update')) {
       setIsProductListingOpen(true);
     }
-    if (location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography' || location.pathname === '/delivery-control') {
+    if (location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography' || location.pathname === '/delivery-control' || location.pathname === '/product-taxonomy') {
       setIsSettingsOpen(true);
     }
   }, [location.pathname]);
@@ -72,7 +72,7 @@ const Sidebar = ({ role, permissions = [] }) => {
   };
 
   const showProductListing = isAllowed('/add') || isAllowed('/list') || isAllowed('/luxelist');
-  const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize') || isAllowed('/typography') || isAllowed('/delivery-control');
+  const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize') || isAllowed('/typography') || isAllowed('/delivery-control') || isAllowed('/product-taxonomy');
 
   const navContent = (
     <div className='flex flex-col gap-1'>
@@ -128,6 +128,10 @@ const Sidebar = ({ role, permissions = [] }) => {
 
         {isAllowed('/refund-requests') && (
           <SidebarItem to="/refund-requests" icon={RotateCcw} label="Refunds" />
+        )}
+
+        {isAllowed('/return-requests') && (
+          <SidebarItem to="/return-requests" icon={Undo2} label="Returns" />
         )}
 
         {isAllowed('/gift-wraps') && (
@@ -200,6 +204,9 @@ const Sidebar = ({ role, permissions = [] }) => {
                         )}
                         {isAllowed('/typography') && (
                             <SidebarItem to="/typography" icon={Type} label="Typography" />
+                        )}
+                        {isAllowed('/product-taxonomy') && (
+                            <SidebarItem to="/product-taxonomy" icon={Tags} label="Product Taxonomy" />
                         )}
                     </div>
                 )}

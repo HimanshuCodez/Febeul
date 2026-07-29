@@ -24,7 +24,19 @@ import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
-
+// Fallback mirrors the historical hardcoded mega-menu exactly, so the nav
+// looks identical until an admin edits Settings > Product Taxonomy (same
+// fetch-with-fallback pattern already used by Spotlight.jsx for categories).
+const DEFAULT_TAXONOMY = {
+  categories: ["BABYDOLL", "LINGERIE", "NIGHTY", "PAJAMAS"],
+  fabrics: ["Satin", "Lace", "Net", "Silk Satin"],
+  typesByCategory: {
+    BABYDOLL: ["Above knee B'doll", "Knee Length B'doll", "One piece B'doll", "Two Piece B-doll"],
+    LINGERIE: ["Teddy Choker Lingz", "Bra Panty Lingz"],
+    NIGHTY: ["Silk Satin", "Sheer Mesh"],
+    PAJAMAS: [],
+  },
+};
 
 const UserMenu = ({ isAuthenticated }) => {
   const { logout } = useAuthStore();
@@ -99,7 +111,8 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [openMegaMenus, setOpenMegaMenus] = useState({}); // New state for accordions
   const [bestsellers, setBestsellers] = useState([]); // State for bestsellers
-  
+  const [taxonomy, setTaxonomy] = useState(DEFAULT_TAXONOMY); // Admin-managed Category/Fabric/Type lists
+
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const wishlistCount = useAuthStore(state => state.wishlistCount);
   const cartCount = useAuthStore(state => state.cartCount);
@@ -136,6 +149,25 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    const loadTaxonomy = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/productTaxonomy`);
+        if (response.data.success && response.data.content) {
+          const content = response.data.content;
+          setTaxonomy({
+            categories: content.categories?.length ? content.categories : DEFAULT_TAXONOMY.categories,
+            fabrics: content.fabrics?.length ? content.fabrics : DEFAULT_TAXONOMY.fabrics,
+            typesByCategory: content.typesByCategory || {},
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching product taxonomy:", error);
+      }
+    };
+    loadTaxonomy();
+  }, []);
+
+  useEffect(() => {
     setIsMenuOpen(false);
     setOpenMegaMenus({});
   }, [location]);
@@ -158,36 +190,21 @@ export default function Header() {
     }));
   };
 
+  // "GIFT WRAP" is also a product category admins can pick in the product
+  // form, but it already has its own dedicated static nav link below (with
+  // its own /GiftWrap page) — excluded here to avoid a duplicate entry.
+  const categoryNavItems = taxonomy.categories
+    .filter((category) => category.toUpperCase() !== "GIFT WRAP")
+    .map((category) => {
+      const types = taxonomy.typesByCategory[category] || [];
+      const megaMenu = {};
+      if (types.length > 0) megaMenu.Type = types;
+      if (taxonomy.fabrics.length > 0) megaMenu.Fabric = taxonomy.fabrics;
+      return Object.keys(megaMenu).length > 0 ? { title: category, megaMenu } : { title: category };
+    });
+
   const navigation = [
-    {
-      title: "BABYDOLL",
-      megaMenu: {
-                    Type: ["Above knee B'doll", "Knee Length B'doll","One piece B'doll","Two Piece B-doll"],            Fabric: ["Satin", "Lace", "Net", "Silk Satin"],
-      },
-    },
-    {
-      title: "LINGERIE",
-      megaMenu: {
-        Type: [
-          "Teddy Choker Lingz",
-          "Bra Panty Lingz",
-          
-        ],
-      },
-    },
-    {
-      title: "NIGHTY",
-      megaMenu: {
-        Type: [
-          "Silk Satin",
-          "Sheer Mesh",
-         
-        ],
-      },
-    },
-    {
-      title: "PAJAMAS",
-    },
+    ...categoryNavItems,
     {
       title: "NEW & NOW",
     },
@@ -197,7 +214,6 @@ export default function Header() {
     {
       title: "LUXE PRIVE SALE",
     },
-    
     {
       title: "BESTSELLERS",
     },

@@ -36,9 +36,14 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
     const [images, setImages] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // COD orders never had an electronic payment source, so the customer picks
+    // how they want the payout settled. Prepaid (Razorpay) orders always
+    // auto-refund to the original payment source — no choice needed there.
+    const [payoutMethod, setPayoutMethod] = useState('bank'); // 'bank' or 'upi'
+    const [upiId, setUpiId] = useState('');
     const [bankDetails, setBankDetails] = useState({
         accountHolderName: '',
-        accountNumber: '',
+        bankAccount: '',
         ifsc: '',
         bankName: ''
     });
@@ -85,7 +90,11 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
             toast.error("Please upload exactly 4 images for verification.");
             return;
         }
-        if (isCod && (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifsc)) {
+        if (isCod && payoutMethod === 'upi' && !upiId.trim()) {
+            toast.error("Please provide your UPI ID for the refund.");
+            return;
+        }
+        if (isCod && payoutMethod === 'bank' && (!bankDetails.accountHolderName || !bankDetails.bankAccount || !bankDetails.ifsc)) {
             toast.error("Please provide bank details for the refund.");
             return;
         }
@@ -94,9 +103,13 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
 
         const formData = new FormData();
         formData.append('orderId', order._id);
-        formData.append('reason', `${type.toUpperCase()}: ${reason}`);
+        formData.append('reason', reason);
+        formData.append('requestType', type);
         if (isCod) {
-            formData.append('payoutDetails', JSON.stringify(bankDetails));
+            const payoutDetails = payoutMethod === 'upi'
+                ? { type: 'upi', upiId }
+                : { type: 'bank', ...bankDetails };
+            formData.append('payoutDetails', JSON.stringify(payoutDetails));
         }
         images.forEach(image => {
             formData.append('images', image);
@@ -167,16 +180,31 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
                         <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <h3 className="font-bold text-sm text-gray-800 flex items-center gap-2">
                                 <FaCreditCard className="text-[#e8767a]" />
-                                Bank Details for Refund
+                                Refund Payout Method
                             </h3>
-                            <div className="grid grid-cols-1 gap-3">
-                                <input type="text" name="accountHolderName" placeholder="Account Holder Name" value={bankDetails.accountHolderName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
-                                <input type="text" name="accountNumber" placeholder="Account Number" value={bankDetails.accountNumber} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
-                                <div className="grid grid-cols-2 gap-2">
-                                    <input type="text" name="ifsc" placeholder="IFSC Code" value={bankDetails.ifsc} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm uppercase" required />
-                                    <input type="text" name="bankName" placeholder="Bank Name" value={bankDetails.bankName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" />
-                                </div>
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                                    <input type="radio" name="payoutMethod" value="bank" checked={payoutMethod === 'bank'} onChange={() => setPayoutMethod('bank')} />
+                                    Bank Account
+                                </label>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                                    <input type="radio" name="payoutMethod" value="upi" checked={payoutMethod === 'upi'} onChange={() => setPayoutMethod('upi')} />
+                                    UPI
+                                </label>
                             </div>
+
+                            {payoutMethod === 'upi' ? (
+                                <input type="text" placeholder="yourname@upi" value={upiId} onChange={(e) => setUpiId(e.target.value)} className="w-full p-2 border rounded-md text-sm" required />
+                            ) : (
+                                <div className="grid grid-cols-1 gap-3">
+                                    <input type="text" name="accountHolderName" placeholder="Account Holder Name" value={bankDetails.accountHolderName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
+                                    <input type="text" name="bankAccount" placeholder="Account Number" value={bankDetails.bankAccount} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input type="text" name="ifsc" placeholder="IFSC Code" value={bankDetails.ifsc} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm uppercase" required />
+                                        <input type="text" name="bankName" placeholder="Bank Name" value={bankDetails.bankName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -410,6 +438,7 @@ export default function OrderDetailPage() {
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
   const [showCancelledAnimation, setShowCancelledAnimation] = useState(false);
+  const [isCancellingReturnRequest, setIsCancellingReturnRequest] = useState(false);
 
   useEffect(() => {
     fetchSiteSettings();
@@ -478,6 +507,24 @@ export default function OrderDetailPage() {
     }, 3000);
   };
 
+  const handleCancelReturnRequest = async () => {
+    if (!window.confirm("Cancel this return/refund request?")) return;
+    setIsCancellingReturnRequest(true);
+    try {
+        const response = await axios.post(`${backendUrl}/api/refund/cancel-request`, { orderId }, { headers: { token } });
+        if (response.data.success) {
+            toast.success(response.data.message || "Request cancelled.");
+            fetchOrderDetails();
+        } else {
+            toast.error(response.data.message || "Could not cancel the request.");
+        }
+    } catch (err) {
+        toast.error(err.response?.data?.message || "Could not cancel the request.");
+    } finally {
+        setIsCancellingReturnRequest(false);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#f9aeaf]"><Loader className="animate-spin text-pink-500" size={48} /></div>;
   }
@@ -517,6 +564,13 @@ export default function OrderDetailPage() {
 
   const displayStatus = getDisplayStatus();
 
+  // "Returned" (internal status, drives all the eligibility/badge logic
+  // below unchanged) always means the courier sent the parcel back — a
+  // customer-initiated return uses refundDetails.pickup, not this field.
+  // Only the label shown to the user is renamed, to avoid confusing it with
+  // a customer-initiated return/refund request.
+  const displayStatusLabel = displayStatus === 'Returned' ? 'Courier Return' : displayStatus;
+
   // Calculate if return is eligible
   const isReturnEligible = () => {
     if (displayStatus !== 'Delivered' || !order.deliveredAt) {
@@ -539,6 +593,11 @@ export default function OrderDetailPage() {
   const returnPossible = isReturnEligible();
   const cancellationPossible = isCancellationPossible();
   const cancellationEligible = !['Delivered', 'Cancelled', 'Returned', 'Refunded'].includes(displayStatus);
+
+  // The customer can back out of their own return/refund request any time
+  // before the Shiprocket courier actually collects the item.
+  const canCancelReturnRequest = ['pending', 'initiated', 'processing'].includes(order.refundDetails?.status)
+    && !['picked_up', 'in_transit', 'delivered_to_warehouse'].includes(order.refundDetails?.pickup?.status);
 
   // Use pricing details from the order object
   const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
@@ -848,7 +907,7 @@ export default function OrderDetailPage() {
                   displayStatus === "Cancelled" ? "bg-rose-500" :
                   "bg-slate-500"
                 }`} />
-                Status: {displayStatus}
+                Status: {displayStatusLabel}
               </span>
             </div>
 
@@ -1372,6 +1431,28 @@ export default function OrderDetailPage() {
                   {returnPossible ? 'Return or Refund' : 'Return Window Closed'}
               </motion.button>
               {returnPossible && <p className="text-[10px] text-gray-500 mt-2 text-center italic">Industry Standard: Return window closes 3 days after delivery. Exactly 4 images required.</p>}
+            </motion.div>
+          )}
+
+          {/* Cancel Return/Refund Request Button */}
+          {canCancelReturnRequest && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+              className="mt-4"
+            >
+              <motion.button
+                  onClick={handleCancelReturnRequest}
+                  disabled={isCancellingReturnRequest}
+                  whileHover={!isCancellingReturnRequest ? { scale: 1.02 } : {}}
+                  whileTap={!isCancellingReturnRequest ? { scale: 0.98 } : {}}
+                  className="w-full border-2 border-red-500 text-red-600 hover:bg-red-50 py-3 px-6 rounded-lg transition-all flex items-center justify-center uppercase tracking-widest text-sm font-bold disabled:opacity-50"
+              >
+                  <X className="mr-2" size={18} />
+                  {isCancellingReturnRequest ? 'Cancelling...' : 'Cancel Return/Refund Request'}
+              </motion.button>
+              <p className="text-[10px] text-gray-500 mt-2 text-center italic">You can cancel this request until the courier picks up the item for return.</p>
             </motion.div>
           )}
 

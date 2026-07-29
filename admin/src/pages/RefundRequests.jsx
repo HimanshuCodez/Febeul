@@ -20,6 +20,7 @@ import {
 
 const RefundRequests = ({ token }) => {
   const [requests, setRequests] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -39,10 +40,14 @@ const RefundRequests = ({ token }) => {
     try {
       const response = await axios.post(`${backendUrl}/api/order/list`, {}, { headers: { token } });
       if (response.data.success) {
-        const allOrders = response.data.orders;
-        const refundOrders = allOrders.filter(order => 
-          (order.refundDetails && order.refundDetails.status !== 'none') || 
-          ['Refund Initiated', 'Returned', 'Refunded'].includes(order.orderStatus)
+        const orders = response.data.orders;
+        setAllOrders(orders);
+        // Return Requests (physical item back) live on their own page now —
+        // this page keeps cancellations, money-only refunds, and courier RTOs.
+        const refundOrders = orders.filter(order =>
+          ((order.refundDetails && order.refundDetails.status !== 'none') ||
+          ['Refund Initiated', 'Returned', 'Refunded'].includes(order.orderStatus)) &&
+          order.refundDetails?.requestType !== 'return'
         );
         setRequests(refundOrders.sort((a, b) => new Date(b.refundDetails.requestedAt || b.date) - new Date(a.refundDetails.requestedAt || a.date)));
       }
@@ -287,11 +292,21 @@ const RefundRequests = ({ token }) => {
                       {currency}{(req.refundDetails?.amount || req.orderTotal || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                        req.orderStatus === 'Cancelled' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                      }`}>
-                        {req.orderStatus === 'Cancelled' ? 'Cancellation' : 'Return/Refund'}
-                      </span>
+                      {(() => {
+                        const type = req.refundDetails?.requestType;
+                        const label = type === 'courier_return' ? 'Courier Return'
+                          : type === 'cancellation' ? 'Cancellation'
+                          : type === 'refund' ? 'Refund Only'
+                          : req.orderStatus === 'Cancelled' ? 'Cancellation' : 'Return/Refund';
+                        const className = type === 'courier_return' ? 'bg-amber-50 text-amber-600'
+                          : (type === 'cancellation' || req.orderStatus === 'Cancelled') ? 'bg-red-50 text-red-600'
+                          : 'bg-blue-50 text-blue-600';
+                        return (
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${className}`}>
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
                         {getStatusIcon(req.refundDetails.status)}
@@ -331,6 +346,14 @@ const RefundRequests = ({ token }) => {
                     <div>
                         <p className="text-lg font-black text-gray-900">{selectedRequest.userId?.name}</p>
                         <p className="text-sm text-gray-500 font-medium">{selectedRequest.userId?.email}</p>
+                        {(() => {
+                          const priorCount = allOrders.filter(o =>
+                            o.userId?._id === selectedRequest.userId?._id && o.refundDetails?.status && o.refundDetails.status !== 'none'
+                          ).length;
+                          return priorCount > 1 ? (
+                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider mt-1">⚠ {priorCount} prior returns/refunds</p>
+                          ) : null;
+                        })()}
                     </div>
                 </div>
               </section>

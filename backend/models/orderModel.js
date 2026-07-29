@@ -40,6 +40,9 @@ const orderSchema = new mongoose.Schema({
     // Refund details
     refundDetails: {
         status: { type: String, enum: ['none', 'pending', 'initiated', 'processing', 'completed', 'failed', 'rejected'], default: 'none' },
+        // What kind of event created this refund record — drives admin queue split (Return Requests vs Refund Requests)
+        // and customer-facing labels ("Courier Return" vs a customer-initiated return/refund).
+        requestType: { type: String, enum: ['cancellation', 'return', 'refund', 'courier_return'] },
         amount: { type: Number, default: 0 },
         id: { type: String }, // Razorpay refund ID
         reason: { type: String },
