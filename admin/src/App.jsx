@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
+import ScrollToTop from './components/ScrollToTop'
 import { Routes, Route } from 'react-router-dom'
 import Add from './pages/Add'
 import List from './pages/List'
@@ -59,6 +60,7 @@ const App = () => {
 
   return (
     <div className='bg-gray-50 min-h-screen'>
+      <ScrollToTop />
       <ToastContainer />
       {token === ""
         ? <Routes>
