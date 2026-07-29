@@ -105,6 +105,7 @@ export default function CheckoutPage() {
   const [isGiftWrapModalOpen, setIsGiftWrapModalOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
+  const [activeOffers, setActiveOffers] = useState([]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(null);
 
@@ -252,6 +253,65 @@ export default function CheckoutPage() {
     }
   }, [selectedPayment, appliedCoupon]);
 
+  // Fetch active, user-eligible offers (respects Luxe / specific-user restrictions server-side)
+  useEffect(() => {
+    const fetchOffers = async () => {
+      if (!token) return;
+      try {
+        const response = await axios.get(`${backendUrl}/api/coupon/all`, { headers: { token } });
+        if (response.data.success) {
+          setActiveOffers(response.data.coupons.filter(c => c.isActive && new Date(c.expiryDate) > new Date()));
+        }
+      } catch (error) {
+        console.error("Failed to fetch active offers", error);
+      }
+    };
+    fetchOffers();
+  }, [token]);
+
+  const getBestOffer = (offerType) => {
+    const candidates = activeOffers.filter(o => o.offerType === offerType);
+    if (candidates.length === 0) return null;
+    return candidates.reduce((best, curr) => (curr.discountValue > best.discountValue ? curr : best));
+  };
+
+  const bestPrepaidOffer = getBestOffer('prepaid');
+
+  const formatDiscount = (offer) => offer.discountType === 'percentage' ? `${offer.discountValue}%` : `₹${offer.discountValue}`;
+
+  // Auto-apply the best matching online/COD-only coupon the moment the user picks a payment method
+  useEffect(() => {
+    if (!selectedPayment || appliedCoupon || cartItems.length === 0) return;
+    const offerType = selectedPayment === 'card' ? 'prepaid' : selectedPayment === 'cod' ? 'cod' : null;
+    if (!offerType) return;
+
+    const candidates = activeOffers
+      .filter(o => o.offerType === offerType)
+      .sort((a, b) => b.discountValue - a.discountValue);
+    if (candidates.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const offer of candidates) {
+        try {
+          const response = await axios.post(`${backendUrl}/api/coupon/apply`,
+            { code: offer.code, items: cartItemsForCoupon, userId: user._id, paymentMethod: selectedPayment },
+            { headers: { token } }
+          );
+          if (response.data.success && !cancelled) {
+            handleCouponApply(response.data);
+            toast.success(`🎉 ${offer.code} auto-applied — you're saving ${formatDiscount(offer)}!`, { icon: '✨' });
+            break;
+          }
+        } catch {
+          // Silently skip ineligible candidates during auto-apply
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [selectedPayment]);
+
   // Combines the state-level "Active" toggle with pincode-level overrides
   // from Delivery Control to decide if an address can be delivered to at all.
   const isAddressServiceable = (addr) => {
@@ -375,6 +435,17 @@ export default function CheckoutPage() {
     const totalProductDiscount = cartItems.reduce((sum, item) => {
         return sum + (item.discountAmount || 0);
     }, 0);
+
+    const cartItemsForCoupon = cartItems.map((item) => {
+        const selectedVariation = item.variations?.find(v => v.color === item.color);
+        const itemPrice = selectedVariation?.sizes?.find(s => s.size === item.size)?.price;
+        return {
+            sku: selectedVariation?.sku,
+            price: item.price || itemPrice || 0,
+            quantity: item.quantity,
+            appliedCoupon: item.appliedCoupon
+        };
+    });
 
     const isLuxeMember = user?.isLuxeMember && (user?.giftWrapsLeft > 0);
     
@@ -970,15 +1041,51 @@ export default function CheckoutPage() {
 
                 {step === 2 ? (
                   <div className="space-y-3">
+                    {bestPrepaidOffer && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="relative overflow-hidden rounded-lg p-3 flex items-center gap-3 text-white shadow-lg"
+                        style={{ background: 'linear-gradient(120deg, #f97316, #ec4899, #a855f7, #f97316)', backgroundSize: '300% 100%' }}
+                      >
+                        <motion.div
+                          className="absolute inset-0"
+                          style={{ background: 'inherit', backgroundSize: 'inherit' }}
+                          animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                          transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+                        />
+                        <motion.span
+                          className="relative text-2xl"
+                          animate={{ rotate: [0, 15, -15, 0] }}
+                          transition={{ duration: 1.6, repeat: Infinity }}
+                        >
+                          ⚡
+                        </motion.span>
+                        <div className="relative">
+                          <p className="font-black text-sm leading-tight">Pay Online & Save {formatDiscount(bestPrepaidOffer)}!</p>
+                          <p className="text-[11px] opacity-90 leading-tight">Applied instantly with UPI / Card / Net Banking</p>
+                        </div>
+                      </motion.div>
+                    )}
+
                     <motion.div
                       whileHover={{ scale: 1.02 }}
                       onClick={() => setSelectedPayment('card')}
-                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                        selectedPayment === 'card' 
-                          ? 'border-[#e8767a] bg-[#fff5f5]' 
-                          : 'border-gray-200 hover:border-[#f9aeaf]'
+                      className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedPayment === 'card'
+                          ? 'border-[#e8767a] bg-[#fff5f5]'
+                          : bestPrepaidOffer ? 'border-orange-300 hover:border-[#f9aeaf]' : 'border-gray-200 hover:border-[#f9aeaf]'
                       }`}
                     >
+                      {bestPrepaidOffer && selectedPayment !== 'card' && (
+                        <motion.span
+                          animate={{ scale: [1, 1.12, 1] }}
+                          transition={{ duration: 1.2, repeat: Infinity }}
+                          className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-[10px] font-black px-2 py-1 rounded-full shadow-lg"
+                        >
+                          SAVE {formatDiscount(bestPrepaidOffer)}
+                        </motion.span>
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
@@ -1024,6 +1131,15 @@ export default function CheckoutPage() {
                             <p className="text-sm text-gray-600">
                               {codBlockedForSelectedAddress ? 'COD not available in your area' : 'Pay with cash when you receive'}
                             </p>
+                            {bestPrepaidOffer && !codBlockedForSelectedAddress && (
+                              <motion.p
+                                animate={{ opacity: [0.6, 1, 0.6] }}
+                                transition={{ duration: 1.8, repeat: Infinity }}
+                                className="text-[10px] text-orange-500 font-bold mt-1"
+                              >
+                                😬 You're missing {formatDiscount(bestPrepaidOffer)} off by choosing COD
+                              </motion.p>
+                            )}
                           </div>
                         </div>
                         {selectedPayment === 'cod' && !codBlockedForSelectedAddress && (
@@ -1115,21 +1231,15 @@ export default function CheckoutPage() {
                 })}
               </div>
 
-              {/* Coupon Application Logic */}
-              {(() => {
-                const cartItemsForCoupon = cartItems.map((item) => {
-                    const selectedVariation = item.variations?.find(v => v.color === item.color);
-                    const itemPrice = selectedVariation?.sizes?.find(s => s.size === item.size)?.price;
-                    return {
-                        sku: selectedVariation?.sku,
-                        price: item.price || itemPrice || 0,
-                        quantity: item.quantity,
-                        appliedCoupon: item.appliedCoupon
-                    };
-                });
-
-                
-              })()}
+              {/* Coupon Application */}
+              <div className="mb-4">
+                <CouponCodeInput
+                  items={cartItemsForCoupon}
+                  onCouponApply={handleCouponApply}
+                  selectedPayment={selectedPayment}
+                  appliedCoupon={appliedCoupon}
+                />
+              </div>
 
 
               <div className="border-t pt-4 mt-6 space-y-2 text-sm">

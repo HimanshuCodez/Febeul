@@ -27,11 +27,12 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
 
     useEffect(() => {
         const fetchOffers = async () => {
+            if (!token) return;
             try {
-                const response = await axios.get(`${url}/api/coupon/all`);
+                const response = await axios.get(`${url}/api/coupon/all`, { headers: { token } });
                 if (response.data.success) {
-                    const filteredOffers = response.data.coupons.filter(c => 
-                        c.isActive && 
+                    const filteredOffers = response.data.coupons.filter(c =>
+                        c.isActive &&
                         new Date(c.expiryDate) > new Date() &&
                         (c.offerType === 'prepaid' || c.offerType === 'cod') // Only show payment-specific coupons
                     );
@@ -42,7 +43,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
             }
         };
         fetchOffers();
-    }, [url]);
+    }, [url, token]);
 
     const handleApplyCoupon = async (codeToApply = couponCode) => {
         const code = codeToApply.trim().toUpperCase();
