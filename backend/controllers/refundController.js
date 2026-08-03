@@ -94,7 +94,12 @@ const processPrepaidRefund = async (orderId, razorpayPaymentId, refundAmount) =>
             return { success: false, message: `Razorpay refund failed with status: ${refundResponse.status}.`, refundId: refundResponse.id };
         }
     } catch (error) {
-        throw new Error(`Failed to process prepaid refund: ${error.message}`);
+        // The Razorpay Node SDK throws errors shaped like
+        // { statusCode, error: { description, code, ... } } rather than a
+        // standard Error with a top-level .message, so error.message is
+        // undefined here — surface the actual gateway description instead.
+        const description = error?.error?.description || error?.description || error.message || "Unknown Razorpay error";
+        throw new Error(`Failed to process prepaid refund: ${description}`);
     }
 };
 

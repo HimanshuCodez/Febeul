@@ -88,12 +88,19 @@ const DeliveryControl = ({ token }) => {
     const [isSavingPincodes, setIsSavingPincodes] = useState(false);
 
     useEffect(() => {
-        fetchSettings();
-        fetchPincodeBlocklist();
+        const loadAll = async () => {
+            setIsLoading(true);
+            // Both fetches must finish before the page becomes interactive —
+            // otherwise a pincode rule added locally while the (slower)
+            // blocklist fetch is still in flight gets silently wiped out
+            // when that fetch resolves and overwrites pincodeEntries.
+            await Promise.all([fetchSettings(), fetchPincodeBlocklist()]);
+            setIsLoading(false);
+        };
+        loadAll();
     }, []);
 
     const fetchSettings = async () => {
-        setIsLoading(true);
         try {
             const response = await axios.get(`${backendUrl}/api/cms/deliveryZones`);
             if (response.data.success && response.data.content?.states?.length) {
@@ -105,8 +112,6 @@ const DeliveryControl = ({ token }) => {
             }
         } catch (error) {
             console.error('Error fetching delivery zones:', error);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -280,7 +285,7 @@ const DeliveryControl = ({ token }) => {
                     </div>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={fetchSettings}
+                            onClick={async () => { setIsLoading(true); await fetchSettings(); setIsLoading(false); }}
                             className="flex items-center gap-2 px-5 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all font-medium text-gray-600"
                         >
                             <RefreshCcw size={18} />

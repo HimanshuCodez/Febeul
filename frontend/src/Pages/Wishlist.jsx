@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Heart } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import Loader from "../components/Loader";
 import { toast } from "react-hot-toast";
@@ -13,7 +13,9 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Wishlist = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user, token, fetchWishlistCount } = useAuthStore();
+  const [addingToCartId, setAddingToCartId] = useState(null);
+  const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount } = useAuthStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchWishlist = async () => {
@@ -46,6 +48,51 @@ const Wishlist = () => {
       setWishlistItems((items) =>
         items.filter((item) => item._id !== productId)
       );
+    }
+  };
+
+  const handleAddToCart = async (product) => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to add items to your cart.");
+      navigate("/auth");
+      return;
+    }
+
+    // Wishlist items don't carry a selected size/color, so fall back to the
+    // first in-stock size across variations, same default ProductCard shows.
+    let color = null;
+    let size = null;
+    for (const variation of product.variations || []) {
+      const inStockSize = variation.sizes?.find((s) => s.stock > 0);
+      if (inStockSize) {
+        color = variation.color;
+        size = inStockSize.size;
+        break;
+      }
+    }
+
+    if (!size) {
+      toast.error("This item is currently out of stock.");
+      return;
+    }
+
+    setAddingToCartId(product._id);
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/cart/add`,
+        { userId: user._id, itemId: product._id, size, color },
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        toast.success("Added to cart!");
+        fetchCartCount();
+      } else {
+        toast.error(response.data.message || "Failed to add to cart.");
+      }
+    } catch (error) {
+      toast.error("Failed to add to cart.");
+    } finally {
+      setAddingToCartId(null);
     }
   };
 
@@ -106,11 +153,19 @@ const Wishlist = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
             {wishlistItems.map((item) => (
-              <div key={item._id} className="relative">
-                <ProductCard 
-                  product={item} 
+              <div key={item._id} className="relative flex flex-col">
+                <ProductCard
+                  product={item}
                   onWishlistToggle={(isAdded) => handleWishlistUpdate(item._id, isAdded)}
                 />
+                <button
+                  onClick={() => handleAddToCart(item)}
+                  disabled={addingToCartId === item._id}
+                  className="mt-3 w-full max-w-[280px] sm:max-w-[300px] mx-auto flex items-center justify-center gap-2 bg-pink-500 text-white px-4 py-2.5 rounded-full text-sm font-semibold hover:bg-pink-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <ShoppingCart size={16} />
+                  {addingToCartId === item._id ? "Adding..." : "Add to Cart"}
+                </button>
               </div>
             ))}
           </div>

@@ -649,22 +649,26 @@ const Orders = ({ token }) => {
                 {paginatedOrders.map((order) => (
                   <div className='bg-white rounded-2xl shadow-md hover:shadow-lg transition-all overflow-hidden border border-gray-100' key={order._id}>
                     {/* Order Summary Header */}
-                    <div className='flex flex-col lg:flex-row justify-between items-start p-5 bg-gray-50/50 border-b border-gray-100 gap-4'>
-                      <div className="flex items-start gap-4">
-                        <Package size={22} className="text-pink-500 mt-1" />
-                        <div>
-                          <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Order ID</p>
-                          <p className='text-sm font-black text-gray-900'>#{order._id}</p>
+                    <div className='flex flex-col xl:flex-row xl:items-center justify-between gap-5 p-5 bg-gray-50/50 border-b border-gray-100'>
+                      <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 flex-1'>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
+                            <Package size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Order ID</p>
+                            <p className='text-sm font-black text-gray-900 truncate' title={order._id}>#{order._id}</p>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-start gap-4">
-                        <User size={22} className="text-pink-500 mt-1" />
-                        <div>
-                          <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Customer</p>
-                          <div className='flex flex-col'>
-                            <p className='text-sm font-bold text-gray-800'>{order.userId?.name || order.address?.name || 'N/A'}</p>
-                            <p className='text-xs text-gray-500 font-medium'>{order.userId?.email || order.address?.email || 'N/A'}</p>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
+                            <User size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Customer</p>
+                            <p className='text-sm font-bold text-gray-800 truncate'>{order.userId?.name || order.address?.name || 'N/A'}</p>
+                            <p className='text-xs text-gray-500 font-medium truncate'>{order.userId?.email || order.address?.email || 'N/A'}</p>
                             {order.userId?.isLuxeMember && (
                               <span className='inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit mt-1'>
                                 <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
@@ -673,35 +677,42 @@ const Orders = ({ token }) => {
                             )}
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-start gap-4">
-                        <Calendar size={22} className="text-pink-500 mt-1" />
-                        <div>
-                          <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Order Date</p>
-                          <p className='text-sm font-bold text-gray-800'>{formatDate(order.date)}</p>
-                          <p className='text-xs text-gray-500 font-medium'>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
+                            <Calendar size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Order Date</p>
+                            <p className='text-sm font-bold text-gray-800'>{formatDate(order.date)}</p>
+                            <p className='text-xs text-gray-500 font-medium'>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
+                            <DollarSign size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Total Amount</p>
+                            <p className='text-sm font-black text-gray-950'>{currency}{order.orderTotal.toFixed(2)}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
+                            <MapPin size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Destination</p>
+                            <p className='text-sm font-bold text-gray-800 truncate'>{order.address.state}</p>
+                            <p className='text-xs text-gray-500 font-medium truncate'>{order.address.city} - {order.address.zip}</p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-4">
-                        <DollarSign size={22} className="text-pink-500 mt-1" />
-                        <div>
-                          <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Total Amount</p>
-                          <p className='text-sm font-black text-gray-950'>{currency}{order.orderTotal.toFixed(2)}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-4">
-                        <MapPin size={22} className="text-pink-500 mt-1" />
-                        <div>
-                          <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Destination</p>
-                          <p className='text-sm font-bold text-gray-800'>{order.address.state}</p>
-                          <p className='text-xs text-gray-500 font-medium'>{order.address.city} - {order.address.zip}</p>
-                        </div>
-                      </div>
-
-                      <div className='flex items-center gap-3 lg:self-center mt-2 lg:mt-0'>
+                      <div className='flex items-center gap-3 xl:pl-5 xl:border-l xl:border-gray-200'>
+                        <StatusBadge status={order.orderStatus} />
                         <button
                           onClick={() => downloadInvoice(order._id)}
                           className="p-2 rounded-xl bg-white hover:bg-pink-50 transition-colors text-pink-500 border border-gray-100 shadow-sm"
@@ -709,7 +720,6 @@ const Orders = ({ token }) => {
                         >
                           <FileText size={18} />
                         </button>
-                        <StatusBadge status={order.orderStatus} />
                         <button
                           onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
                           className="p-2 rounded-xl bg-white hover:bg-gray-100 border border-gray-100 transition-colors shadow-sm"
@@ -722,10 +732,10 @@ const Orders = ({ token }) => {
 
                     {/* Order Details Body (Conditionally Rendered) */}
                     {expandedOrderId === order._id && (
-                      <div className='p-5 border-t border-gray-100 bg-white'>
-                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+                      <div className='p-5 border-t border-gray-100 bg-gray-50/30'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
                           {/* Products */}
-                          <div>
+                          <div className='bg-white rounded-2xl border border-gray-100 p-4'>
                             <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><Tag size={14}/> Products</p>
                             <div className='space-y-3'>
                               {order.items.map((item, itemIndex) => (
@@ -749,7 +759,7 @@ const Orders = ({ token }) => {
                           </div>
 
                           {/* Customer Details */}
-                          <div>
+                          <div className='bg-white rounded-2xl border border-gray-100 p-4'>
                             <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><User size={14}/> Customer & Shipping</p>
                             <address className='text-xs text-gray-600 not-italic space-y-1.5'>
                               <div className="flex items-center gap-2">
@@ -771,7 +781,7 @@ const Orders = ({ token }) => {
                           </div>
 
                           {/* Payment & Shiprocket */}
-                          <div>
+                          <div className='bg-white rounded-2xl border border-gray-100 p-4'>
                             <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><CreditCard size={14}/> Payment Info</p>
                             <div className='space-y-1.5 text-xs text-gray-600'>
                               <p>Method: <span className="font-bold text-gray-800">{order.paymentMethod}</span></p>
@@ -830,7 +840,7 @@ const Orders = ({ token }) => {
 
                           {/* Cancellation / Refund Info */}
                           {(order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned' || order.orderStatus === 'Refunded' || order.orderStatus === 'Refund Initiated') && (
-                            <div>
+                            <div className='bg-white rounded-2xl border border-gray-100 p-4'>
                               <p className='font-bold text-red-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><AlertCircle size={14}/> Returns / Cancellation</p>
                               <div className='space-y-2 text-xs text-gray-600 bg-red-50/50 p-3.5 rounded-xl border border-red-100'>
                                 <p className="font-black text-red-700 capitalize">Status: {order.orderStatus}</p>

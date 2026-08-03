@@ -9,22 +9,31 @@ import { toast } from 'react-hot-toast';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 // Global cache to avoid redundant API calls across multiple ProductCard instances
+// mounting at once. Short TTL so coupons created/edited in admin (e.g. made
+// SKU-specific) show up without requiring a full page reload of an already-open tab.
+const COUPONS_CACHE_TTL_MS = 60000;
 let couponsCache = null;
+let couponsCacheTime = 0;
 let couponsPromise = null;
 
 const fetchActiveCoupons = async () => {
-  if (couponsCache) return couponsCache;
+  if (couponsCache && Date.now() - couponsCacheTime < COUPONS_CACHE_TTL_MS) return couponsCache;
   if (couponsPromise) return couponsPromise;
 
   couponsPromise = axios.get(`${backendUrl}/api/coupon/active`)
     .then(res => {
+      couponsPromise = null;
       if (res.data.success) {
         couponsCache = res.data.coupons;
+        couponsCacheTime = Date.now();
         return couponsCache;
       }
       return [];
     })
-    .catch(() => []);
+    .catch(() => {
+      couponsPromise = null;
+      return [];
+    });
 
   return couponsPromise;
 };

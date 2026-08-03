@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { backendUrl } from "../../App";
-import { Tags, Shirt, Layers, Save, RefreshCcw, Plus, X, Info } from "lucide-react";
+import { Tags, Shirt, Layers, Ruler, Save, RefreshCcw, Plus, X, Info } from "lucide-react";
 import { DEFAULT_TAXONOMY, fetchTaxonomy, saveTaxonomy } from "../../utils/taxonomy";
 
 const Chip = ({ label, onRemove }) => (
@@ -129,6 +129,18 @@ const ProductTaxonomy = ({ token }) => {
     setTaxonomy((prev) => ({ ...prev, fabrics: prev.fabrics.filter((f) => f !== name) }));
   };
 
+  const addSize = (name) => {
+    if (taxonomy.sizes.some((s) => s.toLowerCase() === name.toLowerCase())) {
+      toast.error("That size already exists.");
+      return;
+    }
+    setTaxonomy((prev) => ({ ...prev, sizes: [...prev.sizes, name] }));
+  };
+
+  const removeSize = (name) => {
+    setTaxonomy((prev) => ({ ...prev, sizes: prev.sizes.filter((s) => s !== name) }));
+  };
+
   const addType = (name) => {
     if (!selectedCategory) {
       toast.error("Select a category first.");
@@ -174,7 +186,7 @@ const ProductTaxonomy = ({ token }) => {
         <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Product Taxonomy</h2>
-            <p className="text-gray-500 text-sm mt-1">Manage the Category, Fabric, and Type lists used across product forms and the storefront nav</p>
+            <p className="text-gray-500 text-sm mt-1">Manage the Category, Fabric, Size, and Type lists used across product forms and the storefront nav</p>
           </div>
           <div className="p-3 rounded-xl bg-pink-100 text-pink-600">
             <Tags size={28} />
@@ -216,6 +228,24 @@ const ProductTaxonomy = ({ token }) => {
               )}
             </div>
             <AddChipInput placeholder="e.g. Chiffon" onAdd={addFabric} />
+          </section>
+
+          {/* Sizes */}
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b pb-2">
+              <Ruler className="text-orange-500" size={20} />
+              <h3 className="font-bold text-gray-800">Sizes</h3>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {taxonomy.sizes.length > 0 ? (
+                taxonomy.sizes.map((size) => (
+                  <Chip key={size} label={size} onRemove={() => removeSize(size)} />
+                ))
+              ) : (
+                <p className="text-xs text-gray-400 italic">No sizes yet.</p>
+              )}
+            </div>
+            <AddChipInput placeholder="e.g. 3XL" onAdd={addSize} />
           </section>
 
           {/* Types (per category) */}
@@ -285,8 +315,8 @@ const ProductTaxonomy = ({ token }) => {
         <div>
           <h4 className="font-bold text-amber-900 mb-1 text-sm italic">Where this shows up</h4>
           <p className="text-xs text-amber-800 leading-relaxed font-medium">
-            These lists power the Category/Fabric/Type dropdowns on the Add &amp; Update product pages, and the storefront Navbar's mega menu builds itself
-            from the same Categories and Types automatically. Removing a category or type here does not change any existing products — it only affects
+            These lists power the Category/Fabric/Size/Type dropdowns on the Add &amp; Update product pages, and the storefront Navbar's mega menu builds itself
+            from the same Categories and Types automatically. Removing a category, size, or type here does not change any existing products — it only affects
             what's offered going forward.
           </p>
         </div>

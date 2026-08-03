@@ -18,8 +18,6 @@ import {
   Trash2,
 } from 'lucide-react';
 
-const availableSizes = ["S", "M", "L", "XL", "XXL", "Free Size"];
-
 const Update = ({ token }) => {
     const { productId } = useParams();
     const navigate = useNavigate();
@@ -56,6 +54,7 @@ const Update = ({ token }) => {
     const [genericName, setGenericName] = useState("");
     const [keywords, setKeywords] = useState("");
     const [existingSkus, setExistingSkus] = useState([]);
+    const [newSizeInput, setNewSizeInput] = useState("");
 
     useEffect(() => {
         const fetchExistingSkus = async () => {
@@ -118,6 +117,25 @@ const Update = ({ token }) => {
         } catch (error) {
             toast.error("Failed to save new fabric, but you can still use it for this product.");
         }
+    };
+
+    const addTaxonomySize = async (newName) => {
+        const trimmed = newName.trim();
+        if (!trimmed) return;
+        if (taxonomy.sizes.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
+            toast.error("That size already exists.");
+            return;
+        }
+        const updated = { ...taxonomy, sizes: [...taxonomy.sizes, trimmed] };
+        try {
+            await saveTaxonomy(backendUrl, token, updated);
+            setTaxonomy(updated);
+            toast.success(`Size "${trimmed}" added.`);
+        } catch (error) {
+            toast.error("Failed to save new size, but you can still use it for this product.");
+            setTaxonomy(updated);
+        }
+        setNewSizeInput("");
     };
 
     const addType = async (newName) => {
@@ -439,8 +457,8 @@ const Update = ({ token }) => {
                                                     )}
                                                 </div>
                                             ))}
-                                            <div className='flex gap-2 mt-3 flex-wrap'>
-                                                {availableSizes.filter(size => !variation.sizes.some(s => s.size === size)).map(size => (
+                                            <div className='flex gap-2 mt-3 flex-wrap items-center'>
+                                                {taxonomy.sizes.filter(size => !variation.sizes.some(s => s.size === size)).map(size => (
                                                     <button
                                                         key={size}
                                                         type='button'
@@ -450,6 +468,31 @@ const Update = ({ token }) => {
                                                         + {size}
                                                     </button>
                                                 ))}
+                                                {role !== 'staff' && (
+                                                    <div className='flex gap-1'>
+                                                        <input
+                                                            type='text'
+                                                            value={newSizeInput}
+                                                            onChange={(e) => setNewSizeInput(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    addTaxonomySize(newSizeInput);
+                                                                }
+                                                            }}
+                                                            placeholder='New size e.g. 3XL'
+                                                            className='w-32 px-2 py-1.5 border border-dashed border-gray-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400'
+                                                        />
+                                                        <button
+                                                            type='button'
+                                                            onClick={() => addTaxonomySize(newSizeInput)}
+                                                            disabled={!newSizeInput.trim()}
+                                                            className='px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+                                                        >
+                                                            Add
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 

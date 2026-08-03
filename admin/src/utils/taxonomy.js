@@ -7,6 +7,7 @@ import axios from "axios";
 export const DEFAULT_TAXONOMY = {
   categories: ["BABYDOLL", "LINGERIE", "NIGHTY", "PAJAMAS", "GIFT WRAP"],
   fabrics: ["Satin", "Lace", "Net", "Silk Satin"],
+  sizes: ["S", "M", "L", "XL", "XXL", "Free Size"],
   typesByCategory: {
     BABYDOLL: ["Above knee B'doll", "Knee Length B'doll", "One piece B'doll", "Two Piece B-doll"],
     LINGERIE: ["Teddy Choker Lingz", "Bra Panty Lingz"],
@@ -24,6 +25,7 @@ export const fetchTaxonomy = async (backendUrl) => {
       return {
         categories: content.categories?.length ? content.categories : DEFAULT_TAXONOMY.categories,
         fabrics: content.fabrics?.length ? content.fabrics : DEFAULT_TAXONOMY.fabrics,
+        sizes: content.sizes?.length ? content.sizes : DEFAULT_TAXONOMY.sizes,
         typesByCategory: content.typesByCategory || {},
       };
     }

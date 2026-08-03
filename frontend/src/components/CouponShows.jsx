@@ -87,10 +87,14 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
     return <div className="my-4 text-center text-red-600">{error}</div>;
   }
 
-  const applicableCoupons = coupons.filter(coupon => 
+  const skuMatches = (couponSKUs, sku) => !sku ? false : couponSKUs.some(
+    (item) => item.trim().toLowerCase() === sku.trim().toLowerCase()
+  );
+
+  const applicableCoupons = coupons.filter(coupon =>
     (coupon.offerType === 'none' || !coupon.offerType) && // Filter out cod and prepaid
-    (coupon.applicableSKUs.length === 0 || 
-    productSKUs.some(sku => coupon.applicableSKUs.includes(sku)))
+    (coupon.applicableSKUs.length === 0 ||
+    productSKUs.some(sku => skuMatches(coupon.applicableSKUs, sku)))
   );
 
   if (applicableCoupons.length === 0) {
@@ -115,7 +119,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
           let currentQuantity = 0;
           if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
             currentQuantity = cartItems
-              .filter(item => coupon.applicableSKUs.includes(item.sku))
+              .filter(item => skuMatches(coupon.applicableSKUs, item.sku))
               .reduce((sum, item) => sum + item.quantity, 0);
           } else {
             currentQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -128,7 +132,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
           let currentAmount = 0;
           if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
             currentAmount = cartItems
-              .filter(item => coupon.applicableSKUs.includes(item.sku))
+              .filter(item => skuMatches(coupon.applicableSKUs, item.sku))
               .reduce((sum, item) => sum + (item.price * item.quantity), 0);
           } else {
             currentAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);

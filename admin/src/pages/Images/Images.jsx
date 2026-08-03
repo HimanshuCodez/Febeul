@@ -128,28 +128,28 @@ const Images = ({ token }) => {
                     <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Desktop Version (Wide)</p>
                     <div className="flex items-center gap-4">
                       <div className="w-40 h-20 bg-gray-200 rounded border overflow-hidden">
-                        {slide.desktop ? <img src={slide.desktop} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">1920x800</div>}
+                        {slide.desktop ? <img src={slide.desktop} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">1920x1080</div>}
                       </div>
                       <label className="cursor-pointer bg-white border px-3 py-1 rounded text-xs shadow-sm hover:bg-gray-50 transition">
                         Upload Desktop
                         <input type="file" className="hidden" onChange={(e) => handleFileUpload('hero', index, e.target.files[0], 'desktop')} />
                       </label>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-1">Note: Image should be between 1920x800 and 2560x1080 pixels to fill the screen properly.</p>
+                    <p className="text-[10px] text-gray-500 mt-1">Note: Use exactly 1920x1080px (16:9) — this banner fills the full browser width at up to 85% of the screen height.</p>
                   </div>
                   {/* Mobile Upload */}
                   <div className="space-y-3">
                     <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Version (Portrait)</p>
                     <div className="flex items-center gap-4">
                       <div className="w-20 h-24 bg-gray-200 rounded border overflow-hidden">
-                        {slide.mobile ? <img src={slide.mobile} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">1080x1350</div>}
+                        {slide.mobile ? <img src={slide.mobile} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">1080x1920</div>}
                       </div>
                       <label className="cursor-pointer bg-blue-50 border border-blue-200 text-blue-600 px-3 py-1 rounded text-xs shadow-sm hover:bg-blue-100 transition">
                         Upload Mobile
                         <input type="file" className="hidden" onChange={(e) => handleFileUpload('hero', index, e.target.files[0], 'mobile')} />
                       </label>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-1">Note: Image should be between 1080x1350 and 1080x1920 pixels to fill the screen properly.</p>
+                    <p className="text-[10px] text-gray-500 mt-1">Note: Use exactly 1080x1920px (9:16) — this banner fills the full mobile screen edge to edge.</p>
                   </div>
                   {/* Link */}
                   <div className="md:col-span-2 border-t pt-4">
@@ -182,6 +182,7 @@ const Images = ({ token }) => {
                   <div className="flex flex-col items-center gap-3 mb-4">
                     <img src={item.image || ''} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md" />
                     <label className="cursor-pointer bg-white border px-4 py-1 text-xs rounded-full shadow-sm hover:bg-gray-50 transition">Change Photo<input type="file" className="hidden" onChange={(e) => handleFileUpload('spotlight', index, e.target.files[0])} /></label>
+                    <p className="text-[10px] text-gray-500 text-center">Note: Use a square image, exactly 500x500px, for a sharp circular crop.</p>
                   </div>
                   <div className="w-full space-y-2">
                     <input type="text" placeholder="Category Label" value={item.label} onChange={(e) => { const n = [...spotlight]; n[index].label = e.target.value; setSpotlight(n); }} className="w-full px-3 py-2 border rounded text-sm outline-none bg-white" />
@@ -227,6 +228,7 @@ const Images = ({ token }) => {
                       Upload Desktop Video
                       <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'desktop')} />
                     </label>
+                    <p className="text-[10px] text-gray-500">Note: Use exactly 1920x1080px (16:9) — this player is widescreen on tablet & desktop.</p>
                   </div>
                   <div className="space-y-3">
                     <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Version</p>
@@ -241,6 +243,7 @@ const Images = ({ token }) => {
                       Upload Mobile Video
                       <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'mobile')} />
                     </label>
+                    <p className="text-[10px] text-gray-500">Note: Use exactly 1080x1920px (9:16) — this player is full-height portrait on mobile.</p>
                   </div>
                   <div className="space-y-3">
                     <p className="font-bold text-pink-600 uppercase text-[10px] tracking-wider">Watch More Thumbnail</p>
@@ -255,6 +258,7 @@ const Images = ({ token }) => {
                       Upload Thumbnail
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'thumbnail')} />
                     </label>
+                    <p className="text-[10px] text-gray-500">Note: Use exactly 800x450px (16:9) for a sharp &quot;Watch More&quot; thumbnail.</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
@@ -292,7 +296,7 @@ const Images = ({ token }) => {
                   {poseSection.desktop ? <img src={poseSection.desktop} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">Desktop Image</div>}
                 </div>
                 <label className="block text-center cursor-pointer bg-white border border-gray-300 py-3 rounded-md text-sm font-bold shadow-sm hover:bg-gray-50 transition">Upload Desktop Image<input type="file" className="hidden" onChange={(e) => handleFileUpload('pose', null, e.target.files[0], 'desktop')} /></label>
-                <p className="text-xs text-gray-500 text-center mt-1">Note: Image should be between 1920x800 and 2560x1080 pixels to fill the screen properly.</p>
+                <p className="text-xs text-gray-500 text-center mt-1">Note: Use exactly 1920x1080px (16:9) — this banner fills the full browser width at up to 85% of the screen height.</p>
               </div>
               <div className="space-y-4">
                 <p className="font-bold text-red-600 uppercase text-xs">Mobile Full Screen (Portrait)</p>
@@ -300,7 +304,7 @@ const Images = ({ token }) => {
                   {poseSection.mobile ? <img src={poseSection.mobile} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">Mobile Image</div>}
                 </div>
                 <label className="block text-center cursor-pointer bg-red-50 text-red-600 border border-red-200 py-3 rounded-md text-sm font-bold shadow-sm hover:bg-red-50 transition">Upload Mobile Image<input type="file" className="hidden" onChange={(e) => handleFileUpload('pose', null, e.target.files[0], 'mobile')} /></label>
-                <p className="text-xs text-gray-500 text-center mt-1">Note: Image should be between 1080x1350 and 1080x1920 pixels to fill the screen properly.</p>
+                <p className="text-xs text-gray-500 text-center mt-1">Note: Use exactly 1080x1920px (9:16) — this banner fills the full mobile screen edge to edge.</p>
               </div>
             </div>
             <div className="border-t pt-6">

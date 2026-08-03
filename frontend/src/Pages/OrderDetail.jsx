@@ -428,7 +428,7 @@ const HorizontalBikeTracker = ({ displayStatus }) => {
 
 export default function OrderDetailPage() {
   const { orderId } = useParams();
-  const { token, isAuthenticated, siteSettings, fetchSiteSettings } = useAuthStore();
+  const { token, isAuthenticated, siteSettings, fetchSiteSettings, fetchDeliveryZones, getStateServiceability } = useAuthStore();
   const navigate = useNavigate();
 
   const [order, setOrder] = useState(null);
@@ -442,6 +442,7 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     fetchSiteSettings();
+    fetchDeliveryZones();
   }, []);
 
   const fetchOrderDetails = async () => {
@@ -630,27 +631,34 @@ export default function OrderDetailPage() {
     if (order.deliveredAt) {
       return new Date(order.deliveredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     }
+
+    // Per-state delivery window configured in the admin Delivery Control
+    // page is the source of truth for the fallback estimate, not a
+    // hardcoded 5-7 day guess.
+    const zoneInfo = getStateServiceability(order.address?.state);
+    const minDays = zoneInfo?.minDays ?? 5;
+    const maxDays = zoneInfo?.maxDays ?? 7;
+
     if (order.shippedAt) {
       const estDate = new Date(order.shippedAt);
-      estDate.setDate(estDate.getDate() + 5);
+      estDate.setDate(estDate.getDate() + maxDays);
       return `Est: ${estDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
     }
-    
-    // Calculate dynamic 5 to 7 days range from order date
+
     if (order.date) {
       const orderDate = new Date(order.date);
       const minDate = new Date(orderDate);
-      minDate.setDate(orderDate.getDate() + 5);
+      minDate.setDate(orderDate.getDate() + minDays);
       const maxDate = new Date(orderDate);
-      maxDate.setDate(orderDate.getDate() + 7);
-      
+      maxDate.setDate(orderDate.getDate() + maxDays);
+
       const options = { day: 'numeric', month: 'short' };
       const minStr = minDate.toLocaleDateString('en-IN', options);
       const maxStr = maxDate.toLocaleDateString('en-IN', { ...options, year: 'numeric' });
       return `${minStr} - ${maxStr}`;
     }
-    
-    return '5 to 7 days';
+
+    return `${minDays} to ${maxDays} days`;
   };
 
   const estimatedDelivery = getExpectedDelivery();
