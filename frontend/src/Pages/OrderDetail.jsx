@@ -932,7 +932,7 @@ export default function OrderDetailPage() {
                 </div>
                 <div>
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">AWB Number</span>
-                  <span className="text-sm font-extrabold text-[#e8767a] select-all">#{order.shiprocket.awb}</span>
+                  <span className="text-sm font-extrabold text-[#e8767a] select-all break-all">#{order.shiprocket.awb}</span>
                 </div>
                 {order.shiprocket.trackingUrl && (
                   <div className="flex items-center">
@@ -1125,7 +1125,7 @@ export default function OrderDetailPage() {
                       {pickup.awb && (
                         <div>
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Return AWB</span>
-                          <span className="text-sm font-extrabold text-[#e8767a] select-all">#{pickup.awb}</span>
+                          <span className="text-sm font-extrabold text-[#e8767a] select-all break-all">#{pickup.awb}</span>
                         </div>
                       )}
                       {pickup.scheduledDate && (
@@ -1225,10 +1225,13 @@ export default function OrderDetailPage() {
                 <div className="w-12 h-12 bg-[#fff5f5] rounded-lg flex items-center justify-center mr-3">
                   {order.paymentMethod === 'COD' ? <FaMoneyBillWave className="text-2xl text-[#e8767a]" /> : <FaCreditCard className="text-2xl text-[#e8767a]" />}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold text-gray-800">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : (order.paymentMethod === 'Razorpay' ? 'Razorpay Prepaid' : 'Stripe Payment')}</p>
                   <p className="text-sm text-gray-600">Total: ₹{orderTotal.toFixed(2)}</p>
                   <p className={`text-[10px] font-bold uppercase ${order.payment ? 'text-green-600' : 'text-red-500'}`}>{order.payment ? 'Paid' : 'Pending'}</p>
+                  {order.paymentMethod === 'Razorpay' && order.razorpayPaymentId && (
+                    <p className="text-[10px] text-gray-400 font-bold mt-1 break-all select-all">Ref ID: {order.razorpayPaymentId}</p>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1259,13 +1262,13 @@ export default function OrderDetailPage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.7 + (index * 0.1) }}
-                    className="flex items-center justify-between pb-4 border-b border-gray-200 last:border-0"
+                    className="flex items-center justify-between gap-2 pb-4 border-b border-gray-200 last:border-0"
                   >
-                    <div className="flex items-center flex-1">
-                      <img src={item.image} className="w-12 h-12 object-cover mr-3 rounded" />
-                      <div>
-                        <p className="font-medium text-gray-800">{item.name}</p>
-                        {item.sku && <p className="text-xs text-gray-500">SKU: {item.sku}</p>}
+                    <div className="flex items-center flex-1 min-w-0">
+                      <img src={item.image} className="w-12 h-12 object-cover mr-3 rounded shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-800 break-words">{item.name}</p>
+                        {item.sku && <p className="text-xs text-gray-500 break-words">SKU: {item.sku}</p>}
                         <div className="flex flex-wrap items-center gap-2 mt-1">
                           <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                           {itemDiscount > 0 && (
@@ -1276,7 +1279,7 @@ export default function OrderDetailPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p className={`font-bold text-gray-800 ${itemDiscount > 0 ? 'line-through text-xs text-gray-400' : ''}`}>
                         ₹{(itemPrice * itemQuantity).toFixed(2)}
                       </p>

@@ -690,24 +690,24 @@ export default function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-lg shadow-md p-6 mb-6"
         >
-          <h1 className="text-3xl font-bold text-gray-800">Checkout</h1>
-          <div className="flex items-center mt-4 text-sm">
-            <span className={`flex items-center ${step >= 1 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
-              <span className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${step >= 1 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
-                {step > 1 ? <FaCheck /> : '1'}
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Checkout</h1>
+          <div className="flex items-center mt-4 text-[11px] sm:text-sm overflow-x-auto">
+            <span className={`flex items-center shrink-0 ${step >= 1 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
+              <span className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 shrink-0 ${step >= 1 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
+                {step > 1 ? <FaCheck size={12} /> : '1'}
               </span>
               Address
             </span>
-            <FaChevronRight className="mx-4 text-gray-400" />
-            <span className={`flex items-center ${step >= 2 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
-              <span className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${step >= 2 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
-                {step > 2 ? <FaCheck /> : '2'}
+            <FaChevronRight className="mx-1.5 sm:mx-4 text-gray-400 shrink-0" size={12} />
+            <span className={`flex items-center shrink-0 ${step >= 2 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
+              <span className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 shrink-0 ${step >= 2 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
+                {step > 2 ? <FaCheck size={12} /> : '2'}
               </span>
               Payment
             </span>
-            <FaChevronRight className="mx-4 text-gray-400" />
-            <span className={`flex items-center ${step >= 3 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
-              <span className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${step >= 3 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
+            <FaChevronRight className="mx-1.5 sm:mx-4 text-gray-400 shrink-0" size={12} />
+            <span className={`flex items-center shrink-0 ${step >= 3 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
+              <span className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 shrink-0 ${step >= 3 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
                 3
               </span>
               Review
@@ -945,21 +945,21 @@ export default function CheckoutPage() {
                           : 'border-gray-200 hover:border-[#f9aeaf]'
                       }`}
                     >
-                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-bold text-gray-800">{addr.name}</p>
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border">
+                       <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <p className="font-bold text-gray-800 break-words">{addr.name}</p>
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border shrink-0">
                                 {addr.addressType === 'Home' ? 'House/Apartment' : addr.addressType}
                             </span>
                           </div>
-                          <p className="text-gray-600 text-sm">{addr.address}, {addr.locality}</p>
-                          {addr.landmark && <p className="text-gray-500 text-xs italic">Landmark: {addr.landmark}</p>}
-                          <p className="text-gray-600 text-sm">{addr.zip}, {addr.city}</p>
-                          <p className="text-gray-600 text-sm">{addr.state}, {addr.country}</p>
-                          <p className="text-gray-600 text-sm mt-1">Phone: {addr.phone}{addr.alternatePhone ? `, ${addr.alternatePhone}` : ''}</p>
+                          <p className="text-gray-600 text-sm break-words">{addr.address}, {addr.locality}</p>
+                          {addr.landmark && <p className="text-gray-500 text-xs italic break-words">Landmark: {addr.landmark}</p>}
+                          <p className="text-gray-600 text-sm break-words">{addr.zip}, {addr.city}</p>
+                          <p className="text-gray-600 text-sm break-words">{addr.state}, {addr.country}</p>
+                          <p className="text-gray-600 text-sm mt-1 break-words">Phone: {addr.phone}{addr.alternatePhone ? `, ${addr.alternatePhone}` : ''}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-col items-end gap-2 shrink-0">
                             {selectedAddress === idx && (
                             <motion.div
                                 initial={{ scale: 0 }}
@@ -1003,16 +1003,17 @@ export default function CheckoutPage() {
                   animate={{ opacity: 1 }}
                   className="border-2 border-[#e8767a] bg-[#fff5f5] rounded-lg p-4"
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-bold text-gray-800">{addresses[selectedAddress].name}</p>
-                    <span className="px-2 py-0.5 bg-white text-[#e8767a] text-[10px] rounded-full uppercase font-bold border border-[#e8767a]">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="font-bold text-gray-800 break-words">{addresses[selectedAddress].name}</p>
+                    <span className="px-2 py-0.5 bg-white text-[#e8767a] text-[10px] rounded-full uppercase font-bold border border-[#e8767a] shrink-0">
                         {addresses[selectedAddress].addressType === 'Home' ? 'House/Apartment' : addresses[selectedAddress].addressType}
-                    </span>                  </div>
-                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].address}, {addresses[selectedAddress].locality}</p>
-                  {addresses[selectedAddress].landmark && <p className="text-gray-500 text-xs italic">Landmark: {addresses[selectedAddress].landmark}</p>}
-                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].zip}, {addresses[selectedAddress].city}</p>
-                  <p className="text-gray-600 text-sm">{addresses[selectedAddress].state}, {addresses[selectedAddress].country}</p>
-                  <p className="text-gray-600 text-sm mt-1">Phone: {addresses[selectedAddress].phone}{addresses[selectedAddress].alternatePhone ? `, ${addresses[selectedAddress].alternatePhone}` : ''}</p>
+                    </span>
+                  </div>
+                  <p className="text-gray-600 text-sm break-words">{addresses[selectedAddress].address}, {addresses[selectedAddress].locality}</p>
+                  {addresses[selectedAddress].landmark && <p className="text-gray-500 text-xs italic break-words">Landmark: {addresses[selectedAddress].landmark}</p>}
+                  <p className="text-gray-600 text-sm break-words">{addresses[selectedAddress].zip}, {addresses[selectedAddress].city}</p>
+                  <p className="text-gray-600 text-sm break-words">{addresses[selectedAddress].state}, {addresses[selectedAddress].country}</p>
+                  <p className="text-gray-600 text-sm mt-1 break-words">Phone: {addresses[selectedAddress].phone}{addresses[selectedAddress].alternatePhone ? `, ${addresses[selectedAddress].alternatePhone}` : ''}</p>
                 </motion.div>
               )}
             </motion.div>
@@ -1217,15 +1218,15 @@ export default function CheckoutPage() {
                   const actualImage = selectedVariation?.images?.[0] || item.variations?.[0]?.images?.[0]; // Fallback to first variation's first image
 
                   return (
-                    <div key={item._id + item.size + item.color} className="flex items-start justify-between text-sm">
-                        <div className="flex items-start flex-1">
-                        <img src={actualImage} className="w-10 h-10 object-cover mr-2 rounded" />
-                        <div>
-                            <p className="text-gray-800 font-medium">{item.name}</p>
+                    <div key={item._id + item.size + item.color} className="flex items-start justify-between gap-2 text-sm">
+                        <div className="flex items-start flex-1 min-w-0">
+                        <img src={actualImage} className="w-10 h-10 object-cover mr-2 rounded shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-gray-800 font-medium break-words">{item.name}</p>
                             <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
                         </div>
                         </div>
-                        <p className="font-bold text-gray-800">₹{(actualPrice * item.quantity).toFixed(2)}</p>
+                        <p className="font-bold text-gray-800 shrink-0 whitespace-nowrap">₹{(actualPrice * item.quantity).toFixed(2)}</p>
                     </div>
                   )
                 })}
@@ -1268,15 +1269,15 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 {selectedGiftWrap && (
-                  <div className="flex justify-between items-center text-gray-600">
-                    <div>
+                  <div className="flex justify-between items-start gap-2 text-gray-600">
+                    <div className="min-w-0">
                       <span>Gift Wrap:</span>
-                      <p className="text-xs">{selectedGiftWrap.name}</p>
+                      <p className="text-xs break-words">{selectedGiftWrap.name}</p>
                       {selectedGiftWrap.message && (
-                        <p className="text-xs italic text-gray-500">"{selectedGiftWrap.message}"</p>
+                        <p className="text-xs italic text-gray-500 break-words">"{selectedGiftWrap.message}"</p>
                       )}
                     </div>
-                    <div className='flex items-center gap-2'>
+                    <div className='flex items-center gap-2 shrink-0'>
                     <span>₹{selectedGiftWrap.price.toFixed(2)}</span>
                     <button onClick={() => setSelectedGiftWrap(null)} className="text-red-500 hover:text-red-700 text-xs">
                         <FaTimes/>

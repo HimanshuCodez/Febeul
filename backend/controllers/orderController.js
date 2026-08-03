@@ -371,12 +371,18 @@ const constructEmailHtml = (order, templateHtml) => {
         ? '<span class="luxe-member-badge">✨ Luxe Member</span>'
         : '';
 
+    const razorpayReferenceId = order.razorpayPaymentId || order.paymentDetails?.razorpay_payment_id;
+    const razorpayReferenceRow = (order.paymentMethod === 'Razorpay' && razorpayReferenceId)
+        ? `<strong>Razorpay Ref ID:</strong> ${razorpayReferenceId}<br>`
+        : '';
+
     let finalHtml = templateHtml
         .replace('{{orderId}}', order._id.toString().slice(-8).toUpperCase())
         .replace('{{orderDate}}', orderDateFormatted)
         .replace('{{invoiceNumber}}', `INV-${sequentialInvoice}`)
         .replace('{{invoiceDate}}', orderDateFormatted)
         .replace('{{paymentMethod}}', order.paymentMethod)
+        .replace('{{razorpayReferenceRow}}', razorpayReferenceRow)
         .replace('{{luxeMemberBadge}}', luxeMemberBadge)
         .replace('{{billingAddressName}}', order.address.name)
         .replace('{{billingAddressAddress}}', order.address.address)

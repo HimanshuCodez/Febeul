@@ -786,6 +786,9 @@ const Orders = ({ token }) => {
                             <div className='space-y-1.5 text-xs text-gray-600'>
                               <p>Method: <span className="font-bold text-gray-800">{order.paymentMethod}</span></p>
                               <p>Status: <span className={`font-bold ${order.payment ? 'text-green-600' : order.orderStatus === 'Cancelled' ? 'text-gray-500' : 'text-red-600'}`}>{order.payment ? 'Paid' : order.orderStatus === 'Cancelled' ? 'Cancelled' : 'Pending'}</span></p>
+                              {order.paymentMethod === 'Razorpay' && order.razorpayPaymentId && (
+                                <p className="break-all">Razorpay Ref: <span className="font-bold text-gray-800">{order.razorpayPaymentId}</span></p>
+                              )}
                               {order.couponCode && (
                                 <div className='flex flex-col bg-green-50 p-1.5 rounded-lg border border-green-100 w-fit mt-1'>
                                   <span className="text-[10px] font-bold text-green-700 flex items-center gap-1">

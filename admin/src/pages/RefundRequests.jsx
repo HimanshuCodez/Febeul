@@ -282,6 +282,9 @@ const RefundRequests = ({ token }) => {
                         <div>
                           <p className="text-sm font-black text-gray-900">#{req._id.slice(-8).toUpperCase()}</p>
                           <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(req.refundDetails.requestedAt || req.date).toLocaleDateString()}</p>
+                          {req.paymentMethod === 'Razorpay' && (req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id) && (
+                            <p className="text-[10px] text-blue-500 font-bold">Razorpay: {req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id}</p>
+                          )}
                         </div>
                       </div>
                     </td>
