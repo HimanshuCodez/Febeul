@@ -1063,6 +1063,30 @@ export default function OrderDetailPage() {
                     </div>
                 </motion.div>
               )}
+
+              {/* Refund Initiated / Refunded State */}
+              {(displayStatus === 'Refund Initiated' || displayStatus === 'Refunded') && (
+                <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
+                    <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 z-10">
+                        <Check size={18} />
+                    </div>
+                    <div className="flex-1 pt-1.5">
+                        <p className="font-bold text-emerald-600 text-sm sm:text-base uppercase tracking-wider">
+                          {displayStatus === 'Refunded' ? 'Refund Completed' : 'Refund Initiated'}
+                        </p>
+                        <div className="mt-2 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100">
+                            <p className="text-xs sm:text-sm text-emerald-800 font-bold">
+                              {displayStatus === 'Refunded'
+                                ? 'Your refund has been processed and credited to your original payment method.'
+                                : 'Your refund has been initiated and will be credited to your original payment method within 5-7 business days.'}
+                            </p>
+                            <p className="text-[11px] text-emerald-700 mt-1">
+                              The exact time to reflect in your account may vary depending on your bank or payment provider.
+                            </p>
+                        </div>
+                    </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Expected Delivery Banner */}

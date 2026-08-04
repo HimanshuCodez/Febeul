@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { backendUrl, currency } from '../App';
 import { toast } from 'react-toastify';
+import { CSVLink } from 'react-csv';
 import {
   DollarSign,
   RotateCcw,
@@ -14,7 +15,8 @@ import {
   User,
   CreditCard,
   MessageSquare,
-  CalendarRange
+  CalendarRange,
+  Download
 } from 'lucide-react';
 
 // Physical-item return requests (customer sends the product back) — split out
@@ -191,6 +193,38 @@ const ReturnRequests = ({ token }) => {
     delivered_to_warehouse: 'Received at Warehouse'
   };
 
+  // Excel/CSV Export Data
+  const returnCsvHeaders = [
+    { label: 'Order ID', key: 'orderId' },
+    { label: 'Requested Date', key: 'requestedDate' },
+    { label: 'Customer Name', key: 'customerName' },
+    { label: 'Customer Email', key: 'customerEmail' },
+    { label: 'Payment Method', key: 'paymentMethod' },
+    { label: 'Razorpay Payment ID', key: 'razorpayPaymentId' },
+    { label: 'Reason', key: 'reason' },
+    { label: 'Refundable Amount', key: 'amount' },
+    { label: 'Pickup Status', key: 'pickupStatus' },
+    { label: 'Return AWB', key: 'pickupAwb' },
+    { label: 'Status', key: 'status' },
+    { label: 'Rejection Reason', key: 'rejectionReason' },
+  ];
+
+  const returnCsvData = useMemo(() => filteredRequests.map(req => ({
+    orderId: req._id,
+    requestedDate: new Date(req.refundDetails.requestedAt || req.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    customerName: req.userId?.name || 'N/A',
+    customerEmail: req.userId?.email || 'N/A',
+    paymentMethod: req.paymentMethod,
+    razorpayPaymentId: req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id || '',
+    reason: req.refundDetails.reason || '',
+    amount: req.refundDetails?.amount || req.orderTotal || 0,
+    pickupStatus: pickupStatusLabels[req.refundDetails.pickup?.status || 'none'],
+    pickupAwb: req.refundDetails.pickup?.awb || '',
+    status: req.refundDetails.status,
+    rejectionReason: req.refundDetails.rejectionReason || '',
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), [filteredRequests]);
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen font-sans">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -202,6 +236,14 @@ const ReturnRequests = ({ token }) => {
             <span className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-sm font-black text-gray-700">
                 {requests.length} Total Returns
             </span>
+            <CSVLink
+              data={returnCsvData}
+              headers={returnCsvHeaders}
+              filename={`Return_Requests_Export_${new Date().toISOString().split('T')[0]}.csv`}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
+            >
+              <Download size={14} /> Export to Excel
+            </CSVLink>
         </div>
       </div>
 

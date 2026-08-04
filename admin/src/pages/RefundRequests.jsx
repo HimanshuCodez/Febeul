@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { backendUrl, currency } from '../App';
 import { toast } from 'react-toastify';
-import { 
-  DollarSign, 
-  RotateCcw, 
-  Eye, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Search, 
+import { CSVLink } from 'react-csv';
+import {
+  DollarSign,
+  RotateCcw,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Search,
   ArrowRight,
   User,
   CreditCard,
   MessageSquare,
   Image as ImageIcon,
-  CalendarRange
+  CalendarRange,
+  Download
 } from 'lucide-react';
 
 const RefundRequests = ({ token }) => {
@@ -186,6 +188,43 @@ const RefundRequests = ({ token }) => {
     }
   };
 
+  const getRequestTypeLabel = (req) => {
+    const type = req.refundDetails?.requestType;
+    if (type === 'courier_return') return 'Courier Return';
+    if (type === 'cancellation') return 'Cancellation';
+    if (type === 'refund') return 'Refund Only';
+    return req.orderStatus === 'Cancelled' ? 'Cancellation' : 'Return/Refund';
+  };
+
+  // Excel/CSV Export Data
+  const refundCsvHeaders = [
+    { label: 'Order ID', key: 'orderId' },
+    { label: 'Requested Date', key: 'requestedDate' },
+    { label: 'Customer Name', key: 'customerName' },
+    { label: 'Customer Email', key: 'customerEmail' },
+    { label: 'Payment Method', key: 'paymentMethod' },
+    { label: 'Razorpay Payment ID', key: 'razorpayPaymentId' },
+    { label: 'Request Type', key: 'requestType' },
+    { label: 'Reason', key: 'reason' },
+    { label: 'Refundable Amount', key: 'amount' },
+    { label: 'Status', key: 'status' },
+    { label: 'Rejection Reason', key: 'rejectionReason' },
+  ];
+
+  const refundCsvData = useMemo(() => filteredRequests.map(req => ({
+    orderId: req._id,
+    requestedDate: new Date(req.refundDetails.requestedAt || req.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    customerName: req.userId?.name || 'N/A',
+    customerEmail: req.userId?.email || 'N/A',
+    paymentMethod: req.paymentMethod,
+    razorpayPaymentId: req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id || '',
+    requestType: getRequestTypeLabel(req),
+    reason: req.refundDetails.reason || '',
+    amount: req.refundDetails?.amount || req.orderTotal || 0,
+    status: req.refundDetails.status,
+    rejectionReason: req.refundDetails.rejectionReason || '',
+  })), [filteredRequests]);
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen font-sans">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -197,6 +236,14 @@ const RefundRequests = ({ token }) => {
             <span className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-sm font-black text-gray-700">
                 {requests.length} Total Requests
             </span>
+            <CSVLink
+              data={refundCsvData}
+              headers={refundCsvHeaders}
+              filename={`Refund_Requests_Export_${new Date().toISOString().split('T')[0]}.csv`}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
+            >
+              <Download size={14} /> Export to Excel
+            </CSVLink>
         </div>
       </div>
 

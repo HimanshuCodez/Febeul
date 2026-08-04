@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -9,6 +9,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const BlackBanner = () => {
   const [shows, setShows] = useState([]);
+  const [backgroundColor, setBackgroundColor] = useState('#000000');
   const [sideProducts, setSideProducts] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,7 @@ const BlackBanner = () => {
   const productRailRef = useRef(null);
   const railPausedRef = useRef(false);
   const railResumeTimeoutRef = useRef(null);
+  const mobileRailRef = useRef(null);
   const videoRef = useRef(null);
   const navigate = useNavigate();
   const { user, token, isAuthenticated, fetchCartCount } = useAuthStore();
@@ -27,6 +29,7 @@ const BlackBanner = () => {
         const content = response.data?.content;
         if (response.data.success && Array.isArray(content?.shows) && content.shows.length > 0) {
           setShows(content.shows.filter((s) => s.desktopVideo || s.mobileVideo));
+          setBackgroundColor(content.backgroundColor || '#000000');
         } else {
           setShows([]);
         }
@@ -62,27 +65,48 @@ const BlackBanner = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Continuously auto-slide the side product rail upward, looping seamlessly.
-  useEffect(() => {
+  const railProducts = sideProducts.length > 0 ? [...sideProducts, ...sideProducts] : [];
+  const isRailLooping = sideProducts.length > 1;
+
+  // Auto-advance the vertical side rail, looping seamlessly once it scrolls
+  // past the duplicated half of the list — same boundary-reset pattern as
+  // BestSellerCarousel, just on the vertical axis.
+  const scrollRailVertical = useCallback((direction) => {
     const el = productRailRef.current;
     if (!el || sideProducts.length === 0) return;
 
-    let rafId;
-    const speed = 0.4; // px per frame
-    const step = () => {
-      if (!railPausedRef.current) {
-        const halfHeight = el.scrollHeight / 2;
-        if (el.scrollTop >= halfHeight) {
-          el.scrollTop -= halfHeight;
-        } else {
-          el.scrollTop += speed;
-        }
+    const scrollAmount = Math.max(el.clientHeight * 0.4, 160);
+    const loopBoundary = isRailLooping ? el.scrollHeight / 2 : el.scrollHeight - el.clientHeight;
+
+    if (!isRailLooping) {
+      el.scrollBy({ top: direction * scrollAmount, behavior: "smooth" });
+      return;
+    }
+
+    if (direction > 0) {
+      const nextScrollTop = el.scrollTop + scrollAmount;
+      if (nextScrollTop >= loopBoundary) {
+        el.scrollTo({ top: 0, behavior: "auto" });
+      } else {
+        el.scrollBy({ top: scrollAmount, behavior: "smooth" });
       }
-      rafId = requestAnimationFrame(step);
-    };
-    rafId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafId);
-  }, [sideProducts]);
+      return;
+    }
+
+    if (el.scrollTop <= 0) {
+      el.scrollTo({ top: loopBoundary - el.clientHeight, behavior: "auto" });
+    } else {
+      el.scrollBy({ top: -scrollAmount, behavior: "smooth" });
+    }
+  }, [sideProducts.length, isRailLooping]);
+
+  useEffect(() => {
+    if (sideProducts.length === 0) return undefined;
+    const interval = window.setInterval(() => {
+      if (!railPausedRef.current) scrollRailVertical(1);
+    }, 3000);
+    return () => window.clearInterval(interval);
+  }, [sideProducts.length, scrollRailVertical]);
 
   const pauseRailTemporarily = () => {
     railPausedRef.current = true;
@@ -93,14 +117,38 @@ const BlackBanner = () => {
   };
 
   const scrollRail = (direction) => {
-    const el = productRailRef.current;
-    if (!el) return;
     pauseRailTemporarily();
-    const amount = 220;
-    el.scrollBy({ top: direction === "up" ? -amount : amount, behavior: "smooth" });
+    scrollRailVertical(direction === "up" ? -1 : 1);
   };
 
-  const railProducts = sideProducts.length > 0 ? [...sideProducts, ...sideProducts] : [];
+  // Mobile: same side products, sliding horizontally instead.
+  const scrollMobileRailAuto = useCallback((direction) => {
+    const el = mobileRailRef.current;
+    if (!el || sideProducts.length === 0) return;
+
+    const scrollAmount = Math.max(el.clientWidth * 0.4, 140);
+    const loopBoundary = isRailLooping ? el.scrollWidth / 2 : el.scrollWidth - el.clientWidth;
+
+    if (!isRailLooping) {
+      el.scrollBy({ left: direction * scrollAmount, behavior: "smooth" });
+      return;
+    }
+
+    if (direction > 0) {
+      const nextScrollLeft = el.scrollLeft + scrollAmount;
+      if (nextScrollLeft >= loopBoundary) {
+        el.scrollTo({ left: 0, behavior: "auto" });
+      } else {
+        el.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      }
+    }
+  }, [sideProducts.length, isRailLooping]);
+
+  useEffect(() => {
+    if (sideProducts.length === 0) return undefined;
+    const interval = window.setInterval(() => scrollMobileRailAuto(1), 2500);
+    return () => window.clearInterval(interval);
+  }, [sideProducts.length, scrollMobileRailAuto]);
 
   const handleQuickAddToCart = async (product) => {
     if (!isAuthenticated) {
@@ -179,8 +227,26 @@ const BlackBanner = () => {
     );
   };
 
+  const MobileRailCard = ({ product }) => {
+    const variation = product.variations?.[0];
+    const size = variation?.sizes?.[0];
+    const image = variation?.images?.[0];
+    return (
+      <Link
+        to={`/product/${product._id}`}
+        className="flex-shrink-0 w-[76px] flex flex-col items-center gap-1 text-center"
+      >
+        <div className="w-[76px] h-[76px] rounded-lg overflow-hidden bg-gray-800 border border-white/10">
+          {image && <img src={image} alt={product.name} className="w-full h-full object-cover" />}
+        </div>
+        <p className="text-[10px] text-gray-300 line-clamp-1 leading-tight w-full">{product.name}</p>
+        <span className="text-[10px] font-bold text-white">₹{size?.price?.toLocaleString("en-IN") ?? "--"}</span>
+      </Link>
+    );
+  };
+
   return (
-    <section className="relative w-full bg-black text-white">
+    <section className="relative w-full text-white" style={{ backgroundColor }}>
       <div className="w-full max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-[150px_1fr] lg:grid-cols-[170px_1fr_280px] gap-0 md:gap-3 lg:gap-4 px-0 md:px-4 py-0 md:py-4">
         {/* Left rail: scrollable product recommendations */}
         <div className="hidden md:flex flex-col items-center gap-2 py-2">
@@ -267,6 +333,21 @@ const BlackBanner = () => {
                   <p className="text-[11px] text-gray-300 mt-1 line-clamp-2 leading-tight">{show.title}</p>
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Mobile-only shoppable product rail, sliding horizontally */}
+          {railProducts.length > 0 && (
+            <div className="md:hidden px-4 pb-4">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wide mb-2">Shop This Look</h3>
+              <div
+                ref={mobileRailRef}
+                className="flex gap-2.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {railProducts.map((product, idx) => (
+                  <MobileRailCard key={`${product._id}-mobile-${idx}`} product={product} />
+                ))}
+              </div>
             </div>
           )}
         </div>

@@ -11,6 +11,7 @@ const Images = ({ token }) => {
   const [shows, setShows] = useState([
     { desktopVideo: '', mobileVideo: '', thumbnail: '', title: '', subtitle: '', productLink: '' }
   ]);
+  const [bannerBackgroundColor, setBannerBackgroundColor] = useState('#000000');
   const [poseSection, setPoseSection] = useState({ desktop: '', mobile: '', link: '' });
   const [styleCategories, setStyleCategories] = useState([{ icon: 'Star', label: '', link: '' }]);
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,7 @@ const Images = ({ token }) => {
       }
       if (banner.data.success) {
         const content = banner.data.content || {};
+        setBannerBackgroundColor(content.backgroundColor || '#000000');
         if (Array.isArray(content.shows) && content.shows.length > 0) {
           setShows(content.shows);
         } else if (content.desktopVideo || content.mobileVideo || content.video) {
@@ -215,6 +217,27 @@ const Images = ({ token }) => {
         {activeAccordion === 'banner' && (
           <div className="p-6 bg-white space-y-8">
             <p className="text-xs text-gray-500 -mt-2">The first video plays center-stage; the rest appear in the &quot;Watch More&quot; rail. Visitors can click any thumbnail to switch the playing video.</p>
+
+            <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex items-center gap-4">
+              <div>
+                <p className="font-medium text-sm">Section Background Color</p>
+                <p className="text-[10px] text-gray-500">Applies to the whole banner section behind the videos.</p>
+              </div>
+              <input
+                type="color"
+                value={bannerBackgroundColor}
+                onChange={(e) => setBannerBackgroundColor(e.target.value)}
+                className="w-12 h-10 border rounded cursor-pointer"
+              />
+              <input
+                type="text"
+                value={bannerBackgroundColor}
+                onChange={(e) => setBannerBackgroundColor(e.target.value)}
+                placeholder="#000000"
+                className="w-28 px-3 py-2 border rounded outline-none bg-white text-sm"
+              />
+            </div>
+
             {shows.map((show, index) => (
               <div key={index} className="border p-4 rounded-md relative bg-gray-50 shadow-inner space-y-4">
                 {shows.length > 1 && (
@@ -282,7 +305,7 @@ const Images = ({ token }) => {
             ))}
             <div className="flex gap-4">
               <button onClick={() => setShows([...shows, { desktopVideo: '', mobileVideo: '', thumbnail: '', title: '', subtitle: '', productLink: '' }])} className="bg-purple-600 text-white px-6 py-2 rounded text-sm font-medium">Add Another Video</button>
-              <button onClick={() => saveContent('black_banner', { shows })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Live Videos</button>
+              <button onClick={() => saveContent('black_banner', { shows, backgroundColor: bannerBackgroundColor })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Live Videos</button>
             </div>
           </div>
         )}
