@@ -215,12 +215,10 @@ export default function FebeulLuxe() {
       `}</style>
       
       <div className="text-center mb-12 flex flex-col items-center gap-4">
-        <Link to="/">
-          <img src="/removebgLogo.png" alt="Febeul Logo" className="h-16 w-auto" />
-        </Link>
+        
         <div className="space-y-1">
-          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs font-light">Experience The Elite</p>
           <h1 className="text-5xl md:text-6xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">Luxe Membership</h1>
+          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs font-light">Experience The Elite</p>
         </div>
       </div>
 
