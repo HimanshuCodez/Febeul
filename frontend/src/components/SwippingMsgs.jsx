@@ -39,11 +39,11 @@ const SwipingMessages = ({ className }) => {
   if (messages.length === 0) return null;
 
   return (
-    <div className={`h-6 overflow-hidden relative max-w-full sm:max-w-xs md:w-80 text-center ${className || ''}`}>
+    <div className={`h-6 overflow-hidden relative max-w-full sm:max-w-xs md:w-80 text-center bg-black ${className || ''}`}>
       {messages.map((message, index) => (
         <div
           key={index}
-          className="absolute bg-black text-white border-none w-full transition-transform duration-1000 ease-in-out"
+          className="absolute inset-0 bg-black text-white border-none w-full h-full transition-transform duration-1000 ease-in-out"
           style={{ transform: `translateY(${(index - currentIndex) * 100}%)` }}
         >
           {message}

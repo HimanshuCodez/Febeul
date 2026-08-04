@@ -3,7 +3,7 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
-import { trackShipment, createAndAssignShipment, cancelShiprocketOrder } from '../utils/shiprocket.js';
+import { trackShipment, trackShipmentByOrderId, createAndAssignShipment, cancelShiprocketOrder } from '../utils/shiprocket.js';
 import { mapShiprocketStatus, mergeTrackingHistory } from '../utils/shiprocketStatusMap.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
@@ -235,6 +235,10 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
 
     const totalCombinedDiscount = totalItemDiscount + couponDiscount;
     const orderTotal = (productAmount - totalCombinedDiscount) + shippingCharge + codCharge + giftWrapPrice;
+
+    if (orderTotal <= 0) {
+        throw new Error('Order amount must be greater than ₹0.');
+    }
 
     return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, isDelhi, couponOfferType, couponDiscount };
 };
@@ -1039,6 +1043,48 @@ const getOrderById = async (req, res) => {
                 order.orderStatus = mapped.orderStatus;
                 if (mapped.orderStatus === 'Delivered') order.deliveredAt = order.deliveredAt || new Date();
                 if (mapped.orderStatus === 'Shipped') order.shippedAt = order.shippedAt || new Date();
+            }
+
+            order.shiprocket.lastTrackedAt = new Date();
+            await order.save();
+        } else if (order.shiprocket?.srOrderId && !order.shiprocket?.awb && isStale) {
+            // Shipment hasn't been manually assigned a courier/AWB yet on the
+            // Shiprocket dashboard, so there's no AWB to poll by. Fall back to
+            // looking it up by Shiprocket's own order_id — this is the
+            // safety-net path; the webhook handler (shiprocketWebhookController.js)
+            // is the primary way this gets picked up once it happens.
+            trackingData = await trackShipmentByOrderId(order.shiprocket.srOrderId);
+            const keyedData = trackingData?.[order.shiprocket.srOrderId]?.tracking_data;
+            const shipmentTrack = (trackingData?.tracking_data || keyedData)?.shipment_track?.[0];
+            const activities = (trackingData?.tracking_data || keyedData)?.shipment_track_activities || [];
+
+            if (shipmentTrack?.awb_code) {
+                order.shiprocket.awb = shipmentTrack.awb_code;
+                order.shiprocket.courier = shipmentTrack.courier_name || order.shiprocket.courier;
+                order.shiprocket.trackingUrl = `https://shiprocket.co/tracking/${shipmentTrack.awb_code}`;
+                if (shipmentTrack.id) order.shiprocket.shipmentId = shipmentTrack.id;
+
+                if (shipmentTrack.edd) {
+                    const parsedEdd = new Date(shipmentTrack.edd);
+                    if (!isNaN(parsedEdd.getTime())) order.shiprocket.edd = parsedEdd;
+                }
+
+                if (activities.length > 0) {
+                    const newEntries = activities.map(act => ({
+                        status: mapShiprocketStatus(act.status || act.activity)?.shiprocketStatus || 'UNKNOWN',
+                        activity: act.activity || act.status || '',
+                        location: act.location || '',
+                        date: act.date
+                    }));
+                    order.shiprocket.trackingHistory = mergeTrackingHistory(order.shiprocket.trackingHistory, newEntries);
+                }
+
+                const mapped = mapShiprocketStatus(shipmentTrack.current_status);
+                if (mapped) {
+                    order.shiprocketStatus = mapped.shiprocketStatus;
+                    order.orderStatus = mapped.orderStatus;
+                    if (mapped.orderStatus === 'Shipped') order.shippedAt = order.shippedAt || new Date();
+                }
             }
 
             order.shiprocket.lastTrackedAt = new Date();

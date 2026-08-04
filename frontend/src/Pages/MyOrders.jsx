@@ -103,9 +103,9 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
         exit={{ scale: 0.95, y: 20 }}
         className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-black text-slate-900">Cancel Order</h3>
+            <h3 className="text-lg sm:text-xl font-black text-slate-900">Cancel Order</h3>
             <p className="text-xs font-bold text-slate-400 mt-1">#{order._id.slice(-8).toUpperCase()}</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200">
@@ -113,7 +113,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 sm:space-y-5">
           <div>
             <label htmlFor="cancel-reason" className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Reason</label>
             <select
@@ -157,7 +157,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2">
             <button type="button" onClick={onClose} className="px-5 py-3 rounded-xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">
               Keep Order
             </button>
@@ -240,18 +240,18 @@ const MyOrders = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 font-sans">
-      <div className="bg-white rounded-3xl shadow-xl shadow-slate-100/80 border border-slate-100 p-6 md:p-8">
-        
+    <div className="max-w-4xl mx-auto py-4 sm:py-8 px-3 sm:px-4 font-sans">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-slate-100/80 border border-slate-100 p-4 sm:p-6 md:p-8">
+
         {/* Header Section */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-6 mb-8">
+        <div className="flex items-center flex-wrap justify-between gap-3 border-b border-slate-100 pb-4 sm:pb-6 mb-5 sm:mb-8">
           <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-              <ShoppingBag className="text-pink-500 w-6 h-6" /> My Orders
+            <h2 className="text-lg sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              <ShoppingBag className="text-pink-500 w-5 h-5 sm:w-6 sm:h-6" /> My Orders
             </h2>
-            <p className="text-sm text-slate-500 font-medium mt-1">Track and manage your recent purchases</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Track and manage your recent purchases</p>
           </div>
-          <span className="bg-pink-50 text-pink-600 font-black text-xs px-3.5 py-1.5 rounded-2xl border border-pink-100">
+          <span className="bg-pink-50 text-pink-600 font-black text-[11px] sm:text-xs px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-2xl border border-pink-100">
             {orders.length} {orders.length === 1 ? 'Order' : 'Orders'}
           </span>
         </div>
@@ -263,7 +263,7 @@ const MyOrders = () => {
             variants={{
               visible: { transition: { staggerChildren: 0.08 } }
             }}
-            className="space-y-6"
+            className="space-y-4 sm:space-y-6"
           >
             {orders.map((order) => {
               const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
@@ -293,9 +293,9 @@ const MyOrders = () => {
                     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
                   }}
                   whileHover={{ y: -2 }}
-                  className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                  className="bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
                 >
-                  <div className="bg-slate-50/60 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+                  <div className="bg-slate-50/60 px-3.5 sm:px-5 py-3 sm:py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                       <div>
                         <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order ID</span>
@@ -304,7 +304,7 @@ const MyOrders = () => {
                       <div className="h-6 w-[1px] bg-slate-200" />
                       <div>
                         <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Date Placed</span>
-                        <span className="text-xs font-bold text-slate-600">
+                        <span className="text-[11px] sm:text-xs font-bold text-slate-600">
                           {new Date(order.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       </div>
@@ -312,7 +312,7 @@ const MyOrders = () => {
 
                     <div className="flex items-center gap-3">
                       {/* Status Badge */}
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black capitalize ${
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-black capitalize ${
                         displayStatus === "Processing" ? "bg-amber-50 text-amber-700 border border-amber-100" :
                         displayStatus === "Shipped" || displayStatus === "Out for delivery" ? "bg-blue-50 text-blue-700 border border-blue-100" :
                         displayStatus === "Delivered" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
@@ -331,26 +331,26 @@ const MyOrders = () => {
                     </div>
                   </div>
 
-                  <div className="px-5 pt-4">
+                  <div className="px-3.5 sm:px-5 pt-3 sm:pt-4">
                     <OrderProgressStrip status={displayStatus} />
                     {refundSubLabel && (
-                      <p className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1 inline-block mt-1">
+                      <p className="text-[9px] sm:text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 sm:px-2.5 py-1 inline-block mt-1">
                         {refundSubLabel}
                       </p>
                     )}
                   </div>
 
                   {/* Body of the card (Items thumbnail strip & pricing) */}
-                  <div className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="p-3.5 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 sm:gap-6">
                     {/* Item Thumbnails & Info */}
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="flex -space-x-2.5 overflow-hidden">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                      <div className="flex -space-x-2 sm:-space-x-2.5 overflow-hidden shrink-0">
                         {order.items.slice(0, 3).map((item, index) => (
                           <div key={index} className="relative group/thumb flex-shrink-0">
                             <img
                               src={item.image}
                               alt={item.name}
-                              className="w-14 h-14 object-cover rounded-xl border-2 border-white shadow-sm bg-slate-50"
+                              className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded-lg sm:rounded-xl border-2 border-white shadow-sm bg-slate-50"
                             />
                             {item.quantity > 1 && (
                               <span className="absolute -bottom-1 -right-1 bg-slate-900 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white">
@@ -360,18 +360,18 @@ const MyOrders = () => {
                           </div>
                         ))}
                         {order.items.length > 3 && (
-                          <div className="w-14 h-14 bg-slate-100 border-2 border-white rounded-xl flex items-center justify-center text-xs font-bold text-slate-500 shadow-sm">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-100 border-2 border-white rounded-lg sm:rounded-xl flex items-center justify-center text-xs font-bold text-slate-500 shadow-sm">
                             +{order.items.length - 3}
                           </div>
                         )}
                       </div>
-                      
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold text-slate-800 line-clamp-1">
+
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-1">
                           {order.items.map(item => item.name).join(', ')}
                         </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-slate-500 font-medium">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
                             {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
                           </span>
                           {order.couponDiscount > 0 && (
@@ -389,24 +389,24 @@ const MyOrders = () => {
                     </div>
 
                     {/* Price and Details/Cancel Button */}
-                    <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center w-full md:w-auto gap-4 pt-4 md:pt-0 border-t border-slate-100 md:border-0">
+                    <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 pt-3 md:pt-0 border-t border-slate-100 md:border-0">
                       <div className="text-left md:text-right">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Amount</span>
-                        <span className="text-lg font-black text-slate-900">₹{(order.displayTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Amount</span>
+                        <span className="text-base sm:text-lg font-black text-slate-900">₹{(order.displayTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      
-                      <div className="flex items-center gap-3">
+
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         {canCancel(displayStatus) && (
                           <button
                             onClick={(e) => { e.stopPropagation(); setOrderToCancel(order); }}
-                            className="text-xs text-rose-600 hover:text-white font-bold border border-rose-100 hover:bg-rose-500 hover:border-rose-500 px-3.5 py-2 rounded-xl transition-all active:scale-95"
+                            className="text-[11px] sm:text-xs text-rose-600 hover:text-white font-bold border border-rose-100 hover:bg-rose-500 hover:border-rose-500 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-all active:scale-95"
                           >
                             Cancel
                           </button>
                         )}
                         <button
                           onClick={() => handleViewOrderDetails(order._id)}
-                          className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl font-bold text-xs shadow-sm hover:shadow active:scale-95 transition-all"
+                          className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-xs shadow-sm hover:shadow active:scale-95 transition-all whitespace-nowrap"
                         >
                           Details <ArrowRight className="w-3.5 h-3.5" />
                         </button>

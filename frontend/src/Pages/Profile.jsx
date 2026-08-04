@@ -196,6 +196,7 @@ export default function Profile() {
 
 const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
   const navigate = useNavigate();
+  const unreadTicketsCount = useAuthStore((state) => state.unreadTicketsCount);
   const navItems = [
     { id: "profile", icon: User, label: "My Profile" },
     { id: "orders", icon: ShoppingBag, label: "My Orders" },
@@ -245,7 +246,12 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
                   ? (user.isLuxeMember ? "bg-amber-100 text-amber-700 shadow-sm" : "bg-pink-100 text-pink-600")
                   : "text-gray-600 hover:bg-gray-100"
               }`}>
-              <item.icon className={`w-5 h-5 ${activeTab === item.id ? (user.isLuxeMember ? 'text-amber-600' : 'text-pink-500') : 'text-gray-400'}`} />
+              <span className="relative">
+                <item.icon className={`w-5 h-5 ${activeTab === item.id ? (user.isLuxeMember ? 'text-amber-600' : 'text-pink-500') : 'text-gray-400'}`} />
+                {item.id === 'tickets' && unreadTicketsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white" title={`${unreadTicketsCount} unread ticket ${unreadTicketsCount === 1 ? 'reply' : 'replies'}`} />
+                )}
+              </span>
               <span>{item.label}</span>
             </button>
           ))}

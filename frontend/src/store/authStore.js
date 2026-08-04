@@ -10,6 +10,7 @@ const useAuthStore = create((set, get) => ({
   wishlistCount: 0,
   cartCount: 0,
   cartItems: [],
+  unreadTicketsCount: 0,
   siteSettings: {
     membershipPrice: 129,
     membershipPriceOriginal: 152,
@@ -173,6 +174,33 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  // A ticket counts as unread when the latest message is from admin/support
+  // and arrived after the user last opened that ticket (lastSeenByUserAt).
+  fetchUnreadTicketsCount: async () => {
+    const { user, token, isAuthenticated } = get();
+    if (!isAuthenticated || !user) {
+      set({ unreadTicketsCount: 0 });
+      return;
+    }
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/ticket/user`, {
+        headers: { token }
+      });
+      if (response.data.success) {
+        const tickets = response.data.tickets || [];
+        const unreadCount = tickets.filter(ticket => {
+          const lastMessage = ticket.messages?.[ticket.messages.length - 1];
+          if (!lastMessage || lastMessage.sender !== 'admin') return false;
+          const lastSeen = ticket.lastSeenByUserAt ? new Date(ticket.lastSeenByUserAt).getTime() : 0;
+          return new Date(lastMessage.createdAt).getTime() > lastSeen;
+        }).length;
+        set({ unreadTicketsCount: unreadCount });
+      }
+    } catch (error) {
+      console.error("Failed to fetch unread tickets count", error);
+    }
+  },
+
   setCartItems: (items) => {
     const totalQuantity = (items || []).reduce((sum, item) => sum + item.quantity, 0);
     set({ cartItems: items, cartCount: totalQuantity });
@@ -191,6 +219,7 @@ const useAuthStore = create((set, get) => ({
         set({ user: response.data.user });
         get().fetchWishlistCount();
         get().fetchCartCount();
+        get().fetchUnreadTicketsCount();
       } else {
         get().logout();
       }
@@ -210,6 +239,7 @@ const useAuthStore = create((set, get) => ({
         set({ token, user, loading: false, isAuthenticated: true });
         get().fetchCartCount();
         get().fetchWishlistCount();
+        get().fetchUnreadTicketsCount();
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -228,6 +258,7 @@ const useAuthStore = create((set, get) => ({
         set({ token, user, loading: false, isAuthenticated: true });
         get().fetchCartCount();
         get().fetchWishlistCount();
+        get().fetchUnreadTicketsCount();
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -246,6 +277,7 @@ const useAuthStore = create((set, get) => ({
         set({ token, user, loading: false, isAuthenticated: true });
         get().fetchCartCount();
         get().fetchWishlistCount();
+        get().fetchUnreadTicketsCount();
       } else {
         set({ error: response.data.message, loading: false });
       }
@@ -301,9 +333,11 @@ const useAuthStore = create((set, get) => ({
 
   setWishlistCount: (count) => set({ wishlistCount: count }),
 
+  setUnreadTicketsCount: (count) => set({ unreadTicketsCount: count }),
+
   logout: () => {
     localStorage.removeItem('token');
-    set({ token: null, user: null, isAuthenticated: false, wishlistCount: 0, cartCount: 0, cartItems: [] });
+    set({ token: null, user: null, isAuthenticated: false, wishlistCount: 0, cartCount: 0, cartItems: [], unreadTicketsCount: 0 });
   },
 
   clearError: () => set({ error: null }),

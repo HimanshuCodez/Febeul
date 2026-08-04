@@ -1,19 +1,42 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
 import { Shirt, Star, Gem, Scissors, Shield, Grid, Network, Layers } from "lucide-react";
 
-const styles = [
-  { icon: <Shirt className="w-4 h-4" />, label: "TeddyS & Bodysuits" },
-  { icon: <Star className="w-4 h-4" />, label: "Satin Babydoll" },
-  { icon: <Gem className="w-4 h-4" />, label: "Net Nighty" },
-  { icon: <Scissors className="w-4 h-4" />, label: "Garter Lingerie" },
-  { icon: <Shield className="w-4 h-4" />, label: "Satin Pj" },
-  { icon: <Grid className="w-4 h-4" />, label: "Skirt Babydoll" },
-  { icon: <Network className="w-4 h-4" />, label: "Sheer Mesh" },
-  { icon: <Network className="w-4 h-4" />, label: "Eye Mask Dress" },
-  { icon: <Layers className="w-4 h-4" />, label: "Silk Nighty" },
+const iconMap = { Shirt, Star, Gem, Scissors, Shield, Grid, Network, Layers };
+
+const defaultStyles = [
+  { icon: "Shirt", label: "TeddyS & Bodysuits", link: "" },
+  { icon: "Star", label: "Satin Babydoll", link: "" },
+  { icon: "Gem", label: "Net Nighty", link: "" },
+  { icon: "Scissors", label: "Garter Lingerie", link: "" },
+  { icon: "Shield", label: "Satin Pj", link: "" },
+  { icon: "Grid", label: "Skirt Babydoll", link: "" },
+  { icon: "Network", label: "Sheer Mesh", link: "" },
+  { icon: "Network", label: "Eye Mask Dress", link: "" },
+  { icon: "Layers", label: "Silk Nighty", link: "" },
 ];
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 const StylesSection = () => {
+  const [styles, setStyles] = useState(defaultStyles);
+
+  useEffect(() => {
+    const fetchStyles = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/api/cms/style_categories`);
+        if (response.data?.success && Array.isArray(response.data.content) && response.data.content.length > 0) {
+          setStyles(response.data.content);
+        }
+      } catch (error) {
+        console.error("Error fetching style categories:", error);
+      }
+    };
+
+    fetchStyles();
+  }, []);
+
   return (
     <section className="bg-gradient-to-b from-black via-pink-300 to-black text-white py-16 px-4 text-center">
       <h2 className="text-2xl md:text-3xl font-semibold tracking-wide mb-10">
@@ -21,15 +44,19 @@ const StylesSection = () => {
       </h2>
 
       <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
-        {styles.map((item, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-2 bg-pink-200/90 hover:bg-pink-300 text-gray-900 rounded-full px-6 py-3 text-sm font-medium cursor-pointer transition-transform transform hover:scale-105"
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </div>
-        ))}
+        {styles.map((item, index) => {
+          const Icon = iconMap[item.icon] || Star;
+          return (
+            <Link
+              key={index}
+              to={item.link || "#"}
+              className="flex items-center gap-2 bg-pink-200/90 hover:bg-pink-300 text-gray-900 rounded-full px-6 py-3 text-sm font-medium cursor-pointer transition-transform transform hover:scale-105"
+            >
+              <Icon className="w-4 h-4" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

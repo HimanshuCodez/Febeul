@@ -91,6 +91,27 @@ export const handleWebhook = async (req, res) => {
             order.shiprocket.trackingHistory = mergeTrackingHistory(order.shiprocket.trackingHistory, [activityEntry]);
             order.shiprocket.lastTrackedAt = new Date();
 
+            // Manual shipments only get an AWB/courier once an admin ships
+            // them from the Shiprocket dashboard — the webhook delivery that
+            // reports that is often the first time we see this data, so
+            // capture it here rather than waiting on the polling fallback.
+            if (awb && order.shiprocket.awb !== awb) {
+                order.shiprocket.awb = awb;
+                order.shiprocket.trackingUrl = `https://shiprocket.co/tracking/${awb}`;
+                statusChanged = true;
+            }
+            if (req.body.courier_name && order.shiprocket.courier !== req.body.courier_name) {
+                order.shiprocket.courier = req.body.courier_name;
+                statusChanged = true;
+            }
+            if (shipment_id && !order.shiprocket.shipmentId) {
+                order.shiprocket.shipmentId = shipment_id;
+            }
+            if (req.body.etd) {
+                const parsedEdd = new Date(req.body.etd);
+                if (!isNaN(parsedEdd.getTime())) order.shiprocket.edd = parsedEdd;
+            }
+
             if (mapped) {
                 if (order.orderStatus !== mapped.orderStatus) {
                     order.orderStatus = mapped.orderStatus;

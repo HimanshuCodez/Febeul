@@ -952,14 +952,14 @@ export default function OrderDetailPage() {
             {/* Unified Status + Live Update Timeline (Flipkart / Meesho style) */}
             <div className="space-y-2 relative pl-4 text-left">
               {MILESTONE_GROUPS.filter(group => {
-                  if (displayStatus === 'Cancelled') return false;
+                  if (displayStatus === 'Cancelled') return group.key === 'confirmed';
                   if (isLuxeOrder) return group.key === 'confirmed' || group.key === 'delivered';
                   return true;
               }).map((group, index, array) => {
                   const groupActivities = allActivities.filter(a => group.statuses.includes(a.status));
                   const hasData = groupActivities.length > 0;
-                  const isCompleted = group.level <= currentStatusLevel;
-                  const isCurrent = Math.floor(currentStatusLevel) === Math.floor(group.level) || currentStatusLevel === group.level;
+                  const isCompleted = displayStatus === 'Cancelled' ? true : group.level <= currentStatusLevel;
+                  const isCurrent = displayStatus === 'Cancelled' ? false : (Math.floor(currentStatusLevel) === Math.floor(group.level) || currentStatusLevel === group.level);
                   const headerDate = hasData ? groupActivities[groupActivities.length - 1].date : null;
 
                   return (
@@ -969,9 +969,9 @@ export default function OrderDetailPage() {
                         className="flex gap-4 relative"
                       >
                           {/* Connector Line */}
-                          {index < array.length - 1 && (
+                          {(index < array.length - 1 || displayStatus === 'Cancelled') && (
                             <div className={`absolute left-5 top-10 bottom-0 w-0.5 ${
-                              group.level < currentStatusLevel ? 'bg-[#e8767a]' : 'bg-slate-200'
+                              displayStatus === 'Cancelled' ? 'bg-red-400' : (group.level < currentStatusLevel ? 'bg-[#e8767a]' : 'bg-slate-200')
                             }`} />
                           )}
 

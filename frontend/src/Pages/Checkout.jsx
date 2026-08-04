@@ -549,6 +549,11 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (isPlacingOrder) return;
 
+    if (total <= 0) {
+      toast.error('Order amount must be greater than ₹0.');
+      return;
+    }
+
     if (!isAddressServiceable(addresses[selectedAddress])) {
       toast.error('This pincode is not currently serviceable.');
       return;
@@ -1327,13 +1332,13 @@ export default function CheckoutPage() {
               {step === 3 && (
                 <motion.button
                   onClick={handlePlaceOrder}
-                  disabled={isPlacingOrder}
+                  disabled={isPlacingOrder || total <= 0}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  whileHover={!isPlacingOrder ? { scale: 1.05 } : {}}
-                  whileTap={!isPlacingOrder ? { scale: 0.95 } : {}}
+                  whileHover={!isPlacingOrder && total > 0 ? { scale: 1.05 } : {}}
+                  whileTap={!isPlacingOrder && total > 0 ? { scale: 0.95 } : {}}
                   className={`w-full font-bold py-3 px-6 rounded-lg transition-colors mt-6 ${
-                    isPlacingOrder
+                    isPlacingOrder || total <= 0
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-[#e8767a] hover:bg-[#d5666a] text-white'
                   }`}

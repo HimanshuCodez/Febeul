@@ -311,6 +311,34 @@ export const adminPanelReplyToTicket = async (req, res) => {
 };
 
 
+// User: Mark a ticket as seen (clears the unread-reply dot for that ticket)
+export const markTicketRead = async (req, res) => {
+    const ticketId = String(req.body.ticketId || '').trim();
+
+    if (!ticketId || ticketId.length !== 24) {
+        return res.status(400).json({ success: false, message: 'Invalid ticket ID provided.' });
+    }
+
+    try {
+        const ticket = await ticketModel.findById(ticketId);
+        if (!ticket) {
+            return res.status(404).json({ success: false, message: 'Ticket not found.' });
+        }
+
+        if (ticket.user.toString() !== req.userId) {
+            return res.status(403).json({ success: false, message: 'Unauthorized.' });
+        }
+
+        ticket.lastSeenByUserAt = new Date();
+        await ticket.save();
+
+        res.json({ success: true, lastSeenByUserAt: ticket.lastSeenByUserAt });
+    } catch (error) {
+        console.error('Error marking ticket as read:', error);
+        res.status(500).json({ success: false, message: 'Error marking ticket as read.' });
+    }
+};
+
 // User & Admin: Get a single ticket by ID
 export const getTicketById = async (req, res) => {
     try {

@@ -96,6 +96,29 @@ export const trackShipment = async (awb) => {
     }
 };
 
+// Tracks a shipment by Shiprocket's own order_id rather than AWB. Used while
+// a shipment is still in manual/pending state (no AWB assigned yet) so we can
+// detect the moment an admin ships it from the Shiprocket dashboard — same
+// underlying tracking data as trackShipment, just looked up by order_id.
+export const trackShipmentByOrderId = async (srOrderId) => {
+    try {
+        const token = await shiprocketLogin();
+        const response = await axios.get(
+            `https://apiv2.shiprocket.in/v1/external/courier/track`,
+            {
+                params: { order_id: srOrderId },
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error tracking Shiprocket shipment by order id:", error.response ? error.response.data : error.message);
+        return null;
+    }
+};
+
 export const assignShiprocketAwb = async (shipmentId, token) => {
     try {
         const response = await axios.post(
@@ -236,12 +259,20 @@ export const buildShiprocketOrderPayload = (order) => ({
     codCharge: order.codCharge
 });
 
-// Creates a Shiprocket order for `order` and assigns an AWB in one step.
+// Creates a Shiprocket order for `order` via the Create Order API only.
 // Used for every payment path (COD, Stripe, Razorpay) so the shipment
 // creation logic — and its failure handling — lives in exactly one place.
+//
+// Deliberately does NOT assign an AWB, pick a courier, or request pickup —
+// those actions start shipping and deduct the Shiprocket wallet. The order
+// is left sitting in Shiprocket's dashboard for an admin to manually click
+// "Ship" and choose a courier. Once that happens, the webhook handler
+// (shiprocketWebhookController.js) or the on-demand poll in
+// orderController.js's getOrderById picks up the resulting AWB/courier and
+// syncs it onto this order.
+//
 // Returns the `shiprocket` sub-document fields to assign onto the order, or
-// null if Shiprocket order creation itself failed (AWB assignment failing is
-// tolerated — the shipment still exists, just without a courier yet).
+// null if Shiprocket order creation itself failed.
 export const createAndAssignShipment = async (order, paymentMethodLabel) => {
     try {
         const token = await shiprocketLogin();
@@ -250,32 +281,17 @@ export const createAndAssignShipment = async (order, paymentMethodLabel) => {
 
         if (!shiprocketResponse || !shiprocketResponse.order_id) return null;
 
-        let awbCode = null;
-        let courierName = null;
-
-        if (shiprocketResponse.shipment_id) {
-            try {
-                const awbResponse = await assignShiprocketAwb(shiprocketResponse.shipment_id, token);
-                if (awbResponse && awbResponse.awb_assign_status === 1) {
-                    awbCode = awbResponse.response?.data?.awb_code || null;
-                    courierName = awbResponse.response?.data?.courier_name || null;
-                }
-            } catch (awbError) {
-                console.log(`Error assigning Shiprocket AWB for ${paymentMethodLabel} order:`, awbError.message);
-            }
-        }
-
         return {
             ourOrderId: order._id.toString(),
             srOrderId: shiprocketResponse.order_id,
             shipmentId: shiprocketResponse.shipment_id,
-            awb: awbCode,
-            courier: courierName,
-            trackingUrl: awbCode ? `https://shiprocket.co/tracking/${awbCode}` : '',
+            awb: null,
+            courier: null,
+            trackingUrl: '',
             lastTrackedAt: new Date(),
             trackingHistory: [{
                 status: 'NEW',
-                activity: 'Order created with courier partner',
+                activity: 'Order created in Shiprocket — awaiting manual courier assignment',
                 date: new Date()
             }]
         };

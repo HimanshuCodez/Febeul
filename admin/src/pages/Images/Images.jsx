@@ -12,21 +12,28 @@ const Images = ({ token }) => {
     { desktopVideo: '', mobileVideo: '', thumbnail: '', title: '', subtitle: '', productLink: '' }
   ]);
   const [poseSection, setPoseSection] = useState({ desktop: '', mobile: '', link: '' });
+  const [styleCategories, setStyleCategories] = useState([{ icon: 'Star', label: '', link: '' }]);
   const [loading, setLoading] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState('hero');
+
+  const iconOptions = ['Shirt', 'Star', 'Gem', 'Scissors', 'Shield', 'Grid', 'Network', 'Layers'];
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [hero, spot, banner, pose] = await Promise.all([
+      const [hero, spot, banner, pose, styles] = await Promise.all([
         axios.get(`${backendUrl}/api/cms/hero_carousel`),
         axios.get(`${backendUrl}/api/cms/spotlight_categories`),
         axios.get(`${backendUrl}/api/cms/black_banner`),
-        axios.get(`${backendUrl}/api/cms/pose_section`)
+        axios.get(`${backendUrl}/api/cms/pose_section`),
+        axios.get(`${backendUrl}/api/cms/style_categories`)
       ]);
 
       if (hero.data.success) setSlides(hero.data.content || [{ desktop: '', mobile: '', link: '' }]);
       if (spot.data.success) setSpotlight(spot.data.content || []);
+      if (styles.data.success && Array.isArray(styles.data.content) && styles.data.content.length > 0) {
+        setStyleCategories(styles.data.content);
+      }
       if (banner.data.success) {
         const content = banner.data.content || {};
         if (Array.isArray(content.shows) && content.shows.length > 0) {
@@ -311,6 +318,48 @@ const Images = ({ token }) => {
               <p className="mb-2 font-medium">Pose Section Link</p>
               <input type="text" placeholder="/products/pose-collection" value={poseSection.link} onChange={(e) => setPoseSection({...poseSection, link: e.target.value})} className="w-full px-4 py-3 border rounded outline-none bg-gray-50 mb-6" />
               <button onClick={() => saveContent('pose_section', poseSection)} className="bg-black text-white px-12 py-3 rounded font-bold text-sm tracking-widest hover:scale-105 transition">SAVE POSE SETTINGS</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Style Categories (Suitable For Different Styles pills) */}
+      <div className="mb-6 border rounded-lg overflow-hidden shadow-sm">
+        <button onClick={() => setActiveAccordion(activeAccordion === 'styles' ? null : 'styles')} className={`w-full flex justify-between items-center p-4 transition-colors font-semibold text-lg ${activeAccordion === 'styles' ? 'bg-green-50 text-green-700' : 'bg-gray-50'}`}>
+          <span>Style Categories (Homepage Pills)</span>
+          <span>{activeAccordion === 'styles' ? '−' : '+'}</span>
+        </button>
+        {activeAccordion === 'styles' && (
+          <div className="p-6 bg-white space-y-6">
+            <p className="text-xs text-gray-500 -mt-2">Each pill links to a category or product listing page when clicked.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {styleCategories.map((item, index) => (
+                <div key={index} className="border p-4 rounded-md relative bg-gray-50 shadow-inner space-y-2">
+                  <button onClick={() => setStyleCategories(styleCategories.filter((_, i) => i !== index))} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">X</button>
+                  <div>
+                    <p className="mb-1 font-medium text-xs">Icon</p>
+                    <select
+                      value={item.icon}
+                      onChange={(e) => { const n = [...styleCategories]; n[index].icon = e.target.value; setStyleCategories(n); }}
+                      className="w-full px-3 py-2 border rounded outline-none bg-white text-sm"
+                    >
+                      {iconOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <p className="mb-1 font-medium text-xs">Label</p>
+                    <input type="text" placeholder="Satin Babydoll" value={item.label} onChange={(e) => { const n = [...styleCategories]; n[index].label = e.target.value; setStyleCategories(n); }} className="w-full px-3 py-2 border rounded outline-none bg-white text-sm" />
+                  </div>
+                  <div>
+                    <p className="mb-1 font-medium text-xs">Link</p>
+                    <input type="text" placeholder="/products/satin-babydoll" value={item.link} onChange={(e) => { const n = [...styleCategories]; n[index].link = e.target.value; setStyleCategories(n); }} className="w-full px-3 py-2 border rounded outline-none bg-white text-sm" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-4">
+              <button onClick={() => setStyleCategories([...styleCategories, { icon: 'Star', label: '', link: '' }])} className="bg-green-600 text-white px-6 py-2 rounded text-sm font-medium">Add Category</button>
+              <button onClick={() => saveContent('style_categories', styleCategories)} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Style Categories</button>
             </div>
           </div>
         )}

@@ -31,6 +31,15 @@ const STATUS_CONFIG = {
 
 const getStatusConfig = (status) => STATUS_CONFIG[status] || { label: status || 'Unknown', dot: 'bg-slate-400', badge: 'bg-slate-50 text-slate-600 border-slate-100', Icon: LifeBuoy };
 
+// A ticket has an unread reply when its latest message is from support and
+// arrived after the user last opened it (lastSeenByUserAt).
+const isTicketUnread = (ticket) => {
+    const lastMessage = ticket.messages?.[ticket.messages.length - 1];
+    if (!lastMessage || lastMessage.sender !== 'admin') return false;
+    const lastSeen = ticket.lastSeenByUserAt ? new Date(ticket.lastSeenByUserAt).getTime() : 0;
+    return new Date(lastMessage.createdAt).getTime() > lastSeen;
+};
+
 const Support = () => {
     const token = useAuthStore((state) => state.token);
     const url = import.meta.env.VITE_BACKEND_URL;
@@ -59,12 +68,31 @@ const Support = () => {
             const response = await axios.get(`${url}/api/ticket/user`, { headers: { token } });
             if (response.data.success) {
                 setTickets(response.data.tickets);
+                const unreadCount = response.data.tickets.filter(isTicketUnread).length;
+                useAuthStore.getState().setUnreadTicketsCount(unreadCount);
             }
         } catch (error) {
             toast.error("Failed to fetch tickets.");
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Opening a ticket counts as "seeing" its latest reply — clears its dot
+    // and, if it was the last unread one, the "My Tickets" dot in Profile too.
+    const handleSelectTicket = async (ticket) => {
+        setSelectedTicket(ticket);
+        if (!isTicketUnread(ticket)) return;
+
+        const seenAt = new Date().toISOString();
+        setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, lastSeenByUserAt: seenAt } : t));
+        useAuthStore.setState(state => ({ unreadTicketsCount: Math.max(0, state.unreadTicketsCount - 1) }));
+
+        try {
+            await axios.post(`${url}/api/ticket/mark-read`, { ticketId: ticket._id }, { headers: { token } });
+        } catch (error) {
+            console.error("Failed to mark ticket as read:", error);
         }
     };
 
@@ -413,6 +441,7 @@ const Support = () => {
                         >
                             {filteredTickets.map(ticket => {
                                 const { label, dot, badge, Icon } = getStatusConfig(ticket.status);
+                                const unread = isTicketUnread(ticket);
                                 return (
                                     <motion.div
                                         key={ticket._id}
@@ -421,14 +450,22 @@ const Support = () => {
                                             visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 120, damping: 16 } }
                                         }}
                                         whileHover={{ y: -2 }}
-                                        onClick={() => setSelectedTicket(ticket)}
-                                        className="group bg-white border border-slate-100 rounded-2xl p-4 sm:p-5 cursor-pointer hover:shadow-lg hover:border-pink-100 transition-all duration-300 flex items-center gap-4"
+                                        onClick={() => handleSelectTicket(ticket)}
+                                        className={`group bg-white border rounded-2xl p-4 sm:p-5 cursor-pointer hover:shadow-lg hover:border-pink-100 transition-all duration-300 flex items-center gap-4 ${unread ? 'border-pink-200' : 'border-slate-100'}`}
                                     >
-                                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-pink-50 flex items-center justify-center shrink-0 border border-pink-100">
+                                        <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-pink-50 flex items-center justify-center shrink-0 border border-pink-100">
                                             <MessageCircle className="text-pink-500" size={20} />
+                                            {unread && (
+                                                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-rose-500 border-2 border-white animate-pulse" title="New reply" />
+                                            )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-slate-800 truncate">{ticket.subject}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-bold text-slate-800 truncate">{ticket.subject}</p>
+                                                {unread && (
+                                                    <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-100 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">New Reply</span>
+                                                )}
+                                            </div>
                                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-slate-400 font-bold">
                                                 <span>#{ticket.ticketNumber || ticket._id.slice(-6)}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-300" />

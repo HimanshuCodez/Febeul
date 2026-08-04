@@ -14,6 +14,9 @@ const BlackBanner = () => {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const productRailRef = useRef(null);
+  const railPausedRef = useRef(false);
+  const railResumeTimeoutRef = useRef(null);
+  const videoRef = useRef(null);
   const navigate = useNavigate();
   const { user, token, isAuthenticated, fetchCartCount } = useAuthStore();
 
@@ -59,12 +62,45 @@ const BlackBanner = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Continuously auto-slide the side product rail upward, looping seamlessly.
+  useEffect(() => {
+    const el = productRailRef.current;
+    if (!el || sideProducts.length === 0) return;
+
+    let rafId;
+    const speed = 0.4; // px per frame
+    const step = () => {
+      if (!railPausedRef.current) {
+        const halfHeight = el.scrollHeight / 2;
+        if (el.scrollTop >= halfHeight) {
+          el.scrollTop -= halfHeight;
+        } else {
+          el.scrollTop += speed;
+        }
+      }
+      rafId = requestAnimationFrame(step);
+    };
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [sideProducts]);
+
+  const pauseRailTemporarily = () => {
+    railPausedRef.current = true;
+    clearTimeout(railResumeTimeoutRef.current);
+    railResumeTimeoutRef.current = setTimeout(() => {
+      railPausedRef.current = false;
+    }, 2000);
+  };
+
   const scrollRail = (direction) => {
     const el = productRailRef.current;
     if (!el) return;
+    pauseRailTemporarily();
     const amount = 220;
     el.scrollBy({ top: direction === "up" ? -amount : amount, behavior: "smooth" });
   };
+
+  const railProducts = sideProducts.length > 0 ? [...sideProducts, ...sideProducts] : [];
 
   const handleQuickAddToCart = async (product) => {
     if (!isAuthenticated) {
@@ -157,11 +193,13 @@ const BlackBanner = () => {
           </button>
           <div
             ref={productRailRef}
-            className="flex flex-col gap-3 overflow-y-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            onMouseEnter={() => { railPausedRef.current = true; }}
+            onMouseLeave={() => { clearTimeout(railResumeTimeoutRef.current); railPausedRef.current = false; }}
+            className="flex flex-col gap-3 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
             style={{ maxHeight: "70vh" }}
           >
-            {sideProducts.map((product) => (
-              <ProductRailCard key={product._id} product={product} />
+            {railProducts.map((product, idx) => (
+              <ProductRailCard key={`${product._id}-${idx}`} product={product} />
             ))}
           </div>
           <button
@@ -180,6 +218,7 @@ const BlackBanner = () => {
               Live Now
             </span>
             <video
+              ref={videoRef}
               key={mediaSrc}
               className="absolute inset-0 w-full h-full object-cover"
               src={mediaSrc}
@@ -188,6 +227,7 @@ const BlackBanner = () => {
               loop
               playsInline
               controls
+              onLoadedData={(e) => { e.currentTarget.play().catch(() => {}); }}
             />
           </div>
 
