@@ -10,7 +10,8 @@ import {
   FaEdit,
   FaTimes,
   FaSearch,
-  FaChevronDown
+  FaChevronDown,
+  FaShieldAlt
 } from 'react-icons/fa';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
@@ -90,6 +91,46 @@ const OrderPlacedOverlay = () => (
   </motion.div>
 );
 
+// Shown the instant Razorpay hands control back to us, while we call
+// verifyRazorpay server-side (~3-4s) — covers the gap so the user never
+// sees a blank/frozen checkout page after paying.
+const VerifyingPaymentOverlay = () => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-white/95 backdrop-blur-sm z-[200] flex flex-col items-center justify-center px-6"
+  >
+    <div className="relative w-20 h-20 flex items-center justify-center">
+      <motion.div
+        className="absolute inset-0 rounded-full border-4 border-[#f9d7d8]"
+      />
+      <motion.div
+        className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#e8767a]"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
+      />
+      <FaShieldAlt className="text-[#e8767a] text-2xl" />
+    </div>
+    <motion.p
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15 }}
+      className="text-lg font-bold text-gray-800 mt-6 text-center"
+    >
+      Verifying your payment...
+    </motion.p>
+    <motion.p
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.25 }}
+      className="text-sm text-gray-500 mt-2 text-center max-w-xs"
+    >
+      Please wait, do not refresh or close this window.
+    </motion.p>
+  </motion.div>
+);
+
 export default function CheckoutPage() {
   const { user, token, isAuthenticated, getProfile, siteSettings, fetchSiteSettings, getStateServiceability, getPincodeServiceability } = useAuthStore();
   const navigate = useNavigate();
@@ -108,6 +149,7 @@ export default function CheckoutPage() {
   const [activeOffers, setActiveOffers] = useState([]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(null);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   useEffect(() => {
     fetchSiteSettings();
@@ -630,6 +672,7 @@ export default function CheckoutPage() {
         description: "Order Payment",
         order_id: order.id,
         handler: async function (response) {
+          setIsVerifyingPayment(true);
           try {
             const verifyResponse = await axios.post(
               `${backendUrl}/api/order/verifyRazorpay`,
@@ -649,9 +692,11 @@ export default function CheckoutPage() {
                 navigate(`/order-detail/${newOrderId}`);
               }, ORDER_SUCCESS_REDIRECT_DELAY_MS);
             } else {
+              setIsVerifyingPayment(false);
               toast.error("Payment verification failed.");
             }
           } catch (error) {
+            setIsVerifyingPayment(false);
             toast.error("Payment verification failed.");
           }
         },
@@ -682,7 +727,11 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-[#f9aeaf] py-8 px-4">
       <AnimatePresence>
-        {placedOrderId && <OrderPlacedOverlay />}
+        {placedOrderId ? (
+          <OrderPlacedOverlay key="order-placed" />
+        ) : isVerifyingPayment ? (
+          <VerifyingPaymentOverlay key="verifying-payment" />
+        ) : null}
       </AnimatePresence>
       <GiftWrapModal
         isOpen={isGiftWrapModalOpen}

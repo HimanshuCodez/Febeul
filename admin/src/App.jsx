@@ -43,11 +43,6 @@ const App = () => {
 
   const isAllowed = (path) => {
     if (role === 'admin') return true;
-    // For staff, if no permissions are set, they might have none or all depending on system design.
-    // Based on Sidebar.jsx, permissions.length === 0 means default behavior (allowed if no specific permissions set)
-    // but usually for staff we want explicit permissions.
-    // Given the current implementation in Sidebar.jsx, let's stick to it but pass permissions state.
-    if (permissions.length === 0) return true; 
     return permissions.includes(path);
   };
 

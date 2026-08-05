@@ -67,7 +67,6 @@ const Sidebar = ({ role, permissions = [] }) => {
 
   const isAllowed = (path) => {
     if (role === 'admin') return true;
-    if (permissions.length === 0) return true;
     return permissions.includes(path);
   };
 
