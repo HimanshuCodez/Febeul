@@ -54,13 +54,26 @@ const Footer = () => {
               Timings: 10:00 AM to 6:30 PM  
               (Monday–Saturday)
             </p>
-            {/* Payment Gateway Logos Placeholder */}
-            <div className="mt-4 flex flex-wrap justify-center sm:justify-start gap-2">
-              <img src="/upi.png" alt="Visa" className="h-16" />
-              <img src="/visa.png" alt="Mastercard" className="h-16" />
-              <img src="mastercard.png" alt="UPI" className="h-16" />
-              <img src="bank.png" alt="Net Banking" className="h-16" />
-              <img src="cod.png" alt="Cash on Delivery" className="h-16" />
+            {/* Payment Gateway Logos */}
+            <div className="mt-4 flex flex-wrap justify-center sm:justify-start items-center gap-2 sm:gap-3">
+              {[
+                { src: "/upi.png", alt: "UPI" },
+                { src: "/visa.png", alt: "Visa" },
+                { src: "/mastercard.png", alt: "Mastercard" },
+                { src: "/bank.png", alt: "Net Banking" },
+                { src: "/cod.png", alt: "Cash on Delivery" },
+              ].map((icon) => (
+                <div
+                  key={icon.alt}
+                  className="flex items-center justify-center h-12 w-16 sm:h-14 sm:w-20 rounded-md bg-white p-2"
+                >
+                  <img
+                    src={icon.src}
+                    alt={icon.alt}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
