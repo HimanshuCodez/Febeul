@@ -332,7 +332,7 @@ const BlackBanner = () => {
                   <div className="w-28 aspect-video rounded-lg overflow-hidden bg-gray-800 border border-white/10">
                     {show.thumbnail && <img src={show.thumbnail} alt={show.title} className="w-full h-full object-cover" />}
                   </div>
-                  <p className="text-[11px] text-gray-300 mt-1 line-clamp-2 leading-tight">{show.title}</p>
+                  <p className="text-[11px] mt-1 line-clamp-2 leading-tight" style={{ color: textColor }}>{show.title}</p>
                 </button>
               ))}
             </div>
@@ -369,7 +369,7 @@ const BlackBanner = () => {
                     {show.thumbnail && <img src={show.thumbnail} alt={show.title} className="w-full h-full object-cover" />}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-100 line-clamp-2 leading-tight">{show.title || "Watch now"}</p>
+                    <p className="text-xs font-medium line-clamp-2 leading-tight" style={{ color: textColor }}>{show.title || "Watch now"}</p>
                   </div>
                 </button>
               ))}
