@@ -691,9 +691,19 @@ export default function OrderDetailPage() {
   // Persisted, webhook-fed tracking history is the source of truth (always
   // available, no live API call needed on every page load). Fall back to a
   // raw live-poll response for orders placed before this history existed.
-  const shipmentActivities = (order.shiprocket?.trackingHistory?.length > 0)
+  // Some history entries are internal fulfilment notes rather than courier
+  // scans (e.g. "Order created in Shiprocket — awaiting manual courier
+  // assignment"). Customers shouldn't see our logistics provider or its
+  // workflow, so the raw text is dropped and the milestone falls back to its
+  // customer-facing wording below.
+  const stripInternalActivity = (act) => (
+    /shiprocket/i.test(act?.activity || '') ? { ...act, activity: '' } : act
+  );
+
+  const shipmentActivities = ((order.shiprocket?.trackingHistory?.length > 0)
     ? [...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
-    : (trackingData?.tracking_data?.shipment_track_activities || []);
+    : (trackingData?.tracking_data?.shipment_track_activities || [])
+  ).map(stripInternalActivity);
 
   // Reverse pickup tracking (courier collecting a returned item), populated
   // once admin approves a delivered-item return request.
@@ -744,6 +754,7 @@ export default function OrderDetailPage() {
     NEW: 'Seller has processed your order.',
     'PICKUP SCHEDULED': 'Pickup has been scheduled with the courier partner.',
     'PICKED UP': 'Your item has been picked up by the delivery partner.',
+    AWB_ASSIGNED: 'Your item has been handed over for shipping.',
     SHIPPED: 'Your item has been shipped.',
     IN_TRANSIT: 'Your item has been received in the hub nearest to you.',
     OUT_FOR_DELIVERY: 'Your item is out for delivery.',
@@ -755,7 +766,7 @@ export default function OrderDetailPage() {
 
   const MILESTONE_GROUPS = [
     { key: 'confirmed', label: 'Order Confirmed', level: 2, statuses: ['ORDER_PLACED', 'NEW', 'PICKUP SCHEDULED', 'PICKED UP'], icon: <Check size={16} />, fallbackDescription: 'Your order has been placed successfully' },
-    { key: 'shipped', label: 'Shipped', level: 3, statuses: ['SHIPPED', 'IN_TRANSIT'], icon: <FaShippingFast />, fallbackDescription: 'On the way to you' },
+    { key: 'shipped', label: 'Shipped', level: 3, statuses: ['AWB_ASSIGNED', 'SHIPPED', 'IN_TRANSIT'], icon: <FaShippingFast />, fallbackDescription: 'On the way to you' },
     { key: 'out_for_delivery', label: 'Out for Delivery', level: 3.5, statuses: ['OUT_FOR_DELIVERY'], icon: <FaTruckLoading />, fallbackDescription: 'Your package will be out for delivery soon' },
     { key: 'delivered', label: 'Delivered', level: 4, statuses: ['DELIVERED'], icon: <FaMapMarkerAlt />, fallbackDescription: isLuxeOrder ? 'Your Luxe Membership is now active' : 'Package delivered' }
   ];
@@ -889,18 +900,6 @@ export default function OrderDetailPage() {
               <p className="text-sm sm:text-lg font-bold text-[#e8767a] break-all select-all font-mono mt-1">{orderNumberToDisplay}</p>
             </motion.div>
 
-            {order.shiprocket?.trackingUrl && !isLuxeOrder && displayStatus !== 'Cancelled' && (
-              <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.8 }}
-                  className="text-sm text-[#e8767a] hover:text-rose-600 font-bold mt-4 flex items-center justify-center hover:underline cursor-pointer"
-                  onClick={() => window.open(order.shiprocket.trackingUrl, '_blank')}
-              >
-                  
-              </motion.p>
-            )}
-
           </motion.div>
 
           {/* Redesigned Live Order Tracking Timeline (Meesho / Flipkart style) */}
@@ -948,31 +947,9 @@ export default function OrderDetailPage() {
               <HorizontalBikeTracker displayStatus={displayStatus} />
             )}
 
-            {/* Shiprocket Courier Details */}
-            {order.shiprocket && order.shiprocket.awb && !isLuxeOrder && (
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-left">
-                <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Courier Partner</span>
-                  <span className="text-sm font-extrabold text-slate-800">{order.shiprocket.courier || 'Shiprocket'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">AWB Number</span>
-                  <span className="text-sm font-extrabold text-[#e8767a] select-all break-all">#{order.shiprocket.awb}</span>
-                </div>
-                {order.shiprocket.trackingUrl && (
-                  <div className="flex items-center">
-                    <a 
-                      href={order.shiprocket.trackingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full sm:w-auto inline-flex items-center justify-center bg-slate-900 text-white font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl hover:bg-black transition-all"
-                    >
-                      Track Courier Portal
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Courier partner / AWB / carrier portal link are deliberately not
+                shown to customers — the milestone timeline below is the only
+                shipment detail they get. */}
 
             {/* Unified Status + Live Update Timeline (Flipkart / Meesho style) */}
             <div className="space-y-2 relative pl-4 text-left">
@@ -1019,12 +996,6 @@ export default function OrderDetailPage() {
                                   </span>
                                 )}
                               </div>
-
-                              {group.key === 'shipped' && !isLuxeOrder && (order.shiprocket?.courier || order.shiprocket?.awb) && (
-                                <p className="text-xs font-bold text-slate-600 mt-1.5">
-                                  {order.shiprocket.courier || 'Courier'}{order.shiprocket.awb ? ` - ${order.shiprocket.awb}` : ''}
-                                </p>
-                              )}
 
                               {hasData ? (
                                 <div className="mt-2 space-y-2.5">

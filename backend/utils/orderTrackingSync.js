@@ -148,11 +148,15 @@ export const syncOrderTracking = async (order, { force = false, staleMs = TRACKI
 };
 
 // Refreshes a list of orders concurrently, skipping the ones that aren't
-// trackable or aren't stale yet. Capped so a customer with a long order
-// history can't fan out into dozens of Shiprocket calls on one page load.
+// trackable or aren't stale yet. Capped so a long order history (or the admin
+// panel's full order list) can't fan out into dozens of Shiprocket calls on
+// one page load — newest orders first, since those are the ones being shipped
+// right now. Whatever the cap leaves out gets picked up on the next load,
+// because syncing is what refreshes lastTrackedAt.
 export const syncOrdersTracking = async (orders, { limit = 8, staleMs = TRACKING_STALE_MS } = {}) => {
     const candidates = orders
         .filter(order => isTrackable(order) && isTrackingStale(order, staleMs))
+        .sort((a, b) => (b.date || 0) - (a.date || 0))
         .slice(0, limit);
 
     if (candidates.length === 0) return;

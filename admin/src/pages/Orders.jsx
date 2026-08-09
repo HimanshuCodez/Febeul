@@ -163,6 +163,24 @@ const Orders = ({ token }) => {
     fetchAllOrders();
   }, [token])
 
+  // Shipping happens in the Shiprocket panel, in another tab. Re-pull the list
+  // when this tab is focused again so an order that was just shipped there
+  // shows its new status/AWB here without a manual page reload.
+  useEffect(() => {
+    if (!token) return;
+
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'visible') fetchAllOrders();
+    };
+
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+    };
+  }, [token])
+
   // Process & Group Analytics Data Dynamically
   const analytics = useMemo(() => {
     const pincodeMap = {};

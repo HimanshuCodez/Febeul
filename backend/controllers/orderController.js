@@ -937,6 +937,12 @@ const allOrders = async (req,res) => {
             .populate('userId', 'name email isLuxeMember') // Populate user name, email and luxe status
             .populate('items.productId', 'name variations'); // Populate product name and variations
 
+        // Keep the admin list in step with the Shiprocket panel — an order
+        // shipped there shows as 'Shipped' here without waiting on a webhook.
+        // Same throttled+capped sync the storefront uses, so a big order list
+        // doesn't turn into a burst of Shiprocket calls.
+        await syncOrdersTracking(orders);
+
         res.json({success:true,orders})
 
     } catch (error) {
