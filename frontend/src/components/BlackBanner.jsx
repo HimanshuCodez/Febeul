@@ -10,6 +10,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const BlackBanner = () => {
   const [shows, setShows] = useState([]);
   const [backgroundColor, setBackgroundColor] = useState('#000000');
+  const [textColor, setTextColor] = useState('#ffffff');
   const [sideProducts, setSideProducts] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,7 @@ const BlackBanner = () => {
         if (response.data.success && Array.isArray(content?.shows) && content.shows.length > 0) {
           setShows(content.shows.filter((s) => s.desktopVideo || s.mobileVideo));
           setBackgroundColor(content.backgroundColor || '#000000');
+          setTextColor(content.textColor || '#ffffff');
         } else {
           setShows([]);
         }
@@ -278,7 +280,7 @@ const BlackBanner = () => {
         </div>
 
         {/* Center: video player + product info */}
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0">
           <div className="relative w-full aspect-[9/16] sm:aspect-video bg-black overflow-hidden md:rounded-xl">
             <span className="absolute top-3 left-3 z-10 bg-black/60 text-white text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full">
               Live Now
@@ -301,7 +303,7 @@ const BlackBanner = () => {
             <div className="flex items-center justify-between gap-4 px-4 py-4">
               <div className="min-w-0">
                 {activeShow.title && (
-                  <h2 className="text-sm sm:text-base font-semibold text-white truncate">{activeShow.title}</h2>
+                  <h2 className="text-sm sm:text-base font-semibold truncate" style={{ color: textColor }}>{activeShow.title}</h2>
                 )}
                 {activeShow.subtitle && (
                   <p className="text-xs text-gray-400 mt-0.5">{activeShow.subtitle}</p>
@@ -339,7 +341,7 @@ const BlackBanner = () => {
           {/* Mobile-only shoppable product rail, sliding horizontally */}
           {railProducts.length > 0 && (
             <div className="md:hidden px-4 pb-4">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wide mb-2">Shop This Look</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: textColor }}>Shop This Look</h3>
               <div
                 ref={mobileRailRef}
                 className="flex gap-2.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
@@ -355,7 +357,7 @@ const BlackBanner = () => {
         {/* Right rail: watch more list */}
         {watchMoreShows.length > 0 && (
           <div className="hidden lg:flex flex-col gap-3 py-2 px-2">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Watch More</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: textColor }}>Watch More</h3>
             <div className="flex flex-col gap-3 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" style={{ maxHeight: "75vh" }}>
               {watchMoreShows.map((show) => (
                 <button
