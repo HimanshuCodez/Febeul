@@ -119,6 +119,59 @@ export const trackShipmentByOrderId = async (srOrderId) => {
     }
 };
 
+// Shiprocket's tracking endpoints return the payload in three different
+// shapes depending on which one was called and whether a courier is assigned:
+//   { tracking_data: {...} }
+//   { "<order_id>": { tracking_data: {...} } }
+//   [ { "<order_id>": { tracking_data: {...} } } ]
+// This flattens all of them down to the tracking_data object (or null).
+export const extractTrackingData = (response) => {
+    if (!response) return null;
+    const candidates = Array.isArray(response) ? response : [response];
+
+    for (const candidate of candidates) {
+        if (!candidate || typeof candidate !== 'object') continue;
+        if (candidate.tracking_data) return candidate.tracking_data;
+        for (const value of Object.values(candidate)) {
+            if (value && typeof value === 'object' && value.tracking_data) return value.tracking_data;
+        }
+    }
+    return null;
+};
+
+// Reads the order straight from Shiprocket's Orders API. Unlike the tracking
+// endpoints, this reflects an "Ship Now" click immediately — the order's
+// `status` flips to READY TO SHIP / PICKUP SCHEDULED and `shipments.awb` is
+// populated the moment the AWB is generated, even before the courier has
+// recorded its first scan (which is when tracking data starts existing).
+export const getShiprocketOrderDetails = async (srOrderId) => {
+    if (!srOrderId) return null;
+    try {
+        const token = await shiprocketLogin();
+        const response = await axios.get(
+            `https://apiv2.shiprocket.in/v1/external/orders/show/${srOrderId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const data = response.data?.data || response.data;
+        if (!data) return null;
+
+        // `shipments` is an object for single-shipment orders and an array when split.
+        const shipment = Array.isArray(data.shipments) ? data.shipments[0] : data.shipments;
+
+        return {
+            status: data.status || shipment?.status || null,
+            awb: shipment?.awb || data.awb_data?.awb || null,
+            courier: shipment?.courier || data.courier_name || null,
+            shipmentId: shipment?.id || data.shipment_id || null,
+            etd: shipment?.etd || data.etd || null
+        };
+    } catch (error) {
+        console.error("Error fetching Shiprocket order details:", error.response ? error.response.data : error.message);
+        return null;
+    }
+};
+
 export const assignShiprocketAwb = async (shipmentId, token) => {
     try {
         const response = await axios.post(

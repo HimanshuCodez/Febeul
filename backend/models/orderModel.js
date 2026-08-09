@@ -20,7 +20,7 @@ const orderSchema = new mongoose.Schema({
     razorpayPaymentId: { type: String }, // For prepaid refunds
     address: { type: Object, required: true },
     orderStatus: { type: String, enum: ['Order Placed', 'Processing', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refund Initiated', 'Refunded', 'Failed'], default:'Order Placed' },
-    shiprocketStatus: { type: String, enum: ['NEW', 'PICKUP SCHEDULED', 'PICKED UP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RTO', 'RTO_INITIATED', 'RTO_DELIVERED', 'UNDELIVERED', 'LOST', 'CANCELLED', 'UNKNOWN'], default: 'NEW' }, // Shiprocket status
+    shiprocketStatus: { type: String, enum: ['NEW', 'AWB_ASSIGNED', 'PICKUP SCHEDULED', 'PICKED UP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RTO', 'RTO_INITIATED', 'RTO_DELIVERED', 'UNDELIVERED', 'LOST', 'CANCELLED', 'UNKNOWN'], default: 'NEW' }, // Shiprocket status
     shippedAt: { type: Date },
     deliveredAt: { type: Date },
     paymentMethod: { type: String, required: true, enum: ['COD', 'Stripe', 'Razorpay'] },

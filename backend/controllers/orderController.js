@@ -3,8 +3,8 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
-import { trackShipment, trackShipmentByOrderId, createAndAssignShipment, cancelShiprocketOrder } from '../utils/shiprocket.js';
-import { mapShiprocketStatus, mergeTrackingHistory } from '../utils/shiprocketStatusMap.js';
+import { createAndAssignShipment, cancelShiprocketOrder } from '../utils/shiprocket.js';
+import { syncOrderTracking, syncOrdersTracking } from '../utils/orderTrackingSync.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
@@ -954,6 +954,13 @@ const userOrders = async (req,res) => {
             return res.json({ success: false, message: 'User ID not found in token' });
         }
         const orders = await orderModel.find({ userId, ...PLACED_ORDER_FILTER })
+
+        // The order list is the first place a customer looks after being told
+        // "your order has shipped", so refresh in-flight shipments here too
+        // rather than only on the detail page. Throttled + capped inside the
+        // util, and settled/cancelled orders are skipped entirely.
+        await syncOrdersTracking(orders);
+
         res.json({success:true,orders})
 
     } catch (error) {
@@ -1000,11 +1007,6 @@ const generateInvoice = async (req, res) => {
     }
 };
 
-// How long persisted tracking data is trusted before we bother re-polling
-// Shiprocket's live API. Webhooks keep this fresh in the common case; this
-// is just a safety-net refresh for when a webhook delivery was missed.
-const TRACKING_STALE_MS = 15 * 60 * 1000;
-
 const getOrderById = async (req, res) => {
     try {
         const order = await orderModel.findById(req.params.id).populate('userId', 'name email'); // Populate userId
@@ -1012,86 +1014,13 @@ const getOrderById = async (req, res) => {
             return res.json({ success: false, message: 'Order not found' });
         }
 
-        let trackingData = null;
-        const isStale = !order.shiprocket?.lastTrackedAt ||
-            (Date.now() - new Date(order.shiprocket.lastTrackedAt).getTime()) > TRACKING_STALE_MS;
+        // Re-read the shipment from Shiprocket (throttled inside the util) so
+        // an admin clicking "Ship Now" in the Shiprocket panel is reflected
+        // here even when no webhook was delivered for it.
+        // `?refresh=1` forces the poll, bypassing the staleness window.
+        const { trackingData } = await syncOrderTracking(order, { force: req.query.refresh === '1' });
 
-        if (order.shiprocket?.awb && isStale) {
-            trackingData = await trackShipment(order.shiprocket.awb);
-            const activities = trackingData?.tracking_data?.shipment_track_activities || [];
-            const currentStatus = trackingData?.tracking_data?.shipment_track?.[0]?.current_status;
-            const edd = trackingData?.tracking_data?.shipment_track?.[0]?.edd;
-
-            if (edd) {
-                const parsedEdd = new Date(edd);
-                if (!isNaN(parsedEdd.getTime())) order.shiprocket.edd = parsedEdd;
-            }
-
-            if (activities.length > 0) {
-                const newEntries = activities.map(act => ({
-                    status: mapShiprocketStatus(act.status || act.activity)?.shiprocketStatus || 'UNKNOWN',
-                    activity: act.activity || act.status || '',
-                    location: act.location || '',
-                    date: act.date
-                }));
-                order.shiprocket.trackingHistory = mergeTrackingHistory(order.shiprocket.trackingHistory, newEntries);
-            }
-
-            const mapped = mapShiprocketStatus(currentStatus);
-            if (mapped && order.shiprocketStatus !== mapped.shiprocketStatus) {
-                order.shiprocketStatus = mapped.shiprocketStatus;
-                order.orderStatus = mapped.orderStatus;
-                if (mapped.orderStatus === 'Delivered') order.deliveredAt = order.deliveredAt || new Date();
-                if (mapped.orderStatus === 'Shipped') order.shippedAt = order.shippedAt || new Date();
-            }
-
-            order.shiprocket.lastTrackedAt = new Date();
-            await order.save();
-        } else if (order.shiprocket?.srOrderId && !order.shiprocket?.awb && isStale) {
-            // Shipment hasn't been manually assigned a courier/AWB yet on the
-            // Shiprocket dashboard, so there's no AWB to poll by. Fall back to
-            // looking it up by Shiprocket's own order_id — this is the
-            // safety-net path; the webhook handler (shiprocketWebhookController.js)
-            // is the primary way this gets picked up once it happens.
-            trackingData = await trackShipmentByOrderId(order.shiprocket.srOrderId);
-            const keyedData = trackingData?.[order.shiprocket.srOrderId]?.tracking_data;
-            const shipmentTrack = (trackingData?.tracking_data || keyedData)?.shipment_track?.[0];
-            const activities = (trackingData?.tracking_data || keyedData)?.shipment_track_activities || [];
-
-            if (shipmentTrack?.awb_code) {
-                order.shiprocket.awb = shipmentTrack.awb_code;
-                order.shiprocket.courier = shipmentTrack.courier_name || order.shiprocket.courier;
-                order.shiprocket.trackingUrl = `https://shiprocket.co/tracking/${shipmentTrack.awb_code}`;
-                if (shipmentTrack.id) order.shiprocket.shipmentId = shipmentTrack.id;
-
-                if (shipmentTrack.edd) {
-                    const parsedEdd = new Date(shipmentTrack.edd);
-                    if (!isNaN(parsedEdd.getTime())) order.shiprocket.edd = parsedEdd;
-                }
-
-                if (activities.length > 0) {
-                    const newEntries = activities.map(act => ({
-                        status: mapShiprocketStatus(act.status || act.activity)?.shiprocketStatus || 'UNKNOWN',
-                        activity: act.activity || act.status || '',
-                        location: act.location || '',
-                        date: act.date
-                    }));
-                    order.shiprocket.trackingHistory = mergeTrackingHistory(order.shiprocket.trackingHistory, newEntries);
-                }
-
-                const mapped = mapShiprocketStatus(shipmentTrack.current_status);
-                if (mapped) {
-                    order.shiprocketStatus = mapped.shiprocketStatus;
-                    order.orderStatus = mapped.orderStatus;
-                    if (mapped.orderStatus === 'Shipped') order.shippedAt = order.shippedAt || new Date();
-                }
-            }
-
-            order.shiprocket.lastTrackedAt = new Date();
-            await order.save();
-        }
-
-        res.json({ success: true, order, trackingData });
+        res.json({ success: true, order, trackingData: trackingData ? { tracking_data: trackingData } : null });
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: 'Error fetching order' });

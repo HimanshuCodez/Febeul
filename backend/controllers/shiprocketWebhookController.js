@@ -1,6 +1,23 @@
+import mongoose from 'mongoose';
 import orderModel from '../models/orderModel.js';
-import { mapShiprocketStatus, parseShiprocketTimestamp, mergeTrackingHistory } from '../utils/shiprocketStatusMap.js';
+import { mapShiprocketStatus, parseShiprocketTimestamp, mergeTrackingHistory, isStatusProgression } from '../utils/shiprocketStatusMap.js';
 import { autoRefundOnCourierReturn } from './refundController.js';
+
+// Shiprocket omits identifiers it doesn't have yet (no `shipment_id` key at
+// all, `awb: ''` before a courier is assigned). Feeding those straight into a
+// `$or` is how a webhook ends up updating a completely unrelated order: an
+// absent key serializes to `null`, and `{ 'shiprocket.shipmentId': null }`
+// matches every order that has never been assigned one. So each identifier is
+// tried on its own, most-specific first, and only when it actually has a value.
+const findOrderByIdentifiers = async (candidates) => {
+    for (const filter of candidates) {
+        const [value] = Object.values(filter);
+        if (value === undefined || value === null || value === '') continue;
+        const order = await orderModel.findOne(filter).populate('userId', 'name email');
+        if (order) return order;
+    }
+    return null;
+};
 
 // Single authenticated entry point for all Shiprocket webhook deliveries.
 // Two routes point here (backend/routes/webhookRoute.js and the legacy
@@ -27,26 +44,34 @@ export const handleWebhook = async (req, res) => {
     }
 
     try {
+        // Reverse pickups are created with our order id prefixed (`RET-<id>`),
+        // so that prefix is an unambiguous signal that this is a return leg.
+        const isReturnOrderId = typeof order_id === 'string' && order_id.startsWith('RET-');
+        const ourOrderId = isReturnOrderId ? order_id.slice(4) : order_id;
+
         // First, try to match this update against a forward (outbound) shipment.
-        let order = await orderModel.findOne({
-            $or: [
-                { 'shiprocket.ourOrderId': order_id },
-                { 'shiprocket.srOrderId': srOrderId },
-                { 'shiprocket.shipmentId': shipment_id },
-                { 'shiprocket.awb': awb }
-            ]
-        }).populate('userId', 'name email');
+        let order = isReturnOrderId ? null : await findOrderByIdentifiers([
+            { 'shiprocket.ourOrderId': ourOrderId },
+            { 'shiprocket.srOrderId': srOrderId },
+            { 'shiprocket.shipmentId': shipment_id },
+            { 'shiprocket.awb': awb },
+            // Orders placed before the shiprocket sub-document existed (or whose
+            // creation call failed) still carry our Mongo _id as the channel order id.
+            { _id: mongoose.isValidObjectId(ourOrderId) ? ourOrderId : undefined }
+        ]);
 
         let matchedPickup = false;
         if (!order) {
             // Not a forward shipment — check if it's a return/reverse-pickup shipment instead.
-            order = await orderModel.findOne({
-                $or: [
-                    { 'refundDetails.pickup.shiprocketReturnOrderId': order_id },
-                    { 'refundDetails.pickup.shipmentId': shipment_id },
-                    { 'refundDetails.pickup.awb': awb }
-                ]
-            }).populate('userId', 'name email');
+            order = await findOrderByIdentifiers([
+                { 'refundDetails.pickup.shiprocketReturnOrderId': order_id },
+                // createReturnOrder stores Shiprocket's own order id, which comes
+                // back on the webhook as sr_order_id rather than order_id.
+                { 'refundDetails.pickup.shiprocketReturnOrderId': srOrderId },
+                { 'refundDetails.pickup.shipmentId': shipment_id },
+                { 'refundDetails.pickup.awb': awb },
+                { _id: isReturnOrderId && mongoose.isValidObjectId(ourOrderId) ? ourOrderId : undefined }
+            ]);
             matchedPickup = !!order;
         }
 
@@ -112,20 +137,24 @@ export const handleWebhook = async (req, res) => {
                 if (!isNaN(parsedEdd.getTime())) order.shiprocket.edd = parsedEdd;
             }
 
-            if (mapped) {
-                if (order.orderStatus !== mapped.orderStatus) {
-                    order.orderStatus = mapped.orderStatus;
-                    statusChanged = true;
-                }
-                if (order.shiprocketStatus !== mapped.shiprocketStatus) {
-                    order.shiprocketStatus = mapped.shiprocketStatus;
-                    statusChanged = true;
-                }
-            } else {
+            // An AWB existing at all means the shipment was dispatched from the
+            // Shiprocket panel. Some accounts push that delivery with a status
+            // string we can't map (or with none at all), so treat the AWB itself
+            // as the signal rather than leaving the order stuck on 'Processing'.
+            const effective = mapped
+                || (order.shiprocket.awb ? mapShiprocketStatus('AWB ASSIGNED') : null);
+
+            if (!mapped) {
                 console.log(`Unknown Shiprocket status received: ${current_status} for order ${order._id}`);
             }
 
-            if (mapped?.orderStatus === 'Shipped' && (!order.shippedAt || order.shippedAt < timestamp)) {
+            if (effective && isStatusProgression(order.shiprocketStatus, effective.shiprocketStatus)) {
+                order.orderStatus = effective.orderStatus;
+                order.shiprocketStatus = effective.shiprocketStatus;
+                statusChanged = true;
+            }
+
+            if (effective?.orderStatus === 'Shipped' && !order.shippedAt) {
                 order.shippedAt = timestamp;
                 statusChanged = true;
             }

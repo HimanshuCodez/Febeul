@@ -5,9 +5,23 @@
 
 const STATUS_MAP = {
     'NEW': { orderStatus: 'Processing', shiprocketStatus: 'NEW' },
-    'PICKUP SCHEDULED': { orderStatus: 'Processing', shiprocketStatus: 'PICKUP SCHEDULED' },
-    'PICKUP GENERATED': { orderStatus: 'Processing', shiprocketStatus: 'PICKUP SCHEDULED' },
-    'PICKUP RESCHEDULED': { orderStatus: 'Processing', shiprocketStatus: 'PICKUP SCHEDULED' },
+    'ORDER CONFIRMED': { orderStatus: 'Processing', shiprocketStatus: 'NEW' },
+    'INVOICED': { orderStatus: 'Processing', shiprocketStatus: 'NEW' },
+    // The moment an admin clicks "Ship Now" in the Shiprocket panel the
+    // shipment gets an AWB and a courier — from the customer's point of view
+    // the parcel has been dispatched, so everything from AWB assignment
+    // onwards reports as 'Shipped' rather than sitting on 'Processing' until
+    // the courier's first physical scan (which can be a day later).
+    'AWB ASSIGNED': { orderStatus: 'Shipped', shiprocketStatus: 'AWB_ASSIGNED' },
+    'AWB GENERATED': { orderStatus: 'Shipped', shiprocketStatus: 'AWB_ASSIGNED' },
+    'READY TO SHIP': { orderStatus: 'Shipped', shiprocketStatus: 'AWB_ASSIGNED' },
+    'PICKUP SCHEDULED': { orderStatus: 'Shipped', shiprocketStatus: 'PICKUP SCHEDULED' },
+    'PICKUP GENERATED': { orderStatus: 'Shipped', shiprocketStatus: 'PICKUP SCHEDULED' },
+    'PICKUP QUEUED': { orderStatus: 'Shipped', shiprocketStatus: 'PICKUP SCHEDULED' },
+    'PICKUP RESCHEDULED': { orderStatus: 'Shipped', shiprocketStatus: 'PICKUP SCHEDULED' },
+    'MANIFEST GENERATED': { orderStatus: 'Shipped', shiprocketStatus: 'PICKUP SCHEDULED' },
+    'PICKUP ERROR': { orderStatus: 'Shipped', shiprocketStatus: 'AWB_ASSIGNED' },
+    'PICKUP EXCEPTION': { orderStatus: 'Shipped', shiprocketStatus: 'AWB_ASSIGNED' },
     'PICKED UP': { orderStatus: 'Shipped', shiprocketStatus: 'PICKED UP' },
     'SHIPPED': { orderStatus: 'Shipped', shiprocketStatus: 'SHIPPED' },
     'IN TRANSIT': { orderStatus: 'Shipped', shiprocketStatus: 'IN_TRANSIT' },
@@ -47,10 +61,43 @@ export const mapShiprocketStatus = (rawStatus) => {
     if (normalized.includes('CANCEL')) return STATUS_MAP['CANCELLED'];
     if (normalized.includes('TRANSIT')) return STATUS_MAP['IN TRANSIT'];
     if (normalized.includes('PICKED UP') || normalized.includes('SHIPPED')) return STATUS_MAP['SHIPPED'];
+    if (normalized.includes('AWB') || normalized.includes('READY TO SHIP')) return STATUS_MAP['AWB ASSIGNED'];
     if (normalized.includes('PICKUP')) return STATUS_MAP['PICKUP SCHEDULED'];
     if (normalized.includes('NEW')) return STATUS_MAP['NEW'];
 
     return null;
+};
+
+// How far along the shipment journey each normalized status sits. Shiprocket
+// delivers webhooks out of order and its tracking API can briefly report an
+// earlier scan, so callers use this to avoid walking an order backwards
+// (e.g. a late 'PICKUP SCHEDULED' push undoing an already-recorded 'DELIVERED').
+const STATUS_RANK = {
+    'NEW': 0,
+    'AWB_ASSIGNED': 1,
+    'PICKUP SCHEDULED': 2,
+    'PICKED UP': 3,
+    'SHIPPED': 3,
+    'IN_TRANSIT': 4,
+    'OUT_FOR_DELIVERY': 5,
+    'DELIVERED': 6
+};
+
+// Statuses that end the journey (or divert it) and must always be applied,
+// however late they arrive.
+const TERMINAL_STATUSES = new Set([
+    'CANCELLED', 'RTO', 'RTO_INITIATED', 'RTO_DELIVERED', 'UNDELIVERED', 'LOST'
+]);
+
+// True when `nextStatus` is a legitimate move forward from `currentStatus`
+// (or a terminal status, which always wins).
+export const isStatusProgression = (currentStatus, nextStatus) => {
+    if (!nextStatus) return false;
+    if (nextStatus === currentStatus) return false;
+    if (TERMINAL_STATUSES.has(nextStatus)) return true;
+    // Nothing progresses out of a terminal state except another terminal one.
+    if (TERMINAL_STATUSES.has(currentStatus)) return false;
+    return (STATUS_RANK[nextStatus] ?? 0) >= (STATUS_RANK[currentStatus] ?? 0);
 };
 
 // Parses Shiprocket's various timestamp formats ('DD MM YYYY HH:MM:SS' from
@@ -89,4 +136,4 @@ export const mergeTrackingHistory = (existingHistory = [], newEntries = []) => {
     return merged;
 };
 
-export default { mapShiprocketStatus, parseShiprocketTimestamp, mergeTrackingHistory };
+export default { mapShiprocketStatus, parseShiprocketTimestamp, mergeTrackingHistory, isStatusProgression };

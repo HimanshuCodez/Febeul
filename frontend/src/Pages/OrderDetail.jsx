@@ -445,10 +445,12 @@ export default function OrderDetailPage() {
     fetchDeliveryZones();
   }, []);
 
-  const fetchOrderDetails = async () => {
-    setLoading(true);
+  // `refresh` forces the backend to re-poll Shiprocket instead of serving the
+  // last-synced snapshot; `silent` keeps the page rendered while it happens.
+  const fetchOrderDetails = async ({ silent = false, refresh = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
-      const response = await axios.get(`${backendUrl}/api/order/${orderId}`, {
+      const response = await axios.get(`${backendUrl}/api/order/${orderId}${refresh ? '?refresh=1' : ''}`, {
         headers: { token },
       });
       if (response.data.success) {
@@ -472,6 +474,26 @@ export default function OrderDetailPage() {
     }
     fetchOrderDetails();
   }, [orderId, token, isAuthenticated, navigate]);
+
+  // Shipment status changes while the customer is away from the tab (an admin
+  // ships the order from the Shiprocket panel), so re-check on the way back in
+  // rather than showing whatever was true when the page first loaded.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'visible') {
+        fetchOrderDetails({ silent: true, refresh: true });
+      }
+    };
+
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+    };
+  }, [orderId, token, isAuthenticated]);
 
   const handleDownloadInvoice = async () => {
     try {
@@ -557,8 +579,11 @@ export default function OrderDetailPage() {
     if (shiprocketStatus === 'CANCELLED') return 'Cancelled';
     if (shiprocketStatus === 'OUT_FOR_DELIVERY') return 'Out for delivery';
     if (shiprocketStatus === 'IN_TRANSIT') return order.orderStatus === 'Out for delivery' ? 'Out for delivery' : 'Shipped';
+    // An AWB has been generated (admin hit "Ship Now" in Shiprocket) — from the
+    // customer's side the parcel is on its way, so don't sit on "Processing"
+    // until the courier records its first scan.
     if (shiprocketStatus === 'SHIPPED' || shiprocketStatus === 'PICKED UP') return 'Shipped';
-    if (shiprocketStatus === 'PICKUP SCHEDULED') return 'Processing';
+    if (shiprocketStatus === 'AWB_ASSIGNED' || shiprocketStatus === 'PICKUP SCHEDULED') return 'Shipped';
     if (shiprocketStatus === 'UNDELIVERED' || shiprocketStatus === 'LOST') return 'Failed';
     return order.orderStatus;
   };

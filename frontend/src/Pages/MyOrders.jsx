@@ -19,8 +19,11 @@ const getOrderDisplayStatus = (order) => {
   if (shiprocketStatus === "CANCELLED") return "Cancelled";
   if (shiprocketStatus === "OUT_FOR_DELIVERY") return "Out for delivery";
   if (shiprocketStatus === "IN_TRANSIT") return order.orderStatus === "Out for delivery" ? "Out for delivery" : "Shipped";
+  // An AWB has been generated (admin hit "Ship Now" in Shiprocket) — from the
+  // customer's side the parcel is on its way, so don't sit on "Processing"
+  // until the courier records its first scan.
   if (shiprocketStatus === "SHIPPED" || shiprocketStatus === "PICKED UP") return "Shipped";
-  if (shiprocketStatus === "PICKUP SCHEDULED") return "Processing";
+  if (shiprocketStatus === "AWB_ASSIGNED" || shiprocketStatus === "PICKUP SCHEDULED") return "Shipped";
   if (shiprocketStatus === "UNDELIVERED" || shiprocketStatus === "LOST") return "Failed";
   return order.orderStatus;
 };
