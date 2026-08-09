@@ -57,7 +57,7 @@ const Footer = () => {
             {/* Payment Gateway Logos Placeholder */}
             <div className="mt-4 flex flex-wrap justify-center sm:justify-start gap-2">
               <img src="/upi.png" alt="Visa" className="h-6" />
-              <img src="/visa.png" alt="Mastercard" className="h-6" />
+              <img src="/visa.png" alt="Mastercard" className="h-16" />
               <img src="mastercard.png" alt="UPI" className="h-6" />
               <img src="bank.png" alt="Net Banking" className="h-6" />
               <img src="cod.png" alt="Cash on Delivery" className="h-6" />
