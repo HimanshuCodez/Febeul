@@ -11,6 +11,7 @@ const BlackBanner = () => {
   const [shows, setShows] = useState([]);
   const [backgroundColor, setBackgroundColor] = useState('#000000');
   const [textColor, setTextColor] = useState('#ffffff');
+  const [productRailTextColor, setProductRailTextColor] = useState('#1f2937');
   const [sideProducts, setSideProducts] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,6 +33,7 @@ const BlackBanner = () => {
           setShows(content.shows.filter((s) => s.desktopVideo || s.mobileVideo));
           setBackgroundColor(content.backgroundColor || '#000000');
           setTextColor(content.textColor || '#ffffff');
+          setProductRailTextColor(content.productRailTextColor || '#1f2937');
         } else {
           setShows([]);
         }
@@ -209,11 +211,11 @@ const BlackBanner = () => {
           </div>
         </Link>
         <div className="p-2 flex flex-col gap-1 flex-1">
-          <Link to={`/product/${product._id}`} className="text-[11px] text-gray-700 line-clamp-2 leading-tight h-7">
+          <Link to={`/product/${product._id}`} className="text-[11px] line-clamp-2 leading-tight h-7" style={{ color: productRailTextColor }}>
             {product.name}
           </Link>
           <div className="flex items-baseline gap-1">
-            <span className="text-sm font-bold text-gray-900">₹{size?.price?.toLocaleString("en-IN") ?? "--"}</span>
+            <span className="text-sm font-bold" style={{ color: productRailTextColor }}>₹{size?.price?.toLocaleString("en-IN") ?? "--"}</span>
             {size?.mrp > size?.price && (
               <span className="text-[10px] text-gray-400 line-through">₹{size.mrp.toLocaleString("en-IN")}</span>
             )}
@@ -241,8 +243,8 @@ const BlackBanner = () => {
         <div className="w-[76px] h-[76px] rounded-lg overflow-hidden bg-gray-800 border border-white/10">
           {image && <img src={image} alt={product.name} className="w-full h-full object-cover" />}
         </div>
-        <p className="text-[10px] text-gray-300 line-clamp-1 leading-tight w-full">{product.name}</p>
-        <span className="text-[10px] font-bold text-white">₹{size?.price?.toLocaleString("en-IN") ?? "--"}</span>
+        <p className="text-[10px] line-clamp-1 leading-tight w-full" style={{ color: productRailTextColor }}>{product.name}</p>
+        <span className="text-[10px] font-bold" style={{ color: productRailTextColor }}>₹{size?.price?.toLocaleString("en-IN") ?? "--"}</span>
       </Link>
     );
   };
