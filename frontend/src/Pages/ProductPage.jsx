@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,19 +28,34 @@ import CouponShows from "../components/CouponShows";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLeft, onSwipeRight, currentIndex, totalImages }) => {
+  const containerRef = useRef(null);
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
+  const [canHoverZoom] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  );
+
+  const handleMouseMove = (e) => {
+    if (!canHoverZoom || !containerRef.current) return;
+    const { left, top, width, height } = containerRef.current.getBoundingClientRect();
+    setZoomPosition({
+      x: Math.min(100, Math.max(0, ((e.clientX - left) / width) * 100)),
+      y: Math.min(100, Math.max(0, ((e.clientY - top) / height) * 100)),
+    });
+  };
+
   return (
     <div
-      className="relative mx-auto overflow-hidden bg-white shadow-sm w-full aspect-[3/4] lg:aspect-auto lg:h-[calc(100vh-100px)] flex items-center justify-center cursor-default"
+      ref={containerRef}
+      className={`relative mx-auto overflow-hidden bg-white shadow-sm w-full aspect-[3/4] lg:aspect-auto lg:h-[calc(100vh-100px)] flex items-center justify-center cursor-default ${canHoverZoom ? 'lg:cursor-zoom-in' : ''}`}
+      onMouseEnter={() => canHoverZoom && setIsZooming(true)}
+      onMouseLeave={() => setIsZooming(false)}
+      onMouseMove={handleMouseMove}
     >
       <AnimatePresence initial={false} mode="wait">
-        <motion.img
+        <motion.div
           key={src}
-          src={src}
-          alt={alt}
-          className={`w-full h-full object-cover lg:object-contain transition-opacity duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'} touch-pan-y`}
-          style={{
-            transform: 'scale(1.02)'
-          }}
+          className="w-full h-full touch-pan-y"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
@@ -53,7 +68,19 @@ const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLef
             else if (info.offset.x < -50) onSwipeLeft?.();
           }}
           onTap={() => onMobileClick()}
-        />
+        >
+          <img
+            src={src}
+            alt={alt}
+            draggable={false}
+            className={`w-full h-full object-cover lg:object-contain ${isOutOfStock ? 'opacity-50 grayscale' : 'opacity-100'}`}
+            style={{
+              transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
+              transform: isZooming ? 'scale(2.2)' : 'scale(1)',
+              transition: isZooming ? 'transform 0.1s ease-out' : 'transform 0.3s ease-out',
+            }}
+          />
+        </motion.div>
       </AnimatePresence>
       {isOutOfStock && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -83,8 +110,105 @@ const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLef
 
 const FullScreenGallery = ({ images, initialIndex, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const containerRef = useRef(null);
+  const stateRef = useRef({ scale: 1, translate: { x: 0, y: 0 } });
+  const gestureRef = useRef({ initialDistance: 0, initialScale: 1, lastTouch: null, lastTapTime: 0, isPinching: false });
+
+  useEffect(() => {
+    stateRef.current = { scale, translate };
+  }, [scale, translate]);
+
+  const resetZoom = () => {
+    setScale(1);
+    setTranslate({ x: 0, y: 0 });
+  };
+
+  useEffect(() => {
+    resetZoom();
+  }, [currentIndex]);
+
+  const clampTranslate = (next, currentScale) => {
+    const el = containerRef.current;
+    if (!el) return next;
+    const { width, height } = el.getBoundingClientRect();
+    const maxX = (width * (currentScale - 1)) / 2;
+    const maxY = (height * (currentScale - 1)) / 2;
+    return {
+      x: Math.min(maxX, Math.max(-maxX, next.x)),
+      y: Math.min(maxY, Math.max(-maxY, next.y)),
+    };
+  };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const getDistance = (touches) =>
+      Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+
+    const onTouchStart = (e) => {
+      const g = gestureRef.current;
+      if (e.touches.length === 2) {
+        g.isPinching = true;
+        g.initialDistance = getDistance(e.touches);
+        g.initialScale = stateRef.current.scale;
+      } else if (e.touches.length === 1) {
+        g.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        const now = Date.now();
+        if (now - g.lastTapTime < 300) {
+          if (stateRef.current.scale > 1) {
+            resetZoom();
+          } else {
+            setScale(2.5);
+          }
+        }
+        g.lastTapTime = now;
+      }
+    };
+
+    const onTouchMove = (e) => {
+      const g = gestureRef.current;
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const newDistance = getDistance(e.touches);
+        if (g.initialDistance > 0) {
+          const ratio = newDistance / g.initialDistance;
+          const newScale = Math.min(4, Math.max(1, g.initialScale * ratio));
+          setScale(newScale);
+          setTranslate((prev) => clampTranslate(prev, newScale));
+        }
+      } else if (e.touches.length === 1 && stateRef.current.scale > 1 && g.lastTouch) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const dx = touch.clientX - g.lastTouch.x;
+        const dy = touch.clientY - g.lastTouch.y;
+        setTranslate((prev) => clampTranslate({ x: prev.x + dx, y: prev.y + dy }, stateRef.current.scale));
+        g.lastTouch = { x: touch.clientX, y: touch.clientY };
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      const g = gestureRef.current;
+      if (e.touches.length < 2) g.isPinching = false;
+      if (e.touches.length === 0 && stateRef.current.scale < 1.05) {
+        resetZoom();
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
 
   const handleDragEnd = (event, info) => {
+    if (scale > 1) return;
     const swipeThreshold = 50;
     if (info.offset.x > swipeThreshold) {
       setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
@@ -101,22 +225,34 @@ const FullScreenGallery = ({ images, initialIndex, onClose }) => {
           <X size={24} />
         </button>
       </div>
-      <div className="flex-1 relative flex items-center justify-center p-4 bg-white overflow-hidden">
+      <div
+        ref={containerRef}
+        className="flex-1 relative flex items-center justify-center p-4 bg-white overflow-hidden touch-none"
+      >
         <AnimatePresence initial={false} mode="wait">
-          <motion.img
+          <motion.div
             key={currentIndex}
-            src={images[currentIndex]}
-            alt={`Product ${currentIndex + 1}`}
-            className="max-w-full max-h-full object-contain touch-none"
+            className="w-full h-full flex items-center justify-center"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            drag="x"
+            drag={scale === 1 ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.7}
             onDragEnd={handleDragEnd}
-          />
+          >
+            <img
+              src={images[currentIndex]}
+              alt={`Product ${currentIndex + 1}`}
+              draggable={false}
+              className="max-w-full max-h-full object-contain select-none"
+              style={{
+                transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
+                transition: gestureRef.current.isPinching ? 'none' : 'transform 0.2s ease-out',
+              }}
+            />
+          </motion.div>
         </AnimatePresence>
       </div>
       <div className="p-4 border-t flex gap-2 overflow-x-auto bg-gray-50 no-scrollbar">
@@ -462,7 +598,6 @@ const ProductDetailPage = () => {
 
   const allSpecifications = product ? [
     { label: "Product Category", value: product.category },
-    { label: "Type", value: product.type },
     { label: "Material Type", value: product.materialType },
     { label: "Material Composition", value: product.materialComposition },
     { label: "Fabric", value: product.fabric },
@@ -480,7 +615,6 @@ const ProductDetailPage = () => {
     { label: "Country of Origin", value: product.countryOfOrigin },
     { label: "Manufacturer", value: product.manufacturer },
     { label: "Packer", value: product.packer },
-    { label: "HSN", value: product.hsn },
   ].filter((row) => row.value) : [];
 
   const specsToShow = isProdDetailsExpanded
