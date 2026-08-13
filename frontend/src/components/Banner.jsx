@@ -21,13 +21,22 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const StylesSection = () => {
   const [styles, setStyles] = useState(defaultStyles);
+  const [pillBackgroundColor, setPillBackgroundColor] = useState('#fbcfe8');
+  const [pillTextColor, setPillTextColor] = useState('#111827');
 
   useEffect(() => {
     const fetchStyles = async () => {
       try {
         const response = await axios.get(`${backendUrl}/api/cms/style_categories`);
-        if (response.data?.success && Array.isArray(response.data.content) && response.data.content.length > 0) {
-          setStyles(response.data.content);
+        if (!response.data?.success) return;
+        const content = response.data.content;
+        if (Array.isArray(content) && content.length > 0) {
+          // Legacy shape: content was just the pills array, no custom colors saved yet
+          setStyles(content);
+        } else if (content && Array.isArray(content.items) && content.items.length > 0) {
+          setStyles(content.items);
+          setPillBackgroundColor(content.pillBackgroundColor || '#fbcfe8');
+          setPillTextColor(content.pillTextColor || '#111827');
         }
       } catch (error) {
         console.error("Error fetching style categories:", error);
@@ -50,7 +59,8 @@ const StylesSection = () => {
             <Link
               key={index}
               to={item.link || "#"}
-              className="flex items-center gap-2 bg-pink-200/90 hover:bg-pink-300 text-gray-900 rounded-full px-6 py-3 text-sm font-medium cursor-pointer transition-transform transform hover:scale-105"
+              className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium cursor-pointer transition-transform transform hover:scale-105"
+              style={{ backgroundColor: pillBackgroundColor, color: pillTextColor }}
             >
               <Icon className="w-4 h-4" />
               <span>{item.label}</span>

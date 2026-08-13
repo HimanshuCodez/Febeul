@@ -5,7 +5,7 @@ import {
   ShoppingBag, RotateCcw, Gift, ShieldCheck, Ticket,
   MessageSquare, Star, FileText, Image, Mail, Settings,
   Wrench, Sliders, Zap, Type, ChevronDown, ChevronRight,
-  Menu, X, Truck, Undo2, Tags
+  Menu, X, Truck, Undo2, Tags, Activity
 } from 'lucide-react'
 
 const SidebarItem = ({ to, icon: Icon, label, active, onClick }) => {
@@ -176,6 +176,10 @@ const Sidebar = ({ role, permissions = [] }) => {
         <div className="px-6 mt-6 mb-4">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System</p>
         </div>
+
+        {isAllowed('/stats') && (
+          <SidebarItem to="/stats" icon={Activity} label="Stats" />
+        )}
 
         {/* Settings Accordion */}
         {showSettings && (

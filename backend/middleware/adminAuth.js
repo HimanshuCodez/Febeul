@@ -12,6 +12,7 @@ const getRequiredPermission = (fullPath) => {
         return '/';
     }
     if (fullPath.startsWith('/api/admin/send-marketing-mail')) return '/send-mail';
+    if (fullPath.startsWith('/api/admin/system-stats')) return '/stats';
     if (fullPath.startsWith('/api/product/add')) return '/add';
     if (fullPath.startsWith('/api/product/remove') || fullPath.startsWith('/api/product/update')) return '/list';
     if (fullPath.startsWith('/api/order')) return '/orders';

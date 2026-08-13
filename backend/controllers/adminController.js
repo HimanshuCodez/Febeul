@@ -3,6 +3,8 @@ import orderModel from '../models/orderModel.js';
 import productModel from '../models/productModel.js';
 import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
+import os from 'os';
+import { v2 as cloudinary } from 'cloudinary';
 import { sendEmail } from '../utils/sendEmail.js';
 
 // Controller to send marketing/marketing emails to all users
@@ -703,5 +705,47 @@ export const getSkuStocks = async (req, res) => {
     } catch (error) {
         console.error('Error in getSkuStocks:', error);
         res.json({ success: false, message: 'Error fetching SKU stocks.' });
+    }
+};
+
+// Controller to report current server (process/host) resource usage and Cloudinary storage usage
+export const getSystemStats = async (req, res) => {
+    try {
+        const totalMemoryBytes = os.totalmem();
+        const freeMemoryBytes = os.freemem();
+        const processMemory = process.memoryUsage();
+
+        const server = {
+            uptimeSeconds: process.uptime(),
+            cpuCount: os.cpus().length,
+            loadAvg: os.loadavg(),
+            totalMemoryBytes,
+            freeMemoryBytes,
+            usedMemoryBytes: totalMemoryBytes - freeMemoryBytes,
+            processMemoryBytes: processMemory.rss,
+        };
+
+        let cloudinaryUsage = null;
+        try {
+            const usage = await cloudinary.api.usage();
+            cloudinaryUsage = {
+                plan: usage.plan,
+                storageBytes: usage.storage?.usage ?? 0,
+                storageLimitBytes: usage.storage?.limit ?? null,
+                bandwidthBytes: usage.bandwidth?.usage ?? 0,
+                bandwidthLimitBytes: usage.bandwidth?.limit ?? null,
+                credits: usage.credits?.usage ?? null,
+                creditsLimit: usage.credits?.limit ?? null,
+                resourceCount: usage.resources ?? null,
+                derivedResourceCount: usage.derived_resources ?? null,
+            };
+        } catch (cloudError) {
+            console.error('Error fetching Cloudinary usage:', cloudError.message);
+        }
+
+        res.json({ success: true, server, cloudinary: cloudinaryUsage });
+    } catch (error) {
+        console.error('Error in getSystemStats:', error);
+        res.status(500).json({ success: false, message: 'Error fetching system stats.' });
     }
 };

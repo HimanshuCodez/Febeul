@@ -42,6 +42,7 @@ const AllUsers = ({ token }) => {
     { label: 'Maintenance Mode', path: '/maintenance' },
     { label: 'Configurations', path: '/configurations' },
     { label: 'Product Taxonomy', path: '/product-taxonomy' },
+    { label: 'Stats', path: '/stats' },
   ];
 
   const togglePermission = (path) => {

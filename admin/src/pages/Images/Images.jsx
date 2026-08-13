@@ -16,6 +16,8 @@ const Images = ({ token }) => {
   const [productRailTextColor, setProductRailTextColor] = useState('#1f2937');
   const [poseSection, setPoseSection] = useState({ desktop: '', mobile: '', link: '' });
   const [styleCategories, setStyleCategories] = useState([{ icon: 'Star', label: '', link: '' }]);
+  const [pillBackgroundColor, setPillBackgroundColor] = useState('#fbcfe8');
+  const [pillTextColor, setPillTextColor] = useState('#111827');
   const [loading, setLoading] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState('hero');
 
@@ -34,8 +36,16 @@ const Images = ({ token }) => {
 
       if (hero.data.success) setSlides(hero.data.content || [{ desktop: '', mobile: '', link: '' }]);
       if (spot.data.success) setSpotlight(spot.data.content || []);
-      if (styles.data.success && Array.isArray(styles.data.content) && styles.data.content.length > 0) {
-        setStyleCategories(styles.data.content);
+      if (styles.data.success) {
+        const content = styles.data.content;
+        if (Array.isArray(content) && content.length > 0) {
+          // Legacy shape: content was just the pills array, no custom colors saved yet
+          setStyleCategories(content);
+        } else if (content && Array.isArray(content.items) && content.items.length > 0) {
+          setStyleCategories(content.items);
+          setPillBackgroundColor(content.pillBackgroundColor || '#fbcfe8');
+          setPillTextColor(content.pillTextColor || '#111827');
+        }
       }
       if (banner.data.success) {
         const content = banner.data.content || {};
@@ -399,6 +409,49 @@ const Images = ({ token }) => {
         {activeAccordion === 'styles' && (
           <div className="p-6 bg-white space-y-6">
             <p className="text-xs text-gray-500 -mt-2">Each pill links to a category or product listing page when clicked.</p>
+
+            <div className="flex flex-wrap gap-4">
+              <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
+                <div>
+                  <p className="font-medium text-sm">Pill Background Color</p>
+                  <p className="text-[10px] text-gray-500">Background of each style pill.</p>
+                </div>
+                <input
+                  type="color"
+                  value={pillBackgroundColor}
+                  onChange={(e) => setPillBackgroundColor(e.target.value)}
+                  className="w-12 h-10 border rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={pillBackgroundColor}
+                  onChange={(e) => setPillBackgroundColor(e.target.value)}
+                  placeholder="#fbcfe8"
+                  className="w-28 px-3 py-2 border rounded outline-none bg-white text-sm"
+                />
+              </div>
+
+              <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
+                <div>
+                  <p className="font-medium text-sm">Pill Text Color</p>
+                  <p className="text-[10px] text-gray-500">Icon & label color on each style pill.</p>
+                </div>
+                <input
+                  type="color"
+                  value={pillTextColor}
+                  onChange={(e) => setPillTextColor(e.target.value)}
+                  className="w-12 h-10 border rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={pillTextColor}
+                  onChange={(e) => setPillTextColor(e.target.value)}
+                  placeholder="#111827"
+                  className="w-28 px-3 py-2 border rounded outline-none bg-white text-sm"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {styleCategories.map((item, index) => (
                 <div key={index} className="border p-4 rounded-md relative bg-gray-50 shadow-inner space-y-2">
@@ -426,7 +479,7 @@ const Images = ({ token }) => {
             </div>
             <div className="flex gap-4">
               <button onClick={() => setStyleCategories([...styleCategories, { icon: 'Star', label: '', link: '' }])} className="bg-green-600 text-white px-6 py-2 rounded text-sm font-medium">Add Category</button>
-              <button onClick={() => saveContent('style_categories', styleCategories)} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Style Categories</button>
+              <button onClick={() => saveContent('style_categories', { items: styleCategories, pillBackgroundColor, pillTextColor })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Style Categories</button>
             </div>
           </div>
         )}
