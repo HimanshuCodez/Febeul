@@ -1252,6 +1252,9 @@ export default function OrderDetailPage() {
                   {order.paymentMethod === 'Razorpay' && order.razorpayPaymentId && (
                     <p className="text-[10px] text-gray-400 font-bold mt-1 break-all select-all">Ref ID: {order.razorpayPaymentId}</p>
                   )}
+                  {order.paymentMethod === 'Razorpay' && order.bankRRN && (
+                    <p className="text-[10px] text-gray-400 font-bold mt-1 break-all select-all">Bank RRN: {order.bankRRN}</p>
+                  )}
                 </div>
               </div>
             </motion.div>

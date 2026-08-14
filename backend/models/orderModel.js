@@ -18,6 +18,7 @@ const orderSchema = new mongoose.Schema({
     shippingCharge: { type: Number, default: 0 },
     codCharge: { type: Number, default: 0 },
     razorpayPaymentId: { type: String }, // For prepaid refunds
+    bankRRN: { type: String }, // Bank Reference (RRN) from Razorpay's acquirer_data, for UPI/netbanking reconciliation
     address: { type: Object, required: true },
     orderStatus: { type: String, enum: ['Order Placed', 'Processing', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refund Initiated', 'Refunded', 'Failed'], default:'Order Placed' },
     shiprocketStatus: { type: String, enum: ['NEW', 'AWB_ASSIGNED', 'PICKUP SCHEDULED', 'PICKED UP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RTO', 'RTO_INITIATED', 'RTO_DELIVERED', 'UNDELIVERED', 'LOST', 'CANCELLED', 'UNKNOWN'], default: 'NEW' }, // Shiprocket status

@@ -379,6 +379,9 @@ const constructEmailHtml = (order, templateHtml) => {
     const razorpayReferenceRow = (order.paymentMethod === 'Razorpay' && razorpayReferenceId)
         ? `<strong>Razorpay Ref ID:</strong> ${razorpayReferenceId}<br>`
         : '';
+    const bankRrnRow = (order.paymentMethod === 'Razorpay' && order.bankRRN)
+        ? `<strong>Bank RRN:</strong> ${order.bankRRN}<br>`
+        : '';
 
     let finalHtml = templateHtml
         .replace('{{orderId}}', order._id.toString().slice(-8).toUpperCase())
@@ -387,6 +390,7 @@ const constructEmailHtml = (order, templateHtml) => {
         .replace('{{invoiceDate}}', orderDateFormatted)
         .replace('{{paymentMethod}}', order.paymentMethod)
         .replace('{{razorpayReferenceRow}}', razorpayReferenceRow)
+        .replace('{{bankRrnRow}}', bankRrnRow)
         .replace('{{luxeMemberBadge}}', luxeMemberBadge)
         .replace('{{billingAddressName}}', order.address.name)
         .replace('{{billingAddressAddress}}', order.address.address)
@@ -810,10 +814,22 @@ const verifyRazorpay = async (req,res) => {
         if (expectedSignature === razorpay_signature) {
             const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
             if (orderInfo.status === 'paid') {
-                await orderModel.findByIdAndUpdate(orderInfo.receipt, { 
-                    payment: true, 
+                // Bank RRN (acquirer_data.rrn) is how customers reconcile the payment
+                // with their bank/UPI app statement; not returned by the orders API,
+                // so it needs a separate payment fetch.
+                let bankRRN;
+                try {
+                    const paymentInfo = await razorpayInstance.payments.fetch(razorpay_payment_id);
+                    bankRRN = paymentInfo.acquirer_data?.rrn;
+                } catch (fetchErr) {
+                    console.error("Error fetching Razorpay payment for RRN:", fetchErr);
+                }
+
+                await orderModel.findByIdAndUpdate(orderInfo.receipt, {
+                    payment: true,
                     paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature },
                     razorpayPaymentId: razorpay_payment_id, // Store Razorpay Payment ID
+                    ...(bankRRN ? { bankRRN } : {}),
                     orderStatus: 'Confirmed' // Update status to Confirmed after successful payment
                 });
                 

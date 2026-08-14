@@ -95,6 +95,9 @@ const buildInvoicePDF = (order, res) => {
         if (order.paymentMethod === 'Razorpay' && razorpayReferenceId) {
             drawInfoRow('Razorpay Ref:', razorpayReferenceId, doc.y + 1);
         }
+        if (order.paymentMethod === 'Razorpay' && order.bankRRN) {
+            drawInfoRow('Bank RRN:', order.bankRRN, doc.y + 1);
+        }
 
         doc.moveDown(1);
         const addressY = doc.y;
