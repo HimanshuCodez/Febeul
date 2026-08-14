@@ -35,14 +35,19 @@ const BestSellerCarousel = () => {
   }, [fetchProducts]);
 
   const isLooping = products.length > 1;
-  const loopedProducts = isLooping ? [...products, ...products] : products;
+  // Repeat enough full sets so a duplicate of the same product never sits in
+  // the same viewport as the original — with few products, doubling once
+  // isn't enough on wide screens (~5 cards visible at once).
+  const repeatCount = isLooping ? Math.max(2, Math.ceil(12 / products.length)) : 1;
+  const loopedProducts = isLooping ? Array.from({ length: repeatCount }, () => products).flat() : products;
 
   const scrollCarousel = useCallback((direction) => {
     const container = containerRef.current;
     if (!container) return;
 
     const scrollAmount = Math.max(container.clientWidth * 0.85, 280);
-    const loopBoundary = isLooping ? container.scrollWidth / 2 : container.scrollWidth - container.clientWidth;
+    const singleSetWidth = container.scrollWidth / repeatCount;
+    const loopBoundary = isLooping ? singleSetWidth : container.scrollWidth - container.clientWidth;
 
     if (!isLooping) {
       container.scrollBy({
@@ -55,7 +60,7 @@ const BestSellerCarousel = () => {
     if (direction > 0) {
       const nextScrollLeft = container.scrollLeft + scrollAmount;
       if (nextScrollLeft >= loopBoundary) {
-        container.scrollTo({ left: 0, behavior: 'auto' });
+        container.scrollTo({ left: nextScrollLeft % singleSetWidth, behavior: 'auto' });
       } else {
         container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
       }
@@ -63,11 +68,11 @@ const BestSellerCarousel = () => {
     }
 
     if (container.scrollLeft <= 0) {
-      container.scrollTo({ left: loopBoundary - container.clientWidth, behavior: 'auto' });
+      container.scrollTo({ left: container.scrollWidth - singleSetWidth - container.clientWidth, behavior: 'auto' });
     } else {
       container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
     }
-  }, [isLooping]);
+  }, [isLooping, repeatCount]);
 
   useEffect(() => {
     if (!isLooping) return undefined;

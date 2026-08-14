@@ -69,18 +69,25 @@ const BlackBanner = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const railProducts = sideProducts.length > 0 ? [...sideProducts, ...sideProducts] : [];
   const isRailLooping = sideProducts.length > 1;
+  // Repeat enough full sets so a duplicate of the same product never sits in
+  // the same viewport as the original — with few side products, doubling
+  // once isn't enough given how many cards fit in the rail at once.
+  const railRepeatCount = isRailLooping ? Math.max(2, Math.ceil(12 / sideProducts.length)) : 1;
+  const railProducts = sideProducts.length > 0
+    ? Array.from({ length: railRepeatCount }, () => sideProducts).flat()
+    : [];
 
   // Auto-advance the vertical side rail, looping seamlessly once it scrolls
-  // past the duplicated half of the list — same boundary-reset pattern as
+  // past one full set of the list — same boundary-reset pattern as
   // BestSellerCarousel, just on the vertical axis.
   const scrollRailVertical = useCallback((direction) => {
     const el = productRailRef.current;
     if (!el || sideProducts.length === 0) return;
 
     const scrollAmount = Math.max(el.clientHeight * 0.4, 160);
-    const loopBoundary = isRailLooping ? el.scrollHeight / 2 : el.scrollHeight - el.clientHeight;
+    const singleSetHeight = el.scrollHeight / railRepeatCount;
+    const loopBoundary = isRailLooping ? singleSetHeight : el.scrollHeight - el.clientHeight;
 
     if (!isRailLooping) {
       el.scrollBy({ top: direction * scrollAmount, behavior: "smooth" });
@@ -90,7 +97,7 @@ const BlackBanner = () => {
     if (direction > 0) {
       const nextScrollTop = el.scrollTop + scrollAmount;
       if (nextScrollTop >= loopBoundary) {
-        el.scrollTo({ top: 0, behavior: "auto" });
+        el.scrollTo({ top: nextScrollTop % singleSetHeight, behavior: "auto" });
       } else {
         el.scrollBy({ top: scrollAmount, behavior: "smooth" });
       }
@@ -98,11 +105,11 @@ const BlackBanner = () => {
     }
 
     if (el.scrollTop <= 0) {
-      el.scrollTo({ top: loopBoundary - el.clientHeight, behavior: "auto" });
+      el.scrollTo({ top: el.scrollHeight - singleSetHeight - el.clientHeight, behavior: "auto" });
     } else {
       el.scrollBy({ top: -scrollAmount, behavior: "smooth" });
     }
-  }, [sideProducts.length, isRailLooping]);
+  }, [sideProducts.length, isRailLooping, railRepeatCount]);
 
   useEffect(() => {
     if (sideProducts.length === 0) return undefined;
@@ -131,7 +138,8 @@ const BlackBanner = () => {
     if (!el || sideProducts.length === 0) return;
 
     const scrollAmount = Math.max(el.clientWidth * 0.4, 140);
-    const loopBoundary = isRailLooping ? el.scrollWidth / 2 : el.scrollWidth - el.clientWidth;
+    const singleSetWidth = el.scrollWidth / railRepeatCount;
+    const loopBoundary = isRailLooping ? singleSetWidth : el.scrollWidth - el.clientWidth;
 
     if (!isRailLooping) {
       el.scrollBy({ left: direction * scrollAmount, behavior: "smooth" });
@@ -141,12 +149,12 @@ const BlackBanner = () => {
     if (direction > 0) {
       const nextScrollLeft = el.scrollLeft + scrollAmount;
       if (nextScrollLeft >= loopBoundary) {
-        el.scrollTo({ left: 0, behavior: "auto" });
+        el.scrollTo({ left: nextScrollLeft % singleSetWidth, behavior: "auto" });
       } else {
         el.scrollBy({ left: scrollAmount, behavior: "smooth" });
       }
     }
-  }, [sideProducts.length, isRailLooping]);
+  }, [sideProducts.length, isRailLooping, railRepeatCount]);
 
   useEffect(() => {
     if (sideProducts.length === 0) return undefined;
