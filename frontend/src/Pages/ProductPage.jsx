@@ -218,21 +218,21 @@ const FullScreenGallery = ({ images, initialIndex, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[999] bg-white flex flex-col lg:hidden">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-semibold text-gray-800">Product Images</h3>
-        <button onClick={onClose} className="p-2 text-gray-600 hover:text-black">
-          <X size={24} />
-        </button>
-      </div>
+    <div className="fixed inset-0 z-[999] bg-black flex flex-col lg:hidden">
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-800 shadow-md active:scale-95 transition-transform"
+      >
+        <X size={22} />
+      </button>
       <div
         ref={containerRef}
-        className="flex-1 relative flex items-center justify-center p-4 bg-white overflow-hidden touch-none"
+        className="flex-1 relative flex items-center justify-center bg-black overflow-hidden touch-none"
       >
         <AnimatePresence initial={false} mode="wait">
           <motion.div
             key={currentIndex}
-            className="w-full h-full flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
@@ -246,7 +246,7 @@ const FullScreenGallery = ({ images, initialIndex, onClose }) => {
               src={images[currentIndex]}
               alt={`Product ${currentIndex + 1}`}
               draggable={false}
-              className="max-w-full max-h-full object-contain select-none"
+              className="w-full h-full object-contain select-none"
               style={{
                 transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
                 transition: gestureRef.current.isPinching ? 'none' : 'transform 0.2s ease-out',
@@ -255,19 +255,21 @@ const FullScreenGallery = ({ images, initialIndex, onClose }) => {
           </motion.div>
         </AnimatePresence>
       </div>
-      <div className="p-4 border-t flex gap-2 overflow-x-auto bg-gray-50 no-scrollbar">
-        {images.map((img, idx) => (
-          <div
-            key={idx}
-            onClick={() => setCurrentIndex(idx)}
-            className={`flex-shrink-0 w-16 h-16 rounded-md border-2 transition-all ${
-              currentIndex === idx ? "border-pink-500 scale-105" : "border-gray-200"
-            }`}
-          >
-            <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover rounded" />
-          </div>
-        ))}
-      </div>
+      {images.length > 1 && (
+        <div className="absolute bottom-0 inset-x-0 z-20 p-3 flex gap-2 overflow-x-auto bg-gradient-to-t from-black/80 via-black/50 to-transparent no-scrollbar">
+          {images.map((img, idx) => (
+            <div
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`flex-shrink-0 w-14 h-14 rounded-md border-2 transition-all overflow-hidden ${
+                currentIndex === idx ? "border-pink-500 scale-105" : "border-white/40"
+              }`}
+            >
+              <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
