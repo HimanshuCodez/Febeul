@@ -117,6 +117,7 @@ export default function Header() {
   const wishlistCount = useAuthStore(state => state.wishlistCount);
   const cartCount = useAuthStore(state => state.cartCount);
   const user = useAuthStore(state => state.user);
+  const unreadTicketsCount = useAuthStore(state => state.unreadTicketsCount);
 
   const navigate = useNavigate();
   const location = useLocation(); // Get location object
@@ -240,8 +241,13 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-1 cursor-pointer hover:opacity-80"> {/* Help Link */}
-            <Link to={"/support"} className="flex items-center gap-1"> 
-              <HeadphonesIcon />
+            <Link to={"/support"} className="flex items-center gap-1 relative">
+              <span className="relative">
+                <HeadphonesIcon />
+                {unreadTicketsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-pink-500 border border-black animate-pulse" title="New reply" />
+                )}
+              </span>
               <span>Help</span>
             </Link>
           </div>
