@@ -62,26 +62,26 @@ const Footer = () => {
               (Monday–Saturday)
             </p>
             {/* Payment Gateway Logos */}
-            <div className="mt-4 flex flex-wrap justify-center sm:justify-start items-center gap-2 sm:gap-3">
-              {[
-                { src: "/upi.png", alt: "UPI" },
-                { src: "/visa.png", alt: "Visa" },
-                { src: "/mastercard.png", alt: "Mastercard" },
-                { src: "/bank.png", alt: "Net Banking" },
-                { src: "/cod.png", alt: "Cash on Delivery" },
-              ].map((icon) => (
-                <div
-                  key={icon.alt}
-                  className="flex items-center justify-center h-12 w-16 sm:h-14 sm:w-20 rounded-md bg-white p-2"
-                >
-                  <img
-                    src={icon.src}
-                    alt={icon.alt}
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-              ))}
-            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-3">
+  {[
+    { src: "/upi.png", alt: "UPI" },
+    { src: "/visa.png", alt: "Visa" },
+    { src: "/mastercard.png", alt: "Mastercard" },
+    { src: "/bank.png", alt: "Net Banking" },
+    { src: "/cod.png", alt: "Cash on Delivery" },
+  ].map((icon) => (
+    <div
+      key={icon.alt}
+      className="flex h-9 sm:h-10 w-auto items-center justify-center"
+    >
+      <img
+        src={icon.src}
+        alt={icon.alt}
+        className="max-h-full max-w-[70px] sm:max-w-[80px] object-contain"
+      />
+    </div>
+  ))}
+</div>
           </div>
 
           {/* Links Sections */}
