@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, Eye, Sparkles, Tag } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
@@ -46,6 +46,7 @@ const ProductCard = ({ product, onWishlistToggle }) => {
 
   const { user, token, isAuthenticated, fetchWishlistCount } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const isLuxeMember = user?.isLuxeMember;
 
@@ -90,7 +91,7 @@ const ProductCard = ({ product, onWishlistToggle }) => {
     e.stopPropagation();
     if (!isAuthenticated) {
       toast.error("Please log in to manage your wishlist.");
-      navigate("/auth");
+      navigate("/auth", { state: { from: `${location.pathname}${location.search}` } });
       return;
     }
 

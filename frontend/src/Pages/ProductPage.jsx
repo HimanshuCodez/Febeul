@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -280,7 +280,9 @@ const ProductDetailPage = () => {
   const colorParam = searchParams.get('color');
   const couponParam = searchParams.get('coupon');
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount, getStateServiceability, siteSettings: globalSiteSettings } = useAuthStore();
+  const goToAuth = () => navigate("/auth", { state: { from: `${location.pathname}${location.search}` } });
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -377,7 +379,7 @@ const ProductDetailPage = () => {
   const onRedeemCoupon = async (couponCode) => {
     if (!isAuthenticated) {
       toast.error("Please log in to apply coupons.");
-      navigate("/auth");
+      goToAuth();
       return;
     }
     if (!selectedSizeValue) {
@@ -512,7 +514,7 @@ const ProductDetailPage = () => {
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
       toast.error("Please log in to manage your wishlist.");
-      navigate("/auth");
+      goToAuth();
       return;
     }
 
@@ -535,7 +537,7 @@ const ProductDetailPage = () => {
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
       toast.error("Please log in to add items to your cart.");
-      navigate("/auth");
+      goToAuth();
       return;
     }
     if (!selectedSizeValue) {
@@ -572,7 +574,7 @@ const ProductDetailPage = () => {
   const handleBuyNow = async () => {
     if (!isAuthenticated) {
       toast.error("Please log in to add items to your cart.");
-      navigate("/auth");
+      goToAuth();
       return;
     }
     if (!selectedSizeValue) {

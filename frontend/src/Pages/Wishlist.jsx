@@ -3,7 +3,7 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import Loader from "../components/Loader";
 import { toast } from "react-hot-toast";
@@ -16,6 +16,7 @@ const Wishlist = () => {
   const [addingToCartId, setAddingToCartId] = useState(null);
   const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchWishlist = async () => {
@@ -54,7 +55,7 @@ const Wishlist = () => {
   const handleAddToCart = async (product) => {
     if (!isAuthenticated) {
       toast.error("Please log in to add items to your cart.");
-      navigate("/auth");
+      navigate("/auth", { state: { from: `${location.pathname}${location.search}` } });
       return;
     }
 

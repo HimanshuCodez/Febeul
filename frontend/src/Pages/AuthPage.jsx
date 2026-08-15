@@ -19,6 +19,7 @@ const AuthPage = () => {
   const { login, register: signup, isAuthenticated, error, loading, clearError, setToken, googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const redirectTo = location.state?.from || "/";
 
   const {
     register,
@@ -36,14 +37,14 @@ const AuthPage = () => {
   useEffect(() => {
     if (isAuthenticated) {
       if (location.pathname === '/auth') {
-        navigate("/", { replace: true });
+        navigate(redirectTo, { replace: true });
       }
     }
     if (error) {
       toast.error(error);
       clearError();
     }
-  }, [isAuthenticated, error, navigate, location.pathname, clearError]);
+  }, [isAuthenticated, error, navigate, location.pathname, redirectTo, clearError]);
 
   useEffect(() => {
     return () => {
@@ -85,7 +86,7 @@ const AuthPage = () => {
             const { token } = response.data;
             setToken(token);
             toast.success("Logged in successfully!");
-            navigate("/", { replace: true });
+            navigate(redirectTo, { replace: true });
           } else {
             toast.error(response.data.message);
           }

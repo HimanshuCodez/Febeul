@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { Star, Camera } from 'lucide-react';
@@ -10,6 +10,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Reviews = ({ productId }) => {
   const { user, token, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState({ rating: 0, comment: '', images: [] });
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -211,7 +212,7 @@ const Reviews = ({ productId }) => {
                 onClick={() => {
                   if (!isAuthenticated) {
                     toast.error("Please log in to submit a review.");
-                    navigate("/auth");
+                    navigate("/auth", { state: { from: `${location.pathname}${location.search}` } });
                   } else {
                     setShowReviewForm(true);
                   }

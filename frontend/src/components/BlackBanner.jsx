@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { ChevronUp, ChevronDown, ShoppingBag } from "lucide-react";
@@ -22,6 +22,7 @@ const BlackBanner = () => {
   const mobileRailRef = useRef(null);
   const videoRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, isAuthenticated, fetchCartCount } = useAuthStore();
 
   useEffect(() => {
@@ -165,7 +166,7 @@ const BlackBanner = () => {
   const handleQuickAddToCart = async (product) => {
     if (!isAuthenticated) {
       toast.error("Please log in to add items to your cart.");
-      navigate("/auth");
+      navigate("/auth", { state: { from: `${location.pathname}${location.search}` } });
       return;
     }
     const variation = product.variations?.[0];
