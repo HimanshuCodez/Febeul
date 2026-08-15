@@ -60,12 +60,12 @@ const StylesSection = () => {
     : (desktopBackground || mobileBackground);
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-black via-pink-300 to-black text-white py-16 px-4 text-center">
+    <section className="relative overflow-hidden bg-gradient-to-b from-black via-pink-300 to-black text-white text-center">
       {backgroundImage && (
         <img src={backgroundImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
       )}
 
-      <div className="relative z-10">
+      <div className="relative z-10 py-16 px-4">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-wide mb-10">
           SUITABLE FOR DIFFERENT STYLES
         </h2>
