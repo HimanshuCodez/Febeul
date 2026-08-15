@@ -44,6 +44,13 @@ const Footer = () => {
             </div>
 
             <div className="flex items-center justify-center sm:justify-start gap-2 text-sm">
+              <span>📞</span>
+              <a href="tel:+919990310241" className="hover:text-white">
+                +91 99903 10241
+              </a>
+            </div>
+
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-sm">
               <span>📧</span>
               <a href="mailto:Support@Febeul.com" className="hover:text-white">
                 Support@Febeul.com

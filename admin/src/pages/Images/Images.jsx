@@ -18,6 +18,8 @@ const Images = ({ token }) => {
   const [styleCategories, setStyleCategories] = useState([{ icon: 'Star', label: '', link: '' }]);
   const [pillBackgroundColor, setPillBackgroundColor] = useState('#fbcfe8');
   const [pillTextColor, setPillTextColor] = useState('#111827');
+  const [styleSectionDesktopBg, setStyleSectionDesktopBg] = useState('');
+  const [styleSectionMobileBg, setStyleSectionMobileBg] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState('hero');
 
@@ -45,6 +47,8 @@ const Images = ({ token }) => {
           setStyleCategories(content.items);
           setPillBackgroundColor(content.pillBackgroundColor || '#fbcfe8');
           setPillTextColor(content.pillTextColor || '#111827');
+          setStyleSectionDesktopBg(content.desktopBackground || '');
+          setStyleSectionMobileBg(content.mobileBackground || '');
         }
       }
       if (banner.data.success) {
@@ -108,6 +112,9 @@ const Images = ({ token }) => {
         } else if (type === 'pose') {
           if (subType === 'mobile') setPoseSection({ ...poseSection, mobile: url });
           else setPoseSection({ ...poseSection, desktop: url });
+        } else if (type === 'styleSectionBg') {
+          if (subType === 'mobile') setStyleSectionMobileBg(url);
+          else setStyleSectionDesktopBg(url);
         }
         toast.success("File uploaded successfully");
       }
@@ -432,6 +439,37 @@ const Images = ({ token }) => {
           <div className="p-6 bg-white space-y-6">
             <p className="text-xs text-gray-500 -mt-2">Each pill links to a category or product listing page when clicked.</p>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border p-4 rounded-md bg-gray-50 shadow-inner">
+              <div className="space-y-3">
+                <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Section Background — Desktop</p>
+                <div className="w-full aspect-[3/1] bg-gray-200 rounded border overflow-hidden">
+                  {styleSectionDesktopBg ? <img src={styleSectionDesktopBg} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image (uses gradient)</div>}
+                </div>
+                <label className="cursor-pointer bg-white border px-3 py-1 rounded text-xs shadow-sm hover:bg-gray-50 transition inline-block">
+                  Upload Desktop Background
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload('styleSectionBg', null, e.target.files[0], 'desktop')} />
+                </label>
+                <p className="text-[10px] text-gray-500">Note: Use around 1920x640px (3:1) — wide banner behind the pills. Leave empty to keep the default black/pink gradient.</p>
+                {styleSectionDesktopBg && (
+                  <button onClick={() => setStyleSectionDesktopBg('')} className="text-[10px] text-red-500 underline">Remove</button>
+                )}
+              </div>
+              <div className="space-y-3">
+                <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Section Background — Mobile</p>
+                <div className="w-full aspect-[3/4] max-w-[160px] bg-gray-200 rounded border overflow-hidden">
+                  {styleSectionMobileBg ? <img src={styleSectionMobileBg} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image (uses gradient)</div>}
+                </div>
+                <label className="cursor-pointer bg-blue-50 border border-blue-200 text-blue-600 px-3 py-1 rounded text-xs shadow-sm hover:bg-blue-100 transition inline-block">
+                  Upload Mobile Background
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload('styleSectionBg', null, e.target.files[0], 'mobile')} />
+                </label>
+                <p className="text-[10px] text-gray-500">Note: Use around 750x1000px (3:4) — portrait crop behind the pills on phones. Leave empty to keep the default black/pink gradient.</p>
+                {styleSectionMobileBg && (
+                  <button onClick={() => setStyleSectionMobileBg('')} className="text-[10px] text-red-500 underline">Remove</button>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-4">
               <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
                 <div>
@@ -501,7 +539,7 @@ const Images = ({ token }) => {
             </div>
             <div className="flex gap-4">
               <button onClick={() => setStyleCategories([...styleCategories, { icon: 'Star', label: '', link: '' }])} className="bg-green-600 text-white px-6 py-2 rounded text-sm font-medium">Add Category</button>
-              <button onClick={() => saveContent('style_categories', { items: styleCategories, pillBackgroundColor, pillTextColor })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Style Categories</button>
+              <button onClick={() => saveContent('style_categories', { items: styleCategories, pillBackgroundColor, pillTextColor, desktopBackground: styleSectionDesktopBg, mobileBackground: styleSectionMobileBg })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Style Categories</button>
             </div>
           </div>
         )}

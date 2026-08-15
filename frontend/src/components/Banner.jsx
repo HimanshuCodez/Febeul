@@ -23,6 +23,9 @@ const StylesSection = () => {
   const [styles, setStyles] = useState(defaultStyles);
   const [pillBackgroundColor, setPillBackgroundColor] = useState('#fbcfe8');
   const [pillTextColor, setPillTextColor] = useState('#111827');
+  const [desktopBackground, setDesktopBackground] = useState('');
+  const [mobileBackground, setMobileBackground] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
     const fetchStyles = async () => {
@@ -37,6 +40,8 @@ const StylesSection = () => {
           setStyles(content.items);
           setPillBackgroundColor(content.pillBackgroundColor || '#fbcfe8');
           setPillTextColor(content.pillTextColor || '#111827');
+          setDesktopBackground(content.desktopBackground || '');
+          setMobileBackground(content.mobileBackground || '');
         }
       } catch (error) {
         console.error("Error fetching style categories:", error);
@@ -44,29 +49,43 @@ const StylesSection = () => {
     };
 
     fetchStyles();
+
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  return (
-    <section className="bg-gradient-to-b from-black via-pink-300 to-black text-white py-16 px-4 text-center">
-      <h2 className="text-2xl md:text-3xl font-semibold tracking-wide mb-10">
-        SUITABLE FOR DIFFERENT STYLES
-      </h2>
+  const backgroundImage = isMobile
+    ? (mobileBackground || desktopBackground)
+    : (desktopBackground || mobileBackground);
 
-      <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
-        {styles.map((item, index) => {
-          const Icon = iconMap[item.icon] || Star;
-          return (
-            <Link
-              key={index}
-              to={item.link || "#"}
-              className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium cursor-pointer transition-transform transform hover:scale-105"
-              style={{ backgroundColor: pillBackgroundColor, color: pillTextColor }}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-b from-black via-pink-300 to-black text-white py-16 px-4 text-center">
+      {backgroundImage && (
+        <img src={backgroundImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      )}
+
+      <div className="relative z-10">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-wide mb-10">
+          SUITABLE FOR DIFFERENT STYLES
+        </h2>
+
+        <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
+          {styles.map((item, index) => {
+            const Icon = iconMap[item.icon] || Star;
+            return (
+              <Link
+                key={index}
+                to={item.link || "#"}
+                className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium cursor-pointer transition-transform transform hover:scale-105"
+                style={{ backgroundColor: pillBackgroundColor, color: pillTextColor }}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
