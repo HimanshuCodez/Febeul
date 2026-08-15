@@ -9,7 +9,7 @@ const Images = ({ token }) => {
   const [slides, setSlides] = useState([{ desktop: '', mobile: '', link: '' }]);
   const [spotlight, setSpotlight] = useState([{ image: '', label: '', link: '' }]);
   const [shows, setShows] = useState([
-    { desktopVideo: '', mobileVideo: '', thumbnail: '', title: '', subtitle: '', productLink: '' }
+    { desktopVideo: '', mobileVideo: '', desktopYoutubeLink: '', mobileYoutubeLink: '', thumbnail: '', title: '', subtitle: '', productLink: '' }
   ]);
   const [bannerBackgroundColor, setBannerBackgroundColor] = useState('#000000');
   const [bannerTextColor, setBannerTextColor] = useState('#ffffff');
@@ -313,6 +313,17 @@ const Images = ({ token }) => {
                       <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'desktop')} />
                     </label>
                     <p className="text-[10px] text-gray-500">Note: Use exactly 1920x1080px (16:9) — this player is widescreen on tablet & desktop.</p>
+                    <div className="pt-1">
+                      <p className="text-[10px] font-medium text-gray-600 mb-1">Or paste YouTube link (desktop)</p>
+                      <input
+                        type="text"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={show.desktopYoutubeLink || ''}
+                        onChange={(e) => { const n = [...shows]; n[index].desktopYoutubeLink = e.target.value; setShows(n); }}
+                        className="w-full px-3 py-2 border rounded outline-none bg-white text-xs"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1">If set, this plays instead of the uploaded desktop video.</p>
+                    </div>
                   </div>
                   <div className="space-y-3">
                     <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Version</p>
@@ -328,6 +339,17 @@ const Images = ({ token }) => {
                       <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'mobile')} />
                     </label>
                     <p className="text-[10px] text-gray-500">Note: Use exactly 1080x1920px (9:16) — this player is full-height portrait on mobile.</p>
+                    <div className="pt-1">
+                      <p className="text-[10px] font-medium text-gray-600 mb-1">Or paste YouTube link (mobile)</p>
+                      <input
+                        type="text"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={show.mobileYoutubeLink || ''}
+                        onChange={(e) => { const n = [...shows]; n[index].mobileYoutubeLink = e.target.value; setShows(n); }}
+                        className="w-full px-3 py-2 border rounded outline-none bg-white text-xs"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1">If set, this plays instead of the uploaded mobile video.</p>
+                    </div>
                   </div>
                   <div className="space-y-3">
                     <p className="font-bold text-pink-600 uppercase text-[10px] tracking-wider">Watch More Thumbnail</p>
@@ -358,7 +380,7 @@ const Images = ({ token }) => {
               </div>
             ))}
             <div className="flex gap-4">
-              <button onClick={() => setShows([...shows, { desktopVideo: '', mobileVideo: '', thumbnail: '', title: '', subtitle: '', productLink: '' }])} className="bg-purple-600 text-white px-6 py-2 rounded text-sm font-medium">Add Another Video</button>
+              <button onClick={() => setShows([...shows, { desktopVideo: '', mobileVideo: '', desktopYoutubeLink: '', mobileYoutubeLink: '', thumbnail: '', title: '', subtitle: '', productLink: '' }])} className="bg-purple-600 text-white px-6 py-2 rounded text-sm font-medium">Add Another Video</button>
               <button onClick={() => saveContent('black_banner', { shows, backgroundColor: bannerBackgroundColor, textColor: bannerTextColor, productRailTextColor })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Live Videos</button>
             </div>
           </div>

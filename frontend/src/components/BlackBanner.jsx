@@ -7,6 +7,14 @@ import useAuthStore from "../store/authStore";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+const extractYoutubeId = (url) => {
+  if (!url) return null;
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  return match ? match[1] : null;
+};
+
 const BlackBanner = () => {
   const [shows, setShows] = useState([]);
   const [backgroundColor, setBackgroundColor] = useState('#000000');
@@ -31,7 +39,7 @@ const BlackBanner = () => {
         const response = await axios.get(`${backendUrl}/api/cms/black_banner`);
         const content = response.data?.content;
         if (response.data.success && Array.isArray(content?.shows) && content.shows.length > 0) {
-          setShows(content.shows.filter((s) => s.desktopVideo || s.mobileVideo));
+          setShows(content.shows.filter((s) => s.desktopVideo || s.mobileVideo || s.desktopYoutubeLink || s.mobileYoutubeLink));
           setBackgroundColor(content.backgroundColor || '#000000');
           setTextColor(content.textColor || '#ffffff');
           setProductRailTextColor(content.productRailTextColor || '#1f2937');
@@ -203,6 +211,9 @@ const BlackBanner = () => {
   if (shows.length === 0) return null;
 
   const activeShow = shows[activeIndex] || shows[0];
+  const youtubeId = isMobile
+    ? extractYoutubeId(activeShow.mobileYoutubeLink) || extractYoutubeId(activeShow.desktopYoutubeLink)
+    : extractYoutubeId(activeShow.desktopYoutubeLink) || extractYoutubeId(activeShow.mobileYoutubeLink);
   const mediaSrc = isMobile
     ? (activeShow.mobileVideo || activeShow.desktopVideo)
     : (activeShow.desktopVideo || activeShow.mobileVideo);
@@ -296,18 +307,30 @@ const BlackBanner = () => {
             <span className="absolute top-3 left-3 z-10 bg-black/60 text-white text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full">
               Live Now
             </span>
-            <video
-              ref={videoRef}
-              key={mediaSrc}
-              className="absolute inset-0 w-full h-full object-cover"
-              src={mediaSrc}
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls
-              onLoadedData={(e) => { e.currentTarget.play().catch(() => {}); }}
-            />
+            {youtubeId ? (
+              <iframe
+                key={youtubeId}
+                className="absolute inset-0 w-full h-full"
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&playsinline=1&controls=1`}
+                title={activeShow.title || "Live shopping video"}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                frameBorder="0"
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                key={mediaSrc}
+                className="absolute inset-0 w-full h-full object-cover"
+                src={mediaSrc}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+                onLoadedData={(e) => { e.currentTarget.play().catch(() => {}); }}
+              />
+            )}
           </div>
 
           {(activeShow.title || activeShow.productLink) && (
