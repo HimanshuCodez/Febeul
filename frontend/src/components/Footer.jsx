@@ -62,22 +62,22 @@ const Footer = () => {
               (Monday–Saturday)
             </p>
             {/* Payment Gateway Logos */}
-            <div className="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-3">
+            <div className="mt-5 flex flex-wrap items-center justify-center sm:justify-start gap-5 sm:gap-6">
   {[
-    { src: "/upi.png", alt: "UPI" },
-    { src: "/visa.png", alt: "Visa" },
-    { src: "/mastercard.png", alt: "Mastercard" },
-    { src: "/bank.png", alt: "Net Banking" },
-    { src: "/cod.png", alt: "Cash on Delivery" },
+    { src: "/upi.png", alt: "UPI", className: "w-[55px] sm:w-[65px]" },
+    { src: "/visa.png", alt: "Visa", className: "w-[55px] sm:w-[65px]" },
+    { src: "/mastercard.png", alt: "Mastercard", className: "w-[55px] sm:w-[65px]" },
+    { src: "/bank.png", alt: "Net Banking", className: "w-[55px] sm:w-[65px]" },
+    { src: "/cod.png", alt: "Cash on Delivery", className: "w-[75px] sm:w-[90px]" },
   ].map((icon) => (
     <div
       key={icon.alt}
-      className="flex h-9 sm:h-10 w-auto items-center justify-center"
+      className="h-12 sm:h-14 flex items-center justify-center"
     >
       <img
         src={icon.src}
         alt={icon.alt}
-        className="max-h-full max-w-[70px] sm:max-w-[80px] object-contain"
+        className={`${icon.className} max-h-12 sm:max-h-14 object-contain`}
       />
     </div>
   ))}
