@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Heart, ShoppingCart } from "lucide-react";
+import { Heart, ShoppingCart, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
@@ -14,6 +14,7 @@ const Wishlist = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addingToCartId, setAddingToCartId] = useState(null);
+  const [addedToCartIds, setAddedToCartIds] = useState(new Set());
   const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,6 +88,7 @@ const Wishlist = () => {
       if (response.data.success) {
         toast.success("Added to cart!");
         fetchCartCount();
+        setAddedToCartIds((prev) => new Set(prev).add(product._id));
       } else {
         toast.error(response.data.message || "Failed to add to cart.");
       }
@@ -159,14 +161,24 @@ const Wishlist = () => {
                   product={item}
                   onWishlistToggle={(isAdded) => handleWishlistUpdate(item._id, isAdded)}
                 />
-                <button
-                  onClick={() => handleAddToCart(item)}
-                  disabled={addingToCartId === item._id}
-                  className="mt-3 w-full max-w-[280px] sm:max-w-[300px] mx-auto flex items-center justify-center gap-2 bg-pink-500 text-white px-4 py-2.5 rounded-full text-sm font-semibold hover:bg-pink-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <ShoppingCart size={16} />
-                  {addingToCartId === item._id ? "Adding..." : "Add to Cart"}
-                </button>
+                {addedToCartIds.has(item._id) ? (
+                  <Link
+                    to="/cart"
+                    className="mt-3 w-full max-w-[280px] sm:max-w-[300px] mx-auto flex items-center justify-center gap-2 bg-green-50 text-green-700 border border-green-600 px-4 py-2.5 rounded-full text-sm font-semibold hover:bg-green-100 transition-colors"
+                  >
+                    <CheckCircle2 size={16} />
+                    Added to Cart
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handleAddToCart(item)}
+                    disabled={addingToCartId === item._id}
+                    className="mt-3 w-full max-w-[280px] sm:max-w-[300px] mx-auto flex items-center justify-center gap-2 bg-pink-500 text-white px-4 py-2.5 rounded-full text-sm font-semibold hover:bg-pink-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <ShoppingCart size={16} />
+                    {addingToCartId === item._id ? "Adding..." : "Add to Cart"}
+                  </button>
+                )}
               </div>
             ))}
           </div>
