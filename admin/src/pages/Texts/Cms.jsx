@@ -9,10 +9,22 @@ const Cms = ({ token }) => {
   const [promoBanner, setPromoBanner] = useState({
     topLine: "JOIN NOW & SAVE 15% ON MEMBERSHIP!",
     discountCode: "luxe15",
-    buttonText: "JOIN NOW"
+    buttonText: "JOIN NOW",
+    desktopBackground: "",
+    mobileBackground: ""
+  });
+  const [infoBar, setInfoBar] = useState({
+    backgroundColor: "#F4B8BE",
+    shippingTitle: "Free shipping",
+    qrImage: "/qramazon.jpeg",
+    qrTitle: "Scan & Shop",
+    qrSubtitle: "Available on Amazon",
+    returnTitle: "FREE RETURN",
+    returnSubtitle: "3-Days free return"
   });
   const [swipingCreator, setSwipingCreator] = useState(null);
   const [promoCreator, setPromoCreator] = useState(null);
+  const [infoBarCreator, setInfoBarCreator] = useState(null);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -56,6 +68,17 @@ const Cms = ({ token }) => {
         console.warn('Promo banner fetch error, using defaults.');
       }
 
+      // Fetch Info Bar
+      try {
+        const resInfoBar = await axios.get(`${API_BASE_URL}/info_bar`);
+        if (resInfoBar.data && resInfoBar.data.success) {
+          if (resInfoBar.data.content) setInfoBar(prev => ({ ...prev, ...resInfoBar.data.content }));
+          if (resInfoBar.data.creator) setInfoBarCreator(resInfoBar.data.creator);
+        }
+      } catch (err) {
+        console.warn('Info bar fetch error, using defaults.');
+      }
+
     } catch (err) {
       console.error('Error fetching CMS content:', err);
     } finally {
@@ -87,6 +110,53 @@ const Cms = ({ token }) => {
     setPromoBanner(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePromoBackgroundUpload = async (field, file) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('image', file);
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/upload`, formData, {
+        headers: { token, 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.data.success) {
+        setPromoBanner(prev => ({ ...prev, [field]: response.data.imageUrl }));
+        toast.success('Image uploaded successfully');
+      }
+    } catch (err) {
+      console.error('Error uploading promo banner image:', err);
+      toast.error('Failed to upload image');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInfoBarChange = (e) => {
+    const { name, value } = e.target;
+    setInfoBar(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleInfoBarImageUpload = async (file) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('image', file);
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/upload`, formData, {
+        headers: { token, 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.data.success) {
+        setInfoBar(prev => ({ ...prev, qrImage: response.data.imageUrl }));
+        toast.success('Image uploaded successfully');
+      }
+    } catch (err) {
+      console.error('Error uploading QR code image:', err);
+      toast.error('Failed to upload image');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -103,6 +173,14 @@ const Cms = ({ token }) => {
       await axios.post(`${API_BASE_URL}/`, {
         name: 'promo_banner',
         content: promoBanner
+      }, {
+        headers: { 'Content-Type': 'application/json', 'token': token }
+      });
+
+      // Save Info Bar
+      await axios.post(`${API_BASE_URL}/`, {
+        name: 'info_bar',
+        content: infoBar
       }, {
         headers: { 'Content-Type': 'application/json', 'token': token }
       });
@@ -195,6 +273,50 @@ const Cms = ({ token }) => {
           </div>
           
           <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
+              <div className="space-y-3">
+                <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Desktop Background</p>
+                <div className="w-full h-24 bg-gray-100 rounded border overflow-hidden">
+                  {promoBanner.desktopBackground ? (
+                    <img src={promoBanner.desktopBackground} className="w-full h-full object-cover" alt="Desktop background preview" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image set</div>
+                  )}
+                </div>
+                <label className="block cursor-pointer text-center bg-white border px-3 py-2 rounded text-xs shadow-sm hover:bg-gray-50 transition">
+                  Upload Desktop Image
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePromoBackgroundUpload('desktopBackground', e.target.files[0])} />
+                </label>
+                <p className="text-[10px] text-gray-500">Best fit: 1920×400px (wide banner, ~4.8:1). The banner's height is set by the text/button content, so the image is cropped with object-cover — keep the important part centered.</p>
+              </div>
+              <div className="space-y-3">
+                <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Background</p>
+                <div className="w-full h-24 bg-gray-100 rounded border overflow-hidden">
+                  {promoBanner.mobileBackground ? (
+                    <img src={promoBanner.mobileBackground} className="w-full h-full object-cover" alt="Mobile background preview" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image set</div>
+                  )}
+                </div>
+                <label className="block cursor-pointer text-center bg-blue-50 border border-blue-200 text-blue-600 px-3 py-2 rounded text-xs shadow-sm hover:bg-blue-100 transition">
+                  Upload Mobile Image
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePromoBackgroundUpload('mobileBackground', e.target.files[0])} />
+                </label>
+                <p className="text-[10px] text-gray-500">Best fit: 750×600px. Mobile text wraps to more lines, so this crop is taller/narrower than the desktop one.</p>
+              </div>
+              {(promoBanner.desktopBackground || promoBanner.mobileBackground) && (
+                <div className="md:col-span-2">
+                  <button
+                    type="button"
+                    onClick={() => setPromoBanner(prev => ({ ...prev, desktopBackground: '', mobileBackground: '' }))}
+                    className="text-xs text-red-500 hover:text-red-600 font-medium"
+                  >
+                    Remove background images (use solid color)
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Top Line Text</label>
               <input
@@ -232,6 +354,131 @@ const Cms = ({ token }) => {
                 placeholder="e.g. JOIN NOW"
                 required
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Info Bar Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-800">Info Bar (Shipping / Scan &amp; Shop / Free Return)</h2>
+            {infoBarCreator && (
+              <p className="text-[10px] text-gray-500 mt-1">
+                Last Updated By:
+                <span
+                  onClick={() => { if(infoBarCreator.role === 'staff') { setSelectedStaff(infoBarCreator); setShowStaffModal(true); } }}
+                  className={`ml-1 px-2 py-0.5 rounded-full font-bold uppercase ${infoBarCreator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block`}
+                >
+                  {infoBarCreator.role || 'Admin'}
+                </span>
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
+              <div>
+                <p className="font-medium text-sm">Background Color</p>
+                <p className="text-[10px] text-gray-500">Applies to the whole strip.</p>
+              </div>
+              <input
+                type="color"
+                value={infoBar.backgroundColor}
+                onChange={(e) => setInfoBar(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                className="w-12 h-10 border rounded cursor-pointer"
+              />
+              <input
+                type="text"
+                value={infoBar.backgroundColor}
+                onChange={(e) => setInfoBar(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                placeholder="#F4B8BE"
+                className="w-28 px-3 py-2 border rounded outline-none bg-white text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Free Shipping Title</label>
+              <input
+                type="text"
+                name="shippingTitle"
+                className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                value={infoBar.shippingTitle}
+                onChange={handleInfoBarChange}
+                placeholder="e.g. Free shipping"
+                required
+              />
+              <p className="text-[10px] text-gray-500 mt-1">The subtext ("on orders over Rs.X") is pulled automatically from the shipping threshold in Site Settings.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 items-start border-t pt-4">
+              <div className="space-y-3">
+                <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">QR / Barcode Image</p>
+                <div className="w-24 h-24 bg-gray-100 rounded border overflow-hidden">
+                  {infoBar.qrImage ? (
+                    <img src={infoBar.qrImage} className="w-full h-full object-contain" alt="QR code preview" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image</div>
+                  )}
+                </div>
+                <label className="block cursor-pointer text-center bg-white border px-3 py-2 rounded text-xs shadow-sm hover:bg-gray-50 transition">
+                  Upload Image
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleInfoBarImageUpload(e.target.files[0])} />
+                </label>
+                <p className="text-[10px] text-gray-500 max-w-[140px]">Best fit: 200×200px square, transparent or white background.</p>
+              </div>
+              <div className="space-y-4 w-full">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Scan &amp; Shop Title</label>
+                  <input
+                    type="text"
+                    name="qrTitle"
+                    className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                    value={infoBar.qrTitle}
+                    onChange={handleInfoBarChange}
+                    placeholder="e.g. Scan & Shop"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Scan &amp; Shop Subtitle</label>
+                  <input
+                    type="text"
+                    name="qrSubtitle"
+                    className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                    value={infoBar.qrSubtitle}
+                    onChange={handleInfoBarChange}
+                    placeholder="e.g. Available on Amazon"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Free Return Title</label>
+                <input
+                  type="text"
+                  name="returnTitle"
+                  className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                  value={infoBar.returnTitle}
+                  onChange={handleInfoBarChange}
+                  placeholder="e.g. FREE RETURN"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Free Return Subtitle</label>
+                <input
+                  type="text"
+                  name="returnSubtitle"
+                  className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                  value={infoBar.returnSubtitle}
+                  onChange={handleInfoBarChange}
+                  placeholder="e.g. 3-Days free return"
+                  required
+                />
+              </div>
             </div>
           </div>
         </div>

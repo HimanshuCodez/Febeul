@@ -1,11 +1,38 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import useAuthStore from "../store/authStore";
 
 export default function InfoBar() {
   const { siteSettings } = useAuthStore();
+  const [infoBar, setInfoBar] = useState({
+    backgroundColor: "#F4B8BE",
+    shippingTitle: "Free shipping",
+    qrImage: "/qramazon.jpeg",
+    qrTitle: "Scan & Shop",
+    qrSubtitle: "Available on Amazon",
+    returnTitle: "FREE RETURN",
+    returnSubtitle: "3-Days free return"
+  });
+
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  useEffect(() => {
+    const fetchInfoBar = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/api/cms/info_bar`);
+        if (response.data && response.data.content) {
+          setInfoBar(prev => ({ ...prev, ...response.data.content }));
+        }
+      } catch (error) {
+        console.error("Error fetching info bar content:", error);
+      }
+    };
+
+    fetchInfoBar();
+  }, [backendUrl]);
 
   return (
-    <div className="w-full bg-[#F4B8BE] text-black">
+    <div className="w-full text-black" style={{ backgroundColor: infoBar.backgroundColor }}>
       <div className="mx-auto flex max-w-[1440px] flex-nowrap items-center justify-between gap-4 overflow-x-auto px-4 py-3 sm:gap-6 sm:py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max items-center gap-3 whitespace-nowrap">
           <svg
@@ -27,7 +54,7 @@ export default function InfoBar() {
 
           <div>
             <div className="text-sm font-semibold sm:text-base md:text-lg">
-              Free shipping
+              {infoBar.shippingTitle}
             </div>
             <div className="text-xs sm:text-sm md:text-base">
               on orders over Rs.{siteSettings.shippingThreshold || 499}
@@ -39,17 +66,17 @@ export default function InfoBar() {
 
         <div className="flex min-w-max items-center gap-3 whitespace-nowrap">
           <img
-            src="/qramazon.jpeg"
-            alt="QR Code for Amazon"
+            src={infoBar.qrImage || "/qramazon.jpeg"}
+            alt="QR Code"
             className="h-10 w-10 shrink-0 object-contain sm:h-12 sm:w-12"
           />
 
           <div>
             <div className="text-sm font-semibold sm:text-base md:text-lg">
-              Scan & Shop
+              {infoBar.qrTitle}
             </div>
             <div className="text-xs sm:text-sm md:text-base">
-              Available on Amazon
+              {infoBar.qrSubtitle}
             </div>
           </div>
         </div>
@@ -74,10 +101,10 @@ export default function InfoBar() {
 
           <div>
             <div className="text-sm font-semibold sm:text-base md:text-lg">
-              FREE RETURN
+              {infoBar.returnTitle}
             </div>
             <div className="text-xs sm:text-sm md:text-base">
-              3-Days free return
+              {infoBar.returnSubtitle}
             </div>
           </div>
         </div>
