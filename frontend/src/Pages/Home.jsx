@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import Hero from '../components/HeroSection'
 import OfferBar from '../components/ReturnBanner'
 import StylesSection from '../components/Banner'
@@ -12,7 +13,7 @@ import Aboutt from '../components/Aboutt'
 import AllProductsCarousel from '../components/Extras/AllProductsCarousel'
 import BestSellerCarousel from '../components/Extras/BestSellerCarousel'
 
-const SectionHeading = ({ title, subtitle }) => (
+const SectionHeading = ({ title, subtitle, subtitleLink }) => (
   <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.35em] text-pink-500">
@@ -23,9 +24,18 @@ const SectionHeading = ({ title, subtitle }) => (
       </h2>
     </div>
     {subtitle ? (
-      <p className="max-w-xl text-sm leading-6 text-gray-500">
-        {subtitle}
-      </p>
+      subtitleLink ? (
+        <Link
+          to={subtitleLink}
+          className="max-w-xl text-sm leading-6 text-gray-500 underline decoration-pink-300 underline-offset-4 transition-colors hover:text-pink-600"
+        >
+          {subtitle}
+        </Link>
+      ) : (
+        <p className="max-w-xl text-sm leading-6 text-gray-500">
+          {subtitle}
+        </p>
+      )
     ) : null}
   </div>
 );
@@ -47,6 +57,7 @@ const Home = () => {
         <SectionHeading
           title="Trendings"
           subtitle="Browse the full collection"
+          subtitleLink="/products"
         />
         <AllProductsCarousel />
       </section>
@@ -54,6 +65,7 @@ const Home = () => {
         <SectionHeading
           title="Our Best Seller"
           subtitle="The most popular picks"
+          subtitleLink="/bestsellers"
         />
         <BestSellerCarousel />
       </section>
