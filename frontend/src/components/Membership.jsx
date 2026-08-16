@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Gem, 
@@ -29,6 +29,17 @@ const FebeulMembershipWidget = () => {
   const [open, setOpen] = useState(false);
 
   const isLuxeMember = user?.isLuxeMember || false;
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   return (
     <>

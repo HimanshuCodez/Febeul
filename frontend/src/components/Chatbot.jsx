@@ -50,6 +50,17 @@ const Chatbot = () => {
     }
   }, [messages, isOpen]);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   const addBotResponse = (response) => {
     // Show typing state
     setMessages((prev) => [...prev, { sender: "bot", type: "typing" }]);
@@ -227,6 +238,20 @@ const Chatbot = () => {
   };
 
   return (
+    <>
+      {/* Background Blur */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[99]"
+            onClick={() => setIsOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+        )}
+      </AnimatePresence>
+
     <div className="fixed bottom-6 right-6 z-[100] font-sans">
       {/* Floating Chat Button */}
       {!isOpen && (
@@ -399,6 +424,7 @@ const Chatbot = () => {
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 };
 
