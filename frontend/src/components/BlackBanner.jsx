@@ -32,6 +32,7 @@ const BlackBanner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token, isAuthenticated, fetchCartCount } = useAuthStore();
+  const isLuxeMember = user?.isLuxeMember;
 
   useEffect(() => {
     const fetchBanner = async () => {
@@ -171,7 +172,20 @@ const BlackBanner = () => {
     return () => window.clearInterval(interval);
   }, [sideProducts.length, scrollMobileRailAuto]);
 
+  const handleProductClick = (e, product) => {
+    if (product.isLuxePrive && !isLuxeMember) {
+      e.preventDefault();
+      navigate('/luxe');
+      toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
+    }
+  };
+
   const handleQuickAddToCart = async (product) => {
+    if (product.isLuxePrive && !isLuxeMember) {
+      navigate('/luxe');
+      toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
+      return;
+    }
     if (!isAuthenticated) {
       toast.error("Please log in to add items to your cart.");
       navigate("/auth", { state: { from: `${location.pathname}${location.search}` } });
@@ -223,15 +237,28 @@ const BlackBanner = () => {
     const variation = product.variations?.[0];
     const size = variation?.sizes?.[0];
     const image = variation?.images?.[0];
+    const isLuxeLocked = product.isLuxePrive && !isLuxeMember;
     return (
       <div className="w-[110px] sm:w-[130px] flex-shrink-0 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-        <Link to={`/product/${product._id}`} className="block">
+        <Link
+          to={isLuxeLocked ? '#' : `/product/${product._id}`}
+          onClick={(e) => handleProductClick(e, product)}
+          className={`block relative ${isLuxeLocked ? 'cursor-not-allowed' : ''}`}
+        >
           <div className="w-full aspect-square bg-gray-100">
             {image && <img src={image} alt={product.name} className="w-full h-full object-cover" />}
           </div>
+          {product.isLuxePrive && (
+            <img src="/luxeprive.png" alt="Luxe" className="absolute bottom-1 left-1 w-6 h-6 object-contain drop-shadow" />
+          )}
         </Link>
         <div className="p-2 flex flex-col gap-1 flex-1">
-          <Link to={`/product/${product._id}`} className="text-[11px] line-clamp-2 leading-tight h-7" style={{ color: productRailTextColor }}>
+          <Link
+            to={isLuxeLocked ? '#' : `/product/${product._id}`}
+            onClick={(e) => handleProductClick(e, product)}
+            className={`text-[11px] line-clamp-2 leading-tight h-7 ${isLuxeLocked ? 'cursor-not-allowed' : ''}`}
+            style={{ color: productRailTextColor }}
+          >
             {product.name}
           </Link>
           <div className="flex items-baseline gap-1">
@@ -255,13 +282,18 @@ const BlackBanner = () => {
     const variation = product.variations?.[0];
     const size = variation?.sizes?.[0];
     const image = variation?.images?.[0];
+    const isLuxeLocked = product.isLuxePrive && !isLuxeMember;
     return (
       <Link
-        to={`/product/${product._id}`}
-        className="flex-shrink-0 w-[76px] flex flex-col items-center gap-1 text-center"
+        to={isLuxeLocked ? '#' : `/product/${product._id}`}
+        onClick={(e) => handleProductClick(e, product)}
+        className={`flex-shrink-0 w-[76px] flex flex-col items-center gap-1 text-center ${isLuxeLocked ? 'cursor-not-allowed' : ''}`}
       >
-        <div className="w-[76px] h-[76px] rounded-lg overflow-hidden bg-gray-800 border border-white/10">
+        <div className="relative w-[76px] h-[76px] rounded-lg overflow-hidden bg-gray-800 border border-white/10">
           {image && <img src={image} alt={product.name} className="w-full h-full object-cover" />}
+          {product.isLuxePrive && (
+            <img src="/luxeprive.png" alt="Luxe" className="absolute bottom-1 left-1 w-5 h-5 object-contain drop-shadow" />
+          )}
         </div>
         <p className="text-[10px] line-clamp-1 leading-tight w-full" style={{ color: productRailTextColor }}>{product.name}</p>
         <span className="text-[10px] font-bold" style={{ color: productRailTextColor }}>₹{size?.price?.toLocaleString("en-IN") ?? "--"}</span>
