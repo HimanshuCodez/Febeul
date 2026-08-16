@@ -104,6 +104,17 @@ const Support = () => {
         fetchUserTickets();
     }, [token]);
 
+    useEffect(() => {
+        if (selectedTicket) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [selectedTicket]);
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
