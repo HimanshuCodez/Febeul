@@ -27,6 +27,7 @@ import ImageOptimize from './pages/Settings/ImageOptimize'
 import TypographySettings from './pages/Settings/TypographySettings'
 import ProductTaxonomy from './pages/Settings/ProductTaxonomy'
 import Stats from './pages/Stats/Stats'
+import ResetData from './pages/ResetData'
 import Login from './components/Login'
 import ForgetPass from './pages/ForgetPass'
 import { ToastContainer } from 'react-toastify';
@@ -101,6 +102,7 @@ const App = () => {
                 {isAllowed('/typography') && <Route path='/typography' element={<TypographySettings token={token} />} />}
                 {isAllowed('/product-taxonomy') && <Route path='/product-taxonomy' element={<ProductTaxonomy token={token} />} />}
                 {isAllowed('/stats') && <Route path='/stats' element={<Stats token={token} />} />}
+                {isAllowed('/reset-data') && <Route path='/reset-data' element={<ResetData token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}

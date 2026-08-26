@@ -32,6 +32,7 @@ const getRequiredPermission = (fullPath) => {
         return '/cms';
     }
     if (fullPath.startsWith('/api/coupon')) return '/coupons';
+    if (fullPath.startsWith('/api/reset')) return '/reset-data';
     if (fullPath.includes('/maintenance')) return '/maintenance';
     if (fullPath.includes('/configurations')) return '/configurations';
     if (fullPath.startsWith('/api/admin/update-permissions')) return '/allusers';

@@ -43,6 +43,7 @@ const AllUsers = ({ token }) => {
     { label: 'Configurations', path: '/configurations' },
     { label: 'Product Taxonomy', path: '/product-taxonomy' },
     { label: 'Stats', path: '/stats' },
+    { label: 'Reset Data', path: '/reset-data' },
   ];
 
   const togglePermission = (path) => {

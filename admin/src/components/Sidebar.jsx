@@ -5,7 +5,7 @@ import {
   ShoppingBag, RotateCcw, Gift, ShieldCheck, Ticket,
   MessageSquare, Star, FileText, Image, Mail, Settings,
   Wrench, Sliders, Zap, Type, ChevronDown, ChevronRight,
-  Menu, X, Truck, Undo2, Tags
+  Menu, X, Truck, Undo2, Tags, Trash2
 } from 'lucide-react'
 
 const SidebarItem = ({ to, icon: Icon, label, active, onClick }) => {
@@ -71,7 +71,7 @@ const Sidebar = ({ role, permissions = [] }) => {
   };
 
   const showProductListing = isAllowed('/add') || isAllowed('/list') || isAllowed('/luxelist');
-  const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize') || isAllowed('/typography') || isAllowed('/delivery-control') || isAllowed('/product-taxonomy');
+  const showSettings = isAllowed('/maintenance') || isAllowed('/configurations') || isAllowed('/image-optimize') || isAllowed('/typography') || isAllowed('/delivery-control') || isAllowed('/product-taxonomy') || isAllowed('/reset-data');
 
   const navContent = (
     <div className='flex flex-col gap-1'>
@@ -206,6 +206,9 @@ const Sidebar = ({ role, permissions = [] }) => {
                         )}
                         {isAllowed('/product-taxonomy') && (
                             <SidebarItem to="/product-taxonomy" icon={Tags} label="Product Taxonomy" />
+                        )}
+                        {isAllowed('/reset-data') && (
+                            <SidebarItem to="/reset-data" icon={Trash2} label="Reset Data" />
                         )}
                     </div>
                 )}
