@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { ShoppingBag, ArrowRight, Package, Crown, X, CreditCard } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { ShoppingBag, ArrowRight, Package, Crown, X, CreditCard, Search, Filter } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
@@ -30,6 +30,15 @@ const getOrderDisplayStatus = (order) => {
 
 const JOURNEY_STAGES = ["Order Placed", "Processing", "Shipped", "Out for delivery", "Delivered"];
 const STAGE_LEVELS = { "Order Placed": 0, "Processing": 1, "Confirmed": 1, "Shipped": 2, "Out for delivery": 3, "Delivered": 4 };
+
+const STATUS_FILTERS = [
+  { label: "All", match: () => true },
+  { label: "Processing", match: (s) => ["Order Placed", "Processing", "Confirmed"].includes(s) },
+  { label: "Shipped", match: (s) => ["Shipped", "Out for delivery"].includes(s) },
+  { label: "Delivered", match: (s) => s === "Delivered" },
+  { label: "Cancelled", match: (s) => ["Cancelled", "Failed"].includes(s) },
+  { label: "Returns/Refunds", match: (s) => ["Returned", "Refund Initiated", "Refunded"].includes(s) },
+];
 
 const OrderProgressStrip = ({ status }) => {
   if (["Cancelled", "Returned", "Refund Initiated", "Refunded", "Failed"].includes(status)) return null;
@@ -109,7 +118,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h3 className="text-lg sm:text-xl font-black text-slate-900">Cancel Order</h3>
-            <p className="text-xs font-bold text-slate-400 mt-1">#{order._id.slice(-8).toUpperCase()}</p>
+            <p className="text-xs font-bold text-slate-400 mt-1 break-all">#{order._id}</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200">
             <X size={18} />
@@ -178,6 +187,9 @@ const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [orderToCancel, setOrderToCancel] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [timeFilter, setTimeFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { token, isAuthenticated } = useAuthStore();
   const navigate = useNavigate(); // Import useNavigate for navigation
@@ -229,6 +241,49 @@ const MyOrders = () => {
     }
   }, [isAuthenticated, token]);
 
+  const availableYears = useMemo(() => {
+    const years = new Set(orders.map((o) => new Date(o.date).getFullYear()));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const now = new Date();
+
+    return orders.filter((order) => {
+      const displayStatus = getOrderDisplayStatus(order);
+      const statusMatcher = STATUS_FILTERS.find((f) => f.label === statusFilter);
+      if (statusMatcher && !statusMatcher.match(displayStatus)) return false;
+
+      const orderDate = new Date(order.date);
+      if (timeFilter === "Last 30 Days") {
+        const cutoff = new Date(now);
+        cutoff.setDate(cutoff.getDate() - 30);
+        if (orderDate < cutoff) return false;
+      } else if (timeFilter === "Last 6 Months") {
+        const cutoff = new Date(now);
+        cutoff.setMonth(cutoff.getMonth() - 6);
+        if (orderDate < cutoff) return false;
+      } else if (timeFilter !== "All") {
+        if (orderDate.getFullYear() !== Number(timeFilter)) return false;
+      }
+
+      if (query) {
+        const idMatch = order._id.toLowerCase().includes(query);
+        const itemMatch = order.items.some((item) => (item.name || "").toLowerCase().includes(query));
+        if (!idMatch && !itemMatch) return false;
+      }
+
+      return true;
+    });
+  }, [orders, statusFilter, timeFilter, searchQuery]);
+
+  const clearFilters = () => {
+    setStatusFilter("All");
+    setTimeFilter("All");
+    setSearchQuery("");
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-96"><Loader className="animate-spin text-pink-500" size={36} /></div>;
   }
@@ -255,11 +310,58 @@ const MyOrders = () => {
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Track and manage your recent purchases</p>
           </div>
           <span className="bg-pink-50 text-pink-600 font-black text-[11px] sm:text-xs px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-2xl border border-pink-100">
-            {orders.length} {orders.length === 1 ? 'Order' : 'Orders'}
+            {filteredOrders.length} {filteredOrders.length === 1 ? 'Order' : 'Orders'}
           </span>
         </div>
 
-        {orders.length > 0 ? (
+        {orders.length > 0 && (
+          <div className="mb-5 sm:mb-8 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by Order ID or product name"
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-400"
+                />
+              </div>
+              <select
+                value={timeFilter}
+                onChange={(e) => setTimeFilter(e.target.value)}
+                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-400"
+              >
+                <option value="All">All Time</option>
+                <option value="Last 30 Days">Last 30 Days</option>
+                <option value="Last 6 Months">Last 6 Months</option>
+                {availableYears.map((year) => (
+                  <option key={year} value={String(year)}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+              <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              {STATUS_FILTERS.map((f) => (
+                <button
+                  key={f.label}
+                  type="button"
+                  onClick={() => setStatusFilter(f.label)}
+                  className={`shrink-0 px-3 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide border transition-all ${
+                    statusFilter === f.label
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {filteredOrders.length > 0 ? (
           <motion.div 
             initial="hidden"
             animate="visible"
@@ -268,7 +370,7 @@ const MyOrders = () => {
             }}
             className="space-y-4 sm:space-y-6"
           >
-            {orders.map((order) => {
+            {filteredOrders.map((order) => {
               const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
               const displayStatus = getOrderDisplayStatus(order);
               // "Returned" always means the courier sent it back (a customer
@@ -302,7 +404,7 @@ const MyOrders = () => {
                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                       <div>
                         <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order ID</span>
-                        <span className="text-xs sm:text-sm font-extrabold text-slate-800 break-all select-all">#{order._id.slice(-8).toUpperCase()}</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-slate-800 break-all select-all">#{order._id}</span>
                       </div>
                       <div className="h-6 w-[1px] bg-slate-200" />
                       <div>
@@ -421,6 +523,21 @@ const MyOrders = () => {
               );
             })}
           </motion.div>
+        ) : orders.length > 0 ? (
+          <div className="text-center py-20 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 p-8">
+            <div className="bg-white p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto shadow-sm border border-slate-100 mb-6">
+              <Filter className="w-10 h-10 text-slate-300" />
+            </div>
+            <h3 className="text-lg font-black text-slate-700">No Matching Orders</h3>
+            <p className="text-slate-400 text-sm font-medium mt-2 max-w-sm mx-auto">No orders match your current search or filters. Try adjusting them.</p>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mt-6 inline-flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg active:scale-95 transition-all"
+            >
+              Clear Filters
+            </button>
+          </div>
         ) : (
           <div className="text-center py-20 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 p-8">
             <div className="bg-white p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto shadow-sm border border-slate-100 mb-6">
@@ -428,8 +545,8 @@ const MyOrders = () => {
             </div>
             <h3 className="text-lg font-black text-slate-700">No Orders Yet</h3>
             <p className="text-slate-400 text-sm font-medium mt-2 max-w-sm mx-auto">You haven't made any purchases yet. Explore our premium collection and make your first order!</p>
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="mt-6 inline-flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg shadow-pink-100 active:scale-95 transition-all"
             >
               Start Shopping <ArrowRight className="w-4 h-4" />
