@@ -1,6 +1,7 @@
 import userModel from '../models/userModel.js';
 import orderModel from '../models/orderModel.js';
 import productModel from '../models/productModel.js';
+import mailHistoryModel from '../models/mailHistoryModel.js';
 import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
 import os from 'os';
@@ -10,7 +11,7 @@ import { sendEmail } from '../utils/sendEmail.js';
 // Controller to send marketing/marketing emails to all users
 export const sendMarketingMail = async (req, res) => {
     try {
-        const { subject, htmlContent, target, specificEmails } = req.body;
+        const { subject, title, body, buttonText, buttonLink, imageUrl, htmlContent, target, specificEmails } = req.body;
 
         if (!subject || !htmlContent || !target) {
             return res.status(400).json({ success: false, message: "Subject, content, and target are required." });
@@ -55,14 +56,62 @@ export const sendMarketingMail = async (req, res) => {
             });
         }
 
-        res.json({ 
-            success: true, 
-            message: `Broadcasting complete. Sent: ${successCount}, Failed: ${failCount}` 
+        await mailHistoryModel.create({
+            subject,
+            title,
+            body,
+            buttonText,
+            buttonLink,
+            imageUrl,
+            htmlContent,
+            target,
+            specificEmails,
+            recipients: users.map(user => user.email),
+            successCount,
+            failCount,
+            sentBy: req.userEmail || 'Unknown'
+        });
+
+        res.json({
+            success: true,
+            message: `Broadcasting complete. Sent: ${successCount}, Failed: ${failCount}`
         });
 
     } catch (error) {
         console.error('Error in sendMarketingMail:', error);
         res.status(500).json({ success: false, message: 'Internal server error while sending emails.' });
+    }
+};
+
+// Controller to list past marketing mail campaigns (without heavy html content)
+export const getMailHistory = async (req, res) => {
+    try {
+        const history = await mailHistoryModel.find({})
+            .sort({ sentAt: -1 })
+            .limit(100)
+            .select('-htmlContent -body');
+
+        res.json({ success: true, history });
+    } catch (error) {
+        console.error('Error in getMailHistory:', error);
+        res.status(500).json({ success: false, message: 'Error fetching mail history.' });
+    }
+};
+
+// Controller to fetch full detail (recipients + rendered content) of one past campaign
+export const getMailHistoryDetail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const record = await mailHistoryModel.findById(id);
+
+        if (!record) {
+            return res.status(404).json({ success: false, message: 'Mail history record not found.' });
+        }
+
+        res.json({ success: true, record });
+    } catch (error) {
+        console.error('Error in getMailHistoryDetail:', error);
+        res.status(500).json({ success: false, message: 'Error fetching mail history detail.' });
     }
 };
 
