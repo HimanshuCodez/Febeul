@@ -894,9 +894,9 @@ export default function CheckoutPage() {
 
                         <div className="mt-2">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Address Type</label>
-                            <div className="flex gap-4">
+                            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-4">
                                 {['Home', 'Business', 'Other'].map((type) => (
-                                    <label key={type} className="flex items-center cursor-pointer">
+                                    <label key={type} className="flex items-center cursor-pointer min-w-0">
                                         <input
                                             type="radio"
                                             name="addressType"
@@ -905,9 +905,9 @@ export default function CheckoutPage() {
                                             onChange={e => setAddressType(e.target.value)}
                                             className="sr-only"
                                         />
-                                        <div className={`px-4 py-2 rounded-full border text-sm transition-colors ${
-                                            addressType === type 
-                                                ? 'bg-[#e8767a] border-[#e8767a] text-white' 
+                                        <div className={`w-full sm:w-auto text-center px-2 sm:px-4 py-2 rounded-full border text-xs sm:text-sm truncate transition-colors ${
+                                            addressType === type
+                                                ? 'bg-[#e8767a] border-[#e8767a] text-white'
                                                 : 'bg-white border-gray-300 text-gray-700 hover:border-[#e8767a]'
                                         }`}>
                                             {type === 'Home' ? 'House/Apartment' : type}
