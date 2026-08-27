@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,
@@ -16,17 +14,18 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LabelList,
 } from "recharts";
 import {
   FiUsers,
   FiShoppingBag,
   FiTrendingUp,
-  FiClock,
-  FiActivity,
   FiArrowUp,
   FiArrowDown,
-  FiDownload,
+  FiSearch,
+  FiX,
+  FiRefreshCw,
+  FiAlertTriangle,
+  FiFilter,
 } from "react-icons/fi";
 import { FaRupeeSign } from "react-icons/fa";
 import { backendUrl, currency } from "../App"; // Import backendUrl and currency
@@ -53,8 +52,11 @@ const FebeulDashboard = ({ token }) => {
     new Date().toISOString().split("T")[0],
   );
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
 
   // States for dashboard data
   const [dashboardStats, setDashboardStats] = useState({
@@ -290,6 +292,7 @@ const FebeulDashboard = ({ token }) => {
       ]);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -298,6 +301,22 @@ const FebeulDashboard = ({ token }) => {
       fetchDashboardData();
     }
   }, [token, timeRange, startDate, endDate]);
+
+  const filteredOrders = useMemo(() => {
+    const q = orderSearch.trim().toLowerCase();
+    if (!q) return recentOrdersList;
+    return recentOrdersList.filter(
+      (order) =>
+        order.id?.toLowerCase().includes(q) ||
+        order.skus?.toLowerCase().includes(q) ||
+        order.status?.toLowerCase().includes(q),
+    );
+  }, [recentOrdersList, orderSearch]);
+
+  const filteredStocks = useMemo(() => {
+    if (!lowStockOnly) return skuStocks;
+    return skuStocks.filter((item) => item.stock <= 15);
+  }, [skuStocks, lowStockOnly]);
 
   const handleExport = async () => {
     if (!token) return;
@@ -371,6 +390,10 @@ const FebeulDashboard = ({ token }) => {
     </div>
   );
 
+  const SkeletonBlock = ({ className = "" }) => (
+    <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`}></div>
+  );
+
   const OrderRow = ({ order }) => {
     const getStatusColor = (status) => {
       const colors = {
@@ -433,7 +456,15 @@ const FebeulDashboard = ({ token }) => {
           <h1 className="text-5xl font-bold bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] bg-clip-text text-transparent tracking-tight mb-1">
             Febeul
           </h1>
-          <p className="text-gray-600 font-medium">Admin Dashboard</p>
+          <div className="flex items-center gap-2">
+            <p className="text-gray-600 font-medium">Admin Dashboard</p>
+            {!initialLoading && loading && (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-[#e88b8d] bg-pink-50 px-2.5 py-1 rounded-full border border-pink-100">
+                <FiRefreshCw size={12} className="animate-spin" />
+                Updating...
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full lg:w-auto">
           {timeRange === "custom" && (
@@ -454,6 +485,14 @@ const FebeulDashboard = ({ token }) => {
             </div>
           )}
           <div className="flex items-center gap-4">
+            <button
+              onClick={fetchDashboardData}
+              disabled={loading}
+              title="Refresh data"
+              className={`flex items-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] shadow-sm ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <FiRefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            </button>
             <button
               onClick={handleExport}
               disabled={exporting}
@@ -477,6 +516,40 @@ const FebeulDashboard = ({ token }) => {
         </div>
       </header>
 
+      {error && (
+        <div className="flex items-center justify-between gap-3 mb-8 px-5 py-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+          <div className="flex items-center gap-3">
+            <FiAlertTriangle size={18} />
+            <span className="text-sm font-semibold">{error}</span>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-400 hover:text-red-600 transition-colors"
+            title="Dismiss"
+          >
+            <FiX size={18} />
+          </button>
+        </div>
+      )}
+
+      {initialLoading ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonBlock key={i} className="h-[132px]" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+            <SkeletonBlock className="lg:col-span-3 h-[420px]" />
+            <SkeletonBlock className="h-[300px]" />
+            <SkeletonBlock className="h-[300px]" />
+            <SkeletonBlock className="h-[300px]" />
+            <SkeletonBlock className="lg:col-span-3 h-[300px]" />
+          </div>
+          <SkeletonBlock className="h-[300px]" />
+        </>
+      ) : (
+        <>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         <StatCard
@@ -514,9 +587,9 @@ const FebeulDashboard = ({ token }) => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
         {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-8 shadow-xl border border-gray-100 relative overflow-hidden">
+        <div className="lg:col-span-3 bg-white rounded-3xl p-8 shadow-xl border border-gray-100 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <FiTrendingUp size={120} className="text-[#f9aeaf]" />
           </div>
@@ -708,9 +781,55 @@ const FebeulDashboard = ({ token }) => {
           </ResponsiveContainer>
         </div>
 
+        {/* Category Sales Chart */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-1">
+              Category Sales
+            </h3>
+            <p className="text-sm text-gray-500 font-medium">
+              Distribution by category
+            </p>
+          </div>
+          {categorySales.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={categorySales}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                  nameKey="name"
+                >
+                  {categorySales.map((entry, index) => (
+                    <Cell key={`cat-cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "#fff",
+                    border: "1px solid #e5e5e5",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                  }}
+                  formatter={(value, name) => [value, name]}
+                />
+                <Legend verticalAlign="bottom" height={36} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-sm text-gray-400 font-medium">
+              No category sales data for this period
+            </div>
+          )}
+        </div>
+
         {/* SKU Stocks List */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-6">
+        <div className="lg:col-span-3 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
               <h3 className="text-xl font-bold text-gray-900 mb-1">
                 Stock Levels by SKU
@@ -719,11 +838,24 @@ const FebeulDashboard = ({ token }) => {
                 Current inventory per variation
               </p>
             </div>
-            <div className="bg-pink-50 text-[#f9aeaf] text-[10px] font-black px-3 py-1 rounded-full border border-pink-100 uppercase tracking-widest">
-              Live Stock
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setLowStockOnly((prev) => !prev)}
+                className={`flex items-center gap-1.5 text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest transition-colors ${
+                  lowStockOnly
+                    ? "bg-red-100 text-red-600 border-red-200"
+                    : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <FiFilter size={12} />
+                Low Stock Only
+              </button>
+              <div className="bg-pink-50 text-[#f9aeaf] text-[10px] font-black px-3 py-1 rounded-full border border-pink-100 uppercase tracking-widest">
+                Live Stock
+              </div>
             </div>
           </div>
-          
+
           <div className="overflow-hidden border border-gray-100 rounded-xl">
             <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
               <table className="w-full text-left border-collapse">
@@ -735,7 +867,14 @@ const FebeulDashboard = ({ token }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {skuStocks.map((item, index) => (
+                  {filteredStocks.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-8 text-center text-sm text-gray-400 font-medium">
+                        No SKUs match this filter
+                      </td>
+                    </tr>
+                  )}
+                  {filteredStocks.map((item, index) => (
                     <tr key={index} className="hover:bg-pink-50/20 transition-colors group">
                       <td className="px-6 py-4">
                         <span className="font-mono font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded text-xs group-hover:bg-white border border-transparent group-hover:border-gray-200">
@@ -767,7 +906,7 @@ const FebeulDashboard = ({ token }) => {
 
       {/* Recent Orders */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
             <h3 className="text-xl font-bold text-gray-900 mb-1">
               Recent Orders
@@ -776,9 +915,36 @@ const FebeulDashboard = ({ token }) => {
               Latest customer transactions
             </p>
           </div>
-          <button className="px-6 py-3 bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] text-white rounded-xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-            View All Orders
-          </button>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:flex-none md:w-64">
+              <FiSearch
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                placeholder="Search order ID, SKU, status..."
+                className="w-full pl-9 pr-8 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:border-[#f9aeaf] focus:ring-4 focus:ring-[#f9aeaf]/20 transition-all"
+              />
+              {orderSearch && (
+                <button
+                  onClick={() => setOrderSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Clear search"
+                >
+                  <FiX size={14} />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => navigate("/orders")}
+              className="px-6 py-3 bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] text-white rounded-xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap"
+            >
+              View All Orders
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -792,11 +958,19 @@ const FebeulDashboard = ({ token }) => {
           </div>
 
           {/* Orders */}
-          {recentOrdersList.map((order, index) => (
-            <OrderRow key={index} order={order} />
-          ))}
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-10 text-sm text-gray-400 font-medium">
+              No orders match {'"'}{orderSearch.trim()}{'"'}
+            </div>
+          ) : (
+            filteredOrders.map((order, index) => (
+              <OrderRow key={index} order={order} />
+            ))
+          )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

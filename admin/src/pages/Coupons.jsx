@@ -294,6 +294,7 @@ const Coupons = ({ token }) => {
     { label: "Min Order Amount", key: "minOrderAmount" },
     { label: "Min Quantity", key: "minQuantity" },
     { label: "Usage Limit", key: "usageLimit" },
+    { label: "Usage Limit Per User", key: "usageLimitPerUser" },
     { label: "Usage Count", key: "usageCount" },
     { label: "Expiry Date", key: "expiryDate" },
     { label: "Status", key: "isActive" },
@@ -479,6 +480,9 @@ const Coupons = ({ token }) => {
                         <span className='text-[11px] font-black text-slate-600'>{coupon.usageCount || 0}</span>
                         <span className='text-[10px] text-slate-400 font-bold'>/ {coupon.usageLimit || '∞'}</span>
                       </div>
+                      <p className='text-[9px] text-slate-400 font-bold mt-1' title='Max redemptions allowed per individual user'>
+                        {coupon.usageLimitPerUser || 'Unlimited'} per user
+                      </p>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <p className='text-xs font-bold text-slate-600'>{coupon.createdAt ? new Date(coupon.createdAt).toLocaleDateString() : 'N/A'}</p>
@@ -702,16 +706,34 @@ const Coupons = ({ token }) => {
                         />
                       </div>
                       <div className='space-y-2'>
-                        <label className='block text-[11px] font-black text-slate-500 uppercase tracking-widest'>Max Redeems</label>
+                        <label className='block text-[11px] font-black text-slate-500 uppercase tracking-widest'>Max Redeems (Total)</label>
                         <input
                           type='number'
                           name='usageLimit'
+                          min='1'
                           value={newCoupon.usageLimit}
                           onChange={handleInputChange}
                           className='w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700 focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all'
                           placeholder='Unlimited'
                         />
                       </div>
+                    </div>
+
+                    {/* Per-User Redemption Limit */}
+                    <div className='space-y-2'>
+                      <label className='block text-[11px] font-black text-slate-500 uppercase tracking-widest'>Redemptions Per User</label>
+                      <input
+                        type='number'
+                        name='usageLimitPerUser'
+                        min='1'
+                        value={newCoupon.usageLimitPerUser}
+                        onChange={handleInputChange}
+                        className='w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700 focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all'
+                        placeholder='1 (default)'
+                      />
+                      <p className='text-[10px] text-slate-400 font-bold'>
+                        How many times a single customer can use this code. Leave blank for the default of 1 use per customer, or enter 0 for unlimited per-user uses.
+                      </p>
                     </div>
 
                     {/* Min Order & Min Qty */}
