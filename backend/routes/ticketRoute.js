@@ -1,5 +1,5 @@
 import express from 'express';
-import { createTicket, getUserTickets, listTickets, updateStatus, userReplyToTicket, adminPanelReplyToTicket, getTicketById, createAppeal, markTicketRead } from '../controllers/ticketController.js';
+import { createTicket, getUserTickets, listTickets, updateStatus, userReplyToTicket, adminPanelReplyToTicket, getTicketById, createAppeal, markTicketRead, adminCreateTicket } from '../controllers/ticketController.js';
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js'; // Import adminAuth middleware
 import upload from '../middleware/multer.js'; // Import multer middleware
@@ -10,6 +10,7 @@ const ticketRouter = express.Router();
 ticketRouter.get('/list', adminAuth, listTickets); // This should be before /:id
 ticketRouter.post('/update-status', adminAuth, updateStatus);
 ticketRouter.post('/admin-reply', adminAuth, upload.array('images', 2), adminPanelReplyToTicket); // Admin panel reply
+ticketRouter.post('/admin-create', adminAuth, upload.array('images', 2), adminCreateTicket); // Admin creates a ticket for a user
 
 // User routes
 ticketRouter.post('/create', auth, upload.array('images', 2), createTicket);

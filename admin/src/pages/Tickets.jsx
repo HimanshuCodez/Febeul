@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { assets } from '../assets/assets'; // Assuming icons like parcel_icon, order_icon are useful
-import { Paperclip, X, Download, CalendarRange, ShieldAlert, LifeBuoy, PhoneCall, Unlock } from 'lucide-react'; // Import Paperclip, X, Download, and CalendarRange
+import { Paperclip, X, Download, CalendarRange, ShieldAlert, LifeBuoy, PhoneCall, Unlock, Plus, Mail } from 'lucide-react'; // Import Paperclip, X, Download, and CalendarRange
 import { CSVLink } from 'react-csv';
 
 const StatusBadge = ({ status, style }) => (
@@ -28,6 +28,15 @@ const Tickets = ({ token }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const adminFileInputRef = useRef(null); // Ref for admin file input
+
+  // New ticket creation (admin creates a ticket on behalf of a user, identified by email or phone)
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [newTicketIdentifier, setNewTicketIdentifier] = useState('');
+  const [newTicketSubject, setNewTicketSubject] = useState('');
+  const [newTicketMessage, setNewTicketMessage] = useState('');
+  const [newTicketImages, setNewTicketImages] = useState([]);
+  const [isSubmittingNewTicket, setIsSubmittingNewTicket] = useState(false);
+  const newTicketFileInputRef = useRef(null);
 
   const fetchTickets = async () => {
     if (!token) return;
@@ -159,6 +168,63 @@ const Tickets = ({ token }) => {
       setAdminAttachments((prev) =>
           prev.filter((_, index) => index !== indexToRemove)
       );
+  };
+
+  const handleNewTicketImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setNewTicketImages((prev) => [...prev, ...files].slice(0, 2));
+    e.target.value = '';
+  };
+
+  const handleRemoveNewTicketImage = (indexToRemove) => {
+    setNewTicketImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const resetNewTicketForm = () => {
+    setNewTicketIdentifier('');
+    setNewTicketSubject('');
+    setNewTicketMessage('');
+    setNewTicketImages([]);
+    if (newTicketFileInputRef.current) {
+      newTicketFileInputRef.current.value = '';
+    }
+  };
+
+  const handleCreateTicket = async (e) => {
+    e.preventDefault();
+    if (!token || isSubmittingNewTicket) return;
+    if (!newTicketIdentifier.trim() || !newTicketSubject.trim() || !newTicketMessage.trim()) {
+      toast.error('Please provide the customer email/phone, subject, and a message.');
+      return;
+    }
+
+    setIsSubmittingNewTicket(true);
+    const submitFormData = new FormData();
+    submitFormData.append('identifier', newTicketIdentifier.trim());
+    submitFormData.append('subject', newTicketSubject);
+    submitFormData.append('message', newTicketMessage);
+    newTicketImages.forEach((image) => {
+      submitFormData.append('images', image);
+    });
+
+    try {
+      const response = await axios.post(`${backendUrl}/api/ticket/admin-create`, submitFormData, {
+        headers: { token, 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.data.success) {
+        toast.success('Ticket created successfully!');
+        resetNewTicketForm();
+        setIsCreatingTicket(false);
+        fetchTickets();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to create ticket.');
+      console.error(error);
+    } finally {
+      setIsSubmittingNewTicket(false);
+    }
   };
 
   useEffect(() => {
@@ -320,6 +386,13 @@ const Tickets = ({ token }) => {
           </div>
           <div className='flex gap-2'>
             <button
+              onClick={() => setIsCreatingTicket((prev) => !prev)}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium bg-pink-500 text-white hover:bg-pink-600 transition-colors flex items-center justify-center gap-2"
+            >
+              {isCreatingTicket ? <X size={16} /> : <Plus size={16} />}
+              {isCreatingTicket ? 'Cancel' : 'New Ticket'}
+            </button>
+            <button
               onClick={fetchTickets}
               className="flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
             >
@@ -338,6 +411,95 @@ const Tickets = ({ token }) => {
           </div>
         </div>
       </div>
+
+      {/* Create Ticket for User */}
+      {isCreatingTicket && (
+        <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8 mb-8'>
+          <h3 className='text-lg font-bold text-gray-700 mb-1 flex items-center gap-2'>
+            <LifeBuoy size={18} className='text-pink-500' /> Create Ticket for a Customer
+          </h3>
+          <p className='text-sm text-gray-500 mb-5'>Look up an existing customer by their email or phone number to open a ticket on their behalf.</p>
+          <form onSubmit={handleCreateTicket} className='space-y-4 max-w-xl'>
+            <div>
+              <label className='block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5'>Customer Email or Phone Number</label>
+              <div className='relative'>
+                <Mail size={16} className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
+                <input
+                  type="text"
+                  value={newTicketIdentifier}
+                  onChange={(e) => setNewTicketIdentifier(e.target.value)}
+                  placeholder="customer@example.com or 9876543210"
+                  required
+                  className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className='block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5'>Subject</label>
+              <input
+                type="text"
+                value={newTicketSubject}
+                onChange={(e) => setNewTicketSubject(e.target.value)}
+                placeholder="e.g., Issue with order delivery"
+                required
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              />
+            </div>
+            <div>
+              <label className='block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5'>Message</label>
+              <textarea
+                value={newTicketMessage}
+                onChange={(e) => setNewTicketMessage(e.target.value)}
+                placeholder="Describe the issue or the reason for opening this ticket..."
+                rows={4}
+                required
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+              />
+            </div>
+            <div className='space-y-2'>
+              <label className='block text-xs font-bold text-gray-500 uppercase tracking-wider'>Attach Photos (Max 2)</label>
+              <div className='flex flex-wrap items-center gap-2'>
+                {newTicketImages.map((image, index) => (
+                  <div key={index} className='relative w-16 h-16 border border-gray-200 rounded-md overflow-hidden'>
+                    <img src={URL.createObjectURL(image)} alt={`Preview ${index}`} className='w-full h-full object-cover' />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveNewTicketImage(index)}
+                      className='absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs'
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {newTicketImages.length < 2 && (
+                  <label className='flex items-center justify-center w-16 h-16 border-2 border-dashed border-gray-200 rounded-md cursor-pointer hover:border-pink-300 hover:bg-pink-50/40 transition-colors'>
+                    <Paperclip className='text-gray-400' size={18} />
+                    <input
+                      type="file"
+                      ref={newTicketFileInputRef}
+                      accept="image/*"
+                      multiple
+                      onChange={handleNewTicketImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmittingNewTicket}
+              className="bg-pink-500 text-white px-5 py-2.5 rounded-md font-bold text-sm hover:bg-pink-600 transition-colors disabled:bg-pink-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isSubmittingNewTicket ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                'Create Ticket'
+              )}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Tickets List */}
       <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8 mb-8'>

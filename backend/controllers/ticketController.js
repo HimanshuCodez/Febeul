@@ -159,6 +159,70 @@ export const getUserTickets = async (req, res) => {
     }
 };
 
+// Admin: Create a ticket on behalf of a user, looked up by email or mobile number
+export const adminCreateTicket = async (req, res) => {
+    const { identifier, subject, message } = req.body;
+    const files = req.files;
+
+    try {
+        if (!identifier || !subject || !message) {
+            return res.status(400).json({ success: false, message: 'Please provide the customer email/phone, subject, and a message.' });
+        }
+
+        const trimmedIdentifier = identifier.trim();
+        const user = await userModel.findOne({
+            $or: [
+                { email: new RegExp(`^${trimmedIdentifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+                { mobile: trimmedIdentifier },
+            ],
+        });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'No user found with that email or phone number.' });
+        }
+
+        let ticketNumber;
+        let isUnique = false;
+        while (!isUnique) {
+            ticketNumber = Math.floor(100000 + Math.random() * 900000).toString();
+            const existingTicket = await ticketModel.findOne({ ticketNumber });
+            if (!existingTicket) isUnique = true;
+        }
+
+        const imageUrls = [];
+        if (files && files.length > 0) {
+            for (const file of files) {
+                try {
+                    const result = await cloudinary.uploader.upload(file.path, {
+                        folder: 'AdiLove_Tickets',
+                    });
+                    imageUrls.push(result.secure_url);
+                } catch (uploadError) {
+                    console.error('Error uploading image to Cloudinary:', uploadError);
+                }
+            }
+        }
+
+        const newTicket = new ticketModel({
+            user: user._id,
+            subject,
+            description: message,
+            contactInfo: trimmedIdentifier,
+            ticketNumber,
+            messages: [{ sender: 'admin', message }],
+            images: imageUrls,
+        });
+
+        await newTicket.save();
+
+        res.json({ success: true, message: 'Ticket created successfully.', ticket: newTicket });
+
+    } catch (error) {
+        console.error('Error creating admin ticket:', error);
+        res.status(500).json({ success: false, message: 'Error creating ticket.' });
+    }
+};
+
 // Admin: Get all tickets
 export const listTickets = async (req, res) => {
     try {
