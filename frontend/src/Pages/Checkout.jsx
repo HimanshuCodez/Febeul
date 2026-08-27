@@ -932,41 +932,41 @@ export default function CheckoutPage() {
                             
                             {isWeekendAccordionOpen && (
                                 <div className="p-3 bg-white border-t space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="flex items-center justify-between p-2.5 border rounded-lg bg-gray-50/50">
-                                            <span className="text-xs font-medium text-gray-700">Saturdays</span>
-                                            <div className="flex bg-white rounded-md border p-1 shadow-sm">
-                                                <button 
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                        <div className="flex items-center justify-between gap-2 p-2.5 border rounded-lg bg-gray-50/50">
+                                            <span className="text-xs font-medium text-gray-700 shrink-0">Saturdays</span>
+                                            <div className="flex bg-white rounded-md border p-1 shadow-sm shrink-0">
+                                                <button
                                                     type="button"
                                                     onClick={() => setSaturdayDelivery(true)}
-                                                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${saturdayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                    className={`px-2.5 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${saturdayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                                 >
                                                     YES
                                                 </button>
-                                                <button 
+                                                <button
                                                     type="button"
                                                     onClick={() => setSaturdayDelivery(false)}
-                                                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${!saturdayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                    className={`px-2.5 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${!saturdayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                                 >
                                                     NO
                                                 </button>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between p-2.5 border rounded-lg bg-gray-50/50">
-                                            <span className="text-xs font-medium text-gray-700">Sundays</span>
-                                            <div className="flex bg-white rounded-md border p-1 shadow-sm">
-                                                <button 
+                                        <div className="flex items-center justify-between gap-2 p-2.5 border rounded-lg bg-gray-50/50">
+                                            <span className="text-xs font-medium text-gray-700 shrink-0">Sundays</span>
+                                            <div className="flex bg-white rounded-md border p-1 shadow-sm shrink-0">
+                                                <button
                                                     type="button"
                                                     onClick={() => setSundayDelivery(true)}
-                                                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${sundayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                    className={`px-2.5 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${sundayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                                 >
                                                     YES
                                                 </button>
-                                                <button 
+                                                <button
                                                     type="button"
                                                     onClick={() => setSundayDelivery(false)}
-                                                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${!sundayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                    className={`px-2.5 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${!sundayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                                 >
                                                     NO
                                                 </button>
