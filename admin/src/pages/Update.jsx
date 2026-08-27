@@ -31,6 +31,7 @@ const Update = ({ token }) => {
 
     const [bestseller, setBestseller] = useState(false);
     const [isLuxePrive, setIsLuxePrive] = useState(false);
+    const [isActive, setIsActive] = useState(true);
     const [loading, setLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [countryOfOrigin, setCountryOfOrigin] = useState("");
@@ -182,6 +183,7 @@ const Update = ({ token }) => {
                     setBestseller(product.bestseller || false);
                     // setSizes(product.sizes); // Removed top-level sizes
                     setIsLuxePrive(product.isLuxePrive || false);
+                    setIsActive(product.isActive !== false);
                     setCountryOfOrigin(product.countryOfOrigin || "");
                     setManufacturer(product.manufacturer || "");
                     setPacker(product.packer || "");
@@ -317,6 +319,7 @@ const Update = ({ token }) => {
 
             formData.append("bestseller", bestseller); // Added bestseller to formData
             formData.append("isLuxePrive", isLuxePrive);
+            formData.append("isActive", isActive);
             formData.append("countryOfOrigin", countryOfOrigin);
             formData.append("manufacturer", manufacturer);
             formData.append("packer", packer);
@@ -670,6 +673,11 @@ const Update = ({ token }) => {
                     {/* Flags */}
                     <section>
                         <div className='flex flex-wrap gap-6'>
+                            <label htmlFor="isActive" className='flex items-center gap-2 cursor-pointer bg-green-50 border border-green-100 rounded-lg px-4 py-2.5'>
+                                <input onChange={() => setIsActive(prev => !prev)} checked={isActive} type="checkbox" id='isActive' className='accent-green-500 w-4 h-4' />
+                                <span className='text-sm font-medium text-green-800'>Visible on Website</span>
+                            </label>
+
                             <label htmlFor="isLuxePrive" className='flex items-center gap-2 cursor-pointer bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5'>
                                 <input onChange={() => setIsLuxePrive(prev => !prev)} checked={isLuxePrive} type="checkbox" id='isLuxePrive' className='accent-amber-500 w-4 h-4' />
                                 <span className='text-sm font-medium text-amber-800'>Add to Luxe Prive Sale</span>

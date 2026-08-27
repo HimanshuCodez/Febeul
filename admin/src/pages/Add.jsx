@@ -29,6 +29,7 @@ const Add = ({ token }) => {
 
   const [bestseller, setBestseller] = useState(false);
   const [isLuxePrive, setIsLuxePrive] = useState(false);
+  const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [countryOfOrigin, setCountryOfOrigin] = useState("");
@@ -265,6 +266,7 @@ const Add = ({ token }) => {
       formData.append("category", category);
       formData.append("bestseller", bestseller);
       formData.append("isLuxePrive", isLuxePrive);
+      formData.append("isActive", isActive);
       formData.append("countryOfOrigin", countryOfOrigin);
       formData.append("manufacturer", manufacturer);
       formData.append("packer", packer);
@@ -322,6 +324,7 @@ const Add = ({ token }) => {
         setVariations([{ color: "", images: [], sizes: [], sku: "" }]);
         setBestseller(false);
         setIsLuxePrive(false);
+        setIsActive(true);
         setCountryOfOrigin("");
         setManufacturer("");
         setPacker("");
@@ -734,6 +737,17 @@ const Add = ({ token }) => {
           {/* Flags */}
           <section>
             <div className="flex flex-wrap gap-6">
+              <label htmlFor="isActive" className="flex items-center gap-2 cursor-pointer bg-green-50 border border-green-100 rounded-lg px-4 py-2.5">
+                <input
+                  onChange={() => setIsActive((prev) => !prev)}
+                  checked={isActive}
+                  type="checkbox"
+                  id="isActive"
+                  className="accent-green-500 w-4 h-4"
+                />
+                <span className="text-sm font-medium text-green-800">Visible on Website</span>
+              </label>
+
               <label htmlFor="isLuxePrive" className="flex items-center gap-2 cursor-pointer bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5">
                 <input
                   onChange={() => setIsLuxePrive((prev) => !prev)}

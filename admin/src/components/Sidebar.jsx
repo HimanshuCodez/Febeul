@@ -77,7 +77,7 @@ const Sidebar = ({ role, permissions = [] }) => {
     <div className='flex flex-col gap-1'>
 
         <div className="px-6 mb-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Main Menu</p>
+       
         </div>
 
         {isAllowed('/') && (
@@ -118,7 +118,7 @@ const Sidebar = ({ role, permissions = [] }) => {
         )}
 
         <div className="px-6 mt-6 mb-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Store Operations</p>
+
         </div>
 
         {isAllowed('/orders') && (
@@ -138,7 +138,7 @@ const Sidebar = ({ role, permissions = [] }) => {
         )}
 
         <div className="px-6 mt-6 mb-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Marketing & Content</p>
+        
         </div>
 
         {isAllowed('/coupons') && (
@@ -162,7 +162,7 @@ const Sidebar = ({ role, permissions = [] }) => {
         )}
 
         <div className="px-6 mt-6 mb-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Support & Trust</p>
+        
         </div>
 
         {isAllowed('/tickets') && (
@@ -174,7 +174,7 @@ const Sidebar = ({ role, permissions = [] }) => {
         )}
 
         <div className="px-6 mt-6 mb-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System</p>
+        
         </div>
 
         {/* Settings Accordion */}
@@ -243,7 +243,7 @@ const Sidebar = ({ role, permissions = [] }) => {
         className={`md:hidden fixed top-0 left-0 h-full w-[80%] max-w-xs bg-white z-50 shadow-2xl overflow-y-auto no-scrollbar transform transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className='flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10'>
-          <span className='text-sm font-black text-gray-800 uppercase tracking-widest'>Menu</span>
+   
           <button
             onClick={() => setIsMobileOpen(false)}
             className='p-2 rounded-lg hover:bg-gray-100 text-gray-400 active:scale-95'

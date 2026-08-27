@@ -4,7 +4,7 @@ import productModel from "../models/productModel.js"
 // function for add product
 const addProduct = async (req, res) => {
     try {
-        const { name, description, category, sizes, bestseller, isLuxePrive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
+        const { name, description, category, sizes, bestseller, isLuxePrive, isActive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
         const variations = JSON.parse(variationsJSON);
         const files = req.files;
 
@@ -48,6 +48,7 @@ const addProduct = async (req, res) => {
                         category,
                         bestseller: bestseller === "true" ? true : false,
                         isLuxePrive: isLuxePrive === "true" ? true : false,
+                        isActive: isActive === "false" ? false : true,
                         variations: processedVariations,
                         date: Date.now(),
                         creator: {
@@ -92,8 +93,12 @@ const addProduct = async (req, res) => {
 // function for list product
 const listProducts = async (req, res) => {
     try {
-        const { category, type, fabric, search, isLuxePrive } = req.query; // Extract query parameters
+        const { category, type, fabric, search, isLuxePrive, includeInactive } = req.query; // Extract query parameters
         let filter = {};
+
+        if (includeInactive !== 'true') {
+            filter.isActive = { $ne: false };
+        }
 
         if (category) {
             const normalizedCategory = category.replace(/-/g, ' ').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -145,6 +150,28 @@ const listProducts = async (req, res) => {
     }
 }
 
+// function for toggling whether a product is visible on the storefront
+const toggleProductActive = async (req, res) => {
+    try {
+        const { id } = req.body;
+        const product = await productModel.findById(id);
+        if (!product) {
+            return res.json({ success: false, message: "Product not found" });
+        }
+        const currentlyActive = product.isActive !== false;
+        product.isActive = !currentlyActive;
+        await product.save();
+        res.json({
+            success: true,
+            isActive: product.isActive,
+            message: `Product is now ${product.isActive ? 'visible on' : 'hidden from'} the website.`
+        });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+
 // function for removing product
 const removeProduct = async (req, res) => {
     try {
@@ -175,7 +202,7 @@ const singleProduct = async (req, res) => {
 // function for updating product
 const updateProduct = async (req, res) => {
     try {
-        const { productId, name, description, category, bestseller, isLuxePrive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
+        const { productId, name, description, category, bestseller, isLuxePrive, isActive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
         
         const product = await productModel.findById(productId);
         if (!product) {
@@ -240,6 +267,7 @@ const updateProduct = async (req, res) => {
 
         product.bestseller = bestseller === "true" ? true : false;
         product.isLuxePrive = isLuxePrive === "true" ? true : false;
+        product.isActive = isActive === "false" ? false : true;
         product.styleCode = styleCode;
         product.countryOfOrigin = countryOfOrigin;
         product.manufacturer = manufacturer;
@@ -284,7 +312,8 @@ const getSimilarProducts = async (req, res) => {
 
         const similarProducts = await productModel.find({
             category: product.category,
-            _id: { $ne: productId } // Exclude the current product
+            _id: { $ne: productId }, // Exclude the current product
+            isActive: { $ne: false }
         }).limit(5); // Limit to 5 similar products
 
         res.json({ success: true, products: similarProducts });
@@ -313,7 +342,7 @@ const getMenuFilters = async (req,res) => {
 // function for listing bestseller products
 const listBestsellers = async (req, res) => {
     try {
-        const products = await productModel.find({ bestseller: true });
+        const products = await productModel.find({ bestseller: true, isActive: { $ne: false } });
         res.json({ success: true, products });
     } catch (error) {
         console.log(error);
@@ -321,4 +350,4 @@ const listBestsellers = async (req, res) => {
     }
 }
 
-export { listProducts, addProduct, removeProduct, singleProduct, updateProduct, getSimilarProducts, getMenuFilters, listBestsellers }
+export { listProducts, addProduct, removeProduct, singleProduct, updateProduct, getSimilarProducts, getMenuFilters, listBestsellers, toggleProductActive }

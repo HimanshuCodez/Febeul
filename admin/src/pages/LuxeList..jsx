@@ -37,7 +37,7 @@ const LuxeList = ({ token }) => {
 
   const fetchList = async () => {
     try {
-      const response = await axios.get(backendUrl + '/api/product/list')
+      const response = await axios.get(backendUrl + '/api/product/list?includeInactive=true')
       if (response.data.success) {
         // Filter by isLuxePrive
         const luxeProducts = response.data.products.filter(p => p.isLuxePrive === true || p.isLuxePrive === 'true');
@@ -70,6 +70,21 @@ const LuxeList = ({ token }) => {
   const confirmDelete = (id) => {
     setProductToDelete(id);
     setShowConfirmModal(true);
+  }
+
+  const toggleActive = async (id) => {
+    try {
+      const response = await axios.post(backendUrl + '/api/product/toggle-active', { id }, { headers: { token } })
+      if (response.data.success) {
+        setList(prev => prev.map(p => p._id === id ? { ...p, isActive: response.data.isActive } : p));
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.log(error)
+      toast.error(error.message)
+    }
   }
 
   const handleDelete = async () => {
@@ -180,9 +195,9 @@ const LuxeList = ({ token }) => {
     });
   });
 
-  const columnLayout = role !== 'staff' 
-    ? "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px_40px]" 
-    : "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px]";
+  const columnLayout = role !== 'staff'
+    ? "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px_60px_40px]"
+    : "grid-cols-[40px_60px_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_60px_60px]";
 
   const allFilteredSkuKeys = filteredList.flatMap(item => getProductSkuKeys(item));
   const isAllSelected = allFilteredSkuKeys.length > 0 && allFilteredSkuKeys.every(k => selectedSkus.includes(k));
@@ -239,6 +254,7 @@ const LuxeList = ({ token }) => {
           <p className='hidden lg:block'>Date</p>
           <p className='hidden lg:block'>Listed By</p>
           <p className='text-center'>Edit</p>
+          <p className='text-center'>Visible</p>
           {role !== 'staff' && <p className='text-center'>Action</p>}
         </div>
 
@@ -298,6 +314,16 @@ const LuxeList = ({ token }) => {
                   </div>
                   <div onClick={(e) => e.stopPropagation()} className='text-center'>
                     <Link to={`/update/${item._id}`} className='text-blue-600 hover:text-blue-800 font-bold text-xs'>Edit</Link>
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()} className='flex justify-center'>
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(item._id)}
+                      title={item.isActive !== false ? 'Visible on website — click to hide' : 'Hidden from website — click to show'}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${item.isActive !== false ? 'bg-green-500' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${item.isActive !== false ? 'translate-x-4' : 'translate-x-1'}`} />
+                    </button>
                   </div>
                   {role !== 'staff' && (
                     <div onClick={(e) => { e.stopPropagation(); confirmDelete(item._id); }} className='text-center'>

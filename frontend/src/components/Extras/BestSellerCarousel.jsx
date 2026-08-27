@@ -9,6 +9,7 @@ const BestSellerCarousel = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [autoSlide, setAutoSlide] = useState(true);
   const containerRef = useRef(null);
 
   const fetchProducts = useCallback(async () => {
@@ -75,14 +76,19 @@ const BestSellerCarousel = () => {
   }, [isLooping, repeatCount]);
 
   useEffect(() => {
-    if (!isLooping) return undefined;
+    if (!isLooping || !autoSlide) return undefined;
 
     const interval = window.setInterval(() => {
       scrollCarousel(1);
     }, 3000);
 
     return () => window.clearInterval(interval);
-  }, [isLooping, scrollCarousel]);
+  }, [isLooping, autoSlide, scrollCarousel]);
+
+  const handleArrowClick = useCallback((direction) => {
+    setAutoSlide(false);
+    scrollCarousel(direction);
+  }, [scrollCarousel]);
 
   if (loading) {
     return (
@@ -152,7 +158,7 @@ const BestSellerCarousel = () => {
 
         <button
           type="button"
-          onClick={() => scrollCarousel(-1)}
+          onClick={() => handleArrowClick(-1)}
           aria-label="Scroll best sellers left"
           className="absolute left-2 top-1/2 z-10 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-900 shadow-lg backdrop-blur-sm transition-all hover:bg-white sm:left-3"
         >
@@ -161,7 +167,7 @@ const BestSellerCarousel = () => {
 
         <button
           type="button"
-          onClick={() => scrollCarousel(1)}
+          onClick={() => handleArrowClick(1)}
           aria-label="Scroll best sellers right"
           className="absolute right-2 top-1/2 z-10 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-900 shadow-lg backdrop-blur-sm transition-all hover:bg-white sm:right-3"
         >

@@ -42,6 +42,7 @@ const productSchema = new mongoose.Schema({
     averageRating: { type: Number, default: 0 },
     numOfReviews: { type: Number, default: 0 },
     isLuxePrive: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
     creator: {
         name: { type: String },
         email: { type: String },
