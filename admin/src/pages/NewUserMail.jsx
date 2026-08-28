@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import Loading from '../components/Loading';
+import { CSVLink } from 'react-csv';
+import { Download } from 'lucide-react';
 
 const targetLabels = {
     all: 'All Registered Users',
@@ -71,6 +73,30 @@ const NewUserMail = ({ token }) => {
             setDetailLoading(false);
         }
     };
+
+    const historyExportHeaders = [
+        { label: 'Subject', key: 'subject' },
+        { label: 'Target Audience', key: 'target' },
+        { label: 'Recipients', key: 'recipients' },
+        { label: 'Sent', key: 'successCount' },
+        { label: 'Failed', key: 'failCount' },
+        { label: 'Sent By', key: 'sentBy' },
+        { label: 'Date', key: 'sentAt' }
+    ];
+
+    const historyForExport = history.map((record) => ({
+        subject: record.subject,
+        target: targetLabels[record.target] || record.target,
+        recipients: record.recipients?.length ?? 0,
+        successCount: record.successCount,
+        failCount: record.failCount,
+        sentBy: record.sentBy,
+        sentAt: new Date(record.sentAt).toLocaleString()
+    }));
+
+    const recipientsExportHeaders = [
+        { label: 'Email', key: 'email' }
+    ];
 
     const emailPreviewHtml = `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px 20px; color: #333;">
@@ -156,19 +182,31 @@ const NewUserMail = ({ token }) => {
                 <p className="text-sm text-gray-500">Design and send professional emails to all your users</p>
             </div>
 
-            <div className="flex gap-2 border-b">
-                <button
-                    onClick={() => setActiveTab('compose')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${activeTab === 'compose' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-                >
-                    Compose
-                </button>
-                <button
-                    onClick={() => setActiveTab('history')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${activeTab === 'history' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-                >
-                    History
-                </button>
+            <div className="flex justify-between items-center gap-2 border-b">
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setActiveTab('compose')}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${activeTab === 'compose' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                    >
+                        Compose
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('history')}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${activeTab === 'history' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                    >
+                        History
+                    </button>
+                </div>
+                {activeTab === 'history' && history.length > 0 && (
+                    <CSVLink
+                        data={historyForExport}
+                        headers={historyExportHeaders}
+                        filename={`Mail_Campaign_History_${new Date().toISOString().split('T')[0]}.csv`}
+                        className="flex items-center gap-2 mb-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-all active:scale-95"
+                    >
+                        <Download className="w-4 h-4" /> Export to Excel
+                    </CSVLink>
+                )}
             </div>
 
             {activeTab === 'history' ? (
@@ -379,7 +417,19 @@ const NewUserMail = ({ token }) => {
 
                         <div className="p-6 flex flex-col gap-6">
                             <div>
-                                <h4 className="text-sm font-semibold text-gray-700 mb-2">Recipients ({selectedRecord.recipients?.length ?? 0})</h4>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="text-sm font-semibold text-gray-700">Recipients ({selectedRecord.recipients?.length ?? 0})</h4>
+                                    {selectedRecord.recipients?.length > 0 && (
+                                        <CSVLink
+                                            data={selectedRecord.recipients.map((email) => ({ email }))}
+                                            headers={recipientsExportHeaders}
+                                            filename={`${selectedRecord.subject}_Recipients.csv`}
+                                            className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:underline"
+                                        >
+                                            <Download className="w-3.5 h-3.5" /> Export to Excel
+                                        </CSVLink>
+                                    )}
+                                </div>
                                 <div className="max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50 text-sm text-gray-600 flex flex-wrap gap-2">
                                     {selectedRecord.recipients?.length > 0 ? (
                                         selectedRecord.recipients.map((email, idx) => (
