@@ -789,8 +789,8 @@ export default function OrderDetailPage() {
     <>
       <AnimatePresence>
         {isReturnModalOpen && (
-            <ReturnExchangeModal 
-                orderId={order._id}
+            <ReturnExchangeModal
+                order={order}
                 token={token}
                 onClose={() => setIsReturnModalOpen(false)}
                 onSubmitted={() => {
