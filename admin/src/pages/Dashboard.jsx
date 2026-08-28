@@ -360,11 +360,15 @@ const FebeulDashboard = ({ token }) => {
     change,
     changeType,
     gradient,
+    glow,
   }) => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-      <div className="flex items-start gap-4">
+    <div className="group relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 overflow-hidden">
+      <div
+        className={`absolute -top-8 -right-8 w-28 h-28 rounded-full ${gradient} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity duration-300`}
+      ></div>
+      <div className="relative flex items-start gap-4">
         <div
-          className={`w-14 h-14 rounded-xl flex items-center justify-center ${gradient}`}
+          className={`w-14 h-14 rounded-xl flex items-center justify-center ${gradient} shadow-lg ${glow} group-hover:scale-110 transition-transform duration-300`}
         >
           <Icon className="text-white" size={24} />
         </div>
@@ -376,17 +380,34 @@ const FebeulDashboard = ({ token }) => {
             {value}
           </div>
           <div
-            className={`flex items-center gap-1 text-sm font-semibold ${changeType === "up" ? "text-green-600" : "text-red-600"}`}
+            className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${changeType === "up" ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"}`}
           >
             {changeType === "up" ? (
-              <FiArrowUp size={14} />
+              <FiArrowUp size={12} />
             ) : (
-              <FiArrowDown size={14} />
+              <FiArrowDown size={12} />
             )}
             <span>{change}</span>
           </div>
         </div>
       </div>
+      <div
+        className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full ${gradient} transition-all duration-500 ease-out`}
+      ></div>
+    </div>
+  );
+
+  const SectionHeading = ({ icon: Icon, title, subtitle, accent = "bg-pink-50 text-[#f9aeaf]" }) => (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-1">
+        <span className={`p-1.5 rounded-lg ${accent}`}>
+          <Icon size={16} />
+        </span>
+        <h3 className="text-xl font-bold text-gray-900 tracking-tight">{title}</h3>
+      </div>
+      {subtitle && (
+        <p className="text-sm text-gray-500 font-medium pl-1">{subtitle}</p>
+      )}
     </div>
   );
 
@@ -449,14 +470,25 @@ const FebeulDashboard = ({ token }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="relative min-h-screen bg-gradient-to-br from-gray-50 via-pink-50/30 to-gray-100 p-8 overflow-hidden">
+      {/* Decorative background accents */}
+      <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d] opacity-[0.12] blur-3xl"></div>
+      <div className="pointer-events-none absolute top-1/3 -right-32 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-[#e88b8d] to-[#c44a4d] opacity-[0.10] blur-3xl"></div>
+      <div className="pointer-events-none absolute bottom-0 left-1/4 w-72 h-72 rounded-full bg-gradient-to-br from-[#d66a6c] to-[#b33a3d] opacity-[0.08] blur-3xl"></div>
+
+      <div className="relative z-10">
       {/* Header */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 pb-6 border-b-2 border-gray-200 gap-6">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 pb-6 border-b-2 border-gray-200/70 gap-6">
         <div>
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] bg-clip-text text-transparent tracking-tight mb-1">
-            Febeul
-          </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d] shadow-lg shadow-pink-200 flex items-center justify-center">
+              <FiTrendingUp className="text-white" size={22} />
+            </div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-[#f9aeaf] via-[#e88b8d] to-[#c44a4d] bg-clip-text text-transparent tracking-tight">
+              Febeul
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 pl-1">
             <p className="text-gray-600 font-medium">Admin Dashboard</p>
             {!initialLoading && loading && (
               <span className="flex items-center gap-1.5 text-xs font-semibold text-[#e88b8d] bg-pink-50 px-2.5 py-1 rounded-full border border-pink-100">
@@ -489,14 +521,14 @@ const FebeulDashboard = ({ token }) => {
               onClick={fetchDashboardData}
               disabled={loading}
               title="Refresh data"
-              className={`flex items-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] shadow-sm ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`flex items-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] hover:shadow-md shadow-sm ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <FiRefreshCw size={16} className={loading ? "animate-spin" : ""} />
             </button>
             <button
               onClick={handleExport}
               disabled={exporting}
-              className={`flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] shadow-sm ${exporting ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] text-white rounded-xl text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-pink-200 hover:-translate-y-0.5 ${exporting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <FaRupeeSign size={18} />
               {exporting ? "Exporting..." : "Export Report"}
@@ -559,6 +591,7 @@ const FebeulDashboard = ({ token }) => {
           change={dashboardStats.totalUsers.change}
           changeType={dashboardStats.totalUsers.type}
           gradient="bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d]"
+          glow="shadow-pink-200"
         />
         <StatCard
           icon={FiShoppingBag}
@@ -567,6 +600,7 @@ const FebeulDashboard = ({ token }) => {
           change={dashboardStats.totalOrders.change}
           changeType={dashboardStats.totalOrders.type}
           gradient="bg-gradient-to-br from-[#e88b8d] to-[#d66a6c]"
+          glow="shadow-rose-200"
         />
         <StatCard
           icon={FaRupeeSign}
@@ -575,6 +609,7 @@ const FebeulDashboard = ({ token }) => {
           change={dashboardStats.revenue.change}
           changeType={dashboardStats.revenue.type}
           gradient="bg-gradient-to-br from-[#d66a6c] to-[#c44a4d]"
+          glow="shadow-red-200"
         />
         <StatCard
           icon={FaRupeeSign}
@@ -583,6 +618,7 @@ const FebeulDashboard = ({ token }) => {
           change={dashboardStats.avgOrderValue.change}
           changeType={dashboardStats.avgOrderValue.type}
           gradient="bg-gradient-to-br from-[#c44a4d] to-[#b33a3d]"
+          glow="shadow-red-300"
         />
       </div>
 
@@ -696,13 +732,8 @@ const FebeulDashboard = ({ token }) => {
         </div>
 
         {/* Orders Chart */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">
-              Order Trends
-            </h3>
-            <p className="text-sm text-gray-500 font-medium">Monthly orders</p>
-          </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+          <SectionHeading icon={FiShoppingBag} title="Order Trends" subtitle="Monthly orders" />
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={monthlyTrends}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -726,15 +757,8 @@ const FebeulDashboard = ({ token }) => {
         </div>
 
         {/* SKU Sales Chart */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">
-              Top Selling SKUs
-            </h3>
-            <p className="text-sm text-gray-500 font-medium">
-              Distribution by SKU
-            </p>
-          </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+          <SectionHeading icon={FiTrendingUp} title="Top Selling SKUs" subtitle="Distribution by SKU" />
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -782,15 +806,8 @@ const FebeulDashboard = ({ token }) => {
         </div>
 
         {/* Category Sales Chart */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">
-              Category Sales
-            </h3>
-            <p className="text-sm text-gray-500 font-medium">
-              Distribution by category
-            </p>
-          </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+          <SectionHeading icon={FiFilter} title="Category Sales" subtitle="Distribution by category" />
           {categorySales.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -828,15 +845,20 @@ const FebeulDashboard = ({ token }) => {
         </div>
 
         {/* SKU Stocks List */}
-        <div className="lg:col-span-3 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="lg:col-span-3 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-1">
-                Stock Levels by SKU
-              </h3>
-              <p className="text-sm text-gray-500 font-medium">
-                Current inventory per variation
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-pink-50 text-[#f9aeaf]">
+                <FiAlertTriangle size={16} />
+              </span>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Stock Levels by SKU
+                </h3>
+                <p className="text-sm text-gray-500 font-medium">
+                  Current inventory per variation
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -905,15 +927,20 @@ const FebeulDashboard = ({ token }) => {
       </div>
 
       {/* Recent Orders */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">
-              Recent Orders
-            </h3>
-            <p className="text-sm text-gray-500 font-medium">
-              Latest customer transactions
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-pink-50 text-[#f9aeaf]">
+              <FiShoppingBag size={16} />
+            </span>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Recent Orders
+              </h3>
+              <p className="text-sm text-gray-500 font-medium">
+                Latest customer transactions
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:flex-none md:w-64">
@@ -971,6 +998,7 @@ const FebeulDashboard = ({ token }) => {
       </div>
       </>
       )}
+      </div>
     </div>
   );
 };
