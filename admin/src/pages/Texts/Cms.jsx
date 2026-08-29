@@ -4,6 +4,55 @@ import { toast } from 'react-toastify';
 import { backendUrl } from '../../App.jsx';
 import { FiPlus, FiTrash2, FiSave } from 'react-icons/fi';
 
+const FONT_GROUPS = {
+  'Sans-Serif (Modern)': ['Inter', 'Roboto', 'Montserrat', 'Poppins', 'Open Sans', 'Lato', 'Raleway', 'Nunito', 'Ubuntu'],
+  'Serif (Classic)': ['Playfair Display', 'Merriweather', 'Lora', 'Libre Baskerville', 'Crimson Text', 'Georgia'],
+  'Display (Stylized)': ['Bebas Neue', 'Cinzel', 'Oswald', 'Quicksand', 'Righteous', 'Dancing Script', 'Pacifico'],
+  'Monospace': ['Fira Code', 'Roboto Mono', 'Source Code Pro', 'Courier New'],
+  'System': ['Arial', 'Verdana', 'Times New Roman', 'system-ui']
+};
+
+const SYSTEM_FONTS = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New', 'system-ui'];
+
+const FontSelect = ({ value, onChange }) => (
+  <select
+    value={value || ''}
+    onChange={(e) => onChange(e.target.value)}
+    className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+    style={{ fontFamily: value || undefined }}
+  >
+    <option value="">Default (Theme Font)</option>
+    {Object.entries(FONT_GROUPS).map(([group, fonts]) => (
+      <optgroup key={group} label={group}>
+        {fonts.map(font => (
+          <option key={font} value={font} style={{ fontFamily: font }}>{font}</option>
+        ))}
+      </optgroup>
+    ))}
+  </select>
+);
+
+const ColorField = ({ label, value, onChange, placeholder }) => (
+  <div>
+    <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+    <div className="flex items-center gap-3">
+      <input
+        type="color"
+        value={value || '#000000'}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-12 h-10 border rounded cursor-pointer shrink-0"
+      />
+      <input
+        type="text"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+      />
+    </div>
+  </div>
+);
+
 const Cms = ({ token }) => {
   const [swipingMessages, setSwipingMessages] = useState([]);
   const [promoBanner, setPromoBanner] = useState({
@@ -11,7 +60,10 @@ const Cms = ({ token }) => {
     discountCode: "luxe15",
     buttonText: "JOIN NOW",
     desktopBackground: "",
-    mobileBackground: ""
+    mobileBackground: "",
+    fontFamily: "",
+    fontColor: "#ffffff",
+    backgroundColor: "#e2a5a2"
   });
   const [infoBar, setInfoBar] = useState({
     backgroundColor: "#F4B8BE",
@@ -20,7 +72,9 @@ const Cms = ({ token }) => {
     qrTitle: "Scan & Shop",
     qrSubtitle: "Available on Amazon",
     returnTitle: "FREE RETURN",
-    returnSubtitle: "3-Days free return"
+    returnSubtitle: "3-Days free return",
+    fontFamily: "",
+    fontColor: "#000000"
   });
   const [swipingCreator, setSwipingCreator] = useState(null);
   const [promoCreator, setPromoCreator] = useState(null);
@@ -89,6 +143,25 @@ const Cms = ({ token }) => {
   useEffect(() => {
     fetchCmsContent();
   }, []);
+
+  useEffect(() => {
+    const fontsToLoad = [promoBanner.fontFamily, infoBar.fontFamily].filter(
+      (font) => font && !SYSTEM_FONTS.includes(font)
+    );
+    const uniqueFonts = [...new Set(fontsToLoad)];
+    if (uniqueFonts.length === 0) return;
+
+    const fontString = uniqueFonts.map(font => `family=${font.replace(/\s+/g, '+')}:wght@400;700`).join('&');
+    const linkId = 'google-fonts-cms-preview';
+    let link = document.getElementById(linkId);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = `https://fonts.googleapis.com/css2?${fontString}&display=swap`;
+  }, [promoBanner.fontFamily, infoBar.fontFamily]);
 
   const addMessage = () => {
     setSwipingMessages([...swipingMessages, '']);
@@ -317,6 +390,31 @@ const Cms = ({ token }) => {
               )}
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-4 border-b border-gray-200">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Font Family</label>
+                <FontSelect
+                  value={promoBanner.fontFamily}
+                  onChange={(font) => setPromoBanner(prev => ({ ...prev, fontFamily: font }))}
+                />
+              </div>
+              <ColorField
+                label="Font Color"
+                value={promoBanner.fontColor}
+                onChange={(color) => setPromoBanner(prev => ({ ...prev, fontColor: color }))}
+                placeholder="#ffffff"
+              />
+              <div>
+                <ColorField
+                  label="Background Color"
+                  value={promoBanner.backgroundColor}
+                  onChange={(color) => setPromoBanner(prev => ({ ...prev, backgroundColor: color }))}
+                  placeholder="#e2a5a2"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">Shown behind/around the banner image, and used as the fallback when no image is set.</p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Top Line Text</label>
               <input
@@ -393,6 +491,22 @@ const Cms = ({ token }) => {
                 onChange={(e) => setInfoBar(prev => ({ ...prev, backgroundColor: e.target.value }))}
                 placeholder="#F4B8BE"
                 className="w-28 px-3 py-2 border rounded outline-none bg-white text-sm"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Font Family</label>
+                <FontSelect
+                  value={infoBar.fontFamily}
+                  onChange={(font) => setInfoBar(prev => ({ ...prev, fontFamily: font }))}
+                />
+              </div>
+              <ColorField
+                label="Font Color"
+                value={infoBar.fontColor}
+                onChange={(color) => setInfoBar(prev => ({ ...prev, fontColor: color }))}
+                placeholder="#000000"
               />
             </div>
 

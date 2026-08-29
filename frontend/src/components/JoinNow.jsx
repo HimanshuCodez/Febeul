@@ -2,13 +2,18 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
+const SYSTEM_FONTS = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New', 'system-ui'];
+
 export default function DiscountBanner() {
   const [promoContent, setPromoContent] = useState({
     topLine: "JOIN NOW & SAVE 15% ON MEMBERSHIP!",
     discountCode: "luxe15",
     buttonText: "JOIN NOW",
     desktopBackground: "",
-    mobileBackground: ""
+    mobileBackground: "",
+    fontFamily: "",
+    fontColor: "#ffffff",
+    backgroundColor: "#e2a5a2"
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -19,7 +24,7 @@ export default function DiscountBanner() {
       try {
         const response = await axios.get(`${backendUrl}/api/cms/promo_banner`);
         if (response.data && response.data.content) {
-          setPromoContent(response.data.content);
+          setPromoContent(prev => ({ ...prev, ...response.data.content }));
         }
       } catch (error) {
         console.error("Error fetching promo banner content:", error);
@@ -33,12 +38,33 @@ export default function DiscountBanner() {
     return () => window.removeEventListener("resize", handleResize);
   }, [backendUrl]);
 
+  useEffect(() => {
+    const font = promoContent.fontFamily;
+    if (!font || SYSTEM_FONTS.includes(font)) return;
+
+    const linkId = 'google-font-join-now';
+    let link = document.getElementById(linkId);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/\s+/g, '+')}:wght@400;600;700&display=swap`;
+  }, [promoContent.fontFamily]);
+
   const backgroundImage = isMobile
     ? (promoContent.mobileBackground || promoContent.desktopBackground)
     : (promoContent.desktopBackground || promoContent.mobileBackground);
 
   return (
-    <section className="relative w-full bg-[#e2a5a2] py-12 text-center overflow-hidden">
+    <section
+      className="relative w-full py-12 text-center overflow-hidden"
+      style={{
+        backgroundColor: promoContent.backgroundColor || '#e2a5a2',
+        fontFamily: promoContent.fontFamily || undefined
+      }}
+    >
       {backgroundImage && (
         <img
           src={backgroundImage}
@@ -49,12 +75,12 @@ export default function DiscountBanner() {
 
       <div className="relative z-10">
         {/* Top Line */}
-        <p className="text-white text-lg tracking-wide">
+        <p className="text-lg tracking-wide" style={{ color: promoContent.fontColor || '#ffffff' }}>
           {promoContent.topLine}
         </p>
 
         {/* Discount Code */}
-        <p className="text-white text-3xl font-semibold tracking-widest mt-2">
+        <p className="text-3xl font-semibold tracking-widest mt-2" style={{ color: promoContent.fontColor || '#ffffff' }}>
           USE DISCOUNT CODE: <span className="font-bold">{promoContent.discountCode}</span>
         </p>
 

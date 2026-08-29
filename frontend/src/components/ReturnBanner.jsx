@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import useAuthStore from "../store/authStore";
 
+const SYSTEM_FONTS = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New', 'system-ui'];
+
 export default function InfoBar() {
   const { siteSettings } = useAuthStore();
   const [infoBar, setInfoBar] = useState({
@@ -11,7 +13,9 @@ export default function InfoBar() {
     qrTitle: "Scan & Shop",
     qrSubtitle: "Available on Amazon",
     returnTitle: "FREE RETURN",
-    returnSubtitle: "3-Days free return"
+    returnSubtitle: "3-Days free return",
+    fontFamily: "",
+    fontColor: "#000000"
   });
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -31,8 +35,25 @@ export default function InfoBar() {
     fetchInfoBar();
   }, [backendUrl]);
 
+  useEffect(() => {
+    const font = infoBar.fontFamily;
+    if (!font || SYSTEM_FONTS.includes(font)) return;
+
+    const linkId = 'google-font-info-bar';
+    let link = document.getElementById(linkId);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/\s+/g, '+')}:wght@400;600;700&display=swap`;
+  }, [infoBar.fontFamily]);
+
+  const textColor = infoBar.fontColor || '#000000';
+
   return (
-    <div className="w-full text-black" style={{ backgroundColor: infoBar.backgroundColor }}>
+    <div className="w-full" style={{ backgroundColor: infoBar.backgroundColor, color: textColor, fontFamily: infoBar.fontFamily || undefined }}>
       <div className="mx-auto flex max-w-[1440px] flex-nowrap items-center justify-between gap-4 overflow-x-auto px-4 py-3 sm:gap-6 sm:py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max items-center gap-3 whitespace-nowrap">
           <svg
@@ -40,7 +61,7 @@ export default function InfoBar() {
             height="22"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="black"
+            stroke={textColor}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -62,7 +83,7 @@ export default function InfoBar() {
           </div>
         </div>
 
-        <div className="h-8 w-px shrink-0 bg-black" />
+        <div className="h-8 w-px shrink-0" style={{ backgroundColor: textColor }} />
 
         <div className="flex min-w-max items-center gap-3 whitespace-nowrap">
           <img
@@ -81,7 +102,7 @@ export default function InfoBar() {
           </div>
         </div>
 
-        <div className="h-8 w-px shrink-0 bg-black" />
+        <div className="h-8 w-px shrink-0" style={{ backgroundColor: textColor }} />
 
         <div className="flex min-w-max items-center gap-3 whitespace-nowrap">
           <svg
@@ -89,7 +110,7 @@ export default function InfoBar() {
             height="22"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="black"
+            stroke={textColor}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
