@@ -5,6 +5,34 @@ import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
 import Loading from '../../components/Loading';
 
+const FONT_GROUPS = {
+  'Sans-Serif (Modern)': ['Inter', 'Roboto', 'Montserrat', 'Poppins', 'Open Sans', 'Lato', 'Raleway', 'Nunito', 'Ubuntu'],
+  'Serif (Classic)': ['Playfair Display', 'Merriweather', 'Lora', 'Libre Baskerville', 'Crimson Text', 'Georgia'],
+  'Display (Stylized)': ['Bebas Neue', 'Cinzel', 'Oswald', 'Quicksand', 'Righteous', 'Dancing Script', 'Pacifico'],
+  'Monospace': ['Fira Code', 'Roboto Mono', 'Source Code Pro', 'Courier New'],
+  'System': ['Arial', 'Verdana', 'Times New Roman', 'system-ui']
+};
+
+const SYSTEM_FONTS = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New', 'system-ui'];
+
+const FontSelect = ({ value, onChange }) => (
+  <select
+    value={value || ''}
+    onChange={(e) => onChange(e.target.value)}
+    className="w-full px-3 py-2 border rounded outline-none bg-white text-sm"
+    style={{ fontFamily: value || undefined }}
+  >
+    <option value="">Default (Theme Font)</option>
+    {Object.entries(FONT_GROUPS).map(([group, fonts]) => (
+      <optgroup key={group} label={group}>
+        {fonts.map(font => (
+          <option key={font} value={font} style={{ fontFamily: font }}>{font}</option>
+        ))}
+      </optgroup>
+    ))}
+  </select>
+);
+
 const Images = ({ token }) => {
   const [slides, setSlides] = useState([{ desktop: '', mobile: '', link: '' }]);
   const [spotlight, setSpotlight] = useState([{ image: '', label: '', link: '' }]);
@@ -18,6 +46,7 @@ const Images = ({ token }) => {
   const [styleCategories, setStyleCategories] = useState([{ icon: 'Star', label: '', link: '' }]);
   const [pillBackgroundColor, setPillBackgroundColor] = useState('#fbcfe8');
   const [pillTextColor, setPillTextColor] = useState('#111827');
+  const [pillFontFamily, setPillFontFamily] = useState('');
   const [styleSectionDesktopBg, setStyleSectionDesktopBg] = useState('');
   const [styleSectionMobileBg, setStyleSectionMobileBg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,6 +76,7 @@ const Images = ({ token }) => {
           setStyleCategories(content.items);
           setPillBackgroundColor(content.pillBackgroundColor || '#fbcfe8');
           setPillTextColor(content.pillTextColor || '#111827');
+          setPillFontFamily(content.pillFontFamily || '');
           setStyleSectionDesktopBg(content.desktopBackground || '');
           setStyleSectionMobileBg(content.mobileBackground || '');
         }
@@ -82,6 +112,19 @@ const Images = ({ token }) => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!pillFontFamily || SYSTEM_FONTS.includes(pillFontFamily)) return;
+    const linkId = 'google-fonts-images-preview';
+    let link = document.getElementById(linkId);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = `https://fonts.googleapis.com/css2?family=${pillFontFamily.replace(/\s+/g, '+')}:wght@400;600;700&display=swap`;
+  }, [pillFontFamily]);
 
   const handleFileUpload = async (type, index, file, subType = '') => {
     const formData = new FormData();
@@ -510,6 +553,16 @@ const Images = ({ token }) => {
                   className="w-28 px-3 py-2 border rounded outline-none bg-white text-sm"
                 />
               </div>
+
+              <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
+                <div>
+                  <p className="font-medium text-sm">Pill Font Family</p>
+                  <p className="text-[10px] text-gray-500">Icon label font on each style pill.</p>
+                </div>
+                <div className="w-48">
+                  <FontSelect value={pillFontFamily} onChange={setPillFontFamily} />
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -539,7 +592,7 @@ const Images = ({ token }) => {
             </div>
             <div className="flex gap-4">
               <button onClick={() => setStyleCategories([...styleCategories, { icon: 'Star', label: '', link: '' }])} className="bg-green-600 text-white px-6 py-2 rounded text-sm font-medium">Add Category</button>
-              <button onClick={() => saveContent('style_categories', { items: styleCategories, pillBackgroundColor, pillTextColor, desktopBackground: styleSectionDesktopBg, mobileBackground: styleSectionMobileBg })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Style Categories</button>
+              <button onClick={() => saveContent('style_categories', { items: styleCategories, pillBackgroundColor, pillTextColor, pillFontFamily, desktopBackground: styleSectionDesktopBg, mobileBackground: styleSectionMobileBg })} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Style Categories</button>
             </div>
           </div>
         )}

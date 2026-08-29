@@ -19,10 +19,13 @@ const defaultStyles = [
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+const SYSTEM_FONTS = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New', 'system-ui'];
+
 const StylesSection = () => {
   const [styles, setStyles] = useState(defaultStyles);
   const [pillBackgroundColor, setPillBackgroundColor] = useState('#fbcfe8');
   const [pillTextColor, setPillTextColor] = useState('#111827');
+  const [pillFontFamily, setPillFontFamily] = useState('');
   const [desktopBackground, setDesktopBackground] = useState('');
   const [mobileBackground, setMobileBackground] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -40,6 +43,7 @@ const StylesSection = () => {
           setStyles(content.items);
           setPillBackgroundColor(content.pillBackgroundColor || '#fbcfe8');
           setPillTextColor(content.pillTextColor || '#111827');
+          setPillFontFamily(content.pillFontFamily || '');
           setDesktopBackground(content.desktopBackground || '');
           setMobileBackground(content.mobileBackground || '');
         }
@@ -54,6 +58,19 @@ const StylesSection = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!pillFontFamily || SYSTEM_FONTS.includes(pillFontFamily)) return;
+    const linkId = 'google-font-style-pills';
+    let link = document.getElementById(linkId);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = `https://fonts.googleapis.com/css2?family=${pillFontFamily.replace(/\s+/g, '+')}:wght@400;600;700&display=swap`;
+  }, [pillFontFamily]);
 
   const backgroundImage = isMobile
     ? (mobileBackground || desktopBackground)
@@ -78,7 +95,7 @@ const StylesSection = () => {
                 key={index}
                 to={item.link || "#"}
                 className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium cursor-pointer transition-transform transform hover:scale-105"
-                style={{ backgroundColor: pillBackgroundColor, color: pillTextColor }}
+                style={{ backgroundColor: pillBackgroundColor, color: pillTextColor, fontFamily: pillFontFamily || undefined }}
               >
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
