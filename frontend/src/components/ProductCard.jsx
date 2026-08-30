@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, ShoppingCart, Eye, Sparkles, Tag } from 'lucide-react';
+import { Heart, ShoppingCart, Eye, Sparkles, Tag, Star } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
@@ -282,6 +282,16 @@ const ProductCard = ({ product, onWishlistToggle }) => {
               {product.name}
             </h3>
           </Link>
+
+          {product.numOfReviews > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-0.5 bg-green-700 text-white px-1.5 py-0.5 rounded text-[11px] font-bold">
+                <span>{product.averageRating.toFixed(1)}</span>
+                <Star size={10} className="fill-current" />
+              </div>
+              <span className="text-xs text-gray-500">({product.numOfReviews})</span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1 text-left w-full">
