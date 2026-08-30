@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App.jsx';
-import { 
-  FiPlus, 
-  FiTrash2, 
-  FiChevronUp, 
-  FiChevronDown, 
-  FiSave, 
-  FiChevronRight, 
-  FiEye, 
-  FiEdit, 
-  FiUpload, 
-  FiFolderPlus 
+import {
+  FiPlus,
+  FiTrash2,
+  FiChevronUp,
+  FiChevronDown,
+  FiSave,
+  FiChevronRight,
+  FiEye,
+  FiEdit,
+  FiUpload,
+  FiFolderPlus,
+  FiMove
 } from 'react-icons/fi';
 
 const PREDEFINED_POLICIES = [
@@ -27,6 +28,19 @@ const PREDEFINED_POLICIES = [
   { id: 'TermsConditions', label: 'Terms & Conditions' },
 ];
 
+const InsertDivider = ({ onInsert, label }) => (
+  <div className="group relative flex items-center justify-center h-4 -my-1">
+    <div className="absolute inset-x-0 top-1/2 h-px bg-transparent group-hover:bg-pink-300 transition-all" />
+    <button
+      type="button"
+      onClick={onInsert}
+      className="opacity-0 group-hover:opacity-100 relative z-10 flex items-center gap-1 text-[10px] font-bold text-pink-600 bg-white border border-pink-300 rounded-full px-2.5 py-0.5 shadow-sm hover:bg-pink-50 transition-all"
+    >
+      <FiPlus size={10} /> {label}
+    </button>
+  </div>
+);
+
 const PolicyUpdate = ({ token }) => {
   const [policies, setPolicies] = useState(PREDEFINED_POLICIES);
   const [selectedPolicyName, setSelectedPolicyName] = useState('');
@@ -37,6 +51,12 @@ const PolicyUpdate = ({ token }) => {
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [collapsedSections, setCollapsedSections] = useState({});
   const role = localStorage.getItem('role');
+
+  // Drag & drop reordering state
+  const [draggedSectionIndex, setDraggedSectionIndex] = useState(null);
+  const [sectionDropIndicator, setSectionDropIndicator] = useState(null); // { index, position: 'above' | 'below' }
+  const [draggedItem, setDraggedItem] = useState(null); // { sIndex, cIndex }
+  const [itemDropIndicator, setItemDropIndicator] = useState(null); // { sIndex, cIndex, position }
 
   // New features state
   const [activeTab, setActiveTab] = useState('edit'); // 'edit' | 'preview'
@@ -160,6 +180,105 @@ const PolicyUpdate = ({ token }) => {
     const element = newSections.splice(index, 1)[0];
     newSections.splice(index + direction, 0, element);
     setSections(newSections);
+  };
+
+  const insertSectionAt = (index) => {
+    const newSections = [...sections];
+    newSections.splice(index, 0, { title: '', content: [{ type: 'paragraph', text: '' }] });
+    setSections(newSections);
+  };
+
+  const reorderSections = (fromIndex, dropIndex, position) => {
+    if (fromIndex === dropIndex) return;
+    setSections(prev => {
+      const newArr = [...prev];
+      const [moved] = newArr.splice(fromIndex, 1);
+      const refIndex = fromIndex < dropIndex ? dropIndex - 1 : dropIndex;
+      let insertAt = position === 'below' ? refIndex + 1 : refIndex;
+      insertAt = Math.max(0, Math.min(insertAt, newArr.length));
+      newArr.splice(insertAt, 0, moved);
+      return newArr;
+    });
+  };
+
+  const handleSectionDragStart = (e, index) => {
+    setDraggedSectionIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleSectionDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedSectionIndex === null) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position = e.clientY - rect.top < rect.height / 2 ? 'above' : 'below';
+    setSectionDropIndicator({ index, position });
+  };
+
+  const handleSectionDrop = (e, index) => {
+    e.preventDefault();
+    if (draggedSectionIndex === null) return;
+    const position = sectionDropIndicator?.position || 'above';
+    reorderSections(draggedSectionIndex, index, position);
+    setDraggedSectionIndex(null);
+    setSectionDropIndicator(null);
+  };
+
+  const handleSectionDragEnd = () => {
+    setDraggedSectionIndex(null);
+    setSectionDropIndicator(null);
+  };
+
+  const insertContentItemAt = (sIndex, index, type = 'paragraph') => {
+    const newSections = [...sections];
+    newSections[sIndex].content.splice(index, 0, { type, text: '' });
+    setSections(newSections);
+  };
+
+  const reorderContentItems = (sIndex, fromIndex, dropIndex, position) => {
+    if (fromIndex === dropIndex) return;
+    setSections(prev => {
+      const newSections = [...prev];
+      const items = [...newSections[sIndex].content];
+      const [moved] = items.splice(fromIndex, 1);
+      const refIndex = fromIndex < dropIndex ? dropIndex - 1 : dropIndex;
+      let insertAt = position === 'below' ? refIndex + 1 : refIndex;
+      insertAt = Math.max(0, Math.min(insertAt, items.length));
+      items.splice(insertAt, 0, moved);
+      newSections[sIndex] = { ...newSections[sIndex], content: items };
+      return newSections;
+    });
+  };
+
+  const handleItemDragStart = (e, sIndex, cIndex) => {
+    e.stopPropagation();
+    setDraggedItem({ sIndex, cIndex });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', `${sIndex}-${cIndex}`);
+  };
+
+  const handleItemDragOver = (e, sIndex, cIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggedItem || draggedItem.sIndex !== sIndex) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position = e.clientY - rect.top < rect.height / 2 ? 'above' : 'below';
+    setItemDropIndicator({ sIndex, cIndex, position });
+  };
+
+  const handleItemDrop = (e, sIndex, cIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggedItem || draggedItem.sIndex !== sIndex) return;
+    const position = itemDropIndicator?.position || 'above';
+    reorderContentItems(sIndex, draggedItem.cIndex, cIndex, position);
+    setDraggedItem(null);
+    setItemDropIndicator(null);
+  };
+
+  const handleItemDragEnd = () => {
+    setDraggedItem(null);
+    setItemDropIndicator(null);
   };
 
   // Bulk parser logic
@@ -471,99 +590,150 @@ const PolicyUpdate = ({ token }) => {
                   </button>
                 </div>
 
-                {sections.map((section, sIndex) => (
-                  <div key={sIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all">
-                    {/* Header */}
-                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center gap-4">
-                      <div className="flex items-center gap-4 flex-1">
-                        <button
-                          type="button"
-                          onClick={() => toggleSection(sIndex)}
-                          className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500"
-                        >
-                          {collapsedSections[sIndex] ? <FiChevronRight size={18} /> : <FiChevronDown size={18} />}
-                        </button>
-                        <span className="text-gray-400 font-mono text-sm font-bold">#{sIndex + 1}</span>
-                        <input
-                          type="text"
-                          className="bg-transparent font-bold text-gray-700 outline-none w-full border-b border-transparent focus:border-pink-300 py-1"
-                          value={section.title}
-                          onChange={(e) => updateSectionTitle(sIndex, e.target.value)}
-                          placeholder="Section Title (e.g. 1. Introduction)"
-                        />
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button type="button" onClick={() => moveSection(sIndex, -1)} className="p-2 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors" title="Move Up"><FiChevronUp size={16} /></button>
-                        <button type="button" onClick={() => moveSection(sIndex, 1)} className="p-2 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors" title="Move Down"><FiChevronDown size={16} /></button>
-                        {role !== 'staff' && (
-                          <button type="button" onClick={() => removeSection(sIndex)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors ml-2" title="Delete Section"><FiTrash2 size={16} /></button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Content List */}
-                    {!collapsedSections[sIndex] && (
-                      <div className="p-6 space-y-4">
-                        {section.content.map((item, cIndex) => (
-                          <div key={cIndex} className="flex gap-4 items-start group">
-                            <select
-                              className="p-2.5 text-xs bg-gray-100 border border-gray-200 rounded-xl font-semibold text-gray-700 outline-none"
-                              value={item.type}
-                              onChange={(e) => updateContentItem(sIndex, cIndex, 'type', e.target.value)}
+                <div className="space-y-2">
+                  {sections.map((section, sIndex) => (
+                    <React.Fragment key={sIndex}>
+                      <InsertDivider label="Add Section Here" onInsert={() => insertSectionAt(sIndex)} />
+                      <div
+                        onDragOver={(e) => handleSectionDragOver(e, sIndex)}
+                        onDrop={(e) => handleSectionDrop(e, sIndex)}
+                        className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-all ${
+                          draggedSectionIndex === sIndex ? 'opacity-40' : ''
+                        } ${
+                          sectionDropIndicator?.index === sIndex && sectionDropIndicator.position === 'above'
+                            ? 'border-t-4 border-t-pink-400 border-gray-200'
+                            : sectionDropIndicator?.index === sIndex && sectionDropIndicator.position === 'below'
+                            ? 'border-b-4 border-b-pink-400 border-gray-200'
+                            : 'border-gray-200'
+                        }`}
+                      >
+                        {/* Header */}
+                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center gap-4">
+                          <div className="flex items-center gap-4 flex-1">
+                            <span
+                              draggable
+                              onDragStart={(e) => handleSectionDragStart(e, sIndex)}
+                              onDragEnd={handleSectionDragEnd}
+                              className="p-1.5 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+                              title="Drag to reorder section"
                             >
-                              <option value="paragraph">Paragraph</option>
-                              <option value="subheading">Subheading</option>
-                              <option value="list">List Item</option>
-                            </select>
-                            
-                            <textarea
-                              className="flex-1 p-3 bg-gray-50 border border-gray-300 rounded-xl outline-none focus:border-pink-300 focus:bg-white transition-all resize-y min-h-[70px] text-sm text-gray-700"
-                              rows={item.type === 'paragraph' ? 3 : 1}
-                              value={item.text}
-                              onChange={(e) => updateContentItem(sIndex, cIndex, 'text', e.target.value)}
-                              placeholder={`Enter ${item.type} text...`}
+                              <FiMove size={16} />
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => toggleSection(sIndex)}
+                              className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500"
+                            >
+                              {collapsedSections[sIndex] ? <FiChevronRight size={18} /> : <FiChevronDown size={18} />}
+                            </button>
+                            <span className="text-gray-400 font-mono text-sm font-bold">#{sIndex + 1}</span>
+                            <input
+                              type="text"
+                              className="bg-transparent font-bold text-gray-700 outline-none w-full border-b border-transparent focus:border-pink-300 py-1"
+                              value={section.title}
+                              onChange={(e) => updateSectionTitle(sIndex, e.target.value)}
+                              placeholder="Section Title (e.g. 1. Introduction)"
                             />
-                            
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button type="button" onClick={() => moveSection(sIndex, -1)} className="p-2 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors" title="Move Up"><FiChevronUp size={16} /></button>
+                            <button type="button" onClick={() => moveSection(sIndex, 1)} className="p-2 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors" title="Move Down"><FiChevronDown size={16} /></button>
                             {role !== 'staff' && (
-                              <button
-                                type="button"
-                                onClick={() => removeContentItem(sIndex, cIndex)}
-                                className="p-2.5 text-gray-300 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <FiTrash2 size={16} />
-                              </button>
+                              <button type="button" onClick={() => removeSection(sIndex)} className="p-2 hover:bg-rose-50 text-rose-500 rounded-lg transition-colors ml-2" title="Delete Section"><FiTrash2 size={16} /></button>
                             )}
                           </div>
-                        ))}
-                        
-                        {/* Quick inserts */}
-                        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
-                          <button
-                            type="button"
-                            onClick={() => addContentItem(sIndex, 'paragraph')}
-                            className="text-xs bg-pink-50 hover:bg-pink-100 text-pink-600 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
-                          >
-                            <FiPlus size={12} /> Add Paragraph
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addContentItem(sIndex, 'subheading')}
-                            className="text-xs bg-pink-50 hover:bg-pink-100 text-pink-600 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
-                          >
-                            <FiPlus size={12} /> Add Subheading
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addContentItem(sIndex, 'list')}
-                            className="text-xs bg-pink-50 hover:bg-pink-100 text-pink-600 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
-                          >
-                            <FiPlus size={12} /> Add List Item
-                          </button>
                         </div>
+
+                        {/* Content List */}
+                        {!collapsedSections[sIndex] && (
+                          <div className="p-6 space-y-1">
+                            {section.content.map((item, cIndex) => (
+                              <React.Fragment key={cIndex}>
+                                <InsertDivider label="Insert Line Here" onInsert={() => insertContentItemAt(sIndex, cIndex)} />
+                                <div
+                                  onDragOver={(e) => handleItemDragOver(e, sIndex, cIndex)}
+                                  onDrop={(e) => handleItemDrop(e, sIndex, cIndex)}
+                                  className={`flex gap-4 items-start group py-2 ${
+                                    draggedItem?.sIndex === sIndex && draggedItem?.cIndex === cIndex ? 'opacity-40' : ''
+                                  } ${
+                                    itemDropIndicator?.sIndex === sIndex && itemDropIndicator?.cIndex === cIndex && itemDropIndicator.position === 'above'
+                                      ? 'border-t-2 border-pink-400'
+                                      : itemDropIndicator?.sIndex === sIndex && itemDropIndicator?.cIndex === cIndex && itemDropIndicator.position === 'below'
+                                      ? 'border-b-2 border-pink-400'
+                                      : ''
+                                  }`}
+                                >
+                                  <span
+                                    draggable
+                                    onDragStart={(e) => handleItemDragStart(e, sIndex, cIndex)}
+                                    onDragEnd={handleItemDragEnd}
+                                    className="p-2.5 mt-0.5 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing"
+                                    title="Drag to reorder line"
+                                  >
+                                    <FiMove size={14} />
+                                  </span>
+                                  <select
+                                    className="p-2.5 text-xs bg-gray-100 border border-gray-200 rounded-xl font-semibold text-gray-700 outline-none"
+                                    value={item.type}
+                                    onChange={(e) => updateContentItem(sIndex, cIndex, 'type', e.target.value)}
+                                  >
+                                    <option value="paragraph">Paragraph</option>
+                                    <option value="subheading">Subheading</option>
+                                    <option value="list">List Item</option>
+                                  </select>
+
+                                  <textarea
+                                    className="flex-1 p-3 bg-gray-50 border border-gray-300 rounded-xl outline-none focus:border-pink-300 focus:bg-white transition-all resize-y min-h-[70px] text-sm text-gray-700"
+                                    rows={item.type === 'paragraph' ? 3 : 1}
+                                    value={item.text}
+                                    onChange={(e) => updateContentItem(sIndex, cIndex, 'text', e.target.value)}
+                                    placeholder={`Enter ${item.type} text...`}
+                                  />
+
+                                  {role !== 'staff' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeContentItem(sIndex, cIndex)}
+                                      className="p-2.5 text-gray-300 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                                    >
+                                      <FiTrash2 size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                              </React.Fragment>
+                            ))}
+
+                            {/* Quick inserts */}
+                            <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+                              <button
+                                type="button"
+                                onClick={() => addContentItem(sIndex, 'paragraph')}
+                                className="text-xs bg-pink-50 hover:bg-pink-100 text-pink-600 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
+                              >
+                                <FiPlus size={12} /> Add Paragraph
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => addContentItem(sIndex, 'subheading')}
+                                className="text-xs bg-pink-50 hover:bg-pink-100 text-pink-600 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
+                              >
+                                <FiPlus size={12} /> Add Subheading
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => addContentItem(sIndex, 'list')}
+                                className="text-xs bg-pink-50 hover:bg-pink-100 text-pink-600 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
+                              >
+                                <FiPlus size={12} /> Add List Item
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    </React.Fragment>
+                  ))}
+                  <InsertDivider label="Add Section Here" onInsert={() => insertSectionAt(sections.length)} />
+                </div>
               </div>
 
               {/* Bottom Sticky Save */}
