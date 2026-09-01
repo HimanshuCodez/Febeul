@@ -32,6 +32,7 @@ const Orders = ({ token }) => {
 
   const [orderStartDate, setOrderStartDate] = useState('');
   const [orderEndDate, setOrderEndDate] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
 
   // Sorting Configs
   const [pincodeSort, setPincodeSort] = useState({ key: 'orderCount', direction: 'desc' });
@@ -340,22 +341,53 @@ const Orders = ({ token }) => {
     };
   }, [orders]);
 
-  // Date-filtered Orders
+  // Date & Search filtered Orders
   const filteredOrders = useMemo(() => {
-    if (!orderStartDate && !orderEndDate) return orders;
     const start = orderStartDate ? new Date(orderStartDate).setHours(0, 0, 0, 0) : null;
     const end = orderEndDate ? new Date(orderEndDate).setHours(23, 59, 59, 999) : null;
+    const query = orderSearch.trim().toLowerCase();
+
     return orders.filter(order => {
-      const orderTime = new Date(order.date).getTime();
-      if (start !== null && orderTime < start) return false;
-      if (end !== null && orderTime > end) return false;
+      if (start !== null || end !== null) {
+        const orderTime = new Date(order.date).getTime();
+        if (start !== null && orderTime < start) return false;
+        if (end !== null && orderTime > end) return false;
+      }
+
+      if (query) {
+        const haystack = [
+          order._id,
+          order.userId?.name,
+          order.address?.name,
+          order.userId?.email,
+          order.address?.email,
+          order.address?.phone,
+          order.couponCode,
+          order.paymentMethod,
+          order.orderStatus,
+          order.shiprocket?.awb,
+          order.address?.city,
+          order.address?.state,
+          order.address?.zip,
+          ...(order.items?.map(item => item.name) || []),
+          ...(order.items?.map(item => item.sku) || []),
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        if (!haystack.includes(query)) return false;
+      }
+
       return true;
     });
-  }, [orders, orderStartDate, orderEndDate]);
+  }, [orders, orderStartDate, orderEndDate, orderSearch]);
 
   const clearDateFilter = () => {
     setOrderStartDate('');
     setOrderEndDate('');
+    setCurrentPage(1);
+  };
+
+  const clearOrderSearch = () => {
+    setOrderSearch('');
     setCurrentPage(1);
   };
 
@@ -603,6 +635,25 @@ const Orders = ({ token }) => {
               <span className="text-sm font-bold text-gray-700">Orders List Manager</span>
             </div>
             <div className='flex flex-wrap items-center gap-4'>
+              <div className='relative w-full sm:w-72'>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                <input
+                  type="text"
+                  placeholder="Search by Order ID, name, email, phone, AWB..."
+                  value={orderSearch}
+                  onChange={(e) => { setOrderSearch(e.target.value); setCurrentPage(1); }}
+                  className='w-full pl-9 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 outline-none transition-all'
+                />
+                {orderSearch && (
+                  <button
+                    onClick={clearOrderSearch}
+                    className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 text-sm font-bold'
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <div className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200'>
                 <Calendar size={14} className="text-gray-400" />
                 <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>From</span>
@@ -660,7 +711,7 @@ const Orders = ({ token }) => {
           <div className='space-y-6'>
             {filteredOrders.length === 0 ? (
               <p className="text-center text-gray-500 text-lg py-10">
-                {orders.length === 0 ? 'No orders found.' : 'No orders match the selected date range.'}
+                {orders.length === 0 ? 'No orders found.' : 'No orders match your search or the selected date range.'}
               </p>
             ) : (
               <>

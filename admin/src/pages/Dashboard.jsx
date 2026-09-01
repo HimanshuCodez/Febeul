@@ -97,14 +97,28 @@ const FebeulDashboard = ({ token }) => {
     try {
       const queryParams = `range=${timeRange}${timeRange === "custom" ? `&startDate=${startDate}&endDate=${endDate}` : ""}`;
 
-      // Fetch Dashboard Stats
-      const statsResponse = await axios.get(
-        `${backendUrl}/api/admin/dashboard-stats?${queryParams}`,
-        { headers: { token } },
-      );
-      const usersResponse = await axios.get(`${backendUrl}/api/user/allusers`, {
-        headers: { token },
-      });
+      // Fire all dashboard requests in parallel instead of one-at-a-time —
+      // these are independent reads, so a waterfall of 8 sequential awaits
+      // was needlessly multiplying the initial load time.
+      const [
+        statsResponse,
+        usersResponse,
+        trendsResponse,
+        dailyTrendsResponse,
+        categoryResponse,
+        ordersResponse,
+        skuSalesResponse,
+        skuStocksResponse,
+      ] = await Promise.all([
+        axios.get(`${backendUrl}/api/admin/dashboard-stats?${queryParams}`, { headers: { token } }),
+        axios.get(`${backendUrl}/api/user/allusers`, { headers: { token } }),
+        axios.get(`${backendUrl}/api/admin/monthly-trends?${queryParams}`, { headers: { token } }),
+        axios.get(`${backendUrl}/api/admin/daily-trends?${queryParams}`, { headers: { token } }),
+        axios.get(`${backendUrl}/api/admin/category-sales?${queryParams}`, { headers: { token } }),
+        axios.get(`${backendUrl}/api/admin/recent-orders`, { headers: { token } }),
+        axios.get(`${backendUrl}/api/admin/sku-sales?${queryParams}`, { headers: { token } }),
+        axios.get(`${backendUrl}/api/admin/sku-stocks`, { headers: { token } }),
+      ]);
 
       if (statsResponse.data.success && usersResponse.data.success) {
         const stats = statsResponse.data.stats;
@@ -162,29 +176,14 @@ const FebeulDashboard = ({ token }) => {
         setError("Failed to fetch dashboard data.");
       }
 
-      // Fetch Monthly Trends
-      const trendsResponse = await axios.get(
-        `${backendUrl}/api/admin/monthly-trends?${queryParams}`,
-        { headers: { token } },
-      );
       if (trendsResponse.data.success) {
         setMonthlyTrends(trendsResponse.data.trends);
       }
 
-      // Fetch Daily Trends
-      const dailyTrendsResponse = await axios.get(
-        `${backendUrl}/api/admin/daily-trends?${queryParams}`,
-        { headers: { token } },
-      );
       if (dailyTrendsResponse.data.success) {
         setDailyTrends(dailyTrendsResponse.data.trends);
       }
 
-      // Fetch Category Sales
-      const categoryResponse = await axios.get(
-        `${backendUrl}/api/admin/category-sales?${queryParams}`,
-        { headers: { token } },
-      );
       if (categoryResponse.data.success) {
         setCategorySales(
           categoryResponse.data.sales.map((item) => ({
@@ -194,29 +193,14 @@ const FebeulDashboard = ({ token }) => {
         );
       }
 
-      // Fetch Recent Orders
-      const ordersResponse = await axios.get(
-        `${backendUrl}/api/admin/recent-orders`,
-        { headers: { token } },
-      );
       if (ordersResponse.data.success) {
         setRecentOrdersList(ordersResponse.data.orders);
       }
 
-      // Fetch SKU Sales
-      const skuSalesResponse = await axios.get(
-        `${backendUrl}/api/admin/sku-sales?${queryParams}`,
-        { headers: { token } },
-      );
       if (skuSalesResponse.data.success) {
         setSkuSales(skuSalesResponse.data.skuSales);
       }
 
-      // Fetch SKU Stocks
-      const skuStocksResponse = await axios.get(
-        `${backendUrl}/api/admin/sku-stocks`,
-        { headers: { token } },
-      );
       if (skuStocksResponse.data.success) {
         const sortedStocks = [...skuStocksResponse.data.skuStocks].sort((a, b) => a.stock - b.stock);
         setSkuStocks(sortedStocks);

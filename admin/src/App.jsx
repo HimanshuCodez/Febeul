@@ -1,37 +1,47 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense, lazy } from 'react'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 import ScrollToTop from './components/ScrollToTop'
 import { Routes, Route } from 'react-router-dom'
-import Add from './pages/Add'
-import List from './pages/List'
-import LuxeList from './pages/LuxeList..jsx'
-import Orders from './pages/Orders'
-import Update from './pages/Update' // Import the Update component
-import AllUsers from './pages/AllUsers'
-import ManageGiftWraps from './pages/ManageGiftWraps'
-import PolicyUpdate from './pages/PolicyUpdate' // Import the PolicyUpdate component
-import Coupons from './pages/Coupons' // Import the Coupons component
-import Tickets from './pages/Tickets' // Import the Tickets component
-import ReviewsAdmin from './pages/ReviewsAdmin' // Import the ReviewsAdmin component
-import Images from './pages/Images/Images' // Import the Images component
-import Cms from './pages/Texts/Cms' // Import the Cms component
-import FebeulDashboard from './pages/Dashboard' // Import the Dashboard component
-import NewUserMail from './pages/NewUserMail' // Import the NewUserMail component
-import RefundRequests from './pages/RefundRequests' // Import the RefundRequests component
-import ReturnRequests from './pages/ReturnRequests' // Import the ReturnRequests component
-import MaintenanceMode from './pages/Settings/MaintenanceMode'
-import Configurations from './pages/Settings/Configurations'
-import DeliveryControl from './pages/DeliveryControl'
-import ImageOptimize from './pages/Settings/ImageOptimize'
-import TypographySettings from './pages/Settings/TypographySettings'
-import ProductTaxonomy from './pages/Settings/ProductTaxonomy'
-import Stats from './pages/Stats/Stats'
-import ResetData from './pages/ResetData'
 import Login from './components/Login'
 import ForgetPass from './pages/ForgetPass'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// Route-level code splitting: each admin page (and its data fetching) only
+// loads once its route is actually visited, instead of all pages being
+// bundled and parsed upfront on first load.
+const Add = lazy(() => import('./pages/Add'))
+const List = lazy(() => import('./pages/List'))
+const LuxeList = lazy(() => import('./pages/LuxeList..jsx'))
+const Orders = lazy(() => import('./pages/Orders'))
+const Update = lazy(() => import('./pages/Update'))
+const AllUsers = lazy(() => import('./pages/AllUsers'))
+const ManageGiftWraps = lazy(() => import('./pages/ManageGiftWraps'))
+const PolicyUpdate = lazy(() => import('./pages/PolicyUpdate'))
+const Coupons = lazy(() => import('./pages/Coupons'))
+const Tickets = lazy(() => import('./pages/Tickets'))
+const ReviewsAdmin = lazy(() => import('./pages/ReviewsAdmin'))
+const Images = lazy(() => import('./pages/Images/Images'))
+const Cms = lazy(() => import('./pages/Texts/Cms'))
+const FebeulDashboard = lazy(() => import('./pages/Dashboard'))
+const NewUserMail = lazy(() => import('./pages/NewUserMail'))
+const RefundRequests = lazy(() => import('./pages/RefundRequests'))
+const ReturnRequests = lazy(() => import('./pages/ReturnRequests'))
+const MaintenanceMode = lazy(() => import('./pages/Settings/MaintenanceMode'))
+const Configurations = lazy(() => import('./pages/Settings/Configurations'))
+const DeliveryControl = lazy(() => import('./pages/DeliveryControl'))
+const ImageOptimize = lazy(() => import('./pages/Settings/ImageOptimize'))
+const TypographySettings = lazy(() => import('./pages/Settings/TypographySettings'))
+const ProductTaxonomy = lazy(() => import('./pages/Settings/ProductTaxonomy'))
+const Stats = lazy(() => import('./pages/Stats/Stats'))
+const ResetData = lazy(() => import('./pages/ResetData'))
+
+const PageFallback = () => (
+  <div className='flex items-center justify-center py-24'>
+    <div className='w-8 h-8 border-2 border-gray-200 border-t-black rounded-full animate-spin' />
+  </div>
+)
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL
 export const currency = '₹'
@@ -70,6 +80,7 @@ const App = () => {
           <div className='flex w-full'>
             <Sidebar role={role} permissions={permissions} />
             <div className='w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'>
+              <Suspense fallback={<PageFallback />}>
               <Routes>
                 {/* Dashboard / Root */}
                 {isAllowed('/') ? (
@@ -107,6 +118,7 @@ const App = () => {
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}
               </Routes>
+              </Suspense>
             </div>
           </div>
         </>
