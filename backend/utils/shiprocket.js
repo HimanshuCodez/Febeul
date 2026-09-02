@@ -307,7 +307,7 @@ export const buildShiprocketOrderPayload = (order) => ({
     },
     user: order.userId,
     items: order.items,
-    totalPrice: order.productAmount,
+    totalPrice: order.orderTotal,
     shippingCharge: order.shippingCharge,
     codCharge: order.codCharge
 });

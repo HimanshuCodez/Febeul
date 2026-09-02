@@ -92,6 +92,8 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
   );
 
   const applicableCoupons = coupons.filter(coupon =>
+    coupon.isActive &&
+    new Date(coupon.expiryDate) > new Date() && // Exclude expired coupons
     (coupon.offerType === 'none' || !coupon.offerType) && // Filter out cod and prepaid
     (coupon.applicableSKUs.length === 0 ||
     productSKUs.some(sku => skuMatches(coupon.applicableSKUs, sku)))
