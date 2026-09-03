@@ -7,7 +7,7 @@ import { CSVLink } from 'react-csv'
 import {
   Package, User, Mail, Phone, MapPin, Truck, Calendar, DollarSign,
   CreditCard, Tag, BadgeCheck, AlertCircle, ChevronDown, ChevronUp,
-  FileText, TrendingUp, Users, RefreshCcw, Search, ArrowUpDown, Percent, Map, Download
+  FileText, TrendingUp, Users, RefreshCcw, Search, ArrowUpDown, Percent, Map, Download, X
 } from 'lucide-react';
 
 const Orders = ({ token }) => {
@@ -52,60 +52,204 @@ const Orders = ({ token }) => {
 
     switch (status) {
       case 'Order Placed':
-        colorClass = 'bg-blue-100 text-blue-800';
-        icon = <BadgeCheck size={14} />;
+        colorClass = 'bg-blue-50 text-blue-700 border-blue-100';
+        icon = <BadgeCheck size={12} />;
         break;
       case 'Processing':
-        colorClass = 'bg-yellow-100 text-yellow-800';
-        icon = <AlertCircle size={14} />;
+        colorClass = 'bg-amber-50 text-amber-700 border-amber-100';
+        icon = <AlertCircle size={12} />;
         break;
       case 'Confirmed':
-        colorClass = 'bg-green-100 text-green-800';
-        icon = <BadgeCheck size={14} />;
+        colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+        icon = <BadgeCheck size={12} />;
         break;
       case 'Shipped':
-        colorClass = 'bg-indigo-100 text-indigo-800';
-        icon = <Truck size={14} />;
+        colorClass = 'bg-indigo-50 text-indigo-700 border-indigo-100';
+        icon = <Truck size={12} />;
         break;
       case 'Out for delivery':
-        colorClass = 'bg-purple-100 text-purple-800';
-        icon = <Truck size={14} />;
+        colorClass = 'bg-purple-50 text-purple-700 border-purple-100';
+        icon = <Truck size={12} />;
         break;
       case 'Delivered':
-        colorClass = 'bg-green-100 text-green-800';
-        icon = <Package size={14} />;
+        colorClass = 'bg-green-50 text-green-700 border-green-100';
+        icon = <Package size={12} />;
         break;
       case 'Cancelled':
-        colorClass = 'bg-red-100 text-red-800';
-        icon = <AlertCircle size={14} />;
+        colorClass = 'bg-red-50 text-red-700 border-red-100';
+        icon = <AlertCircle size={12} />;
         break;
       case 'Returned':
-        colorClass = 'bg-red-100 text-red-800';
-        icon = <AlertCircle size={14} />;
+        colorClass = 'bg-rose-50 text-rose-700 border-rose-100';
+        icon = <AlertCircle size={12} />;
         break;
       case 'Refund Initiated':
-        colorClass = 'bg-orange-100 text-orange-800';
-        icon = <DollarSign size={14} />;
+        colorClass = 'bg-orange-50 text-orange-700 border-orange-100';
+        icon = <DollarSign size={12} />;
         break;
       case 'Refunded':
-        colorClass = 'bg-green-100 text-green-800';
-        icon = <DollarSign size={14} />;
+        colorClass = 'bg-teal-50 text-teal-700 border-teal-100';
+        icon = <DollarSign size={12} />;
         break;
       case 'Failed':
-        colorClass = 'bg-red-100 text-red-800';
-        icon = <AlertCircle size={14} />;
+        colorClass = 'bg-red-50 text-red-700 border-red-100';
+        icon = <AlertCircle size={12} />;
         break;
       default:
-        colorClass = 'bg-gray-100 text-gray-800';
-        icon = <AlertCircle size={14} />;
+        colorClass = 'bg-gray-50 text-gray-700 border-gray-200';
+        icon = <AlertCircle size={12} />;
     }
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border whitespace-nowrap ${colorClass}`}>
         {icon} {status}
       </span>
     );
   };
+
+  const orderDetailsPanel = (order) => (
+    <div className='p-5 border-t border-gray-100 bg-gray-50/30'>
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
+        {/* Products */}
+        <div className='bg-white rounded-2xl border border-gray-100 p-4'>
+          <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><Tag size={14}/> Products</p>
+          <div className='space-y-3'>
+            {order.items.map((item, itemIndex) => (
+              <div key={itemIndex} className='flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100'>
+                <img className='w-12 h-12 object-cover rounded-lg border shadow-sm' src={item.image} alt={item.name} />
+                <div className="min-w-0 flex-1">
+                  <p className='text-xs font-bold text-gray-800 truncate'>{item.name}</p>
+                  <p className='text-[10px] text-gray-500 font-medium'>
+                    {item.sku ? `SKU: ${item.sku} | ` : ''}
+                    {item.quantity} x {currency}{item.price.toFixed(2)} {item.size && `(${item.size})`}
+                  </p>
+                  {item.appliedCoupon && (
+                    <span className="inline-flex mt-1 text-[8px] bg-green-50 text-green-700 px-1 py-0.5 rounded border font-semibold">
+                      Coupon: {item.appliedCoupon}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Customer Details */}
+        <div className='bg-white rounded-2xl border border-gray-100 p-4'>
+          <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><User size={14}/> Customer & Shipping</p>
+          <address className='text-xs text-gray-600 not-italic space-y-1.5'>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-gray-800">{order.address.name}</p>
+              {order.address.addressType && (
+                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[9px] rounded uppercase font-bold border">
+                  {order.address.addressType === 'Home' ? 'Home' : order.address.addressType}
+                </span>
+              )}
+            </div>
+            <p className="text-gray-500 flex items-center gap-1"><Mail size={12}/> {order.userId?.email || order.address?.email || 'N/A'}</p>
+            <p className="text-gray-500 flex items-center gap-1"><Phone size={12}/> {order.address.phone}</p>
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <p className="font-medium text-gray-800">{order.address.address}, {order.address.locality}</p>
+              {order.address.landmark && <p className="italic text-gray-400 text-[10px]">Landmark: {order.address.landmark}</p>}
+              <p className="font-bold text-gray-700">{order.address.city}, {order.address.state}, {order.address.country} - {order.address.zip}</p>
+            </div>
+          </address>
+        </div>
+
+        {/* Payment & Shiprocket */}
+        <div className='bg-white rounded-2xl border border-gray-100 p-4'>
+          <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><CreditCard size={14}/> Payment Info</p>
+          <div className='space-y-1.5 text-xs text-gray-600'>
+            <p>Method: <span className="font-bold text-gray-800">{order.paymentMethod}</span></p>
+            <p>Status: <span className={`font-bold ${order.payment ? 'text-green-600' : order.orderStatus === 'Cancelled' ? 'text-gray-500' : 'text-red-600'}`}>{order.payment ? 'Paid' : order.orderStatus === 'Cancelled' ? 'Cancelled' : 'Pending'}</span></p>
+            {order.paymentMethod === 'Razorpay' && order.razorpayPaymentId && (
+              <p className="break-all">Razorpay Ref: <span className="font-bold text-gray-800">{order.razorpayPaymentId}</span></p>
+            )}
+            {order.couponCode && (
+              <div className='flex flex-col bg-green-50 p-1.5 rounded-lg border border-green-100 w-fit mt-1'>
+                <span className="text-[10px] font-bold text-green-700 flex items-center gap-1">
+                  <Tag size={10} /> Coupon: {order.couponCode}
+                </span>
+                {order.couponDiscount > 0 && (
+                  <span className="text-[9px] text-green-600 font-medium">Saved: {currency}{order.couponDiscount.toFixed(2)}</span>
+                )}
+              </div>
+            )}
+            {order.shippingCharge > 0 && <p>Shipping: <span className="font-medium">{currency}{order.shippingCharge.toFixed(2)}</span></p>}
+            {order.codCharge > 0 && <p>COD Charge: <span className="font-medium">{currency}{order.codCharge.toFixed(2)}</span></p>}
+            <p className="text-sm font-black text-gray-900 mt-2">Total Paid: {currency}{order.orderTotal.toFixed(2)}</p>
+          </div>
+
+          {order.shiprocket && (
+            <div className='mt-4 pt-3 border-t border-gray-100'>
+              <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5'><Truck size={14}/> Logistics</p>
+              <div className='space-y-1 text-[11px] text-gray-600 bg-gray-50 p-2 rounded-lg border'>
+                {order.shiprocketStatus && (
+                  <p>Live Status: <span className="font-bold text-gray-900 uppercase">{order.shiprocketStatus.replace(/_/g, ' ')}</span></p>
+                )}
+                {order.shiprocket.awb && <p>AWB: <span className="font-bold">{order.shiprocket.awb}</span></p>}
+                {order.shiprocket.courier && <p>Courier: <span className="font-semibold">{order.shiprocket.courier}</span></p>}
+                {order.shiprocket.lastTrackedAt && (
+                  <p className="text-[10px] text-gray-400">Last synced: {formatDate(order.shiprocket.lastTrackedAt)}</p>
+                )}
+                {order.shiprocket.trackingUrl && (
+                  <a
+                    href={order.shiprocket.trackingUrl}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-pink-600 hover:underline flex items-center gap-1 font-bold mt-1 text-[10px] uppercase'
+                  >
+                    <FileText size={12}/> Track Shipment
+                  </a>
+                )}
+                {order.shiprocket.trackingHistory?.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
+                    {[...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3).map((act, i) => (
+                      <p key={i} className="text-[10px] text-gray-500">
+                        <span className="font-bold text-gray-700">{act.activity || act.status}</span>
+                        {act.location ? ` · ${act.location}` : ''} · {formatDate(act.date)}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Cancellation / Refund Info */}
+        {(order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned' || order.orderStatus === 'Refunded' || order.orderStatus === 'Refund Initiated') && (
+          <div className='bg-white rounded-2xl border border-gray-100 p-4'>
+            <p className='font-bold text-red-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><AlertCircle size={14}/> Returns / Cancellation</p>
+            <div className='space-y-2 text-xs text-gray-600 bg-red-50/50 p-3.5 rounded-xl border border-red-100'>
+              <p className="font-black text-red-700 capitalize">Status: {order.orderStatus}</p>
+              {order.refundDetails?.reason && (
+                <p><span className="font-bold text-gray-700">Reason:</span> <span className="italic text-gray-600">"{order.refundDetails.reason}"</span></p>
+              )}
+              {order.refundDetails?.status && order.refundDetails.status !== 'none' && (
+                <p><span className="font-bold text-gray-700">Refund status:</span> <span className="font-bold text-gray-900 uppercase text-[10px] bg-white px-2 py-0.5 rounded shadow-sm border">{order.refundDetails.status}</span></p>
+              )}
+              {order.refundDetails?.amount > 0 && (
+                <p><span className="font-bold text-gray-700">Refunded Amount:</span> <span className="font-black text-red-700">{currency}{order.refundDetails.amount.toFixed(2)}</span></p>
+              )}
+              {order.refundDetails?.requestedAt && (
+                <p><span className="font-bold text-gray-700">Claimed Date:</span> <span className="font-medium text-gray-600">{formatDate(order.refundDetails.requestedAt)}</span></p>
+              )}
+              {order.refundDetails?.pickup && order.refundDetails.pickup.status !== 'none' && (
+                <div className="mt-2 pt-2 border-t border-red-100">
+                  <p><span className="font-bold text-gray-700">Pickup status:</span> <span className="font-bold text-gray-900 uppercase text-[10px] bg-white px-2 py-0.5 rounded shadow-sm border">{order.refundDetails.pickup.status.replace(/_/g, ' ')}</span></p>
+                  {order.refundDetails.pickup.awb && <p className="text-[10px] text-gray-500 mt-1">Return AWB: <span className="font-bold">{order.refundDetails.pickup.awb}</span> {order.refundDetails.pickup.courier ? `(${order.refundDetails.pickup.courier})` : ''}</p>}
+                  {order.refundDetails.pickup.status === 'failed' && order.refundDetails.pickup.failureReason && (
+                    <p className="text-[10px] text-red-600 italic mt-1">Auto-schedule failed: {order.refundDetails.pickup.failureReason} — arrange pickup manually.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const fetchAllOrders = async () => {
     if (!token) {
@@ -557,409 +701,308 @@ const Orders = ({ token }) => {
     return sortData(matches, refundSort);
   }, [analytics.refunds, refundSearch, refundStateFilter, refundSort]);
 
+  const navTabs = [
+    { key: 'orders', label: 'All Orders', icon: Package, count: filteredOrders.length },
+    { key: 'pincodes', label: 'Pincodes & States', icon: MapPin, count: analytics.pincodes.length },
+    { key: 'buyers', label: 'Buyer Analytics', icon: Users, count: analytics.customers.length },
+    { key: 'returns', label: 'Returns Log', icon: RefreshCcw, count: analytics.returns.length },
+    { key: 'refunds', label: 'Refund Requests', icon: DollarSign, count: analytics.refunds.length },
+  ];
+
   return (
-    <div className='p-6 bg-gray-50 min-h-screen font-sans'>
+    <div className='p-4 sm:p-6 bg-gray-50 min-h-screen font-sans'>
       {/* Title Header */}
-      <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4'>
-        <div>
-          <h3 className='text-3xl font-black text-gray-900 tracking-tighter uppercase'>Orders Dashboard & Analytics</h3>
-          <p className="text-gray-500 font-medium">Real-time order statuses, state-wise data, return logs & customer tracking</p>
-        </div>
+      <div className='mb-5'>
+        <h1 className='text-2xl font-bold text-gray-900'>Orders</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Manage and monitor all customer orders</p>
       </div>
 
-      {/* Modern Dashboard Navigation Tabs */}
-      <div className="flex border-b border-gray-200 mb-8 overflow-x-auto scrollbar-none gap-2">
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`flex items-center gap-2 py-3 px-5 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all ${
-            activeTab === 'orders'
-              ? 'border-pink-500 text-pink-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <Package size={16} />
-          All Orders ({filteredOrders.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('pincodes')}
-          className={`flex items-center gap-2 py-3 px-5 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all ${
-            activeTab === 'pincodes'
-              ? 'border-pink-500 text-pink-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <MapPin size={16} />
-          Pincodes & States ({analytics.pincodes.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('buyers')}
-          className={`flex items-center gap-2 py-3 px-5 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all ${
-            activeTab === 'buyers'
-              ? 'border-pink-500 text-pink-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <Users size={16} />
-          Buyer Analytics ({analytics.customers.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('returns')}
-          className={`flex items-center gap-2 py-3 px-5 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all ${
-            activeTab === 'returns'
-              ? 'border-pink-500 text-pink-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <RefreshCcw size={16} />
-          Returns Log ({analytics.returns.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('refunds')}
-          className={`flex items-center gap-2 py-3 px-5 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all ${
-            activeTab === 'refunds'
-              ? 'border-pink-500 text-pink-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <DollarSign size={16} />
-          Refund Requests ({analytics.refunds.length})
-        </button>
+      {/* Dashboard Navigation Tabs */}
+      <div className="flex items-center gap-1 mb-6 border-b border-gray-200 overflow-x-auto scrollbar-none">
+        {navTabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                isActive ? 'text-gray-900' : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <Icon size={15} className={isActive ? 'text-pink-500' : 'text-gray-400'} />
+              {tab.label}
+              <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full transition-colors ${
+                isActive ? 'bg-pink-50 text-pink-600' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {tab.count}
+              </span>
+              {isActive && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-500 rounded-full" />}
+            </button>
+          );
+        })}
       </div>
-      
+
       {/* -------------------- TAB 1: ALL ORDERS -------------------- */}
       {activeTab === 'orders' && (
         <div>
-          <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm'>
-            <div className="flex items-center gap-2">
-              <Package className="text-pink-500" size={20} />
-              <span className="text-sm font-bold text-gray-700">Orders List Manager</span>
+          {/* Toolbar: search, date range, page size, export */}
+          <div className='flex flex-col lg:flex-row lg:items-center gap-3 mb-5 bg-white p-3 rounded-xl border border-gray-200'>
+            <div className='relative flex-1 min-w-[220px]'>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+              <input
+                type="text"
+                placeholder="Search by Order ID, name, email, phone, AWB..."
+                value={orderSearch}
+                onChange={(e) => { setOrderSearch(e.target.value); setCurrentPage(1); }}
+                className='w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500/15 focus:border-pink-400 outline-none transition-all'
+              />
+              {orderSearch && (
+                <button
+                  onClick={clearOrderSearch}
+                  className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors'
+                  title="Clear search"
+                >
+                  <X size={15} />
+                </button>
+              )}
             </div>
-            <div className='flex flex-wrap items-center gap-4'>
-              <div className='relative w-full sm:w-72'>
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                <input
-                  type="text"
-                  placeholder="Search by Order ID, name, email, phone, AWB..."
-                  value={orderSearch}
-                  onChange={(e) => { setOrderSearch(e.target.value); setCurrentPage(1); }}
-                  className='w-full pl-9 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 outline-none transition-all'
-                />
-                {orderSearch && (
-                  <button
-                    onClick={clearOrderSearch}
-                    className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 text-sm font-bold'
-                    title="Clear search"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              <div className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200'>
-                <Calendar size={14} className="text-gray-400" />
-                <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>From</span>
+
+            <div className='flex flex-wrap items-center gap-2'>
+              <div className='flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200'>
+                <Calendar size={14} className="text-gray-400 shrink-0" />
                 <input
                   type="date"
                   value={orderStartDate}
                   max={orderEndDate || undefined}
                   onChange={(e) => { setOrderStartDate(e.target.value); setCurrentPage(1); }}
-                  className='text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer'
+                  className='text-xs font-medium text-gray-700 bg-transparent focus:outline-none cursor-pointer w-[104px]'
                 />
-                <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>To</span>
+                <span className='text-gray-300'>–</span>
                 <input
                   type="date"
                   value={orderEndDate}
                   min={orderStartDate || undefined}
                   onChange={(e) => { setOrderEndDate(e.target.value); setCurrentPage(1); }}
-                  className='text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer'
+                  className='text-xs font-medium text-gray-700 bg-transparent focus:outline-none cursor-pointer w-[104px]'
                 />
                 {(orderStartDate || orderEndDate) && (
                   <button
                     onClick={clearDateFilter}
-                    className='text-xs font-bold text-pink-500 hover:text-pink-700 uppercase tracking-wider ml-1'
+                    className='text-gray-400 hover:text-pink-500 transition-colors shrink-0'
+                    title="Clear date range"
                   >
-                    Clear
+                    <X size={13} />
                   </button>
                 )}
               </div>
-              <div className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200'>
-                <span className='text-xs font-bold text-gray-400 uppercase tracking-wider'>Show</span>
+
+              <div className='flex items-center gap-1.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200'>
+                <span className='text-xs font-medium text-gray-400'>Show</span>
                 <select
                   value={itemsPerPage}
                   onChange={handleItemsPerPageChange}
-                  className='text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer'
+                  className='text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer'
                 >
-                  <option value={5}>5 per page</option>
-                  <option value={10}>10 per page</option>
-                  <option value={20}>20 per page</option>
-                  <option value={50}>50 per page</option>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
                 </select>
               </div>
-              {totalPages > 1 && (
-                <span className='text-sm text-gray-500 font-medium'>Page {currentPage} of {totalPages}</span>
-              )}
+
               <CSVLink
                 data={orderCsvData}
                 headers={orderCsvHeaders}
                 filename={`Orders_Export_${new Date().toISOString().split('T')[0]}.csv`}
-                className='flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95'
+                className='flex items-center gap-1.5 bg-emerald-600 text-white px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm'
               >
-                <Download size={14} /> Export to Excel
+                <Download size={14} /> Export
               </CSVLink>
             </div>
           </div>
 
-          <div className='space-y-6'>
-            {filteredOrders.length === 0 ? (
-              <p className="text-center text-gray-500 text-lg py-10">
+          <p className='text-xs text-gray-500 mb-3'>
+            {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} found
+          </p>
+
+          {filteredOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 bg-white rounded-xl border border-dashed border-gray-200">
+              <div className="p-3 bg-gray-50 rounded-full">
+                <Package className="text-gray-300" size={28} />
+              </div>
+              <p className="text-sm font-medium text-gray-600">
                 {orders.length === 0 ? 'No orders found.' : 'No orders match your search or the selected date range.'}
               </p>
-            ) : (
-              <>
+              {orders.length > 0 && (
+                <button
+                  onClick={() => { clearOrderSearch(); clearDateFilter(); }}
+                  className="text-xs font-semibold text-pink-600 hover:text-pink-700"
+                >
+                  Clear search & filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Desktop / tablet table */}
+              <div className='hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden'>
+                <div className='overflow-x-auto'>
+                  <table className='min-w-full divide-y divide-gray-100'>
+                    <thead className='bg-gray-50'>
+                      <tr>
+                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide'>Order</th>
+                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide'>Customer</th>
+                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide'>Contact</th>
+                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide'>Date</th>
+                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide'>Total</th>
+                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide'>Destination</th>
+                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide'>Status</th>
+                        <th className='px-4 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wide'>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className='divide-y divide-gray-100'>
+                      {paginatedOrders.map((order) => (
+                        <React.Fragment key={order._id}>
+                          <tr className='hover:bg-gray-50/70 transition-colors'>
+                            <td className='px-4 py-3 align-top'>
+                              <p className='text-xs font-semibold text-gray-900' title={order._id}>#{order._id.slice(-8).toUpperCase()}</p>
+                            </td>
+                            <td className='px-4 py-3 align-top max-w-[160px]'>
+                              <p className='text-xs font-semibold text-gray-800 truncate' title={order.userId?.name || order.address?.name || 'N/A'}>{order.userId?.name || order.address?.name || 'N/A'}</p>
+                              {order.userId?.isLuxeMember && (
+                                <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-wide w-fit mt-1'>
+                                  Luxe
+                                </span>
+                              )}
+                            </td>
+                            <td className='px-4 py-3 align-top max-w-[180px]'>
+                              <p className='text-xs text-gray-600 truncate flex items-center gap-1' title={order.userId?.email || order.address?.email || 'N/A'}><Mail size={11} className='text-gray-400 shrink-0' />{order.userId?.email || order.address?.email || 'N/A'}</p>
+                              <p className='text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5'><Phone size={11} className='text-gray-400 shrink-0' />{order.address?.phone || 'N/A'}</p>
+                            </td>
+                            <td className='px-4 py-3 align-top whitespace-nowrap'>
+                              <p className='text-xs text-gray-700 font-medium'>{formatDate(order.date)}</p>
+                              <p className='text-[11px] text-gray-400'>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            </td>
+                            <td className='px-4 py-3 align-top whitespace-nowrap'>
+                              <p className='text-xs font-semibold text-gray-900'>{currency}{order.orderTotal.toFixed(2)}</p>
+                            </td>
+                            <td className='px-4 py-3 align-top max-w-[150px]'>
+                              <p className='text-xs text-gray-700 font-medium truncate' title={`${order.address.city}, ${order.address.state}`}>{order.address.city}, {order.address.state}</p>
+                              <p className='text-[11px] text-gray-400'>{order.address.zip}</p>
+                            </td>
+                            <td className='px-4 py-3 align-top whitespace-nowrap'>
+                              <StatusBadge status={order.orderStatus} />
+                            </td>
+                            <td className='px-4 py-3 align-top'>
+                              <div className='flex items-center justify-end gap-1.5'>
+                                <button
+                                  onClick={() => downloadInvoice(order._id)}
+                                  className='p-1.5 rounded-lg bg-white hover:bg-pink-50 text-gray-500 hover:text-pink-600 border border-gray-200 transition-colors'
+                                  title="Download Invoice"
+                                >
+                                  <FileText size={15} />
+                                </button>
+                                <button
+                                  onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
+                                  className='p-1.5 rounded-lg bg-white hover:bg-gray-100 text-gray-500 border border-gray-200 transition-colors'
+                                  title={expandedOrderId === order._id ? "Collapse details" : "Expand details"}
+                                >
+                                  {expandedOrderId === order._id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {expandedOrderId === order._id && (
+                            <tr>
+                              <td colSpan={8} className='p-0 bg-gray-50/40'>
+                                {orderDetailsPanel(order)}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mobile card list */}
+              <div className='md:hidden space-y-3'>
                 {paginatedOrders.map((order) => (
-                  <div className='bg-white rounded-2xl shadow-md hover:shadow-lg transition-all overflow-hidden border border-gray-100' key={order._id}>
-                    {/* Order Summary Header */}
-                    <div className='flex flex-col xl:flex-row xl:items-center justify-between gap-5 p-5 bg-gray-50/50 border-b border-gray-100'>
-                      <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 flex-1'>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
-                            <Package size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Order ID</p>
-                            <p className='text-sm font-black text-gray-900 truncate' title={order._id}>#{order._id}</p>
-                          </div>
+                  <div key={order._id} className='bg-white rounded-xl border border-gray-200 overflow-hidden'>
+                    <div className='p-4'>
+                      <div className='flex items-start justify-between gap-3'>
+                        <div className='min-w-0'>
+                          <p className='text-[11px] font-semibold text-gray-400 uppercase tracking-wide' title={order._id}>#{order._id.slice(-8).toUpperCase()}</p>
+                          <p className='text-sm font-semibold text-gray-900 truncate mt-0.5'>{order.userId?.name || order.address?.name || 'N/A'}</p>
+                          <p className='text-xs text-gray-500 truncate'>{order.userId?.email || order.address?.email || 'N/A'}</p>
+                          {order.userId?.isLuxeMember && (
+                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-wide w-fit mt-1'>
+                              Luxe
+                            </span>
+                          )}
                         </div>
+                        <StatusBadge status={order.orderStatus} />
+                      </div>
 
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
-                            <User size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Customer</p>
-                            <p className='text-sm font-bold text-gray-800 truncate'>{order.userId?.name || order.address?.name || 'N/A'}</p>
-                            <p className='text-xs text-gray-500 font-medium truncate'>{order.userId?.email || order.address?.email || 'N/A'}</p>
-                            {order.userId?.isLuxeMember && (
-                              <span className='inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider w-fit mt-1'>
-                                <span className='w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse'></span>
-                                Luxe Member
-                              </span>
-                            )}
-                          </div>
+                      <div className='grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-100 text-xs'>
+                        <div>
+                          <p className='text-gray-400'>Date</p>
+                          <p className='font-medium text-gray-700'>{formatDate(order.date)}</p>
                         </div>
-
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
-                            <Calendar size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Order Date</p>
-                            <p className='text-sm font-bold text-gray-800'>{formatDate(order.date)}</p>
-                            <p className='text-xs text-gray-500 font-medium'>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                          </div>
+                        <div>
+                          <p className='text-gray-400'>Total</p>
+                          <p className='font-semibold text-gray-900'>{currency}{order.orderTotal.toFixed(2)}</p>
                         </div>
-
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
-                            <DollarSign size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Total Amount</p>
-                            <p className='text-sm font-black text-gray-950'>{currency}{order.orderTotal.toFixed(2)}</p>
-                          </div>
+                        <div>
+                          <p className='text-gray-400'>Phone</p>
+                          <p className='font-medium text-gray-700'>{order.address?.phone || 'N/A'}</p>
                         </div>
-
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-pink-50 text-pink-500 rounded-lg shrink-0">
-                            <MapPin size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Destination</p>
-                            <p className='text-sm font-bold text-gray-800 truncate'>{order.address.state}</p>
-                            <p className='text-xs text-gray-500 font-medium truncate'>{order.address.city} - {order.address.zip}</p>
-                          </div>
+                        <div>
+                          <p className='text-gray-400'>Destination</p>
+                          <p className='font-medium text-gray-700'>{order.address.city}, {order.address.zip}</p>
                         </div>
                       </div>
 
-                      <div className='flex items-center gap-3 xl:pl-5 xl:border-l xl:border-gray-200'>
-                        <StatusBadge status={order.orderStatus} />
+                      <div className='flex items-center gap-2 mt-3 pt-3 border-t border-gray-100'>
                         <button
                           onClick={() => downloadInvoice(order._id)}
-                          className="p-2 rounded-xl bg-white hover:bg-pink-50 transition-colors text-pink-500 border border-gray-100 shadow-sm"
-                          title="Download Invoice"
+                          className='flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-50 hover:bg-pink-50 text-gray-600 hover:text-pink-600 border border-gray-200 text-xs font-semibold transition-colors'
                         >
-                          <FileText size={18} />
+                          <FileText size={14} /> Invoice
                         </button>
                         <button
                           onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
-                          className="p-2 rounded-xl bg-white hover:bg-gray-100 border border-gray-100 transition-colors shadow-sm"
-                          title={expandedOrderId === order._id ? "Collapse details" : "Expand details"}
+                          className='flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold transition-colors'
                         >
-                          {expandedOrderId === order._id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                          {expandedOrderId === order._id ? <>Hide details <ChevronUp size={14} /></> : <>View details <ChevronDown size={14} /></>}
                         </button>
                       </div>
                     </div>
-
-                    {/* Order Details Body (Conditionally Rendered) */}
-                    {expandedOrderId === order._id && (
-                      <div className='p-5 border-t border-gray-100 bg-gray-50/30'>
-                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
-                          {/* Products */}
-                          <div className='bg-white rounded-2xl border border-gray-100 p-4'>
-                            <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><Tag size={14}/> Products</p>
-                            <div className='space-y-3'>
-                              {order.items.map((item, itemIndex) => (
-                                <div key={itemIndex} className='flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100'>
-                                  <img className='w-12 h-12 object-cover rounded-lg border shadow-sm' src={item.image} alt={item.name} />
-                                  <div className="min-w-0 flex-1">
-                                    <p className='text-xs font-bold text-gray-800 truncate'>{item.name}</p>
-                                    <p className='text-[10px] text-gray-500 font-medium'>
-                                      {item.sku ? `SKU: ${item.sku} | ` : ''}
-                                      {item.quantity} x {currency}{item.price.toFixed(2)} {item.size && `(${item.size})`}
-                                    </p>
-                                    {item.appliedCoupon && (
-                                      <span className="inline-flex mt-1 text-[8px] bg-green-50 text-green-700 px-1 py-0.5 rounded border font-semibold">
-                                        Coupon: {item.appliedCoupon}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Customer Details */}
-                          <div className='bg-white rounded-2xl border border-gray-100 p-4'>
-                            <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><User size={14}/> Customer & Shipping</p>
-                            <address className='text-xs text-gray-600 not-italic space-y-1.5'>
-                              <div className="flex items-center gap-2">
-                                <p className="font-bold text-gray-800">{order.address.name}</p>
-                                {order.address.addressType && (
-                                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[9px] rounded uppercase font-bold border">
-                                    {order.address.addressType === 'Home' ? 'Home' : order.address.addressType}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-gray-500 flex items-center gap-1"><Mail size={12}/> {order.userId?.email || order.address?.email || 'N/A'}</p>
-                              <p className="text-gray-500 flex items-center gap-1"><Phone size={12}/> {order.address.phone}</p>
-                              <div className="mt-2 pt-2 border-t border-gray-100">
-                                <p className="font-medium text-gray-800">{order.address.address}, {order.address.locality}</p>
-                                {order.address.landmark && <p className="italic text-gray-400 text-[10px]">Landmark: {order.address.landmark}</p>}
-                                <p className="font-bold text-gray-700">{order.address.city}, {order.address.state}, {order.address.country} - {order.address.zip}</p>
-                              </div>
-                            </address>
-                          </div>
-
-                          {/* Payment & Shiprocket */}
-                          <div className='bg-white rounded-2xl border border-gray-100 p-4'>
-                            <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><CreditCard size={14}/> Payment Info</p>
-                            <div className='space-y-1.5 text-xs text-gray-600'>
-                              <p>Method: <span className="font-bold text-gray-800">{order.paymentMethod}</span></p>
-                              <p>Status: <span className={`font-bold ${order.payment ? 'text-green-600' : order.orderStatus === 'Cancelled' ? 'text-gray-500' : 'text-red-600'}`}>{order.payment ? 'Paid' : order.orderStatus === 'Cancelled' ? 'Cancelled' : 'Pending'}</span></p>
-                              {order.paymentMethod === 'Razorpay' && order.razorpayPaymentId && (
-                                <p className="break-all">Razorpay Ref: <span className="font-bold text-gray-800">{order.razorpayPaymentId}</span></p>
-                              )}
-                              {order.couponCode && (
-                                <div className='flex flex-col bg-green-50 p-1.5 rounded-lg border border-green-100 w-fit mt-1'>
-                                  <span className="text-[10px] font-bold text-green-700 flex items-center gap-1">
-                                    <Tag size={10} /> Coupon: {order.couponCode}
-                                  </span>
-                                  {order.couponDiscount > 0 && (
-                                    <span className="text-[9px] text-green-600 font-medium">Saved: {currency}{order.couponDiscount.toFixed(2)}</span>
-                                  )}
-                                </div>
-                              )}
-                              {order.shippingCharge > 0 && <p>Shipping: <span className="font-medium">{currency}{order.shippingCharge.toFixed(2)}</span></p>}
-                              {order.codCharge > 0 && <p>COD Charge: <span className="font-medium">{currency}{order.codCharge.toFixed(2)}</span></p>}
-                              <p className="text-sm font-black text-gray-900 mt-2">Total Paid: {currency}{order.orderTotal.toFixed(2)}</p>
-                            </div>
-
-                            {order.shiprocket && (
-                              <div className='mt-4 pt-3 border-t border-gray-100'>
-                                <p className='font-bold text-gray-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5'><Truck size={14}/> Logistics</p>
-                                <div className='space-y-1 text-[11px] text-gray-600 bg-gray-50 p-2 rounded-lg border'>
-                                  {order.shiprocketStatus && (
-                                    <p>Live Status: <span className="font-bold text-gray-900 uppercase">{order.shiprocketStatus.replace(/_/g, ' ')}</span></p>
-                                  )}
-                                  {order.shiprocket.awb && <p>AWB: <span className="font-bold">{order.shiprocket.awb}</span></p>}
-                                  {order.shiprocket.courier && <p>Courier: <span className="font-semibold">{order.shiprocket.courier}</span></p>}
-                                  {order.shiprocket.lastTrackedAt && (
-                                    <p className="text-[10px] text-gray-400">Last synced: {formatDate(order.shiprocket.lastTrackedAt)}</p>
-                                  )}
-                                  {order.shiprocket.trackingUrl && (
-                                    <a
-                                      href={order.shiprocket.trackingUrl}
-                                      target='_blank'
-                                      rel='noopener noreferrer'
-                                      className='text-pink-600 hover:underline flex items-center gap-1 font-bold mt-1 text-[10px] uppercase'
-                                    >
-                                      <FileText size={12}/> Track Shipment
-                                    </a>
-                                  )}
-                                  {order.shiprocket.trackingHistory?.length > 0 && (
-                                    <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
-                                      {[...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3).map((act, i) => (
-                                        <p key={i} className="text-[10px] text-gray-500">
-                                          <span className="font-bold text-gray-700">{act.activity || act.status}</span>
-                                          {act.location ? ` · ${act.location}` : ''} · {formatDate(act.date)}
-                                        </p>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Cancellation / Refund Info */}
-                          {(order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned' || order.orderStatus === 'Refunded' || order.orderStatus === 'Refund Initiated') && (
-                            <div className='bg-white rounded-2xl border border-gray-100 p-4'>
-                              <p className='font-bold text-red-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><AlertCircle size={14}/> Returns / Cancellation</p>
-                              <div className='space-y-2 text-xs text-gray-600 bg-red-50/50 p-3.5 rounded-xl border border-red-100'>
-                                <p className="font-black text-red-700 capitalize">Status: {order.orderStatus}</p>
-                                {order.refundDetails?.reason && (
-                                  <p><span className="font-bold text-gray-700">Reason:</span> <span className="italic text-gray-600">"{order.refundDetails.reason}"</span></p>
-                                )}
-                                {order.refundDetails?.status && order.refundDetails.status !== 'none' && (
-                                  <p><span className="font-bold text-gray-700">Refund status:</span> <span className="font-bold text-gray-900 uppercase text-[10px] bg-white px-2 py-0.5 rounded shadow-sm border">{order.refundDetails.status}</span></p>
-                                )}
-                                {order.refundDetails?.amount > 0 && (
-                                  <p><span className="font-bold text-gray-700">Refunded Amount:</span> <span className="font-black text-red-700">{currency}{order.refundDetails.amount.toFixed(2)}</span></p>
-                                )}
-                                {order.refundDetails?.requestedAt && (
-                                  <p><span className="font-bold text-gray-700">Claimed Date:</span> <span className="font-medium text-gray-600">{formatDate(order.refundDetails.requestedAt)}</span></p>
-                                )}
-                                {order.refundDetails?.pickup && order.refundDetails.pickup.status !== 'none' && (
-                                  <div className="mt-2 pt-2 border-t border-red-100">
-                                    <p><span className="font-bold text-gray-700">Pickup status:</span> <span className="font-bold text-gray-900 uppercase text-[10px] bg-white px-2 py-0.5 rounded shadow-sm border">{order.refundDetails.pickup.status.replace(/_/g, ' ')}</span></p>
-                                    {order.refundDetails.pickup.awb && <p className="text-[10px] text-gray-500 mt-1">Return AWB: <span className="font-bold">{order.refundDetails.pickup.awb}</span> {order.refundDetails.pickup.courier ? `(${order.refundDetails.pickup.courier})` : ''}</p>}
-                                    {order.refundDetails.pickup.status === 'failed' && order.refundDetails.pickup.failureReason && (
-                                      <p className="text-[10px] text-red-600 italic mt-1">Auto-schedule failed: {order.refundDetails.pickup.failureReason} — arrange pickup manually.</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                    {expandedOrderId === order._id && orderDetailsPanel(order)}
                   </div>
                 ))}
+              </div>
 
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className='flex justify-center items-center gap-2 mt-8 mb-6'>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className='flex flex-col sm:flex-row items-center justify-between gap-3 mt-5'>
+                  <p className='text-xs text-gray-500'>
+                    Page <span className='font-semibold text-gray-700'>{currentPage}</span> of <span className='font-semibold text-gray-700'>{totalPages}</span>
+                  </p>
+                  <div className='flex items-center gap-1.5'>
                     <button
                       onClick={() => {
                         setCurrentPage(prev => Math.max(prev - 1, 1));
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                       disabled={currentPage === 1}
-                      className='px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-all shadow-sm'
+                      className='px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
                     >
                       Previous
                     </button>
-                    
+
                     <div className='flex gap-1'>
                       {[...Array(totalPages)].map((_, i) => {
                         const pageNum = i + 1;
@@ -971,7 +1014,7 @@ const Orders = ({ token }) => {
                                 setCurrentPage(pageNum);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
-                              className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${currentPage === pageNum ? 'bg-pink-500 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                              className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${currentPage === pageNum ? 'bg-pink-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                             >
                               {pageNum}
                             </button>
@@ -989,15 +1032,15 @@ const Orders = ({ token }) => {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                       disabled={currentPage === totalPages}
-                      className='px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-all shadow-sm'
+                      className='px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
                     >
                       Next
                     </button>
                   </div>
-                )}
-              </>
-            )}
-          </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
