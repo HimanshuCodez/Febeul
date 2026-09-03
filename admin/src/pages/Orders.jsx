@@ -865,8 +865,8 @@ const Orders = ({ token }) => {
                       {paginatedOrders.map((order) => (
                         <React.Fragment key={order._id}>
                           <tr className='hover:bg-gray-50/70 transition-colors'>
-                            <td className='px-4 py-3 align-top'>
-                              <p className='text-xs font-semibold text-gray-900' title={order._id}>#{order._id.slice(-8).toUpperCase()}</p>
+                            <td className='px-4 py-3 align-top max-w-[160px]'>
+                              <p className='text-xs font-semibold text-gray-900 truncate' title={order._id}>#{order._id}</p>
                             </td>
                             <td className='px-4 py-3 align-top max-w-[160px]'>
                               <p className='text-xs font-semibold text-gray-800 truncate' title={order.userId?.name || order.address?.name || 'N/A'}>{order.userId?.name || order.address?.name || 'N/A'}</p>
@@ -934,7 +934,7 @@ const Orders = ({ token }) => {
                     <div className='p-4'>
                       <div className='flex items-start justify-between gap-3'>
                         <div className='min-w-0'>
-                          <p className='text-[11px] font-semibold text-gray-400 uppercase tracking-wide' title={order._id}>#{order._id.slice(-8).toUpperCase()}</p>
+                          <p className='text-[11px] font-semibold text-gray-400 truncate' title={order._id}>#{order._id}</p>
                           <p className='text-sm font-semibold text-gray-900 truncate mt-0.5'>{order.userId?.name || order.address?.name || 'N/A'}</p>
                           <p className='text-xs text-gray-500 truncate'>{order.userId?.email || order.address?.email || 'N/A'}</p>
                           {order.userId?.isLuxeMember && (
