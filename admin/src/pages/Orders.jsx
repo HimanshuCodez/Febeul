@@ -107,6 +107,23 @@ const Orders = ({ token }) => {
     );
   };
 
+  const refundStatusBadge = (status) => {
+    const colorMap = {
+      pending: 'bg-amber-50 text-amber-700 border-amber-100',
+      initiated: 'bg-blue-50 text-blue-700 border-blue-100',
+      processing: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+      completed: 'bg-green-50 text-green-700 border-green-100',
+      failed: 'bg-red-50 text-red-700 border-red-100',
+      rejected: 'bg-red-50 text-red-700 border-red-100',
+    };
+    const colorClass = colorMap[status] || 'bg-gray-50 text-gray-700 border-gray-200';
+    return (
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border capitalize whitespace-nowrap ${colorClass}`}>
+        {status}
+      </span>
+    );
+  };
+
   const orderDetailsPanel = (order) => (
     <div className='p-5 border-t border-gray-100 bg-gray-50/30'>
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
@@ -1482,168 +1499,223 @@ const Orders = ({ token }) => {
 
       {/* -------------------- TAB 5: REFUND REQUESTS -------------------- */}
       {activeTab === 'refunds' && (
-        <div className="space-y-8">
+        <div className="space-y-5">
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-              <div className="p-3.5 bg-orange-50 text-orange-500 rounded-xl">
-                <AlertCircle size={24} />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3.5">
+              <div className="p-2.5 bg-orange-50 text-orange-500 rounded-lg">
+                <AlertCircle size={20} />
               </div>
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Active Refund Requests</p>
-                <h4 className="text-2xl font-black text-gray-900">{analytics.refunds.length}</h4>
+                <p className="text-[11px] font-medium text-gray-500">Active Refund Requests</p>
+                <h4 className="text-xl font-bold text-gray-900">{analytics.refunds.length}</h4>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-              <div className="p-3.5 bg-amber-50 text-amber-600 rounded-xl">
-                <DollarSign size={24} />
+            <div className="bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3.5">
+              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-lg">
+                <DollarSign size={20} />
               </div>
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Requested Refund Capital</p>
-                <h4 className="text-2xl font-black text-gray-900">
+                <p className="text-[11px] font-medium text-gray-500">Requested Refund Capital</p>
+                <h4 className="text-xl font-bold text-gray-900">
                   {currency}{analytics.refunds.reduce((sum, r) => sum + r.amount, 0).toFixed(2)}
                 </h4>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-              <div className="p-3.5 bg-indigo-50 text-indigo-500 rounded-xl">
-                <Map size={24} />
+            <div className="bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3.5">
+              <div className="p-2.5 bg-indigo-50 text-indigo-500 rounded-lg">
+                <Map size={20} />
               </div>
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Affected Request States</p>
-                <h4 className="text-2xl font-black text-gray-900">{analytics.refundStates.length}</h4>
+                <p className="text-[11px] font-medium text-gray-500">Affected Request States</p>
+                <h4 className="text-xl font-bold text-gray-900">{analytics.refundStates.length}</h4>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* Left Column: Requests by State */}
-            <div className="lg:col-span-4 space-y-4">
-              <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
-                <Map size={16} className="text-pink-500" /> Requests by State
+            <div className="lg:col-span-4 space-y-3">
+              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                <Map size={14} className="text-pink-500" /> Requests by State
               </h4>
-              <div className="overflow-x-auto bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <table className="min-w-full divide-y divide-gray-100">
-                  <thead className="bg-gray-50/50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">State</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Request Count</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Value</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 bg-white">
-                    {analytics.refundStates.length === 0 ? (
-                      <tr><td colSpan="3" className="px-6 py-8 text-center text-xs text-gray-400 font-bold uppercase">No active requests</td></tr>
-                    ) : (
-                      analytics.refundStates.map((item, idx) => (
-                        <tr 
-                          key={idx}
-                          onClick={() => setRefundStateFilter(refundStateFilter === item.state ? '' : item.state)}
-                          className={`hover:bg-orange-50/20 cursor-pointer transition-colors ${refundStateFilter === item.state ? 'bg-orange-50/50 border-l-4 border-l-orange-500' : ''}`}
-                        >
-                          <td className="px-6 py-3 whitespace-nowrap text-xs font-black text-gray-800">{item.state}</td>
-                          <td className="px-6 py-3 whitespace-nowrap text-xs text-orange-600 font-bold">{item.count} request{item.count > 1 ? 's' : ''}</td>
-                          <td className="px-6 py-3 whitespace-nowrap text-xs font-black text-gray-900">{currency}{item.totalAmount.toFixed(2)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-100">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">State</th>
+                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Requests</th>
+                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {analytics.refundStates.length === 0 ? (
+                        <tr><td colSpan="3" className="px-4 py-8 text-center text-xs text-gray-400">No active requests</td></tr>
+                      ) : (
+                        analytics.refundStates.map((item, idx) => (
+                          <tr
+                            key={idx}
+                            onClick={() => setRefundStateFilter(refundStateFilter === item.state ? '' : item.state)}
+                            className={`cursor-pointer transition-colors ${refundStateFilter === item.state ? 'bg-orange-50' : 'hover:bg-gray-50'}`}
+                          >
+                            <td className="px-4 py-2.5 whitespace-nowrap text-xs font-semibold text-gray-800">{item.state}</td>
+                            <td className="px-4 py-2.5 whitespace-nowrap text-xs text-orange-600 font-semibold">{item.count}</td>
+                            <td className="px-4 py-2.5 whitespace-nowrap text-xs font-semibold text-gray-900">{currency}{item.totalAmount.toFixed(2)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
             {/* Right Column: Refund Requests Log */}
-            <div className="lg:col-span-8 space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <DollarSign size={16} className="text-pink-500" /> Pending refund request details
+            <div className="lg:col-span-8 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                    <DollarSign size={14} className="text-pink-500" /> Pending Refund Requests
                   </h4>
                   {refundStateFilter && (
-                    <span className="px-2.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-black rounded-lg uppercase tracking-wider flex items-center gap-1">
-                      State: {refundStateFilter}
-                      <button onClick={() => setRefundStateFilter('')} className="hover:text-orange-900 ml-1">×</button>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 border border-orange-100 text-[11px] font-semibold rounded-full">
+                      {refundStateFilter}
+                      <button onClick={() => setRefundStateFilter('')} className="hover:text-orange-900" title="Clear state filter">
+                        <X size={11} />
+                      </button>
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                    <input
-                      type="text"
-                      placeholder="Search log by ID, name, SKU, coupon..."
-                      value={refundSearch}
-                      onChange={(e) => setRefundSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 outline-none transition-all"
-                    />
-                  </div>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search by ID, name, SKU, coupon..."
+                    value={refundSearch}
+                    onChange={(e) => setRefundSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-pink-500/15 focus:border-pink-400 outline-none transition-all"
+                  />
                 </div>
               </div>
 
-              <div className="overflow-x-auto bg-white rounded-2xl border border-gray-100 shadow-sm max-h-[500px] overflow-y-auto">
-                <table className="min-w-full divide-y divide-gray-100">
-                  <thead className="bg-gray-50/50 sticky top-0 z-10">
-                    <tr>
-                      <SortHeader label="Request Date" sortKey="date" currentSort={refundSort} onSort={(k) => handleSort(k, refundSort, setRefundSort)} />
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Order Details</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Buyer Info</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">State & Pin</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU & Item Details</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Coupon Used</th>
-                      <SortHeader label="Requested Refund" sortKey="amount" currentSort={refundSort} onSort={(k) => handleSort(k, refundSort, setRefundSort)} />
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {filteredRefunds.length === 0 ? (
-                      <tr><td colSpan="8" className="px-6 py-10 text-center text-xs text-gray-400 font-bold uppercase">No pending requests found</td></tr>
-                    ) : (
-                      filteredRefunds.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-3 whitespace-nowrap text-xs text-gray-600 font-semibold">{formatDate(item.date)}</td>
-                          <td className="px-6 py-3 whitespace-nowrap text-xs font-black text-gray-900">#{item.orderId.slice(-8).toUpperCase()}</td>
-                          <td className="px-6 py-3 whitespace-nowrap">
-                            <p className="text-xs font-bold text-gray-800">{item.userName}</p>
-                            <p className="text-[10px] text-gray-400 font-semibold">{item.email}</p>
-                          </td>
-                          <td className="px-6 py-3 whitespace-nowrap">
-                            <p className="text-xs font-bold text-gray-800">{item.state}</p>
-                            <p className="text-[10px] text-gray-400 font-semibold">{item.pincode}</p>
-                          </td>
-                          <td className="px-6 py-3">
-                            <div className="flex flex-col gap-1">
-                              {item.items.map((prod, pIdx) => (
-                                <div key={pIdx} className="flex items-center gap-1.5 text-[10px]">
-                                  <span className="font-bold text-gray-800 bg-gray-100 px-1 py-0.5 rounded">SKU: {prod.sku}</span>
-                                  <span className="text-gray-500 truncate max-w-40 font-medium">({prod.name})</span>
-                                  <span className="text-gray-600 font-bold ml-auto">x{prod.quantity}</span>
+              {filteredRefunds.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-14 bg-white rounded-xl border border-dashed border-gray-200">
+                  <DollarSign className="text-gray-300" size={26} />
+                  <p className="text-sm text-gray-500">No pending requests found</p>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
+                      <table className="min-w-full divide-y divide-gray-100">
+                        <thead className="bg-gray-50 sticky top-0 z-10">
+                          <tr>
+                            <SortHeader label="Date" sortKey="date" currentSort={refundSort} onSort={(k) => handleSort(k, refundSort, setRefundSort)} />
+                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Order</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Buyer</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Destination</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Items</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Coupon</th>
+                            <SortHeader label="Amount" sortKey="amount" currentSort={refundSort} onSort={(k) => handleSort(k, refundSort, setRefundSort)} />
+                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {filteredRefunds.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50/70 transition-colors">
+                              <td className="px-4 py-3 align-top whitespace-nowrap text-xs text-gray-600 font-medium">{formatDate(item.date)}</td>
+                              <td className="px-4 py-3 align-top max-w-[130px]">
+                                <p className="text-xs font-semibold text-gray-900 truncate" title={item.orderId}>#{item.orderId}</p>
+                              </td>
+                              <td className="px-4 py-3 align-top max-w-[160px]">
+                                <p className="text-xs font-semibold text-gray-800 truncate">{item.userName}</p>
+                                <p className="text-[11px] text-gray-500 truncate">{item.email}</p>
+                              </td>
+                              <td className="px-4 py-3 align-top whitespace-nowrap">
+                                <p className="text-xs text-gray-700 font-medium">{item.state}</p>
+                                <p className="text-[11px] text-gray-400">{item.pincode}</p>
+                              </td>
+                              <td className="px-4 py-3 align-top">
+                                <div className="flex flex-col gap-1 max-w-[220px]">
+                                  {item.items.map((prod, pIdx) => (
+                                    <div key={pIdx} className="flex items-center gap-1.5 text-[11px]">
+                                      <span className="font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">{prod.sku}</span>
+                                      <span className="text-gray-500 truncate">{prod.name}</span>
+                                      <span className="text-gray-600 font-semibold ml-auto shrink-0">x{prod.quantity}</span>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
+                              </td>
+                              <td className="px-4 py-3 align-top whitespace-nowrap text-xs">
+                                {item.couponUsed !== 'None' ? (
+                                  <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[11px] font-semibold rounded border border-green-100">
+                                    {item.couponUsed}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 align-top whitespace-nowrap text-xs font-semibold text-gray-900">
+                                {currency}{item.amount.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3 align-top whitespace-nowrap">
+                                {refundStatusBadge(item.status)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Mobile cards */}
+                  <div className="md:hidden space-y-3">
+                    {filteredRefunds.map((item, idx) => (
+                      <div key={idx} className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold text-gray-400 truncate" title={item.orderId}>#{item.orderId}</p>
+                            <p className="text-sm font-semibold text-gray-900 truncate mt-0.5">{item.userName}</p>
+                            <p className="text-xs text-gray-500 truncate">{item.email}</p>
+                          </div>
+                          {refundStatusBadge(item.status)}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-100 text-xs">
+                          <div>
+                            <p className="text-gray-400">Requested</p>
+                            <p className="font-medium text-gray-700">{formatDate(item.date)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400">Amount</p>
+                            <p className="font-semibold text-gray-900">{currency}{item.amount.toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400">Destination</p>
+                            <p className="font-medium text-gray-700">{item.state}, {item.pincode}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400">Coupon</p>
+                            <p className="font-medium text-gray-700">{item.couponUsed !== 'None' ? item.couponUsed : '—'}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
+                          {item.items.map((prod, pIdx) => (
+                            <div key={pIdx} className="flex items-center gap-1.5 text-[11px]">
+                              <span className="font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">{prod.sku}</span>
+                              <span className="text-gray-500 truncate">{prod.name}</span>
+                              <span className="text-gray-600 font-semibold ml-auto shrink-0">x{prod.quantity}</span>
                             </div>
-                          </td>
-                          <td className="px-6 py-3 whitespace-nowrap text-xs">
-                            {item.couponUsed !== 'None' ? (
-                              <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-black rounded border border-green-200">
-                                {item.couponUsed}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 font-medium">None</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-3 whitespace-nowrap text-xs font-black text-amber-600">
-                            {currency}{item.amount.toFixed(2)}
-                          </td>
-                          <td className="px-6 py-3 whitespace-nowrap text-xs capitalize font-bold text-gray-600">
-                            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full border border-amber-200 text-[10px] uppercase font-black">
-                              {item.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
