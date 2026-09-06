@@ -39,7 +39,7 @@ const buildInvoicePDF = (order, res) => {
         
         // Logo
         try {
-            const logoPath = path.resolve(__dirname, '../../frontend/public/removebgLogo.png');
+            const logoPath = path.resolve(__dirname, '../../frontend/public/invoice.jpeg');
             doc.image(logoPath, 30, 30, { width: 80 });
         } catch (imgError) {
             doc.fillColor(primaryColor).fontSize(20).font('Helvetica-Bold').text('FEBEUL', 30, 35);
@@ -327,6 +327,7 @@ const buildInvoicePDF = (order, res) => {
         doc.text('1. This is a computer-generated invoice and does not require a signature.', 30, doc.y + 2);
         doc.text('2. All disputes are subject to Delhi jurisdiction.', 30, doc.y + 1);
         doc.text('3. Goods once sold cannot be returned or exchanged without valid reason.', 30, doc.y + 1);
+        doc.text('4. Customer Self Declaration: The goods sold are intended for end user consumption. Not for resale.', 30, doc.y + 1);
 
         doc.strokeColor(borderColor).lineWidth(0.5).moveTo(30, footerY + 45).lineTo(doc.page.width - 30, footerY + 45).stroke();
         
