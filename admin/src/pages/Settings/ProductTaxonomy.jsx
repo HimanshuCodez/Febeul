@@ -84,7 +84,8 @@ const ProductTaxonomy = ({ token }) => {
     setIsLoading(true);
     const data = await fetchTaxonomy(backendUrl);
     setTaxonomy(data);
-    setSelectedCategory((prev) => (data.categories.includes(prev) ? prev : data.categories[0] || ""));
+    const selectableCategories = data.categories.filter((cat) => cat.toUpperCase() !== "GIFT WRAP");
+    setSelectedCategory((prev) => (selectableCategories.includes(prev) ? prev : selectableCategories[0] || ""));
     setIsLoading(false);
   };
 
@@ -315,11 +316,13 @@ const ProductTaxonomy = ({ token }) => {
                 className="w-full max-w-xs px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white"
               >
                 <option value="">Select a category</option>
-                {taxonomy.categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
+                {taxonomy.categories
+                  .filter((cat) => cat.toUpperCase() !== "GIFT WRAP")
+                  .map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
               </select>
             </div>
 
