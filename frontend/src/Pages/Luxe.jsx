@@ -269,7 +269,7 @@ export default function FebeulLuxe() {
             className="flex flex-col items-center"
           >
             <div className="h-24 flex items-center justify-center mb-4">
-              <img src={feature.img} alt={feature.title} className="max-h-full w-auto hover:scale-110 transition-transform duration-500" />
+              <img src={feature.img} alt={feature.title} className="h-16 w-16 object-contain hover:scale-110 transition-transform duration-500" />
             </div>
             <h3 className="font-['Raleway'] font-bold text-xs tracking-[0.2em] text-[#b87a7b] uppercase mb-2">{feature.title}</h3>
             <p className="text-[10px] text-[#c98a8b] font-['Raleway'] uppercase tracking-wider">{feature.desc}</p>
