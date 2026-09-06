@@ -255,7 +255,7 @@ export default function FebeulLuxe() {
         {[
           { img: "/van.png", title: "PRIORITY DELIVERY", desc: "Fast-track shipping on every order" },
           { img: "/gifts.png", title: "15 GIFT WRAPS", desc: "Premium packaging for your loved ones" },
-          { img: "/3.png", title: "LUXE PRIVE SALES", desc: "Exclusive access to boutique collections" },
+          { img: "/bags.png", title: "LUXE PRIVE SALES", desc: "Exclusive access to boutique collections" },
           { img: "/coupon.png", title: "EXCLUSIVE COUPONS", desc: "Vouchers included with every purchase" },
           { img: "/5.png", title: "VIP SUPPORT", desc: "Dedicated concierge for all your needs" },
           { img: "/6.png", title: "FREE SHIPPING", desc: "Zero delivery charges, nationwide" }

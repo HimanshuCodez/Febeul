@@ -65,11 +65,11 @@ const Footer = () => {
             {/* Payment Gateway Logos */}
             <div className="mt-5 flex flex-wrap items-center justify-center sm:justify-start gap-5 sm:gap-6">
   {[
-    { src: "/1.png", alt: "UPI", className: "w-[55px] sm:w-[65px]" },
-    { src: "/2.png", alt: "Visa", className: "w-[55px] sm:w-[65px]" },
-    { src: "/3.png", alt: "Mastercard", className: "w-[55px] sm:w-[65px]" },
-    { src: "/4.png", alt: "Net Banking", className: "w-[55px] sm:w-[65px]" },
-    { src: "/cod.png", alt: "Cash on Delivery", className: "w-[75px] sm:w-[90px]" },
+    { src: "/1.png", alt: "UPI" },
+    { src: "/2.png", alt: "Visa" },
+    { src: "/3.png", alt: "Mastercard" },
+    { src: "/4.png", alt: "Net Banking" },
+    { src: "/cod.png", alt: "Cash on Delivery" },
   ].map((icon) => (
     <div
       key={icon.alt}
@@ -78,7 +78,7 @@ const Footer = () => {
       <img
         src={icon.src}
         alt={icon.alt}
-        className={`${icon.className} max-h-12 sm:max-h-14 object-contain`}
+        className="w-[55px] sm:w-[65px] max-h-12 sm:max-h-14 object-contain"
       />
     </div>
   ))}
