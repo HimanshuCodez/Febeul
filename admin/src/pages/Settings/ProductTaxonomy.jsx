@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { backendUrl } from "../../App";
-import { Tags, Shirt, Layers, Ruler, Save, RefreshCcw, Plus, X, Info } from "lucide-react";
+import { Tags, Shirt, Layers, Ruler, Save, RefreshCcw, Plus, X, Info, PowerOff } from "lucide-react";
 import { DEFAULT_TAXONOMY, fetchTaxonomy, saveTaxonomy } from "../../utils/taxonomy";
 
 const Chip = ({ label, onRemove }) => (
@@ -16,6 +16,25 @@ const Chip = ({ label, onRemove }) => (
       <X size={14} />
     </button>
   </span>
+);
+
+const Toggle = ({ checked, onChange, label }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    onClick={onChange}
+    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+      checked ? "bg-emerald-500" : "bg-gray-300"
+    }`}
+    title={label}
+  >
+    <span
+      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+        checked ? "translate-x-6" : "translate-x-1"
+      }`}
+    />
+  </button>
 );
 
 const AddChipInput = ({ placeholder, onAdd }) => {
@@ -170,6 +189,23 @@ const ProductTaxonomy = ({ token }) => {
     }));
   };
 
+  const toggleFabricForCategory = (fabric) => {
+    if (!selectedCategory) return;
+    setTaxonomy((prev) => {
+      const disabledForCategory = prev.disabledFabricsByCategory?.[selectedCategory] || [];
+      const isDisabled = disabledForCategory.includes(fabric);
+      return {
+        ...prev,
+        disabledFabricsByCategory: {
+          ...prev.disabledFabricsByCategory,
+          [selectedCategory]: isDisabled
+            ? disabledForCategory.filter((f) => f !== fabric)
+            : [...disabledForCategory, fabric],
+        },
+      };
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -255,7 +291,7 @@ const ProductTaxonomy = ({ token }) => {
               <h3 className="font-bold text-gray-800">Types (per Category)</h3>
             </div>
             <div className="mb-4">
-              <label className="text-sm font-semibold text-gray-600 block mb-2">Editing types for</label>
+              <label className="text-sm font-semibold text-gray-600 block mb-2">Editing types &amp; fabric availability for</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -288,6 +324,45 @@ const ProductTaxonomy = ({ token }) => {
             )}
           </section>
 
+          {/* Fabric availability (per category) */}
+          <section>
+            <div className="flex items-center gap-2 mb-6 border-b pb-2">
+              <PowerOff className="text-rose-500" size={20} />
+              <h3 className="font-bold text-gray-800">Fabric Availability (per Category)</h3>
+            </div>
+            {selectedCategory ? (
+              taxonomy.fabrics.length > 0 ? (
+                <div className="space-y-2">
+                  {taxonomy.fabrics.map((fabric) => {
+                    const isDisabled = (taxonomy.disabledFabricsByCategory?.[selectedCategory] || []).includes(fabric);
+                    return (
+                      <div
+                        key={fabric}
+                        className="flex items-center justify-between px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50/50"
+                      >
+                        <span className={`text-sm font-medium ${isDisabled ? "text-gray-400 line-through" : "text-gray-700"}`}>
+                          {fabric}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400">{isDisabled ? "Disabled" : "Enabled"}</span>
+                          <Toggle
+                            checked={!isDisabled}
+                            onChange={() => toggleFabricForCategory(fabric)}
+                            label={`Toggle ${fabric} for ${selectedCategory}`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 italic">Add fabrics above first.</p>
+              )
+            ) : (
+              <p className="text-xs text-gray-400 italic">Pick a category above to manage which fabrics are offered for it.</p>
+            )}
+          </section>
+
           <div className="pt-8 border-t border-gray-50 flex justify-end gap-4">
             <button
               onClick={loadTaxonomy}
@@ -317,7 +392,8 @@ const ProductTaxonomy = ({ token }) => {
           <p className="text-xs text-amber-800 leading-relaxed font-medium">
             These lists power the Category/Fabric/Size/Type dropdowns on the Add &amp; Update product pages, and the storefront Navbar's mega menu builds itself
             from the same Categories and Types automatically. Removing a category, size, or type here does not change any existing products — it only affects
-            what's offered going forward.
+            what's offered going forward. Disabling a fabric for a category hides it from that category's Fabric dropdown only — the fabric stays available
+            for every other category.
           </p>
         </div>
       </div>

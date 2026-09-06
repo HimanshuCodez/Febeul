@@ -85,6 +85,10 @@ const Add = ({ token }) => {
     if (type && !validTypes.includes(type)) {
       setType("");
     }
+    const disabledFabrics = taxonomy.disabledFabricsByCategory?.[newCategory] || [];
+    if (fabric && disabledFabrics.includes(fabric)) {
+      setFabric("");
+    }
   };
 
   const addCategory = async (newName) => {
@@ -365,6 +369,8 @@ const Add = ({ token }) => {
   };
 
   const typeOptions = taxonomy.typesByCategory[category] || [];
+  const disabledFabrics = taxonomy.disabledFabricsByCategory?.[category] || [];
+  const fabricOptions = taxonomy.fabrics.filter((f) => !disabledFabrics.includes(f));
 
   return (
     <form onSubmit={onSubmitHandler} className="max-w-5xl mx-auto pb-10">
@@ -639,7 +645,7 @@ const Add = ({ token }) => {
               />
               <EditableSelect
                 label="Fabric"
-                options={taxonomy.fabrics}
+                options={fabricOptions}
                 value={fabric}
                 onChange={setFabric}
                 onAddNew={addFabric}

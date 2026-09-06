@@ -15,6 +15,7 @@ export const DEFAULT_TAXONOMY = {
     PAJAMAS: [],
     "GIFT WRAP": [],
   },
+  disabledFabricsByCategory: {},
 };
 
 export const fetchTaxonomy = async (backendUrl) => {
@@ -27,6 +28,7 @@ export const fetchTaxonomy = async (backendUrl) => {
         fabrics: content.fabrics?.length ? content.fabrics : DEFAULT_TAXONOMY.fabrics,
         sizes: content.sizes?.length ? content.sizes : DEFAULT_TAXONOMY.sizes,
         typesByCategory: content.typesByCategory || {},
+        disabledFabricsByCategory: content.disabledFabricsByCategory || {},
       };
     }
   } catch (error) {
