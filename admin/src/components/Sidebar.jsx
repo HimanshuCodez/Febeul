@@ -326,8 +326,8 @@ const Sidebar = ({ role, permissions = [] }) => {
       </div>
 
       {/* Desktop: static sidebar */}
-      <div className={`hidden md:flex md:flex-col min-h-screen bg-white border-r border-gray-100 py-6 overflow-y-auto no-scrollbar transition-all duration-200 ${collapsed ? 'md:w-20' : 'md:w-[18%] lg:w-64'}`}>
-        <div className={`flex items-center mb-2 ${collapsed ? 'justify-center px-2' : 'justify-end px-4'}`}>
+      <div className={`hidden md:flex md:flex-col h-screen sticky top-0 bg-white border-r border-gray-100 py-6 overflow-y-auto no-scrollbar transition-all duration-200 ${collapsed ? 'md:w-20' : 'md:w-[18%] lg:w-64'}`}>
+        <div className={`flex items-center mb-2 sticky top-0 bg-white z-10 ${collapsed ? 'justify-center px-2' : 'justify-end px-4'}`}>
           <button
             onClick={() => setCollapsed((prev) => !prev)}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
