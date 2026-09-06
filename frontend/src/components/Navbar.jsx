@@ -36,6 +36,7 @@ const DEFAULT_TAXONOMY = {
     NIGHTY: ["Silk Satin", "Sheer Mesh"],
     PAJAMAS: [],
   },
+  disabledFabricsByCategory: {},
 };
 
 const UserMenu = ({ isAuthenticated }) => {
@@ -159,6 +160,7 @@ export default function Header() {
             categories: content.categories?.length ? content.categories : DEFAULT_TAXONOMY.categories,
             fabrics: content.fabrics?.length ? content.fabrics : DEFAULT_TAXONOMY.fabrics,
             typesByCategory: content.typesByCategory || {},
+            disabledFabricsByCategory: content.disabledFabricsByCategory || {},
           });
         }
       } catch (error) {
@@ -198,9 +200,11 @@ export default function Header() {
     .filter((category) => category.toUpperCase() !== "GIFT WRAP")
     .map((category) => {
       const types = taxonomy.typesByCategory[category] || [];
+      const disabledFabrics = taxonomy.disabledFabricsByCategory?.[category] || [];
+      const fabricsForCategory = taxonomy.fabrics.filter((f) => !disabledFabrics.includes(f));
       const megaMenu = {};
       if (types.length > 0) megaMenu.Type = types;
-      if (taxonomy.fabrics.length > 0) megaMenu.Fabric = taxonomy.fabrics;
+      if (fabricsForCategory.length > 0) megaMenu.Fabric = fabricsForCategory;
       return Object.keys(megaMenu).length > 0 ? { title: category, megaMenu } : { title: category };
     });
 
