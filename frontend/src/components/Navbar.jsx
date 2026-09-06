@@ -37,6 +37,7 @@ const DEFAULT_TAXONOMY = {
     PAJAMAS: [],
   },
   disabledFabricsByCategory: {},
+  disabledTypesByCategory: {},
 };
 
 const UserMenu = ({ isAuthenticated }) => {
@@ -161,6 +162,7 @@ export default function Header() {
             fabrics: content.fabrics?.length ? content.fabrics : DEFAULT_TAXONOMY.fabrics,
             typesByCategory: content.typesByCategory || {},
             disabledFabricsByCategory: content.disabledFabricsByCategory || {},
+            disabledTypesByCategory: content.disabledTypesByCategory || {},
           });
         }
       } catch (error) {
@@ -199,7 +201,8 @@ export default function Header() {
   const categoryNavItems = taxonomy.categories
     .filter((category) => category.toUpperCase() !== "GIFT WRAP")
     .map((category) => {
-      const types = taxonomy.typesByCategory[category] || [];
+      const disabledTypes = taxonomy.disabledTypesByCategory?.[category] || [];
+      const types = (taxonomy.typesByCategory[category] || []).filter((t) => !disabledTypes.includes(t));
       const disabledFabrics = taxonomy.disabledFabricsByCategory?.[category] || [];
       const fabricsForCategory = taxonomy.fabrics.filter((f) => !disabledFabrics.includes(f));
       const megaMenu = {};

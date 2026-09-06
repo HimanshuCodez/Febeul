@@ -189,6 +189,23 @@ const ProductTaxonomy = ({ token }) => {
     }));
   };
 
+  const toggleTypeForCategory = (type) => {
+    if (!selectedCategory) return;
+    setTaxonomy((prev) => {
+      const disabledForCategory = prev.disabledTypesByCategory?.[selectedCategory] || [];
+      const isDisabled = disabledForCategory.includes(type);
+      return {
+        ...prev,
+        disabledTypesByCategory: {
+          ...prev.disabledTypesByCategory,
+          [selectedCategory]: isDisabled
+            ? disabledForCategory.filter((t) => t !== type)
+            : [...disabledForCategory, type],
+        },
+      };
+    });
+  };
+
   const toggleFabricForCategory = (fabric) => {
     if (!selectedCategory) return;
     setTaxonomy((prev) => {
@@ -308,11 +325,37 @@ const ProductTaxonomy = ({ token }) => {
 
             {selectedCategory ? (
               <>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="space-y-2 mb-4">
                   {typesForSelectedCategory.length > 0 ? (
-                    typesForSelectedCategory.map((type) => (
-                      <Chip key={type} label={type} onRemove={() => removeType(type)} />
-                    ))
+                    typesForSelectedCategory.map((type) => {
+                      const isDisabled = (taxonomy.disabledTypesByCategory?.[selectedCategory] || []).includes(type);
+                      return (
+                        <div
+                          key={type}
+                          className="flex items-center justify-between px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50/50"
+                        >
+                          <span className={`text-sm font-medium ${isDisabled ? "text-gray-400 line-through" : "text-gray-700"}`}>
+                            {type}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-gray-400">{isDisabled ? "Disabled" : "Enabled"}</span>
+                            <Toggle
+                              checked={!isDisabled}
+                              onChange={() => toggleTypeForCategory(type)}
+                              label={`Toggle ${type} for ${selectedCategory}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeType(type)}
+                              className="text-gray-400 hover:text-red-600 transition-colors"
+                              title={`Permanently delete ${type}`}
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
                   ) : (
                     <p className="text-xs text-gray-400 italic">No types yet for {selectedCategory}.</p>
                   )}
@@ -392,8 +435,8 @@ const ProductTaxonomy = ({ token }) => {
           <p className="text-xs text-amber-800 leading-relaxed font-medium">
             These lists power the Category/Fabric/Size/Type dropdowns on the Add &amp; Update product pages, and the storefront Navbar's mega menu builds itself
             from the same Categories and Types automatically. Removing a category, size, or type here does not change any existing products — it only affects
-            what's offered going forward. Disabling a fabric for a category hides it from that category's Fabric dropdown only — the fabric stays available
-            for every other category.
+            what's offered going forward. Toggling a fabric or type off just hides it (for that category's Fabric/Type dropdown and the storefront nav) without
+            deleting it — use the ✕ next to a type, or remove it from the Fabrics list above, to delete it permanently instead.
           </p>
         </div>
       </div>

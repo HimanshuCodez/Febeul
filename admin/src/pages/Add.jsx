@@ -81,7 +81,8 @@ const Add = ({ token }) => {
 
   const handleCategoryChange = (newCategory) => {
     setCategory(newCategory);
-    const validTypes = taxonomy.typesByCategory[newCategory] || [];
+    const disabledTypes = taxonomy.disabledTypesByCategory?.[newCategory] || [];
+    const validTypes = (taxonomy.typesByCategory[newCategory] || []).filter((t) => !disabledTypes.includes(t));
     if (type && !validTypes.includes(type)) {
       setType("");
     }
@@ -368,7 +369,8 @@ const Add = ({ token }) => {
     }
   };
 
-  const typeOptions = taxonomy.typesByCategory[category] || [];
+  const disabledTypes = taxonomy.disabledTypesByCategory?.[category] || [];
+  const typeOptions = (taxonomy.typesByCategory[category] || []).filter((t) => !disabledTypes.includes(t));
   const disabledFabrics = taxonomy.disabledFabricsByCategory?.[category] || [];
   const fabricOptions = taxonomy.fabrics.filter((f) => !disabledFabrics.includes(f));
 
