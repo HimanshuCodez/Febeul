@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 
 const orderSchema = new mongoose.Schema({
+    orderItemId: { type: String, unique: true, sparse: true, index: true }, // Random 8-digit customer/admin-facing order reference
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
     items: [{
         productId: { type: mongoose.Schema.Types.ObjectId, ref: 'product', required: true },

@@ -45,6 +45,17 @@ const getNextInvoiceNumber = async () => {
     return counter.seq;
 };
 
+// Random (not sequential) 8-digit customer/admin-facing order reference — retries on the rare collision
+const generateOrderItemId = async () => {
+    let id;
+    let exists = true;
+    while (exists) {
+        id = String(Math.floor(10000000 + Math.random() * 90000000));
+        exists = await orderModel.exists({ orderItemId: id });
+    }
+    return id;
+};
+
 const roundToNearestRupee = (value) => Math.round(Number(value) || 0);
 
 // Helper to get item size data from product variations
@@ -424,10 +435,12 @@ const placeOrder = async (req,res) => {
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount, address.state, couponCode);
 
         const invoiceNumber = await getNextInvoiceNumber();
+        const orderItemId = await generateOrderItemId();
 
         const finalCouponCode = couponCode || (processedItems.find(item => item.appliedCoupon)?.appliedCoupon || undefined);
 
         const orderData = {
+            orderItemId,
             userId,
             items: processedItems,
             orderTotal: orderTotal, // Use backend calculated total
@@ -536,10 +549,12 @@ const placeOrderStripe = async (req,res) => {
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount, address.state, couponCode);
 
         const invoiceNumber = await getNextInvoiceNumber();
+        const orderItemId = await generateOrderItemId();
 
         const finalCouponCode = couponCode || (processedItems.find(item => item.appliedCoupon)?.appliedCoupon || undefined);
 
         const orderData = {
+            orderItemId,
             userId,
             items: processedItems,
             orderTotal: orderTotal,
@@ -750,10 +765,12 @@ const placeOrderRazorpay = async (req,res) => {
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount, address.state, couponCode);
 
         const invoiceNumber = await getNextInvoiceNumber();
+        const orderItemId = await generateOrderItemId();
 
         const finalCouponCode = couponCode || (processedItems.find(item => item.appliedCoupon)?.appliedCoupon || undefined);
 
         const orderData = {
+            orderItemId,
             userId,
             items: processedItems,
             orderTotal: orderTotal, // Use backend calculated amount

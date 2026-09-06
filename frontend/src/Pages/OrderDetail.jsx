@@ -902,10 +902,18 @@ export default function OrderDetailPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.7 }}
-              className="mt-6 p-4 bg-[#fff5f5] border border-[#f9d4d5] rounded-2xl w-full max-w-sm sm:max-w-md mx-auto"
+              className="mt-6 p-4 bg-[#fff5f5] border border-[#f9d4d5] rounded-2xl w-full max-w-sm sm:max-w-md mx-auto space-y-3"
             >
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</p>
-              <p className="text-sm sm:text-lg font-bold text-[#e8767a] break-all select-all font-mono mt-1">{orderNumberToDisplay}</p>
+              {order.orderItemId && (
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Item ID</p>
+                  <p className="text-sm sm:text-lg font-bold text-[#e8767a] break-all select-all font-mono mt-1">#{order.orderItemId}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</p>
+                <p className="text-sm sm:text-lg font-bold text-[#e8767a] break-all select-all font-mono mt-1">{orderNumberToDisplay}</p>
+              </div>
             </motion.div>
 
           </motion.div>

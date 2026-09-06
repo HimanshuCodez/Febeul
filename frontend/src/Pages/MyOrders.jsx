@@ -118,7 +118,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h3 className="text-lg sm:text-xl font-black text-slate-900">Cancel Order</h3>
-            <p className="text-xs font-bold text-slate-400 mt-1 break-all">#{order._id}</p>
+            <p className="text-xs font-bold text-slate-400 mt-1 break-all">{order.orderItemId ? `#${order.orderItemId}` : `#${order._id}`}</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200">
             <X size={18} />
@@ -270,8 +270,9 @@ const MyOrders = () => {
 
       if (query) {
         const idMatch = order._id.toLowerCase().includes(query);
+        const orderItemIdMatch = (order.orderItemId || "").toLowerCase().includes(query);
         const itemMatch = order.items.some((item) => (item.name || "").toLowerCase().includes(query));
-        if (!idMatch && !itemMatch) return false;
+        if (!idMatch && !orderItemIdMatch && !itemMatch) return false;
       }
 
       return true;
@@ -323,7 +324,7 @@ const MyOrders = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by Order ID or product name"
+                  placeholder="Search by Order ID, Order Item ID, or product name"
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-400"
                 />
               </div>
@@ -402,6 +403,15 @@ const MyOrders = () => {
                 >
                   <div className="bg-slate-50/60 px-3.5 sm:px-5 py-3 sm:py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                      {order.orderItemId && (
+                        <>
+                          <div>
+                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order Item ID</span>
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-800 break-all select-all">#{order.orderItemId}</span>
+                          </div>
+                          <div className="h-6 w-[1px] bg-slate-200" />
+                        </>
+                      )}
                       <div>
                         <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order ID</span>
                         <span className="text-xs sm:text-sm font-extrabold text-slate-800 break-all select-all">#{order._id}</span>

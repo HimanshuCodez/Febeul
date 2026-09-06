@@ -518,6 +518,7 @@ const Orders = ({ token }) => {
       if (query) {
         const haystack = [
           order._id,
+          order.orderItemId,
           order.userId?.name,
           order.address?.name,
           order.userId?.email,
@@ -554,6 +555,7 @@ const Orders = ({ token }) => {
 
   // Excel/CSV Export Data
   const orderCsvHeaders = [
+    { label: 'Order Item ID', key: 'orderItemId' },
     { label: 'Order ID', key: 'orderId' },
     { label: 'Date', key: 'date' },
     { label: 'Customer Name', key: 'customerName' },
@@ -578,6 +580,7 @@ const Orders = ({ token }) => {
   ];
 
   const orderCsvData = useMemo(() => filteredOrders.map(order => ({
+    orderItemId: order.orderItemId || '',
     orderId: order._id,
     date: order.date ? new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
     customerName: order.userId?.name || order.address?.name || 'N/A',
@@ -769,7 +772,7 @@ const Orders = ({ token }) => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
               <input
                 type="text"
-                placeholder="Search by Order ID, name, email, phone, AWB..."
+                placeholder="Search by Order ID, Order Item ID, name, email, phone, AWB..."
                 value={orderSearch}
                 onChange={(e) => { setOrderSearch(e.target.value); setCurrentPage(1); }}
                 className='w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500/15 focus:border-pink-400 outline-none transition-all'
@@ -883,7 +886,10 @@ const Orders = ({ token }) => {
                         <React.Fragment key={order._id}>
                           <tr className='hover:bg-gray-50/70 transition-colors'>
                             <td className='px-4 py-3 align-top max-w-[160px]'>
-                              <p className='text-xs font-semibold text-gray-900 truncate' title={order._id}>#{order._id}</p>
+                              {order.orderItemId && (
+                                <p className='text-xs font-bold text-pink-600 truncate' title={order.orderItemId}>#{order.orderItemId}</p>
+                              )}
+                              <p className='text-[11px] text-gray-400 truncate' title={order._id}>#{order._id}</p>
                             </td>
                             <td className='px-4 py-3 align-top max-w-[160px]'>
                               <p className='text-xs font-semibold text-gray-800 truncate' title={order.userId?.name || order.address?.name || 'N/A'}>{order.userId?.name || order.address?.name || 'N/A'}</p>
@@ -951,6 +957,9 @@ const Orders = ({ token }) => {
                     <div className='p-4'>
                       <div className='flex items-start justify-between gap-3'>
                         <div className='min-w-0'>
+                          {order.orderItemId && (
+                            <p className='text-[11px] font-bold text-pink-600 truncate' title={order.orderItemId}>#{order.orderItemId}</p>
+                          )}
                           <p className='text-[11px] font-semibold text-gray-400 truncate' title={order._id}>#{order._id}</p>
                           <p className='text-sm font-semibold text-gray-900 truncate mt-0.5'>{order.userId?.name || order.address?.name || 'N/A'}</p>
                           <p className='text-xs text-gray-500 truncate'>{order.userId?.email || order.address?.email || 'N/A'}</p>
