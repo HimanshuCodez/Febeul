@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Youtube, Twitter, AtSign } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import axios from "axios";
 
 const Footer = () => {
@@ -44,9 +45,9 @@ const Footer = () => {
             </div>
 
             <div className="flex items-center justify-center sm:justify-start gap-2 text-sm">
-              <span>📞</span>
-              <a href="tel:+919990310241" className="hover:text-white">
-                +91 99903 10241
+              <FaWhatsapp size={16} />
+              <a href="https://wa.link/rkjhle" target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                Chat with us on WhatsApp
               </a>
             </div>
 
