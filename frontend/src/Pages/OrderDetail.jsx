@@ -439,6 +439,7 @@ export default function OrderDetailPage() {
   const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
   const [showCancelledAnimation, setShowCancelledAnimation] = useState(false);
   const [isCancellingReturnRequest, setIsCancellingReturnRequest] = useState(false);
+  const [expandedMilestones, setExpandedMilestones] = useState({});
 
   useEffect(() => {
     fetchSiteSettings();
@@ -548,22 +549,29 @@ export default function OrderDetailPage() {
     }
   };
 
+  const toggleMilestone = (key) => {
+    setExpandedMilestones(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#f9aeaf]"><Loader className="animate-spin text-pink-500" size={48} /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fff0f0] to-white"><Loader className="animate-spin text-[#e8767a]" size={48} /></div>;
   }
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-[#f9aeaf] flex items-center justify-center text-center">
+      <div className="min-h-screen bg-gradient-to-b from-[#fff0f0] to-white flex items-center justify-center text-center px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, type: 'spring' }}
-          className="bg-white p-10 rounded-xl shadow-lg"
+          className="bg-white p-10 rounded-3xl shadow-xl shadow-slate-100 border border-slate-100 max-w-sm"
         >
-          <h1 className="text-2xl font-bold text-red-500">Order Details Not Found</h1>
-          <p className="text-gray-600 mt-2">{error || 'Could not retrieve order details.'}</p>
-          <Link to="/" className="mt-4 inline-block bg-[#e8767a] text-white px-4 py-2 rounded-lg hover:bg-[#d5666a]">Go to Homepage</Link>
+          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <X size={28} className="text-red-500" />
+          </div>
+          <h1 className="text-xl font-black text-slate-800">Order Details Not Found</h1>
+          <p className="text-slate-500 text-sm mt-2">{error || 'Could not retrieve order details.'}</p>
+          <Link to="/" className="mt-6 inline-block bg-[#e8767a] text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-[#d5666a] transition-colors uppercase tracking-wider">Go to Homepage</Link>
         </motion.div>
       </div>
     );
@@ -841,23 +849,23 @@ export default function OrderDetailPage() {
             </motion.div>
         )}
       </AnimatePresence>
-      <div className="min-h-screen bg-[#f9aeaf] py-8 px-4">
+      <div className="min-h-screen bg-gradient-to-b from-[#fff0f0] via-[#fff7f7] to-slate-50 py-6 sm:py-10 px-4">
         <div className="max-w-4xl mx-auto">
-          
+
           {/* Order Details Header */}
           <motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="bg-white rounded-lg shadow-lg p-8 mb-6 text-center"
+            className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-100 p-6 sm:p-8 mb-5 text-center"
           >
             <motion.div
               variants={{
                 hidden: { scale: 0, rotate: -180 },
-                visible: { 
-                  scale: 1, 
+                visible: {
+                  scale: 1,
                   rotate: 0,
-                  transition: { 
+                  transition: {
                     type: "spring",
                     stiffness: 200,
                     damping: 15,
@@ -867,25 +875,25 @@ export default function OrderDetailPage() {
               }}
               initial="hidden"
               animate="visible"
-              className="inline-block"
+              className={`inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full ${isLuxeOrder ? 'bg-yellow-50' : 'bg-[#fff0f0]'}`}
             >
-              {isLuxeOrder ? <FaCrown className="text-7xl text-yellow-500 mx-auto" /> : <FaClipboardList className="text-7xl text-[#e8767a] mx-auto" />}
+              {isLuxeOrder ? <FaCrown className="text-4xl sm:text-5xl text-yellow-500" /> : <FaClipboardList className="text-4xl sm:text-5xl text-[#e8767a]" />}
             </motion.div>
-            
-            <motion.h1 
+
+            <motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-3xl font-bold text-gray-800 mt-4"
+              className="text-2xl sm:text-3xl font-black text-slate-800 mt-5 tracking-tight"
             >
               {isLuxeOrder ? 'Luxe Membership Active' : 'Order Details'}
             </motion.h1>
-            
+
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="text-gray-600 mt-2"
+              className="text-slate-500 text-sm mt-1.5"
             >
               {isLuxeOrder ? 'Thank you for joining the elite.' : 'Here are the details for your order.'}
             </motion.p>
@@ -894,9 +902,9 @@ export default function OrderDetailPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.7 }}
-              className="mt-6 p-4 bg-[#fff5f5] border-2 border-[#e8767a] rounded-2xl w-full max-w-sm sm:max-w-md mx-auto"
+              className="mt-6 p-4 bg-[#fff5f5] border border-[#f9d4d5] rounded-2xl w-full max-w-sm sm:max-w-md mx-auto"
             >
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Order ID</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</p>
               <p className="text-sm sm:text-lg font-bold text-[#e8767a] break-all select-all font-mono mt-1">{orderNumberToDisplay}</p>
             </motion.div>
 
@@ -999,21 +1007,58 @@ export default function OrderDetailPage() {
 
                               {hasData ? (
                                 <div className="mt-2 space-y-2.5">
-                                  {groupActivities.map((act, i) => (
-                                    <div key={i} className="flex flex-wrap items-baseline gap-x-2">
-                                      <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                                        {act.activity || DEFAULT_ACTIVITY_TEXT[act.status] || group.fallbackDescription}
-                                      </p>
-                                      {act.location && (
-                                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-full">
-                                          📍 {act.location}
+                                  {(() => {
+                                    const isExpanded = !!expandedMilestones[group.key];
+                                    const latestActivity = groupActivities[groupActivities.length - 1];
+                                    const earlierActivities = groupActivities.slice(0, -1);
+                                    const renderActivity = (act, i) => (
+                                      <div key={i} className="flex flex-wrap items-baseline gap-x-2">
+                                        <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                                          {act.activity || DEFAULT_ACTIVITY_TEXT[act.status] || group.fallbackDescription}
+                                        </p>
+                                        {act.location && (
+                                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-full">
+                                            📍 {act.location}
+                                          </span>
+                                        )}
+                                        <span className="text-[10px] text-slate-400 font-bold w-full">
+                                          {formatMilestoneDate(act.date)} - {formatMilestoneTime(act.date)}
                                         </span>
-                                      )}
-                                      <span className="text-[10px] text-slate-400 font-bold w-full">
-                                        {formatMilestoneDate(act.date)} - {formatMilestoneTime(act.date)}
-                                      </span>
-                                    </div>
-                                  ))}
+                                      </div>
+                                    );
+
+                                    return (
+                                      <>
+                                        <AnimatePresence initial={false}>
+                                          {isExpanded && earlierActivities.length > 0 && (
+                                            <motion.div
+                                              key="earlier-updates"
+                                              initial={{ height: 0, opacity: 0 }}
+                                              animate={{ height: 'auto', opacity: 1 }}
+                                              exit={{ height: 0, opacity: 0 }}
+                                              transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                              className="space-y-2.5 overflow-hidden"
+                                            >
+                                              {earlierActivities.map(renderActivity)}
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
+
+                                        {renderActivity(latestActivity, 'latest')}
+
+                                        {earlierActivities.length > 0 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleMilestone(group.key)}
+                                            className="text-[10px] sm:text-xs font-black text-[#e8767a] hover:text-[#d5666a] uppercase tracking-wider flex items-center gap-1"
+                                          >
+                                            {isExpanded ? 'Show less' : `+${earlierActivities.length} earlier update${earlierActivities.length > 1 ? 's' : ''}`}
+                                            <span className={`inline-block transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▾</span>
+                                          </button>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               ) : (
                                 <p className="text-xs sm:text-sm text-slate-400 mt-1">{group.fallbackDescription}</p>
@@ -1200,31 +1245,33 @@ export default function OrderDetailPage() {
             </motion.div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
             {/* Delivery Address */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-white rounded-lg shadow-md p-6"
+              className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-100 p-6"
             >
-              <h3 className="text-lg font-bold text-gray-800 flex items-center mb-4">
-                <FaMapMarkerAlt className="mr-2 text-[#e8767a]" />
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 mb-4">
+                <span className="w-8 h-8 rounded-full bg-[#fff0f0] flex items-center justify-center text-[#e8767a] text-xs shrink-0">
+                  <FaMapMarkerAlt />
+                </span>
                 {isLuxeOrder ? 'Membership Type' : 'Delivery Address'}
               </h3>
-              <div className="text-gray-600 space-y-1">
+              <div className="text-slate-600 space-y-1 pl-1">
                 {isLuxeOrder ? (
                   <>
-                    <p className="font-semibold text-gray-800">Febeul Luxe Digital Membership</p>
+                    <p className="font-bold text-slate-800">Febeul Luxe Digital Membership</p>
                     <p className="text-sm">Valid for 30 days from purchase</p>
                   </>
                 ) : (
                   <>
-                    <p className="font-semibold text-gray-800">{order.address.name}</p>
+                    <p className="font-bold text-slate-800">{order.address.name}</p>
                     <p className="text-sm">{order.address.address}</p>
-                    {order.address.nearby && <p className="text-xs text-gray-500 italic">Nearby: {order.address.nearby}</p>}
+                    {order.address.nearby && <p className="text-xs text-slate-400 italic">Nearby: {order.address.nearby}</p>}
                     <p className="text-sm">{order.address.city}, {order.address.zip}, {order.address.country}</p>
-                    <p className="text-sm mt-2">Phone: {order.address.phone}</p>
+                    <p className="text-sm mt-2 font-medium text-slate-700">Phone: {order.address.phone}</p>
                   </>
                 )}
               </div>
@@ -1235,25 +1282,27 @@ export default function OrderDetailPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-white rounded-lg shadow-md p-6"
+              className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-100 p-6"
             >
-              <h3 className="text-lg font-bold text-gray-800 flex items-center mb-4">
-                <FaMoneyBillWave className="mr-2 text-[#e8767a]" />
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 mb-4">
+                <span className="w-8 h-8 rounded-full bg-[#fff0f0] flex items-center justify-center text-[#e8767a] text-xs shrink-0">
+                  <FaMoneyBillWave />
+                </span>
                 Payment Method
               </h3>
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-[#fff5f5] rounded-lg flex items-center justify-center mr-3">
-                  {order.paymentMethod === 'COD' ? <FaMoneyBillWave className="text-2xl text-[#e8767a]" /> : <FaCreditCard className="text-2xl text-[#e8767a]" />}
+                <div className="w-12 h-12 bg-[#fff5f5] rounded-2xl flex items-center justify-center mr-3 shrink-0">
+                  {order.paymentMethod === 'COD' ? <FaMoneyBillWave className="text-xl text-[#e8767a]" /> : <FaCreditCard className="text-xl text-[#e8767a]" />}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-gray-800">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : (order.paymentMethod === 'Razorpay' ? 'Razorpay Prepaid' : 'Stripe Payment')}</p>
-                  <p className="text-sm text-gray-600">Total: ₹{orderTotal.toFixed(2)}</p>
-                  <p className={`text-[10px] font-bold uppercase ${order.payment ? 'text-green-600' : 'text-red-500'}`}>{order.payment ? 'Paid' : 'Pending'}</p>
+                  <p className="font-bold text-slate-800">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : (order.paymentMethod === 'Razorpay' ? 'Razorpay Prepaid' : 'Stripe Payment')}</p>
+                  <p className="text-sm text-slate-500">Total: ₹{orderTotal.toFixed(2)}</p>
+                  <p className={`text-[10px] font-black uppercase tracking-wider mt-0.5 ${order.payment ? 'text-emerald-600' : 'text-amber-600'}`}>{order.payment ? 'Paid' : 'Pending'}</p>
                   {order.paymentMethod === 'Razorpay' && order.razorpayPaymentId && (
-                    <p className="text-[10px] text-gray-400 font-bold mt-1 break-all select-all">Ref ID: {order.razorpayPaymentId}</p>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1 break-all select-all">Ref ID: {order.razorpayPaymentId}</p>
                   )}
                   {order.paymentMethod === 'Razorpay' && order.bankRRN && (
-                    <p className="text-[10px] text-gray-400 font-bold mt-1 break-all select-all">Bank RRN: {order.bankRRN}</p>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1 break-all select-all">Bank RRN: {order.bankRRN}</p>
                   )}
                 </div>
               </div>
@@ -1265,10 +1314,12 @@ export default function OrderDetailPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white rounded-lg shadow-md p-6 mb-6"
+            className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-100 p-6 sm:p-8 mb-5"
           >
-            <h3 className="text-lg font-bold text-gray-800 flex items-center mb-4">
-              <FaFileInvoice className="mr-2 text-[#e8767a]" />
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 mb-5">
+              <span className="w-8 h-8 rounded-full bg-[#fff0f0] flex items-center justify-center text-[#e8767a] text-xs shrink-0">
+                <FaFileInvoice />
+              </span>
               Order Summary
             </h3>
 
@@ -1285,17 +1336,17 @@ export default function OrderDetailPage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.7 + (index * 0.1) }}
-                    className="flex items-center justify-between gap-2 pb-4 border-b border-gray-200 last:border-0"
+                    className="flex items-center justify-between gap-2 pb-4 border-b border-slate-100 last:border-0"
                   >
                     <div className="flex items-center flex-1 min-w-0">
-                      <img src={item.image} className="w-12 h-12 object-cover mr-3 rounded shrink-0" />
+                      <img src={item.image} className="w-14 h-14 object-cover mr-3 rounded-xl shrink-0 border border-slate-100" />
                       <div className="min-w-0">
-                        <p className="font-medium text-gray-800 break-words">{item.name}</p>
-                        {item.sku && <p className="text-xs text-gray-500 break-words">SKU: {item.sku}</p>}
+                        <p className="font-bold text-slate-800 break-words text-sm sm:text-base">{item.name}</p>
+                        {item.sku && <p className="text-xs text-slate-400 break-words">SKU: {item.sku}</p>}
                         <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                          <p className="text-sm text-slate-500">Qty: {item.quantity}</p>
                           {itemDiscount > 0 && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100">
                               Discount Applied
                             </span>
                           )}
@@ -1303,19 +1354,19 @@ export default function OrderDetailPage() {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className={`font-bold text-gray-800 ${itemDiscount > 0 ? 'line-through text-xs text-gray-400' : ''}`}>
+                      <p className={`font-bold text-slate-800 ${itemDiscount > 0 ? 'line-through text-xs text-slate-400' : ''}`}>
                         ₹{(itemPrice * itemQuantity).toFixed(2)}
                       </p>
                       {itemDiscount > 0 && (
-                        <p className="font-bold text-green-600">
+                        <p className="font-bold text-emerald-600">
                           ₹{itemTotal.toFixed(2)}
                         </p>
                       )}
                     </div>
                   </motion.div>
                   {displayStatus === 'Delivered' && (
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100 mt-2">
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Rate & Review this product:</p>
+                    <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 mt-2">
+                      <p className="text-sm font-bold text-slate-700 mb-2">Rate & Review this product:</p>
                       <Reviews productId={item.productId} />
                     </div>
                   )}
@@ -1324,53 +1375,53 @@ export default function OrderDetailPage() {
               })}
             </div>
 
-            <div className="border-t pt-4 space-y-2">
-              <div className="flex justify-between text-gray-600">
+            <div className="border-t border-slate-100 pt-4 space-y-2.5">
+              <div className="flex justify-between text-sm text-slate-500 font-medium">
                 <span>Subtotal</span>
                 <span>₹{productAmount.toFixed(2)}</span>
               </div>
               {order.couponDiscount > 0 && (
-                  <div className="flex flex-col border-b border-gray-100 pb-2">
-                    <div className="flex justify-between text-green-600 font-semibold">
+                  <div className="flex flex-col border-b border-slate-100 pb-2.5">
+                    <div className="flex justify-between text-emerald-600 font-bold text-sm">
                         <span>Total Discount</span>
                         <span>- ₹{order.couponDiscount.toFixed(2)}</span>
                     </div>
                     {order.couponOfferType && order.couponOfferType !== 'none' && (
-                      <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-100 uppercase tracking-wider w-fit mt-1 self-end">
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 uppercase tracking-wider w-fit mt-1 self-end">
                         {order.couponOfferType === 'prepaid' ? 'Prepaid Offer' : 'COD Offer'} Applied
                       </span>
                     )}
                   </div>
               )}
-              
+
               {shippingCharge > 0 && (
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between text-sm text-slate-500 font-medium">
                       <span>Shipping Charge</span>
                       <span>₹{shippingCharge.toFixed(2)}</span>
                   </div>
               )}
               {codCharge > 0 && (
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between text-sm text-slate-500 font-medium">
                       <span>COD Charge</span>
                       <span>₹{codCharge.toFixed(2)}</span>
                   </div>
               )}
               {order.giftWrap && order.giftWrap.name && (
-                  <div className="p-3 bg-pink-50 rounded-lg border border-pink-100 mt-2">
+                  <div className="p-3 bg-[#fff5f5] rounded-2xl border border-[#f9d4d5] mt-2">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
-                        {order.giftWrap.image && <img src={order.giftWrap.image} className="w-10 h-10 object-cover rounded shadow-sm" alt="" />}
+                        {order.giftWrap.image && <img src={order.giftWrap.image} className="w-10 h-10 object-cover rounded-lg shadow-sm" alt="" />}
                         <div>
-                          <p className="text-sm font-bold text-gray-800">Gift Wrap: {order.giftWrap.name}</p>
-                          {order.giftWrap.message && <p className="text-xs text-gray-600 italic mt-1">"{order.giftWrap.message}"</p>}
+                          <p className="text-sm font-bold text-slate-800">Gift Wrap: {order.giftWrap.name}</p>
+                          {order.giftWrap.message && <p className="text-xs text-slate-500 italic mt-1">"{order.giftWrap.message}"</p>}
                         </div>
                       </div>
-                      <span className="text-gray-600 font-medium">₹{order.giftWrap.price.toFixed(2)}</span>
+                      <span className="text-slate-600 font-bold text-sm">₹{order.giftWrap.price.toFixed(2)}</span>
                     </div>
                   </div>
               )}
-              <div className="border-t pt-3 flex justify-between text-xl font-bold">
-                <span className="text-gray-800">Total</span>
+              <div className="border-t border-slate-100 pt-3 flex justify-between text-xl font-black">
+                <span className="text-slate-800">Total</span>
                 <span className="text-[#e8767a]">₹{orderTotal.toFixed(2)}</span>
               </div>
             </div>
@@ -1385,21 +1436,21 @@ export default function OrderDetailPage() {
           >
             <Link to={isLuxeOrder ? "/luxe" : "/"} className="flex-1">
               <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-rose-200/50 transition-colors flex items-center justify-center uppercase tracking-widest text-xs sm:text-sm"
               >
                   {isLuxeOrder ? <FaCrown className="mr-2" /> : <FaHome className="mr-2" />}
                   {isLuxeOrder ? 'View Luxe Products' : 'Go to Homepage'}
               </motion.button>
             </Link>
-            
+
             {!isLuxeOrder && displayStatus !== 'Cancelled' ? (
               <motion.button
                   onClick={handleDownloadInvoice}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-slate-200/50 transition-colors flex items-center justify-center uppercase tracking-widest text-xs sm:text-sm"
               >
                   <FaFileInvoice className="mr-2" />
                   Download Invoice
@@ -1407,9 +1458,9 @@ export default function OrderDetailPage() {
             ) : isLuxeOrder && (
               <motion.button
                   onClick={() => navigate('/support')}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-blue-200/50 transition-colors flex items-center justify-center uppercase tracking-widest text-xs sm:text-sm"
               >
                   <FaEnvelope className="mr-2" />
                   VIP Support
@@ -1430,10 +1481,10 @@ export default function OrderDetailPage() {
                     disabled={!cancellationPossible}
                     whileHover={cancellationPossible ? { scale: 1.02 } : {}}
                     whileTap={cancellationPossible ? { scale: 0.98 } : {}}
-                    className={`w-full border-2 py-3 px-6 rounded-lg transition-all flex items-center justify-center uppercase tracking-widest text-sm font-bold ${
-                        cancellationPossible 
-                        ? 'border-red-500 text-red-600 hover:bg-red-50' 
-                        : 'border-gray-300 text-gray-400 cursor-not-allowed'
+                    className={`w-full border-2 py-3.5 px-6 rounded-2xl transition-all flex items-center justify-center uppercase tracking-widest text-xs sm:text-sm font-bold ${
+                        cancellationPossible
+                        ? 'border-red-500 text-red-600 hover:bg-red-50'
+                        : 'border-slate-200 text-slate-400 cursor-not-allowed'
                     }`}
                 >
                     <X className="mr-2" size={18} />
@@ -1453,18 +1504,18 @@ export default function OrderDetailPage() {
               <motion.button
                   onClick={() => setIsReturnModalOpen(true)}
                   disabled={!returnPossible}
-                  whileHover={returnPossible ? { scale: 1.05 } : {}}
-                  whileTap={returnPossible ? { scale: 0.95 } : {}}
-                  className={`w-full py-3 px-6 rounded-lg transition-colors flex items-center justify-center uppercase tracking-widest text-sm font-bold ${
-                      returnPossible 
-                      ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  whileHover={returnPossible ? { scale: 1.02 } : {}}
+                  whileTap={returnPossible ? { scale: 0.98 } : {}}
+                  className={`w-full py-3.5 px-6 rounded-2xl transition-colors flex items-center justify-center uppercase tracking-widest text-xs sm:text-sm font-bold ${
+                      returnPossible
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200/50'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}
               >
                   <FaUndo className="mr-2" />
                   {returnPossible ? 'Return or Refund' : 'Return Window Closed'}
               </motion.button>
-              {returnPossible && <p className="text-[10px] text-gray-500 mt-2 text-center italic">Industry Standard: Return window closes 3 days after delivery. Exactly 4 images required.</p>}
+              {returnPossible && <p className="text-[10px] text-slate-400 mt-2 text-center italic">Industry Standard: Return window closes 3 days after delivery. Exactly 4 images required.</p>}
             </motion.div>
           )}
 
@@ -1481,12 +1532,12 @@ export default function OrderDetailPage() {
                   disabled={isCancellingReturnRequest}
                   whileHover={!isCancellingReturnRequest ? { scale: 1.02 } : {}}
                   whileTap={!isCancellingReturnRequest ? { scale: 0.98 } : {}}
-                  className="w-full border-2 border-red-500 text-red-600 hover:bg-red-50 py-3 px-6 rounded-lg transition-all flex items-center justify-center uppercase tracking-widest text-sm font-bold disabled:opacity-50"
+                  className="w-full border-2 border-red-500 text-red-600 hover:bg-red-50 py-3.5 px-6 rounded-2xl transition-all flex items-center justify-center uppercase tracking-widest text-xs sm:text-sm font-bold disabled:opacity-50"
               >
                   <X className="mr-2" size={18} />
                   {isCancellingReturnRequest ? 'Cancelling...' : 'Cancel Return/Refund Request'}
               </motion.button>
-              <p className="text-[10px] text-gray-500 mt-2 text-center italic">You can cancel this request until the courier picks up the item for return.</p>
+              <p className="text-[10px] text-slate-400 mt-2 text-center italic">You can cancel this request until the courier picks up the item for return.</p>
             </motion.div>
           )}
 
@@ -1495,7 +1546,7 @@ export default function OrderDetailPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1 }}
-            className="mt-6 text-center text-gray-600 text-sm"
+            className="mt-6 text-center text-slate-500 text-sm"
           >
             <p>Need help with your order? <Link to="/support" className="text-[#e8767a] hover:underline font-semibold">Contact Support</Link></p>
           </motion.div>
