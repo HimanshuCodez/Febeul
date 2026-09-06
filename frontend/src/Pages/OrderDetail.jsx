@@ -564,7 +564,7 @@ export default function OrderDetailPage() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, type: 'spring' }}
-          className="bg-white p-10 rounded-3xl shadow-xl shadow-slate-100 border border-slate-100 max-w-sm"
+          className="bg-white p-10 rounded-3xl shadow-xl shadow-slate-100 border border-gray-200 max-w-sm"
         >
           <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
             <X size={28} className="text-red-500" />
@@ -857,7 +857,7 @@ export default function OrderDetailPage() {
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-100 p-6 sm:p-8 mb-5 text-center"
+            className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-gray-200 p-6 sm:p-8 mb-5 text-center"
           >
             <motion.div
               variants={{
@@ -924,7 +924,7 @@ export default function OrderDetailPage() {
             }}
             initial="hidden"
             animate="visible"
-            className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6"
+            className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 mb-6 gap-3 text-left">
               <div>
@@ -1151,7 +1151,7 @@ export default function OrderDetailPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6"
+              className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 mb-6 gap-3 text-left">
                 <div>
@@ -1251,7 +1251,7 @@ export default function OrderDetailPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-100 p-6"
+              className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-gray-200 p-6"
             >
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 mb-4">
                 <span className="w-8 h-8 rounded-full bg-[#fff0f0] flex items-center justify-center text-[#e8767a] text-xs shrink-0">
@@ -1282,7 +1282,7 @@ export default function OrderDetailPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-100 p-6"
+              className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-gray-200 p-6"
             >
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 mb-4">
                 <span className="w-8 h-8 rounded-full bg-[#fff0f0] flex items-center justify-center text-[#e8767a] text-xs shrink-0">
@@ -1314,7 +1314,7 @@ export default function OrderDetailPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-slate-100 p-6 sm:p-8 mb-5"
+            className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-gray-200 p-6 sm:p-8 mb-5"
           >
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 mb-5">
               <span className="w-8 h-8 rounded-full bg-[#fff0f0] flex items-center justify-center text-[#e8767a] text-xs shrink-0">
