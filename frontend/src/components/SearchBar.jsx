@@ -44,20 +44,24 @@ export default function SearchBar({ onNavigate }) {
     }
   }, [history]);
 
-  // Fetch trending (bestseller) products once, shown when the query is empty
+  // Fetch trending (bestseller) products each time the search dropdown is
+  // opened, showing a fresh random pair when the query is empty.
   useEffect(() => {
+    if (!showResults || query.trim()) return;
+
     const fetchTrending = async () => {
       try {
         const response = await axios.get(`${backendUrl}/api/product/bestsellers`);
         if (response.data.success) {
-          setTrending(response.data.products.slice(0, 5));
+          const shuffled = [...response.data.products].sort(() => 0.5 - Math.random());
+          setTrending(shuffled.slice(0, 2));
         }
       } catch (error) {
         console.error("Failed to fetch trending products:", error);
       }
     };
     fetchTrending();
-  }, []);
+  }, [showResults]);
 
   // Click outside just dismisses the dropdown, keeping the typed query intact
   useEffect(() => {
@@ -322,23 +326,33 @@ export default function SearchBar({ onNavigate }) {
                     </div>
                     {filtered.map((product, i) => {
                       const priceInfo = getPriceInfo(product);
+                      const isLocked = product.isLuxePrive && !isLuxeMember;
                       return (
                         <div
                           key={product._id}
                           onClick={() => handleProductSelect(product)}
                           onMouseEnter={() => setActiveIndex(i)}
-                          className={`px-4 py-2.5 cursor-pointer flex items-center gap-3 transition-colors ${
-                            i === activeIndex ? "bg-yellow-50" : "hover:bg-gray-50"
-                          }`}
+                          className={`px-4 py-2.5 flex items-center gap-3 transition-colors ${
+                            isLocked ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                          } ${i === activeIndex ? "bg-yellow-50" : "hover:bg-gray-50"}`}
                         >
-                          <img
-                            src={product.variations?.[0]?.images?.[0]}
-                            alt={product.name}
-                            className="w-12 h-16 object-cover rounded-md border border-gray-100 shrink-0 bg-gray-100"
-                            onError={(e) => {
-                              e.currentTarget.style.visibility = "hidden";
-                            }}
-                          />
+                          <div className="relative shrink-0">
+                            <img
+                              src={product.variations?.[0]?.images?.[0]}
+                              alt={product.name}
+                              className="w-12 h-16 object-cover rounded-md border border-gray-100 bg-gray-100"
+                              onError={(e) => {
+                                e.currentTarget.style.visibility = "hidden";
+                              }}
+                            />
+                            {product.isLuxePrive && (
+                              <img
+                                src="/luxeprive.png"
+                                alt="Luxe"
+                                className="absolute -bottom-1 -right-1 w-5 h-5 object-contain drop-shadow-[0_0_4px_rgba(255,215,0,0.6)]"
+                              />
+                            )}
+                          </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm text-gray-800 font-medium truncate">
                               {highlightMatch(product.name, query)}
@@ -442,23 +456,33 @@ export default function SearchBar({ onNavigate }) {
                     <div className="space-y-1">
                       {trending.map((product, i) => {
                         const idx = history.length + i;
+                        const isLocked = product.isLuxePrive && !isLuxeMember;
                         return (
                           <div
                             key={product._id}
                             onClick={() => handleProductSelect(product)}
                             onMouseEnter={() => setActiveIndex(idx)}
-                            className={`flex items-center gap-3 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                              idx === activeIndex ? "bg-yellow-50" : "hover:bg-gray-50"
-                            }`}
+                            className={`flex items-center gap-3 px-2 py-1.5 rounded-md transition-colors ${
+                              isLocked ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+                            } ${idx === activeIndex ? "bg-yellow-50" : "hover:bg-gray-50"}`}
                           >
-                            <img
-                              src={product.variations?.[0]?.images?.[0]}
-                              alt={product.name}
-                              className="w-10 h-12 object-cover rounded border border-gray-100 shrink-0 bg-gray-100"
-                              onError={(e) => {
-                                e.currentTarget.style.visibility = "hidden";
-                              }}
-                            />
+                            <div className="relative shrink-0">
+                              <img
+                                src={product.variations?.[0]?.images?.[0]}
+                                alt={product.name}
+                                className="w-10 h-12 object-cover rounded border border-gray-100 bg-gray-100"
+                                onError={(e) => {
+                                  e.currentTarget.style.visibility = "hidden";
+                                }}
+                              />
+                              {product.isLuxePrive && (
+                                <img
+                                  src="/luxeprive.png"
+                                  alt="Luxe"
+                                  className="absolute -bottom-1 -right-1 w-4 h-4 object-contain drop-shadow-[0_0_4px_rgba(255,215,0,0.6)]"
+                                />
+                              )}
+                            </div>
                             <span className="text-sm text-gray-700 truncate">{product.name}</span>
                           </div>
                         );
