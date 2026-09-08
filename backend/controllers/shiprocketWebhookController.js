@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import orderModel from '../models/orderModel.js';
 import { mapShiprocketStatus, parseShiprocketTimestamp, mergeTrackingHistory, isStatusProgression } from '../utils/shiprocketStatusMap.js';
+import { applyReturnPickupStatus } from '../utils/returnTrackingSync.js';
 import { autoRefundOnCourierReturn } from './refundController.js';
 
 // Shiprocket omits identifiers it doesn't have yet (no `shipment_id` key at
@@ -95,21 +96,25 @@ export const handleWebhook = async (req, res) => {
             // --- Reverse pickup (return) tracking update ---
             const pickup = order.refundDetails.pickup;
             pickup.trackingHistory = mergeTrackingHistory(pickup.trackingHistory, [activityEntry]);
+            pickup.lastTrackedAt = new Date();
 
-            if (mapped) {
-                const pickupStatusMap = {
-                    'NEW': 'scheduled',
-                    'PICKUP SCHEDULED': 'scheduled',
-                    'PICKED UP': 'picked_up',
-                    'SHIPPED': 'picked_up',
-                    'IN_TRANSIT': 'in_transit',
-                    'DELIVERED': 'delivered_to_warehouse'
-                };
-                const newPickupStatus = pickupStatusMap[mapped.shiprocketStatus];
-                if (newPickupStatus && pickup.status !== newPickupStatus) {
-                    pickup.status = newPickupStatus;
-                    statusChanged = true;
-                }
+            // Capture identifiers the return order didn't have at creation time —
+            // Shiprocket only assigns an AWB once a courier is allocated, and
+            // without it the pull-based fallback has nothing to poll.
+            if (awb && pickup.awb !== awb) {
+                pickup.awb = awb;
+                pickup.trackingUrl = `https://shiprocket.co/tracking/${awb}`;
+                statusChanged = true;
+            }
+            if (req.body.courier_name && pickup.courier !== req.body.courier_name) {
+                pickup.courier = req.body.courier_name;
+            }
+            if (shipment_id && !pickup.shipmentId) pickup.shipmentId = shipment_id;
+
+            // Shared with the on-demand poll so both paths derive Day 0 and the
+            // warehouse-receipt date identically.
+            if (mapped && applyReturnPickupStatus(order, mapped.shiprocketStatus, timestamp)) {
+                statusChanged = true;
             }
         } else {
             // --- Forward shipment tracking update ---

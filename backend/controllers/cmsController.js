@@ -1,5 +1,6 @@
 import cmsModel from '../models/cmsModel.js';
 import { v2 as cloudinary } from 'cloudinary';
+import { invalidateReturnSettingsCache } from '../utils/returnStatus.js';
 
 // @desc    Get CMS content by name
 // @route   GET /api/cms/:name
@@ -36,6 +37,11 @@ const updateCmsContent = async (req, res) => {
             },
             { new: true, upsert: true, runValidators: true }
         );
+
+        // The return thresholds are read from siteSettings behind a short cache;
+        // drop it so a changed threshold re-classifies every return on the very
+        // next request rather than up to 30s later.
+        if (name === 'siteSettings') invalidateReturnSettingsCache();
 
         res.status(201).json({ success: true, content: updatedContent.content });
     } catch (error) {

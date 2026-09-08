@@ -72,11 +72,76 @@ const orderSchema = new mongoose.Schema({
             trackingUrl: { type: String },
             scheduledDate: { type: Date },
             failureReason: { type: String }, // Set when auto-scheduling with Shiprocket fails, so admin can arrange manually
+            lastTrackedAt: { type: Date }, // Last time we polled Shiprocket's live tracking API for this return leg
             trackingHistory: [{
                 status: { type: String },
                 activity: { type: String },
                 location: { type: String },
                 date: { type: Date }
+            }]
+        },
+
+        // --- Return journey (post-pickup): warehouse receipt → QC → settlement ---
+        //
+        // The return's internal status is NEVER stored. It is derived on every
+        // read from the three date fields below (see utils/returnStatus.js), so
+        // there is no cron job to fail, no order can get stranded in a stale
+        // status, and changing a threshold (10 → 12 days) re-classifies every
+        // existing order instantly. Everything else here is evidence and audit
+        // trail, not state.
+        returnTracking: {
+            pickupDate: { type: Date },   // Day 0 — courier collected the parcel. Every day-count is measured from here.
+            receivedDate: { type: Date }, // Warehouse receipt. Setting this stops the clock permanently.
+            manualStatus: {               // Admin override. Wins over the computed status (see returnStatus.js for the one exception).
+                type: String,
+                enum: ['CRITICAL_RETURN', 'INVESTIGATION_OPEN', 'LOST_RETURN', 'COURIER_CLAIM_PENDING', 'CLAIM_APPROVED', 'CLAIM_REJECTED', 'RECEIVED', 'LATE_RECEIVED']
+            },
+
+            // Quality check (performed by admin from the panel)
+            qcResult: { type: String, enum: ['PASS', 'FAIL'] },
+            qcBy: { type: String },
+            qcDate: { type: Date },
+            qcNotes: { type: String },
+            qcPhotos: { type: [String], default: [] }, // Mandatory when qcResult is FAIL
+
+            // Settlement — the gateway refund id lives in refundDetails.id; this is
+            // the bank reference for manually paid out (COD/UPI) refunds.
+            refundUtr: { type: String },
+            refundInitiatedAt: { type: Date },
+            refundPaidAt: { type: Date },
+            refundDecidedBy: { type: String },
+            refundDecisionReason: { type: String },
+
+            // Courier investigation (opened when a parcel goes past the critical threshold)
+            investigationTicket: { type: String },
+            investigationOpenedAt: { type: Date },
+            investigationBy: { type: String },
+            followups: [{
+                note: { type: String },
+                by: { type: String },
+                date: { type: Date, default: Date.now }
+            }],
+
+            // Courier claim, filed once a parcel is written off as lost
+            claimStatus: { type: String, enum: ['none', 'pending', 'filed', 'approved', 'rejected'], default: 'none' },
+            claimAmount: { type: Number },
+            claimReference: { type: String },
+            claimFiledAt: { type: Date },
+            claimNotes: { type: String },
+
+            // A parcel written off as lost that turned up afterwards. The lost
+            // record is never erased — this is recorded on top of it.
+            lateDeliveredAt: { type: Date },
+            lateMarkedBy: { type: String },
+            lateNote: { type: String },
+
+            // Append-only. Entries are added, never edited or deleted — this is
+            // what backs up every dispute, chargeback and courier claim.
+            history: [{
+                status: { type: String },   // Internal status or action name
+                note: { type: String },
+                by: { type: String },       // Admin name/email, or 'system'
+                date: { type: Date, default: Date.now }
             }]
         }
     },

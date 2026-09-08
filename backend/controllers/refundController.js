@@ -5,6 +5,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { createReturnOrder, buildShiprocketOrderPayload, cancelShiprocketOrder } from "../utils/shiprocket.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { returnRequestCreatedEmailTemplate, refundProcessedEmailTemplate } from "../templates/returnEmail.js";
+import { appendReturnHistory, INTERNAL_STATUS } from "../utils/returnStatus.js";
 
 const razorpayInstance = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -155,6 +156,20 @@ const approveRefund = async (req, res) => {
             order.refundDetails.isPartialRefund = isPartialRefund || (refundAmount < order.orderTotal);
             order.isRefundable = false;
 
+            // Settlement timestamps the return status engine reads. Recorded on
+            // the gateway path too, so a Razorpay refund and a manual COD payout
+            // produce the same audit trail.
+            if (!order.refundDetails.returnTracking) order.refundDetails.returnTracking = {};
+            order.refundDetails.returnTracking.refundInitiatedAt = order.refundDetails.returnTracking.refundInitiatedAt || new Date();
+            order.refundDetails.returnTracking.refundPaidAt = new Date();
+            order.refundDetails.returnTracking.refundDecidedBy = req.userName || req.userEmail || 'admin';
+            if (adminRefundComment) order.refundDetails.returnTracking.refundDecisionReason = adminRefundComment;
+            appendReturnHistory(order, {
+                status: INTERNAL_STATUS.REFUND_COMPLETED,
+                note: `Refund of ₹${refundAmount} approved via ${order.paymentMethod}${refundResult.refundId ? ` (ref ${refundResult.refundId})` : ''}${adminRefundComment ? ` — ${adminRefundComment}` : ''}`,
+                by: req.userName || req.userEmail || 'admin'
+            });
+
             // Only a physical-item "return" (as opposed to a money-only "refund"
             // claim, e.g. item never arrived) has anything for the courier to
             // collect. Best-effort: refund still succeeds even if scheduling
@@ -171,14 +186,29 @@ const approveRefund = async (req, res) => {
                         order.refundDetails.pickup.shiprocketReturnOrderId = returnResponse.order_id;
                         order.refundDetails.pickup.shipmentId = returnResponse.shipment_id;
                         order.refundDetails.pickup.scheduledDate = new Date();
+                        appendReturnHistory(order, {
+                            status: INTERNAL_STATUS.PICKUP_SCHEDULED,
+                            note: 'Reverse pickup scheduled with the courier',
+                            by: 'system'
+                        });
                     } else {
                         order.refundDetails.pickup.status = 'failed';
                         order.refundDetails.pickup.failureReason = 'Shiprocket did not return a valid return order.';
+                        appendReturnHistory(order, {
+                            status: 'PICKUP_SCHEDULING_FAILED',
+                            note: 'Courier did not accept the reverse pickup — arrange collection manually',
+                            by: 'system'
+                        });
                     }
                 } catch (pickupError) {
                     console.log("Error scheduling Shiprocket reverse pickup:", pickupError.message);
                     order.refundDetails.pickup.status = 'failed';
                     order.refundDetails.pickup.failureReason = pickupError.message;
+                    appendReturnHistory(order, {
+                        status: 'PICKUP_SCHEDULING_FAILED',
+                        note: `Reverse pickup could not be scheduled — ${pickupError.message}`,
+                        by: 'system'
+                    });
                 }
             }
 
@@ -211,6 +241,11 @@ const rejectRefund = async (req, res) => {
         order.refundDetails.status = 'rejected';
         order.refundDetails.rejectionReason = rejectionReason;
         if (order.orderStatus === 'Refund Initiated') order.orderStatus = 'Delivered';
+        appendReturnHistory(order, {
+            status: 'REQUEST_REJECTED',
+            note: rejectionReason,
+            by: req.userName || req.userEmail || 'admin'
+        });
         await order.save();
         res.json({ success: true, message: "Refund request rejected." });
     } catch (error) {
@@ -244,12 +279,21 @@ const requestRefund = async (req, res) => {
             }
         }
 
+        const requestedAt = new Date();
         const updateData = {
             'refundDetails.status': 'pending',
             'refundDetails.reason': reason,
             'refundDetails.requestType': requestType === 'return' ? 'return' : 'refund',
             'refundDetails.images': imageUrls,
-            'refundDetails.requestedAt': new Date(),
+            'refundDetails.requestedAt': requestedAt,
+            // First entry in the append-only trail. Everything that happens to
+            // this return from here on is added after it, never over it.
+            'refundDetails.returnTracking.history': [{
+                status: 'RETURN_REQUESTED',
+                note: `Customer submitted a ${requestType === 'return' ? 'return' : 'refund'} request${reason ? ` — ${reason}` : ''}`,
+                by: 'customer',
+                date: requestedAt
+            }]
         };
         if (isDelivered) updateData.orderStatus = 'Refund Initiated';
         if (order.paymentMethod === 'COD' && payoutDetails) updateData['refundDetails.customerPayoutDetails'] = JSON.parse(payoutDetails);
@@ -360,6 +404,17 @@ const cancelReturnRequest = async (req, res) => {
         order.refundDetails.images = [];
         order.refundDetails.customerPayoutDetails = undefined;
         order.refundDetails.pickup = { status: 'none' };
+        // The request is withdrawn, so the journey's dates go with it — but the
+        // history stays, since "customer opened and withdrew a return" is
+        // exactly the kind of thing a later dispute turns on.
+        order.refundDetails.returnTracking = {
+            history: order.refundDetails.returnTracking?.history || []
+        };
+        appendReturnHistory(order, {
+            status: 'REQUEST_CANCELLED',
+            note: 'Customer cancelled their own return/refund request before pickup',
+            by: 'customer'
+        });
 
         await order.save();
         res.json({ success: true, message: "Your request has been cancelled." });

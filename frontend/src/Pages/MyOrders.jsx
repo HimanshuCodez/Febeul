@@ -380,7 +380,15 @@ const MyOrders = () => {
               const displayStatusLabel = displayStatus === "Returned" ? "Courier Return" : displayStatus;
               const refundStatus = order.refundDetails?.status;
               const pickupStatus = order.refundDetails?.pickup?.status;
-              const refundSubLabel = refundStatus === 'completed'
+              // For an approved return the server sends a single customer-safe
+              // label (order.returnStatus) covering both the parcel and the
+              // money — using it here keeps this card and the detail page's
+              // timeline from ever disagreeing.
+              const refundSubLabel = order.returnStatus
+                ? (order.returnStatus.stage === 'refund_completed'
+                    ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed`
+                    : `Return: ${order.returnStatus.label}`)
+                : refundStatus === 'completed'
                 ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed`
                 : refundStatus === 'rejected'
                 ? 'Refund request rejected'

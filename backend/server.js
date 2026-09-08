@@ -12,6 +12,7 @@ import otpRouter from './routes/otpRoute.js'
 import giftWrapRouter from './routes/giftWrapRoute.js'
 import webhookRouter from './routes/webhookRoute.js' // Corrected name
 import refundRouter from './routes/refundRoute.js'
+import returnRouter from './routes/returnRoute.js'
 import policyRouter from './routes/policyRoute.js'
 import adminRouter from './routes/adminRoute.js'
 import ticketRouter from './routes/ticketRoute.js';
@@ -40,6 +41,7 @@ app.use('/api/otp',otpRouter)
 app.use('/api/giftwrap',giftWrapRouter)
 app.use('/api/tracking',webhookRouter)
 app.use('/api/refund',refundRouter)
+app.use('/api/return',returnRouter)
 app.use('/api/policy',policyRouter)
 app.use('/api/admin',adminRouter)
 app.use('/api/ticket', ticketRouter);

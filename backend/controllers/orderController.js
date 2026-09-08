@@ -5,6 +5,8 @@ import Stripe from 'stripe'
 import razorpay from 'razorpay'
 import { createAndAssignShipment, cancelShiprocketOrder } from '../utils/shiprocket.js';
 import { syncOrderTracking, syncOrdersTracking } from '../utils/orderTrackingSync.js';
+import { syncReturnTracking, syncReturnsTracking } from '../utils/returnTrackingSync.js';
+import { getReturnSettings, sanitizeOrderForCustomer, sanitizeOrdersForCustomer } from '../utils/returnStatus.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
@@ -999,8 +1001,15 @@ const userOrders = async (req,res) => {
         // rather than only on the detail page. Throttled + capped inside the
         // util, and settled/cancelled orders are skipped entirely.
         await syncOrdersTracking(orders);
+        // Same treatment for the return leg, so a collected parcel shows as
+        // picked up here without waiting on a webhook.
+        await syncReturnsTracking(orders);
 
-        res.json({success:true,orders})
+        // Never serialise a raw order to a customer: refundDetails carries the
+        // return journey's internal vocabulary (critical, investigation, lost,
+        // claim) which must not exist anywhere in the response, visible or not.
+        const settings = await getReturnSettings();
+        res.json({ success: true, orders: sanitizeOrdersForCustomer(orders, settings) })
 
     } catch (error) {
         console.log(error)
@@ -1057,9 +1066,21 @@ const getOrderById = async (req, res) => {
         // an admin clicking "Ship Now" in the Shiprocket panel is reflected
         // here even when no webhook was delivered for it.
         // `?refresh=1` forces the poll, bypassing the staleness window.
-        const { trackingData } = await syncOrderTracking(order, { force: req.query.refresh === '1' });
+        const forceRefresh = req.query.refresh === '1';
+        const { trackingData } = await syncOrderTracking(order, { force: forceRefresh });
+        // The return leg gets the same treatment — this is the page a customer
+        // sits on waiting for "picked up" to appear.
+        await syncReturnTracking(order, { force: forceRefresh });
 
-        res.json({ success: true, order, trackingData: trackingData ? { tracking_data: trackingData } : null });
+        // Sanitized: refundDetails.returnTracking is dropped entirely and
+        // replaced with a customer-safe `returnStatus`, so internal statuses
+        // can't surface in view-source even where the UI never renders them.
+        const settings = await getReturnSettings();
+        res.json({
+            success: true,
+            order: sanitizeOrderForCustomer(order, settings),
+            trackingData: trackingData ? { tracking_data: trackingData } : null
+        });
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: 'Error fetching order' });

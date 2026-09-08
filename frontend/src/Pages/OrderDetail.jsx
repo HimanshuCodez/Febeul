@@ -720,12 +720,26 @@ export default function OrderDetailPage() {
   const pickupActivities = pickup?.trackingHistory?.length > 0
     ? [...pickup.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
     : [];
-  const pickupStatusLabels = {
-    scheduled: 'Pickup Scheduled',
-    failed: 'Pickup Arrangement Pending',
-    picked_up: 'Picked Up',
-    in_transit: 'In Transit to Warehouse',
-    delivered_to_warehouse: 'Received at Warehouse'
+
+  // The return journey, as the server computed it. Every label here comes from
+  // a fixed customer-facing set — the internal status (which may by now be
+  // "critical", "lost" or "claim pending") is never sent to this page, so
+  // there is nothing to accidentally render. When a return stalls, the
+  // timeline simply stops advancing.
+  const returnStatus = order.returnStatus;
+  const returnMilestones = returnStatus?.milestones || [];
+  const refundByLabel = returnStatus?.refundByDate
+    ? new Date(returnStatus.refundByDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
+  const RETURN_MILESTONE_COPY = {
+    requested: 'We received your return request.',
+    pickup_scheduled: 'A pickup has been scheduled with our courier partner.',
+    picked_up: 'Your item has been collected. From here it is our responsibility.',
+    in_transit: 'Your return is on its way to us.',
+    received: 'Your return has reached our warehouse.',
+    qc_done: 'Your item has passed through our quality check.',
+    refund_initiated: 'Your refund has been initiated.',
+    refund_completed: 'Your refund has been completed.'
   };
 
   // --- Unified status + live-update timeline (Flipkart/Meesho style) ---
@@ -1154,102 +1168,181 @@ export default function OrderDetailPage() {
             )}
           </motion.div>
 
-          {/* Return Pickup Tracking (Flipkart-style reverse pickup) */}
-          {hasPickup && (
+          {/* Return journey — one view of the parcel coming back and the money
+              going out. Driven entirely by the server-computed customer status;
+              nothing internal reaches this component to be rendered. */}
+          {returnStatus && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6"
+              className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 overflow-hidden mb-6"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 mb-6 gap-3 text-left">
-                <div>
-                  <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-                    <FaUndo className="text-orange-500" /> Return Pickup Tracking
-                  </h2>
-                  <p className="text-xs text-slate-500 font-bold mt-0.5">Courier collection status for your returned item</p>
+              <div className="p-6 sm:p-8 pb-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                  <div>
+                    <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                      <FaUndo className="text-[#e8767a]" /> Your Return
+                    </h2>
+                    <p className="text-xs text-slate-500 font-bold mt-0.5">Everything from pickup to refund, in one place</p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-black w-fit ${
+                    returnStatus.stage === 'refund_completed'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      : 'bg-[#fff5f5] text-[#d5666a] border border-[#f9aeaf]'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      returnStatus.stage === 'refund_completed' ? 'bg-emerald-500' : 'bg-[#e8767a] animate-pulse'
+                    }`} />
+                    {returnStatus.label}
+                  </span>
                 </div>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black capitalize w-fit ${
-                  pickup.status === 'delivered_to_warehouse' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                  pickup.status === 'failed' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                  'bg-blue-50 text-blue-700 border border-blue-100'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    pickup.status === 'delivered_to_warehouse' ? 'bg-emerald-500' :
-                    pickup.status === 'failed' ? 'bg-amber-500' : 'bg-blue-500 animate-pulse'
-                  }`} />
-                  {pickupStatusLabels[pickup.status] || pickup.status}
-                </span>
+
+                {/* The promise. A customer who knows the date stops chasing the
+                    parcel — which is the whole reason we own transit risk. */}
+                {refundByLabel && (
+                  <div className="mt-6 flex items-start gap-3 bg-gradient-to-br from-[#fff5f5] to-[#fffafa] border border-[#f9aeaf] rounded-2xl p-4 text-left">
+                    <FaCalendarAlt className="text-[#e8767a] mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-black text-[#d5666a]">Refund by {refundByLabel}</p>
+                      <p className="text-[11px] text-slate-600 font-medium mt-0.5 leading-relaxed">
+                        We complete refunds within {returnStatus.maxRefundDays} days of pickup. If the courier is slow, that is ours to sort out —
+                        your refund is not held up by it.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {pickup.status === 'failed' ? (
-                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-xs font-bold text-amber-800">
-                  We couldn't auto-schedule a courier pickup for this return. Our support team will arrange collection manually — no action needed from you.
+              <div className="p-6 sm:p-8">
+                {/* Milestone ladder */}
+                <div className="relative pl-7 border-l-2 border-slate-100 space-y-6">
+                  {returnMilestones.map((milestone) => (
+                    <div key={milestone.key} className="relative text-left">
+                      <span className="absolute -left-[35px] top-0.5 flex items-center justify-center">
+                        {milestone.current ? (
+                          <span className="relative flex h-4 w-4">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8767a] opacity-75" />
+                            <span className="relative inline-flex rounded-full h-4 w-4 bg-[#e8767a] ring-4 ring-white" />
+                          </span>
+                        ) : milestone.reached ? (
+                          <span className="h-4 w-4 rounded-full bg-emerald-500 ring-4 ring-white flex items-center justify-center">
+                            <Check size={9} className="text-white" strokeWidth={4} />
+                          </span>
+                        ) : (
+                          <span className="h-3 w-3 rounded-full bg-slate-200 ring-4 ring-white" />
+                        )}
+                      </span>
+                      <p className={`text-sm font-black ${
+                        milestone.current ? 'text-[#e8767a]' : milestone.reached ? 'text-slate-800' : 'text-slate-300'
+                      }`}>
+                        {milestone.label}
+                      </p>
+                      {milestone.reached && (
+                        <>
+                          <p className="text-xs text-slate-500 font-medium mt-0.5">{RETURN_MILESTONE_COPY[milestone.key]}</p>
+                          {milestone.at && (
+                            <p className="text-[10px] text-slate-400 font-bold mt-1">
+                              {new Date(milestone.at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <>
-                  {(pickup.awb || pickup.courier) && (
-                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-left">
-                      {pickup.courier && (
-                        <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Courier Partner</span>
-                          <span className="text-sm font-extrabold text-slate-800">{pickup.courier}</span>
-                        </div>
-                      )}
-                      {pickup.awb && (
-                        <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Return AWB</span>
-                          <span className="text-sm font-extrabold text-[#e8767a] select-all break-all">#{pickup.awb}</span>
-                        </div>
-                      )}
-                      {pickup.scheduledDate && (
-                        <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Scheduled On</span>
-                          <span className="text-sm font-extrabold text-slate-800">{new Date(pickup.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
 
-                  {pickupActivities.length > 0 ? (
-                    <div className="relative pl-6 border-l border-slate-100 space-y-6">
-                      {pickupActivities.map((act, index) => {
-                        const isLatest = index === 0;
-                        return (
-                          <div key={index} className="relative text-left">
-                            <span className="absolute -left-[30px] top-1 flex h-4.5 w-4.5 items-center justify-center">
-                              {isLatest ? (
-                                <span className="relative flex h-3.5 w-3.5">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
-                                </span>
-                              ) : (
-                                <span className="h-2 w-2 rounded-full bg-slate-300"></span>
-                              )}
-                            </span>
-                            <div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className={`text-xs sm:text-sm font-bold ${isLatest ? 'text-orange-600' : 'text-slate-700'}`}>
-                                  {act.activity || act.status}
-                                </p>
-                                {act.location && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full shadow-sm">
-                                    📍 {act.location}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-slate-400 font-bold mt-1">
-                                {new Date(act.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                              </p>
-                            </div>
+                {/* Courier reference — the one thing we may ask them for */}
+                {(returnStatus.awb || returnStatus.courier) && (
+                  <div className="mt-7 bg-slate-50 border border-slate-100 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                    {returnStatus.courier && (
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Courier Partner</span>
+                        <span className="text-sm font-extrabold text-slate-800">{returnStatus.courier}</span>
+                      </div>
+                    )}
+                    {returnStatus.awb && (
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Return AWB</span>
+                        <span className="text-sm font-extrabold text-[#e8767a] select-all break-all">#{returnStatus.awb}</span>
+                      </div>
+                    )}
+                    {returnStatus.pickedUpAt && (
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Picked Up On</span>
+                        <span className="text-sm font-extrabold text-slate-800">
+                          {new Date(returnStatus.pickedUpAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Latest courier scans, when there are any */}
+                {pickupActivities.length > 0 && (
+                  <details className="mt-4 group">
+                    <summary className="cursor-pointer list-none text-[11px] font-black text-[#e8767a] uppercase tracking-wider flex items-center gap-1.5 hover:text-[#d5666a] transition-colors">
+                      Shipment updates
+                      <span className="inline-block transition-transform duration-200 group-open:rotate-180">▾</span>
+                    </summary>
+                    <div className="mt-4 relative pl-5 border-l border-slate-100 space-y-4">
+                      {pickupActivities.map((act, index) => (
+                        <div key={index} className="relative text-left">
+                          <span className={`absolute -left-[23px] top-1.5 h-2 w-2 rounded-full ${index === 0 ? 'bg-[#e8767a]' : 'bg-slate-300'}`} />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className={`text-xs font-bold ${index === 0 ? 'text-[#e8767a]' : 'text-slate-700'}`}>{act.activity || act.status}</p>
+                            {act.location && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                                📍 {act.location}
+                              </span>
+                            )}
                           </div>
-                        );
-                      })}
+                          <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                            {new Date(act.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    <p className="text-xs text-slate-500 font-bold">Waiting for the courier to pick up your return.</p>
-                  )}
-                </>
+                  </details>
+                )}
+              </div>
+
+              {/* Reassurance. Told plainly and up front, this is what stops the
+                  "where is my parcel" messages before they are sent. */}
+              {returnStatus.stage !== 'refund_completed' && (
+                <div className="px-6 sm:px-8 py-5 bg-slate-50 border-t border-slate-100 text-left">
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    <strong className="font-black text-slate-800">Nothing needed from you.</strong> Once the courier collects your parcel, the
+                    shipment is our responsibility — you don&apos;t need to track it or follow up with anyone. If a return takes longer to reach us,
+                    we coordinate with the courier at our end and it does not affect your refund. Just keep your pickup receipt or AWB number
+                    until the refund is credited.
+                    {returnStatus.supportEmail && (
+                      <>
+                        {' '}Any questions, write to{' '}
+                        <a href={`mailto:${returnStatus.supportEmail}`} className="font-black text-[#e8767a] hover:underline">
+                          {returnStatus.supportEmail}
+                        </a>{' '}with your order ID.
+                      </>
+                    )}
+                  </p>
+                </div>
               )}
+            </motion.div>
+          )}
+
+          {/* Pre-approval fallback: a pickup exists but the journey hasn't
+              started yet (returnStatus only exists once a return is approved). */}
+          {!returnStatus && hasPickup && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6 text-left"
+            >
+              <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <FaUndo className="text-[#e8767a]" /> Return Pickup
+              </h2>
+              <p className="text-xs text-slate-500 font-bold mt-1">
+                We&apos;re arranging collection for your return. No action needed from you.
+              </p>
             </motion.div>
           )}
 
