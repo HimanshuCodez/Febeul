@@ -185,6 +185,22 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
             throw new Error('This coupon is only valid for Cash on Delivery orders.');
         }
 
+        // Validate Audience Restrictions
+        const isMembershipPurchase = processedItems.every(item => item.sku === 'LUXE-MEMBERSHIP');
+
+        if (coupon.userType === 'luxe' && !isLuxeMember) {
+            throw new Error('This coupon is reserved for Luxe Members only.');
+        }
+        if (coupon.userType === 'membership' && !isMembershipPurchase) {
+            throw new Error('This coupon is only valid for the Luxe Membership purchase.');
+        }
+        if (coupon.specificUsers && coupon.specificUsers.length > 0) {
+            const isAuthorized = coupon.specificUsers.includes(user?.email) || coupon.specificUsers.includes(userId);
+            if (!isAuthorized) {
+                throw new Error('This coupon is only available for selected customers.');
+            }
+        }
+
         couponOfferType = coupon.offerType || 'none';
         let applicableTotal = 0;
         let currentQuantity = 0;

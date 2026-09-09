@@ -22,6 +22,10 @@ export default function FebeulLuxe() {
   const [luxeProducts, setLuxeProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
@@ -75,6 +79,52 @@ export default function FebeulLuxe() {
     }
   }, [isAuthenticated, user?.isLuxeMember, token]);
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
+    setCouponLoading(true);
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/coupon/apply-product-coupon`,
+        {
+          code: couponCode.trim(),
+          productItem: {
+            sku: "LUXE-MEMBERSHIP",
+            price: siteSettings.membershipPrice || 129,
+            quantity: 1,
+          },
+          userId: user._id,
+        },
+        { headers: { token } }
+      );
+
+      if (response.data.success) {
+        setAppliedCoupon({
+          code: response.data.code,
+          discountAmount: response.data.discountAmount,
+        });
+        toast.success(response.data.message || "Coupon applied!");
+      } else {
+        setAppliedCoupon(null);
+        toast.error(response.data.message || "Invalid coupon code.");
+      }
+    } catch (error) {
+      setAppliedCoupon(null);
+      toast.error(error.response?.data?.message || "Failed to apply coupon.");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+  };
+
   const handlePayment = async () => {
     if (!isAuthenticated) {
       navigate('/auth');
@@ -109,6 +159,7 @@ export default function FebeulLuxe() {
           amount,
           address,
           currency: "INR",
+          couponCode: appliedCoupon?.code,
         },
         { headers: { token } }
       );
@@ -285,12 +336,57 @@ export default function FebeulLuxe() {
             <span className="font-['Raleway'] tracking-widest text-[#c98a8b] uppercase text-[10px] font-bold">Limited Time Offer</span>
         </div>
 
-        <div className="flex items-center justify-center gap-4 mb-8">
+        <div className="flex items-center justify-center gap-4 mb-2">
           <span className="text-[#c98a8b] line-through text-xl font-light">₹{siteSettings.membershipPriceOriginal}</span>
           <div className="flex flex-col items-start leading-none">
-            <span className="text-[#b87a7b] font-['Cormorant_Garamond'] font-bold text-5xl">₹{siteSettings.membershipPrice}</span>
+            <span className="text-[#b87a7b] font-['Cormorant_Garamond'] font-bold text-5xl">
+              ₹{Math.max(0, (siteSettings.membershipPrice || 129) - (appliedCoupon?.discountAmount || 0)).toFixed(0)}
+            </span>
             <span className="text-[10px] text-[#c98a8b] font-['Raleway'] font-bold uppercase tracking-tighter mt-1">Per Month</span>
           </div>
+        </div>
+
+        {appliedCoupon && (
+          <p className="text-[10px] text-[#e07f82] font-['Raleway'] font-bold uppercase tracking-wider mb-4">
+            Coupon "{appliedCoupon.code}" applied · -₹{appliedCoupon.discountAmount.toFixed(0)}
+          </p>
+        )}
+
+        <div className="mb-8">
+          {!appliedCoupon ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
+                placeholder="Have a coupon?"
+                className="flex-1 px-4 py-2.5 border border-[#f9aeaf]/40 rounded-xl text-xs font-['Raleway'] font-bold uppercase tracking-wider text-[#b87a7b] placeholder:text-[#c98a8b]/70 placeholder:normal-case placeholder:font-medium focus:outline-none focus:border-[#b87a7b] transition-all"
+              />
+              <button
+                type="button"
+                onClick={handleApplyCoupon}
+                disabled={couponLoading || !couponCode.trim()}
+                className="px-5 py-2.5 bg-[#b87a7b] hover:bg-[#a66b6c] text-white rounded-xl text-xs font-['Raleway'] font-bold uppercase tracking-wider transition-all disabled:bg-gray-200 disabled:text-gray-400 shrink-0"
+              >
+                {couponLoading ? "..." : "Apply"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between bg-[#fdf5f5] border border-[#f9aeaf]/40 rounded-xl px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <FaCheckCircle className="text-[#e07f82] text-xs shrink-0" />
+                <span className="text-xs font-['Raleway'] font-bold text-[#b87a7b] uppercase tracking-wider">{appliedCoupon.code} applied</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveCoupon}
+                className="text-[#c98a8b] hover:text-[#b87a7b] text-[10px] font-['Raleway'] font-bold uppercase tracking-wider"
+              >
+                Remove
+              </button>
+            </div>
+          )}
         </div>
 
         <button

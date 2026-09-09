@@ -277,6 +277,14 @@ export const applyCoupon = async (req, res) => {
 
         }
 
+        // Membership-only coupons can only be redeemed while purchasing the Luxe Membership itself
+        if (coupon.userType === 'membership') {
+            const isMembershipCart = items.every(item => item.sku === 'LUXE-MEMBERSHIP' || item.name === 'Febeul Luxe Membership');
+            if (!isMembershipCart) {
+                return res.status(400).json({ success: false, message: 'This coupon is only valid for the Luxe Membership purchase.' });
+            }
+        }
+
         let applicableTotal = 0;
         let currentQuantity = 0;
         let cartTotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -387,7 +395,12 @@ export const applyProductCoupon = async (req, res) => {
         if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
             return res.status(400).json({ success: false, message: 'Coupon has reached its usage limit.' });
         }
-        
+
+        // Membership-only coupons can only be redeemed while purchasing the Luxe Membership itself
+        if (coupon.userType === 'membership' && productItem.sku !== 'LUXE-MEMBERSHIP') {
+            return res.status(400).json({ success: false, message: 'This coupon is only valid for the Luxe Membership purchase.' });
+        }
+
         // Check user-specific usage limit if userId is provided
         if (userId) {
             const userUsage = coupon.usersWhoUsed.filter(u => u.userId.toString() === userId).length;

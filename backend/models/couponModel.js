@@ -12,7 +12,7 @@ const couponSchema = new mongoose.Schema({
     usageLimitPerUser: { type: Number, default: 1 }, // How many times a single user can use it
     expiryDate: { type: Date, required: true },
     isActive: { type: Boolean, default: true },
-    userType: { type: String, enum: ['normal', 'luxe'], default: 'normal' }, // For specific user groups
+    userType: { type: String, enum: ['normal', 'luxe', 'membership'], default: 'normal' }, // For specific user groups; 'membership' = redeemable only when purchasing the Luxe Membership itself (no isLuxeMember requirement)
     offerType: { type: String, enum: ['none', 'prepaid', 'cod'], default: 'none' }, // For prepaid or COD offers
     applicableSKUs: { type: [String], default: [] }, // For specific products by SKU
     specificUsers: { type: [String], default: [] }, // For loyal customers (emails or IDs)

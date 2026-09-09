@@ -651,8 +651,14 @@ const Coupons = ({ token }) => {
                           className='w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700 cursor-pointer focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all'
                         >
                           <option value='normal'>Public (All)</option>
-                          <option value='luxe'>Exclusive (Luxe)</option>
+                          <option value='luxe'>Exclusive (Luxe Members Only)</option>
+                          <option value='membership'>Luxe Membership Purchase</option>
                         </select>
+                        {newCoupon.userType === 'membership' && (
+                          <p className='text-[10px] text-slate-400 font-bold mt-1.5'>
+                            Only redeemable on the Luxe Membership purchase itself — works even for non-members. SKU/Min Order/Min Qty rules still apply.
+                          </p>
+                        )}
                       </div>
                       <div className='space-y-2'>
                         <label className='block text-[11px] font-black text-slate-500 uppercase tracking-widest'>Method</label>
