@@ -432,6 +432,66 @@ const updateAddress = async (req, res) => {
     }
 }
 
+// Add bank account for refunds/payouts (only one allowed at a time — Flipkart/Amazon style)
+const addBankAccount = async (req, res) => {
+    try {
+        const { accountHolderName, accountNumber, confirmAccountNumber, ifsc, bankName } = req.body;
+
+        if (!accountHolderName?.trim() || !accountNumber?.trim() || !confirmAccountNumber?.trim() || !ifsc?.trim() || !bankName?.trim()) {
+            return res.json({ success: false, message: "All fields are required" });
+        }
+        if (accountNumber !== confirmAccountNumber) {
+            return res.json({ success: false, message: "Account numbers do not match" });
+        }
+        if (!/^[0-9]{9,18}$/.test(accountNumber)) {
+            return res.json({ success: false, message: "Enter a valid account number" });
+        }
+        if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc.trim().toUpperCase())) {
+            return res.json({ success: false, message: "Enter a valid IFSC code" });
+        }
+
+        const user = await userModel.findById(req.userId);
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        if (user.bankAccount?.accountNumber) {
+            return res.json({ success: false, message: "A bank account already exists. Remove it before adding a new one." });
+        }
+
+        user.bankAccount = {
+            accountHolderName: accountHolderName.trim(),
+            accountNumber: accountNumber.trim(),
+            ifsc: ifsc.trim().toUpperCase(),
+            bankName: bankName.trim(),
+            addedAt: new Date()
+        };
+        await user.save();
+
+        res.json({ success: true, message: "Bank account added", bankAccount: user.bankAccount });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error adding bank account" });
+    }
+}
+
+// Remove the user's saved bank account
+const removeBankAccount = async (req, res) => {
+    try {
+        const user = await userModel.findById(req.userId);
+        if (!user) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        user.bankAccount = undefined;
+        await user.save();
+        res.json({ success: true, message: "Bank account removed" });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error removing bank account" });
+    }
+}
+
 // Proxy Pincode API with Fallback and Retry Logic
 const pincodeProxy = async (req, res) => {
     const { zip } = req.params;
@@ -679,4 +739,4 @@ const adminOtpLogin = async (req, res) => {
 }
 
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions, toggleBlockUser, sendAdminOTP, adminOtpLogin }
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, addBankAccount, removeBankAccount, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions, toggleBlockUser, sendAdminOTP, adminOtpLogin }

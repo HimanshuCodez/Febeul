@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  User, Mail, Phone, MapPin, ShoppingBag, LogOut, Edit, Gift, Save, X, Loader, Package, Calendar, HelpCircle
+  User, Mail, Phone, MapPin, ShoppingBag, LogOut, Edit, Gift, Save, X, Loader, Package, Calendar, HelpCircle, Landmark, Trash2, ShieldCheck, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import useAuthStore from "../store/authStore";
@@ -156,6 +156,8 @@ export default function Profile() {
         );
       case "addresses":
         return <ManageAddresses addresses={addresses} cardStyles={cardStyles} />;
+      case "bankAccount":
+        return <ManageBankAccount user={user} cardStyles={cardStyles} />;
       case "offers": 
         return (
           <div className={cardStyles}>
@@ -203,6 +205,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
     { id: "luxeMembership", icon: Gift, label: "Luxe Membership" },
     { id: "offers", icon: Gift, label: "Coupons & Offers" },
     { id: "addresses", icon: MapPin, label: "Manage Addresses" },
+    { id: "bankAccount", icon: Landmark, label: "Bank Account" },
     { id: "tickets", icon: HelpCircle, label: "My Tickets" },
   ];
 
@@ -351,6 +354,267 @@ const ManageAddresses = ({ addresses, cardStyles }) => {
         </div>
     )
 };
+
+const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+
+const emptyBankForm = { accountHolderName: "", accountNumber: "", confirmAccountNumber: "", ifsc: "", bankName: "" };
+
+const ManageBankAccount = ({ user, cardStyles }) => {
+  const token = useAuthStore((state) => state.token);
+  const savedAccount = user?.bankAccount?.accountNumber ? user.bankAccount : null;
+
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyBankForm);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let nextValue = value;
+    if (name === "accountNumber" || name === "confirmAccountNumber") {
+      nextValue = value.replace(/\D/g, "").slice(0, 18);
+    } else if (name === "ifsc") {
+      nextValue = value.toUpperCase().replace(/\s/g, "").slice(0, 11);
+    }
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const validate = () => {
+    const nextErrors = {};
+    if (!form.accountHolderName.trim()) nextErrors.accountHolderName = "Enter the account holder's name";
+    if (!form.bankName.trim()) nextErrors.bankName = "Enter the bank name";
+    if (!/^\d{9,18}$/.test(form.accountNumber)) nextErrors.accountNumber = "Enter a valid account number";
+    if (form.accountNumber !== form.confirmAccountNumber) nextErrors.confirmAccountNumber = "Account numbers do not match";
+    if (!IFSC_REGEX.test(form.ifsc)) nextErrors.ifsc = "Enter a valid IFSC code (e.g. HDFC0001234)";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setSubmitting(true);
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/user/bank-account/add`,
+        form,
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        toast.success("Bank account added successfully");
+        await useAuthStore.getState().getProfile();
+        setForm(emptyBankForm);
+        setShowForm(false);
+      } else {
+        toast.error(response.data.message || "Failed to add bank account");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to add bank account");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    setRemoving(true);
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/user/bank-account/remove`,
+        {},
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        toast.success("Bank account removed");
+        await useAuthStore.getState().getProfile();
+        setConfirmRemove(false);
+      } else {
+        toast.error(response.data.message || "Failed to remove bank account");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to remove bank account");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const maskAccountNumber = (num) => {
+    if (!num) return "";
+    const last4 = num.slice(-4);
+    return `${"•".repeat(Math.max(num.length - 4, 4))} ${last4}`;
+  };
+
+  return (
+    <div className={cardStyles}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4 mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">Bank Account</h2>
+        {!savedAccount && !showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="text-sm font-medium text-pink-500 hover:text-pink-700 transition-colors"
+          >
+            + Add Bank Account
+          </button>
+        )}
+      </div>
+
+      <p className="text-sm text-gray-500 mb-6 -mt-2">
+        Add a bank account to receive refunds and payouts. Only one bank account can be saved at a time — remove the existing one to add a different account.
+      </p>
+
+      {savedAccount ? (
+        <div className="rounded-lg border p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <span className="flex-shrink-0 w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center">
+                <Landmark className="w-5 h-5 text-pink-500" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-800 break-words">{savedAccount.accountHolderName}</p>
+                <p className="text-sm text-gray-500 break-words">{savedAccount.bankName}</p>
+                <p className="text-sm text-gray-600 font-mono tracking-wide mt-1 break-all">
+                  {maskAccountNumber(savedAccount.accountNumber)}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">IFSC: {savedAccount.ifsc}</p>
+              </div>
+            </div>
+            <div className="flex-shrink-0 self-start">
+              {!confirmRemove ? (
+                <button
+                  onClick={() => setConfirmRemove(true)}
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-700 transition-colors px-3 py-2 rounded-md hover:bg-red-50"
+                >
+                  <Trash2 size={15} />
+                  <span>Remove</span>
+                </button>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-stretch gap-2 bg-red-50 border border-red-100 rounded-md p-3">
+                  <div className="flex items-start gap-2 sm:max-w-[180px]">
+                    <AlertTriangle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-600 leading-snug">Remove this account? You can add a new one after.</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={handleRemove}
+                      disabled={removing}
+                      className="flex items-center justify-center gap-1 text-xs font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 px-3 py-1.5 rounded-md transition-colors"
+                    >
+                      {removing ? <Loader size={12} className="animate-spin" /> : null}
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setConfirmRemove(false)}
+                      className="text-xs font-bold text-gray-600 bg-white border hover:bg-gray-50 px-3 py-1.5 rounded-md transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-4 pt-3 border-t">
+            <ShieldCheck size={13} />
+            <span>Used only for refunds and payouts to your account.</span>
+          </div>
+        </div>
+      ) : showForm ? (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <BankFormInput
+                name="accountHolderName"
+                label="Account Holder Name"
+                value={form.accountHolderName}
+                onChange={handleChange}
+                error={errors.accountHolderName}
+                placeholder="As per bank records"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <BankFormInput
+                name="bankName"
+                label="Bank Name"
+                value={form.bankName}
+                onChange={handleChange}
+                error={errors.bankName}
+                placeholder="e.g. HDFC Bank"
+              />
+            </div>
+            <BankFormInput
+              name="accountNumber"
+              label="Account Number"
+              value={form.accountNumber}
+              onChange={handleChange}
+              error={errors.accountNumber}
+              inputMode="numeric"
+              placeholder="Enter account number"
+            />
+            <BankFormInput
+              name="confirmAccountNumber"
+              label="Confirm Account Number"
+              value={form.confirmAccountNumber}
+              onChange={handleChange}
+              onPaste={(e) => e.preventDefault()}
+              error={errors.confirmAccountNumber}
+              inputMode="numeric"
+              placeholder="Re-enter account number"
+            />
+            <div className="sm:col-span-2">
+              <BankFormInput
+                name="ifsc"
+                label="IFSC Code"
+                value={form.ifsc}
+                onChange={handleChange}
+                error={errors.ifsc}
+                placeholder="e.g. HDFC0001234"
+              />
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => { setShowForm(false); setForm(emptyBankForm); setErrors({}); }}
+              className="w-full sm:w-auto px-6 py-2 rounded-full font-bold text-gray-600 border hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full sm:w-auto flex items-center justify-center space-x-2 text-white px-6 py-2 rounded-full font-bold shadow-lg transition-all disabled:opacity-60 bg-pink-500 hover:bg-pink-600"
+            >
+              {submitting ? <Loader size={16} className="animate-spin" /> : <Save size={16} />}
+              <span>{submitting ? "Saving..." : "Save Bank Account"}</span>
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="text-center py-12">
+          <Landmark className="mx-auto w-12 h-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700">No Bank Account Added</h3>
+          <p className="text-gray-500 mt-1">Add a bank account to get refunds faster.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const BankFormInput = ({ label, error, ...props }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <input
+      {...props}
+      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-pink-500 focus:border-pink-500 sm:text-sm ${error ? "border-red-400" : "border-gray-300"}`}
+    />
+    {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+  </div>
+);
 
 const InfoItem = ({ icon: Icon, label, value, isLuxe, wide = false }) => (
   <div className={`flex items-start space-x-3 ${wide ? 'md:col-span-2' : ''}`}>

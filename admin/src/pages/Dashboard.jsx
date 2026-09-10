@@ -743,14 +743,14 @@ const FebeulDashboard = ({ token }) => {
         {/* SKU Sales Chart */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
           <SectionHeading icon={FiTrendingUp} title="Top Selling SKUs" subtitle="Distribution by SKU" />
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={340}>
+            <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie
                 data={skuSales}
                 cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
+                cy="45%"
+                innerRadius={55}
+                outerRadius={75}
                 paddingAngle={5}
                 dataKey="totalSold"
                 nameKey="sku"
@@ -784,7 +784,22 @@ const FebeulDashboard = ({ token }) => {
                 }}
                 formatter={(value, name) => [value + " Units", `SKU: ${name}`]}
               />
-              <Legend verticalAlign="bottom" height={36} />
+              <Legend
+                verticalAlign="bottom"
+                align="center"
+                iconSize={8}
+                iconType="circle"
+                wrapperStyle={{
+                  fontSize: "11px",
+                  lineHeight: "18px",
+                  paddingTop: "12px",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  columnGap: "12px",
+                  rowGap: "4px",
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -793,14 +808,14 @@ const FebeulDashboard = ({ token }) => {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
           <SectionHeading icon={FiFilter} title="Category Sales" subtitle="Distribution by category" />
           {categorySales.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer width="100%" height={340}>
+              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                 <Pie
                   data={categorySales}
                   cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  cy="45%"
+                  innerRadius={55}
+                  outerRadius={75}
                   paddingAngle={5}
                   dataKey="value"
                   nameKey="name"
@@ -818,11 +833,26 @@ const FebeulDashboard = ({ token }) => {
                   }}
                   formatter={(value, name) => [value, name]}
                 />
-                <Legend verticalAlign="bottom" height={36} />
+                <Legend
+                  verticalAlign="bottom"
+                  align="center"
+                  iconSize={8}
+                  iconType="circle"
+                  wrapperStyle={{
+                    fontSize: "11px",
+                    lineHeight: "18px",
+                    paddingTop: "12px",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    columnGap: "12px",
+                    rowGap: "4px",
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-sm text-gray-400 font-medium">
+            <div className="h-[340px] flex items-center justify-center text-sm text-gray-400 font-medium">
               No category sales data for this period
             </div>
           )}

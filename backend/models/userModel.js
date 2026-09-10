@@ -40,6 +40,13 @@ const userSchema = new mongoose.Schema({
         saturdayDelivery: { type: Boolean, default: true },
         sundayDelivery: { type: Boolean, default: true },
     }],
+    bankAccount: {
+        accountHolderName: { type: String },
+        accountNumber: { type: String },
+        ifsc: { type: String },
+        bankName: { type: String },
+        addedAt: { type: Date }
+    },
     role: { type: String, default: 'user' },
     permissions: [{ type: String }],
     isBlocked: { type: Boolean, default: false },
