@@ -17,8 +17,10 @@ import {
   MessageSquare,
   Image as ImageIcon,
   CalendarRange,
-  Download
+  Download,
+  Wallet
 } from 'lucide-react';
+import { REQUEST_CATEGORIES, categoryOf, isPrepaid } from '../utils/requestCategory';
 
 const RefundRequests = ({ token }) => {
   const [requests, setRequests] = useState([]);
@@ -26,6 +28,7 @@ const RefundRequests = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedRequest, setSelectedTicket] = useState(null);
@@ -165,12 +168,13 @@ const RefundRequests = ({ token }) => {
         req.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.userId?.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || req.refundDetails.status === filterStatus;
+    const matchesCategory = filterCategory === 'all' || categoryOf(req) === filterCategory;
 
     const reqTime = new Date(req.refundDetails.requestedAt || req.date).getTime();
     const matchesStart = !startDate || reqTime >= new Date(startDate).setHours(0, 0, 0, 0);
     const matchesEnd = !endDate || reqTime <= new Date(endDate).setHours(23, 59, 59, 999);
 
-    return matchesSearch && matchesStatus && matchesStart && matchesEnd;
+    return matchesSearch && matchesStatus && matchesCategory && matchesStart && matchesEnd;
   });
 
   const clearDateFilter = () => {
@@ -188,13 +192,16 @@ const RefundRequests = ({ token }) => {
     }
   };
 
-  const getRequestTypeLabel = (req) => {
-    const type = req.refundDetails?.requestType;
-    if (type === 'courier_return') return 'Courier Return';
-    if (type === 'cancellation') return 'Cancellation';
-    if (type === 'refund') return 'Refund Only';
-    return req.orderStatus === 'Cancelled' ? 'Cancellation' : 'Return/Refund';
-  };
+  const getRequestTypeLabel = (req) => REQUEST_CATEGORIES.find((c) => c.key === categoryOf(req))?.label || 'Refund Only';
+
+  const categoryCounts = useMemo(() => {
+    const counts = { all: requests.length, cancellation: 0, courier_return: 0, return: 0 };
+    requests.forEach((req) => {
+      const cat = categoryOf(req);
+      if (cat) counts[cat] += 1;
+    });
+    return counts;
+  }, [requests]);
 
   // Excel/CSV Export Data
   const refundCsvHeaders = [
@@ -203,6 +210,7 @@ const RefundRequests = ({ token }) => {
     { label: 'Customer Name', key: 'customerName' },
     { label: 'Customer Email', key: 'customerEmail' },
     { label: 'Payment Method', key: 'paymentMethod' },
+    { label: 'Payment Type', key: 'paymentType' },
     { label: 'Razorpay Payment ID', key: 'razorpayPaymentId' },
     { label: 'Request Type', key: 'requestType' },
     { label: 'Reason', key: 'reason' },
@@ -217,6 +225,7 @@ const RefundRequests = ({ token }) => {
     customerName: req.userId?.name || 'N/A',
     customerEmail: req.userId?.email || 'N/A',
     paymentMethod: req.paymentMethod,
+    paymentType: isPrepaid(req.paymentMethod) ? 'Prepaid' : 'COD',
     razorpayPaymentId: req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id || '',
     requestType: getRequestTypeLabel(req),
     reason: req.refundDetails.reason || '',
@@ -301,6 +310,30 @@ const RefundRequests = ({ token }) => {
           </div>
         </div>
 
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2 overflow-x-auto bg-white">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0 mr-1">Return Type</span>
+          <button
+            onClick={() => setFilterCategory('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shrink-0 ${
+              filterCategory === 'all' ? 'bg-gray-900 text-white shadow-lg' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            All ({categoryCounts.all})
+          </button>
+          {REQUEST_CATEGORIES.map((cat) => (
+            <button
+              key={cat.key}
+              onClick={() => setFilterCategory(cat.key)}
+              title={cat.hint}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shrink-0 ${
+                filterCategory === cat.key ? 'bg-gray-900 text-white shadow-lg' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {cat.label} ({categoryCounts[cat.key]})
+            </button>
+          ))}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50/50">
@@ -308,6 +341,7 @@ const RefundRequests = ({ token }) => {
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Order Detail</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Payment</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
@@ -315,9 +349,9 @@ const RefundRequests = ({ token }) => {
             </thead>
             <tbody className="divide-y divide-gray-50 bg-white">
               {loading ? (
-                <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-400 font-medium">Loading requests...</td></tr>
+                <tr><td colSpan="7" className="px-6 py-10 text-center text-gray-400 font-medium">Loading requests...</td></tr>
               ) : filteredRequests.length === 0 ? (
-                <tr><td colSpan="6" className="px-6 py-20 text-center text-gray-400 font-medium">No requests found.</td></tr>
+                <tr><td colSpan="7" className="px-6 py-20 text-center text-gray-400 font-medium">No requests found.</td></tr>
               ) : (
                 filteredRequests.map((req) => (
                   <tr key={req._id} className="hover:bg-gray-50 transition-colors group">
@@ -342,14 +376,20 @@ const RefundRequests = ({ token }) => {
                       {currency}{(req.refundDetails?.amount || req.orderTotal || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                        isPrepaid(req.paymentMethod) ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600'
+                      }`}>
+                        {isPrepaid(req.paymentMethod) ? <CreditCard size={11} /> : <Wallet size={11} />}
+                        {isPrepaid(req.paymentMethod) ? 'Prepaid' : 'COD'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {(() => {
-                        const type = req.refundDetails?.requestType;
-                        const label = type === 'courier_return' ? 'Courier Return'
-                          : type === 'cancellation' ? 'Cancellation'
-                          : type === 'refund' ? 'Refund Only'
-                          : req.orderStatus === 'Cancelled' ? 'Cancellation' : 'Return/Refund';
-                        const className = type === 'courier_return' ? 'bg-amber-50 text-amber-600'
-                          : (type === 'cancellation' || req.orderStatus === 'Cancelled') ? 'bg-red-50 text-red-600'
+                        const cat = categoryOf(req);
+                        const label = REQUEST_CATEGORIES.find((c) => c.key === cat)?.label || 'Refund Only';
+                        const className = cat === 'courier_return' ? 'bg-amber-50 text-amber-600'
+                          : cat === 'cancellation' ? 'bg-red-50 text-red-600'
+                          : cat === 'return' ? 'bg-purple-50 text-purple-600'
                           : 'bg-blue-50 text-blue-600';
                         return (
                           <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${className}`}>

@@ -6,10 +6,11 @@ import { CSVLink } from 'react-csv';
 import {
   Undo2, Eye, Search, CalendarRange, XCircle, Download, RefreshCw,
   AlertTriangle, Clock, PackageCheck, Banknote, ShieldAlert, CheckCircle2,
-  Inbox, TrendingUp
+  Inbox, TrendingUp, CreditCard, Wallet
 } from 'lucide-react';
 import ReturnDrawer from '../components/returns/ReturnDrawer';
 import { RETURN_TABS, TONES, toneOf, labelOf, fmtDate } from '../utils/returnStatus';
+import { REQUEST_CATEGORIES, categoryOf, isPrepaid } from '../utils/requestCategory';
 
 // Return journey queue.
 //
@@ -48,6 +49,7 @@ const ReturnRequests = ({ token }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [activeTab, setActiveTab] = useState('approval');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -90,6 +92,7 @@ const ReturnRequests = ({ token }) => {
     const query = searchTerm.trim().toLowerCase();
     return rows.filter((row) => {
       if (bucketOf(row) !== activeTab) return false;
+      if (filterCategory !== 'all' && categoryOf(row) !== filterCategory) return false;
       if (overdueOnly && !row.view?.refundOverdue) return false;
 
       if (query) {
@@ -105,7 +108,17 @@ const ReturnRequests = ({ token }) => {
       if (endDate && time > new Date(endDate).setHours(23, 59, 59, 999)) return false;
       return true;
     });
-  }, [rows, activeTab, overdueOnly, searchTerm, startDate, endDate]);
+  }, [rows, activeTab, filterCategory, overdueOnly, searchTerm, startDate, endDate]);
+
+  const categoryCounts = useMemo(() => {
+    const inTab = rows.filter((row) => bucketOf(row) === activeTab);
+    const counts = { all: inTab.length, cancellation: 0, courier_return: 0, return: 0 };
+    inTab.forEach((row) => {
+      const cat = categoryOf(row);
+      if (cat) counts[cat] += 1;
+    });
+    return counts;
+  }, [rows, activeTab]);
 
   // Every drawer action posts, toasts, then re-reads the list — so the row, the
   // counts and the drawer can never show three different versions of a return.
@@ -158,6 +171,7 @@ const ReturnRequests = ({ token }) => {
   const csvHeaders = [
     { label: 'Order ID', key: 'orderId' }, { label: 'Order Item ID', key: 'orderItemId' },
     { label: 'Customer', key: 'customer' }, { label: 'Email', key: 'email' },
+    { label: 'Payment Type', key: 'paymentType' },
     { label: 'Requested', key: 'requested' }, { label: 'Status', key: 'status' },
     { label: 'Pickup Date', key: 'pickupDate' }, { label: 'Days Since Pickup', key: 'days' },
     { label: 'Received Date', key: 'receivedDate' }, { label: 'Refund Due', key: 'refundDue' },
@@ -174,6 +188,7 @@ const ReturnRequests = ({ token }) => {
       orderItemId: row.orderItemId || '',
       customer: row.userId?.name || '',
       email: row.userId?.email || '',
+      paymentType: isPrepaid(row.paymentMethod) ? 'Prepaid' : 'COD',
       requested: fmtDate(row.refundDetails?.requestedAt || row.date),
       status: labelOf(row.view?.status),
       pickupDate: fmtDate(rt.pickupDate),
@@ -313,6 +328,30 @@ const ReturnRequests = ({ token }) => {
           </div>
         </div>
 
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2 overflow-x-auto bg-white">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0 mr-1">Return Type</span>
+          <button
+            onClick={() => setFilterCategory('all')}
+            className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shrink-0 ${
+              filterCategory === 'all' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            All ({categoryCounts.all})
+          </button>
+          {REQUEST_CATEGORIES.map((cat) => (
+            <button
+              key={cat.key}
+              onClick={() => setFilterCategory(cat.key)}
+              title={cat.hint}
+              className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shrink-0 ${
+                filterCategory === cat.key ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {cat.label} ({categoryCounts[cat.key]})
+            </button>
+          ))}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50/50">
@@ -364,7 +403,15 @@ const ReturnRequests = ({ token }) => {
 
                       <td className="px-5 py-4 whitespace-nowrap">
                         <p className="text-xs font-black text-slate-800">{row.userId?.name || 'N/A'}</p>
-                        <p className="text-[10px] text-slate-400 font-bold">{currency}{(row.orderTotal || 0).toFixed(2)} · {row.paymentMethod}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <p className="text-[10px] text-slate-400 font-bold">{currency}{(row.orderTotal || 0).toFixed(2)}</p>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                            isPrepaid(row.paymentMethod) ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600'
+                          }`}>
+                            {isPrepaid(row.paymentMethod) ? <CreditCard size={9} /> : <Wallet size={9} />}
+                            {isPrepaid(row.paymentMethod) ? 'Prepaid' : 'COD'}
+                          </span>
+                        </div>
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap w-44">
