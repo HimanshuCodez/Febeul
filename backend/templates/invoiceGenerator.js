@@ -127,19 +127,21 @@ const buildInvoicePDF = (order, res) => {
             doc.moveDown(1.2);
         }
 
-        doc.text(`${order.address.address}`, 30, doc.y + 1, { width: colWidth - 20 });
-        if (order.address.nearby) doc.text(`Nearby: ${order.address.nearby}`, 30, doc.y + 1);
+        doc.text(`${order.address.address}${order.address.locality ? `, ${order.address.locality}` : ''}`, 30, doc.y + 1, { width: colWidth - 20 });
+        if (order.address.landmark) doc.text(`Landmark: ${order.address.landmark}`, 30, doc.y + 1);
         doc.text(`${order.address.city}, ${order.address.state} - ${order.address.zip}`, 30, doc.y + 1);
-        doc.text(`Phone: ${order.address.phone}`, 30, doc.y + 1);
+        doc.text(`${order.address.country || 'India'}`, 30, doc.y + 1);
+        doc.text(`Phone: ${order.address.phone}${order.address.alternatePhone ? `, ${order.address.alternatePhone}` : ''}`, 30, doc.y + 1);
 
         // Shipping
         doc.fillColor(primaryColor).fontSize(9).font('Helvetica-Bold').text('Shipping Address:', rightColX, currentAddressY);
         doc.font('Helvetica').fontSize(8).fillColor(secondaryColor);
         doc.text(order.address.name, rightColX, doc.y + 1);
-        doc.text(`${order.address.address}`, rightColX, doc.y + 1, { width: colWidth - 20 });
-        if (order.address.nearby) doc.text(`Nearby: ${order.address.nearby}`, rightColX, doc.y + 1);
+        doc.text(`${order.address.address}${order.address.locality ? `, ${order.address.locality}` : ''}`, rightColX, doc.y + 1, { width: colWidth - 20 });
+        if (order.address.landmark) doc.text(`Landmark: ${order.address.landmark}`, rightColX, doc.y + 1);
         doc.text(`${order.address.city}, ${order.address.state} - ${order.address.zip}`, rightColX, doc.y + 1);
-        doc.text(`Phone: ${order.address.phone}`, rightColX, doc.y + 1);
+        doc.text(`${order.address.country || 'India'}`, rightColX, doc.y + 1);
+        doc.text(`Phone: ${order.address.phone}${order.address.alternatePhone ? `, ${order.address.alternatePhone}` : ''}`, rightColX, doc.y + 1);
         
         // Weekend Deliveries
         if (order.address.saturdayDelivery !== undefined || order.address.sundayDelivery !== undefined) {

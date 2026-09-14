@@ -411,6 +411,15 @@ const constructEmailHtml = (order, templateHtml) => {
     const bankRrnRow = (order.paymentMethod === 'Razorpay' && order.bankRRN)
         ? `<strong>Bank RRN:</strong> ${order.bankRRN}<br>`
         : '';
+    const shippingAddressLandmarkRow = order.address.landmark
+        ? `Landmark: ${order.address.landmark}<br>`
+        : '';
+    const shippingAddressFullLine = order.address.locality
+        ? `${order.address.address}, ${order.address.locality}`
+        : order.address.address;
+    const shippingAddressPhoneLine = order.address.alternatePhone
+        ? `${order.address.phone}, ${order.address.alternatePhone}`
+        : order.address.phone;
 
     let finalHtml = templateHtml
         .replace('{{orderId}}', order._id.toString().slice(-8).toUpperCase())
@@ -427,10 +436,13 @@ const constructEmailHtml = (order, templateHtml) => {
         .replace('{{billingAddressZip}}', order.address.zip)
         .replace('{{billingAddressCountry}}', 'India')
         .replace('{{shippingAddressName}}', order.address.name)
-        .replace('{{shippingAddressAddress}}', order.address.address)
+        .replace('{{shippingAddressAddress}}', shippingAddressFullLine)
+        .replace('{{shippingAddressLandmarkRow}}', shippingAddressLandmarkRow)
         .replace('{{shippingAddressCity}}', order.address.city)
+        .replace('{{shippingAddressState}}', order.address.state || '')
         .replace('{{shippingAddressZip}}', order.address.zip)
-        .replace('{{shippingAddressCountry}}', 'India')
+        .replace('{{shippingAddressCountry}}', order.address.country || 'India')
+        .replace('{{shippingAddressPhone}}', shippingAddressPhoneLine)
         .replace('{{itemRows}}', itemRowsHtml)
         .replace('{{subtotal}}', subtotalBeforeCoupon.toFixed(2))
         .replace('{{couponDiscountRow}}', couponDiscountRow)
