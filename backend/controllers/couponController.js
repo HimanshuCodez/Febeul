@@ -349,18 +349,26 @@ export const getActiveCoupons = async (req, res) => {
             expiryDate: { $gt: new Date() } 
         }).sort({ createdAt: -1 });
 
-        // Filter coupons: 
+        // Filter coupons:
         // 1. If specificUsers is empty -> show to all
         // 2. If specificUsers has entries -> show only if user email or ID is in it
         const filteredCoupons = coupons.filter(coupon => {
-            if (!coupon.specificUsers || coupon.specificUsers.length === 0) {
-                // Also respect userType restriction for public listing
-                if (coupon.userType === 'luxe' && !user.isLuxeMember) {
+            if (coupon.specificUsers && coupon.specificUsers.length > 0) {
+                if (!(coupon.specificUsers.includes(user.email) || coupon.specificUsers.includes(userId))) {
                     return false;
                 }
-                return true;
+            } else if (coupon.userType === 'luxe' && !user.isLuxeMember) {
+                // Also respect userType restriction for public listing
+                return false;
             }
-            return coupon.specificUsers.includes(user.email) || coupon.specificUsers.includes(userId);
+
+            // Hide coupons the user has already redeemed up to their per-user limit
+            const userUsage = coupon.usersWhoUsed.filter(u => u.userId.toString() === userId).length;
+            if (coupon.usageLimitPerUser && userUsage >= coupon.usageLimitPerUser) {
+                return false;
+            }
+
+            return true;
         });
 
         res.json({ success: true, coupons: filteredCoupons });
