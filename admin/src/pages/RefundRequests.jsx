@@ -49,9 +49,13 @@ const RefundRequests = ({ token }) => {
         setAllOrders(orders);
         // Return Requests (physical item back) live on their own page now —
         // this page keeps cancellations, money-only refunds, and courier RTOs.
+        // Customer cancellations always belong here even when there's nothing
+        // to refund (COD orders cancelled before shipping leave
+        // refundDetails.status at 'none' since no payment was ever collected).
         const refundOrders = orders.filter(order =>
           ((order.refundDetails && order.refundDetails.status !== 'none') ||
-          ['Refund Initiated', 'Returned', 'Refunded'].includes(order.orderStatus)) &&
+          ['Refund Initiated', 'Returned', 'Refunded'].includes(order.orderStatus) ||
+          order.refundDetails?.requestType === 'cancellation') &&
           order.refundDetails?.requestType !== 'return'
         );
         setRequests(refundOrders.sort((a, b) => new Date(b.refundDetails.requestedAt || b.date) - new Date(a.refundDetails.requestedAt || a.date)));
@@ -188,9 +192,14 @@ const RefundRequests = ({ token }) => {
       case 'failed': return <XCircle className="text-red-500" size={18} />;
       case 'pending': return <Clock className="text-amber-500" size={18} />;
       case 'rejected': return <XCircle className="text-orange-500" size={18} />;
+      case 'none': return <CheckCircle2 className="text-gray-400" size={18} />;
       default: return <Clock className="text-gray-400" size={18} />;
     }
   };
+
+  // COD cancellations carry refundDetails.status 'none' since nothing was
+  // ever collected to refund — show that plainly instead of the raw enum.
+  const getStatusLabel = (status) => (status === 'none' ? 'No Refund Due' : status);
 
   const getRequestTypeLabel = (req) => REQUEST_CATEGORIES.find((c) => c.key === categoryOf(req))?.label || 'Refund Only';
 
@@ -400,7 +409,7 @@ const RefundRequests = ({ token }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
                         {getStatusIcon(req.refundDetails.status)}
-                        <span className="text-xs font-bold text-gray-700 capitalize">{req.refundDetails.status}</span>
+                        <span className="text-xs font-bold text-gray-700 capitalize">{getStatusLabel(req.refundDetails.status)}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button onClick={() => setSelectedTicket(req)} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-900 hover:text-white transition-all shadow-sm">
@@ -619,10 +628,16 @@ const RefundRequests = ({ token }) => {
                         )}
                     </div>
                 )}
-                <div className="flex gap-2">
-                    <button disabled={isUpdating || selectedRequest.refundDetails.status === 'completed'} onClick={() => updateRefundSubStatus(selectedRequest._id, 'completed')} className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 disabled:opacity-50">Mark Completed (Manual)</button>
-                    <button onClick={() => updateRefundSubStatus(selectedRequest._id, 'failed')} className="px-6 bg-gray-900 text-white rounded-2xl hover:bg-black"><XCircle size={20} /></button>
-                </div>
+                {selectedRequest.refundDetails.status === 'none' ? (
+                    <div className="p-4 bg-gray-100 rounded-2xl text-center text-xs font-bold text-gray-500 uppercase tracking-widest">
+                        No refund due — order was cancelled before any payment was collected (COD).
+                    </div>
+                ) : (
+                    <div className="flex gap-2">
+                        <button disabled={isUpdating || selectedRequest.refundDetails.status === 'completed'} onClick={() => updateRefundSubStatus(selectedRequest._id, 'completed')} className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 disabled:opacity-50">Mark Completed (Manual)</button>
+                        <button onClick={() => updateRefundSubStatus(selectedRequest._id, 'failed')} className="px-6 bg-gray-900 text-white rounded-2xl hover:bg-black"><XCircle size={20} /></button>
+                    </div>
+                )}
             </div>
           </div>
         </div>
