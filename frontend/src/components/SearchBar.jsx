@@ -19,6 +19,7 @@ export default function SearchBar({ onNavigate }) {
   const searchBarRef = useRef(null);
   const inputRef = useRef(null);
   const [history, setHistory] = useState([]);
+  const [dropdownRect, setDropdownRect] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isLuxeMember = user?.isLuxeMember;
@@ -77,15 +78,65 @@ export default function SearchBar({ onNavigate }) {
     };
   }, []);
 
-  // Block page scroll while the dropdown is open (desktop + mobile)
+  // Block page scroll while the dropdown is open (desktop + mobile).
+  // `overflow: hidden` on body alone doesn't stop touch-scroll/rubber-banding
+  // on iOS Safari, so pin the body in place at its current scroll offset and
+  // restore the scroll position when the dropdown closes.
   useEffect(() => {
-    if (showResults) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!showResults) return;
+
+    const scrollY = window.scrollY;
+    const { body, documentElement } = document;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyLeft = body.style.left;
+    const prevBodyRight = body.style.right;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHtmlOverflow = documentElement.style.overflow;
+
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.overflow = "hidden";
+    documentElement.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = "";
+      body.style.position = prevBodyPosition;
+      body.style.top = prevBodyTop;
+      body.style.left = prevBodyLeft;
+      body.style.right = prevBodyRight;
+      body.style.overflow = prevBodyOverflow;
+      documentElement.style.overflow = prevHtmlOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [showResults]);
+
+  // Keep the dropdown pinned to the viewport directly under the search bar,
+  // recalculated on open/resize/orientation change/keyboard toggle, instead
+  // of relying on `absolute` positioning that can drift if an ancestor
+  // scrolls, resizes, or the mobile keyboard shifts the layout.
+  useEffect(() => {
+    if (!showResults) return;
+
+    const updateRect = () => {
+      if (searchBarRef.current) {
+        const rect = searchBarRef.current.getBoundingClientRect();
+        setDropdownRect({ top: rect.bottom, left: rect.left, width: rect.width });
+      }
+    };
+
+    updateRect();
+    window.addEventListener("resize", updateRect);
+    window.addEventListener("orientationchange", updateRect);
+    window.visualViewport?.addEventListener("resize", updateRect);
+    window.visualViewport?.addEventListener("scroll", updateRect);
+
+    return () => {
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("orientationchange", updateRect);
+      window.visualViewport?.removeEventListener("resize", updateRect);
+      window.visualViewport?.removeEventListener("scroll", updateRect);
     };
   }, [showResults]);
 
@@ -310,9 +361,14 @@ export default function SearchBar({ onNavigate }) {
         </div>
       </form>
 
-      {/* Dropdown */}
-      {showResults && (
-        <div className="absolute top-[48px] left-0 w-full bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+      {/* Dropdown — fixed to the viewport (measured off the search bar) so it
+          stays put under the input instead of drifting with page/ancestor
+          scroll or the mobile keyboard opening. */}
+      {showResults && dropdownRect && (
+        <div
+          className="fixed bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden"
+          style={{ top: dropdownRect.top + 6, left: dropdownRect.left, width: dropdownRect.width }}
+        >
           <div className="max-h-[60vh] sm:max-h-[65vh] overflow-y-auto overscroll-contain">
             {/* When user has typed something */}
             {query ? (
