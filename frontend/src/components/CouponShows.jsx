@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Tag, X } from 'lucide-react';
+import { Tag, X, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RedeemPopup from './RedeemApply';
 import useAuthStore from '../store/authStore';
@@ -111,11 +111,40 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
 
   return (
     <div className="my-4">
+      <style>{`
+        @keyframes luxeShimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes luxeGlow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.35); }
+          50% { box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); }
+        }
+        @keyframes luxeIconPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.12); }
+        }
+        .luxe-shimmer-text {
+          background: linear-gradient(90deg, #b45309 0%, #fbbf24 25%, #fef3c7 50%, #fbbf24 75%, #b45309 100%);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: luxeShimmer 2.5s linear infinite;
+        }
+        .luxe-card-glow {
+          animation: luxeGlow 2.2s ease-in-out infinite;
+        }
+        .luxe-icon-pulse {
+          animation: luxeIconPulse 1.8s ease-in-out infinite;
+        }
+      `}</style>
       <h2 className="text-lg font-bold text-gray-800 mb-3">Available Coupons</h2>
       <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory">
         {applicableCoupons.map((coupon) => {
           const isApplied = appliedCoupon && appliedCoupon.code === coupon.code;
-          const isLuxeRestricted = coupon.userType === 'luxe' && !user?.isLuxeMember;
+          const isLuxeCoupon = coupon.userType === 'luxe';
+          const isLuxeRestricted = isLuxeCoupon && !user?.isLuxeMember;
 
           // Check if quantity condition is met
           let currentQuantity = 0;
@@ -149,14 +178,22 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
 
           return (
             <div key={coupon._id} className={`flex-shrink-0 snap-start w-[280px] flex flex-col justify-between gap-3 p-4 border rounded-xl transition-all ${
-              isDisabled ? 'bg-gray-50 border-gray-100 opacity-80' : 'bg-white border-blue-100 hover:shadow-lg'
+              isLuxeCoupon
+                ? 'bg-gradient-to-br from-amber-50 to-white border-amber-300 luxe-card-glow'
+                : isDisabled
+                ? 'bg-gray-50 border-gray-100 opacity-80'
+                : 'bg-white border-blue-100 hover:shadow-lg'
             }`}>
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 p-2 bg-blue-50 rounded-lg">
-                  <Tag size={20} className={isDisabled ? 'text-gray-400' : 'text-blue-600'} />
+                <div className={`flex-shrink-0 p-2 rounded-lg ${isLuxeCoupon ? 'bg-gradient-to-br from-amber-400 to-yellow-300 luxe-icon-pulse' : 'bg-blue-50'}`}>
+                  {isLuxeCoupon ? (
+                    <Crown size={20} className="text-white" />
+                  ) : (
+                    <Tag size={20} className={isDisabled ? 'text-gray-400' : 'text-blue-600'} />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className={`font-black uppercase tracking-wider text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
+                  <h3 className={`font-black uppercase tracking-wider text-sm ${isDisabled && !isLuxeCoupon ? 'text-gray-500' : 'text-gray-800'}`}>{coupon.code}</h3>
                   {coupon.description && <p className="text-xs text-gray-600 line-clamp-2 mt-1">{coupon.description}</p>}
                 </div>
               </div>
@@ -178,9 +215,9 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
                   ) : (
                     <p className="text-blue-600">₹{coupon.discountValue} OFF</p>
                   )}
-                  {coupon.userType === 'luxe' && (
-                    <p className={`font-black mt-1 ${user?.isLuxeMember ? 'text-amber-600' : 'text-amber-500'}`}>
-                      {user?.isLuxeMember ? '✨ LUXE EXCLUSIVE' : '🔒 LUXE ONLY'}
+                  {isLuxeCoupon && (
+                    <p className="luxe-shimmer-text font-black mt-1">
+                      {user?.isLuxeMember ? '✨ LUXE EXCLUSIVE' : '🔒 LUXE MEMBERS ONLY'}
                     </p>
                   )}
                 </div>
