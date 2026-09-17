@@ -31,6 +31,7 @@ const AllUsers = ({ token }) => {
     { label: 'Orders', path: '/orders' },
     { label: 'Refund Requests', path: '/refund-requests' },
     { label: 'Return Requests', path: '/return-requests' },
+    { label: 'Exchanges', path: '/exchanges' },
     { label: 'Gift Wraps', path: '/gift-wraps' },
     { label: 'Policy Update', path: '/policy-update' },
     { label: 'Generate Coupon', path: '/coupons' },

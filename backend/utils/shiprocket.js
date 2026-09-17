@@ -221,7 +221,12 @@ export const cancelShiprocketOrder = async (shiprocketOrderIds) => {
 // the customer's delivery address and brings it back to our warehouse.
 // `order` must carry the same shape used by createShiprocketOrder (see
 // buildShiprocketOrderPayload below): address fields + items + totals.
-export const createReturnOrder = async (order) => {
+//
+// `idPrefix` distinguishes which of our flows a reverse pickup belongs to —
+// the webhook handler detects it to route tracking updates back to the right
+// place. Defaults to the original return-journey prefix; the exchange flow
+// passes 'EXCR-' so its pickups route to exchangeModel instead of orderModel.
+export const createReturnOrder = async (order, idPrefix = 'RET-') => {
     try {
         const token = await shiprocketLogin();
         const addr = order.shippingAddress;
@@ -238,7 +243,7 @@ export const createReturnOrder = async (order) => {
         const response = await axios.post(
             "https://apiv2.shiprocket.in/v1/external/orders/create/return",
             {
-                order_id: `RET-${order._id.toString()}`,
+                order_id: `${idPrefix}${order._id.toString()}`,
                 order_date: new Date().toISOString().slice(0, 19).replace('T', ' '),
                 channel_id: "",
 
@@ -350,6 +355,69 @@ export const createAndAssignShipment = async (order, paymentMethodLabel) => {
         };
     } catch (error) {
         console.log(`Error with Shiprocket (${paymentMethodLabel}):`, error.message);
+        return null;
+    }
+};
+
+// Ships the replacement item for an approved, QC-passed exchange. `order` is
+// the ORIGINAL order (for the customer's delivery address); `exchange` carries
+// the replacement variation (exchange.replacement) and its own id, which is
+// what the order_id is keyed on so the webhook can route updates back to this
+// exchange ticket rather than to the original order.
+//
+// sub_total is 0 — an exchange replacement is never separately charged (a
+// free swap either way, per business policy), so there is nothing for
+// Shiprocket's COD collection to reflect even if the original order was COD.
+//
+// Deliberately does NOT assign an AWB/courier, same reasoning as
+// createAndAssignShipment: left for an admin to manually "Ship" from the
+// Shiprocket dashboard, with the webhook picking up the resulting AWB.
+export const createExchangeForwardOrder = async (exchange, order) => {
+    try {
+        const token = await shiprocketLogin();
+        const addr = order.address;
+        const replacement = exchange.replacement;
+
+        const response = await axios.post(
+            "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
+            {
+                order_id: `EXCF-${exchange._id.toString()}`,
+                order_date: new Date(),
+                pickup_location: "warehouse",
+                billing_customer_name: addr.name?.split(' ')[0] || '',
+                billing_last_name: addr.name?.split(' ').slice(1).join(' ') || '.',
+                billing_address: addr.address,
+                billing_address_2: `${addr.locality || ''}${addr.landmark ? ', ' + addr.landmark : ''}`.trim(),
+                billing_city: addr.city,
+                billing_pincode: addr.zip,
+                billing_state: addr.state,
+                billing_country: "India",
+                billing_email: order.userId?.email,
+                billing_phone: addr.phone,
+
+                shipping_is_billing: true,
+
+                order_items: [{
+                    name: exchange.originalItem.name,
+                    sku: replacement.sku || exchange.originalItem.sku,
+                    units: exchange.originalItem.quantity,
+                    selling_price: 0,
+                    hsn: ""
+                }],
+
+                payment_method: "PREPAID",
+                sub_total: 0,
+                length: 10,
+                breadth: 10,
+                height: 5,
+                weight: 0.5
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        return response.data;
+    } catch (error) {
+        console.error("Error creating Shiprocket exchange forward order:", error.response ? error.response.data : error.message);
         return null;
     }
 };

@@ -28,6 +28,7 @@ const FebeulDashboard = lazy(() => import('./pages/Dashboard'))
 const NewUserMail = lazy(() => import('./pages/NewUserMail'))
 const RefundRequests = lazy(() => import('./pages/RefundRequests'))
 const ReturnRequests = lazy(() => import('./pages/ReturnRequests'))
+const Exchanges = lazy(() => import('./pages/Exchanges'))
 const MaintenanceMode = lazy(() => import('./pages/Settings/MaintenanceMode'))
 const Configurations = lazy(() => import('./pages/Settings/Configurations'))
 const DeliveryControl = lazy(() => import('./pages/DeliveryControl'))
@@ -96,6 +97,7 @@ const App = () => {
                 {isAllowed('/orders') && <Route path='/orders' element={<Orders token={token} />} />}
                 {isAllowed('/refund-requests') && <Route path='/refund-requests' element={<RefundRequests token={token} />} />}
                 {isAllowed('/return-requests') && <Route path='/return-requests' element={<ReturnRequests token={token} />} />}
+                {isAllowed('/exchanges') && <Route path='/exchanges' element={<Exchanges token={token} />} />}
                 {isAllowed('/update') && <Route path='/update/:productId' element={<Update token={token} />} />}
                 {isAllowed('/allusers') && <Route path='/allusers' element={<AllUsers token={token} />} />}
                 {isAllowed('/gift-wraps') && <Route path='/gift-wraps' element={<ManageGiftWraps token={token} />} />}

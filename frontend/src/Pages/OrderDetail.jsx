@@ -21,13 +21,101 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from "../store/authStore";
 import Loader from '../components/Loader';
-import { X, XCircle, Check, Bike } from 'lucide-react';
+import { X, XCircle, Check, Bike, Repeat } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import SimilarItems from '../components/SimilarItems';
 import Reviews from '../components/Reviews';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+// Copy for the exchange milestone ladder — mirrors CUSTOMER_STAGES in
+// backend/utils/exchangeStatus.js. Kept module-level since it has no
+// dependency on component state, unlike RETURN_MILESTONE_COPY below.
+const EXCHANGE_MILESTONE_COPY = {
+    requested: 'We received your exchange request.',
+    verified: 'Your exchange has been approved.',
+    pickup_scheduled: 'A pickup has been scheduled to collect the item.',
+    picked_up: 'Your item has been collected. From here it is our responsibility.',
+    received: 'Your item has reached our warehouse.',
+    dispatched: 'Your replacement has been dispatched.',
+    out_for_delivery: 'Your replacement is out for delivery.',
+    delivered: 'Your replacement has been delivered.'
+};
+
+// Compact per-item exchange status card — same visual language as the
+// order-level return journey card below (dotted ladder, pulsing current
+// dot), scoped to a single line item since exchanges are per-item.
+const ExchangeStatusCard = ({ exchange }) => {
+    const status = exchange.exchangeStatus;
+    if (!status) return null;
+
+    if (status.blocked) {
+        return (
+            <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 mt-2">
+                <div className="flex items-center gap-2">
+                    <Repeat size={14} className="text-slate-400" />
+                    <p className="text-sm font-black text-slate-700">{status.label}</p>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-1.5">{status.message}</p>
+                {status.rejectionReason && (
+                    <p className="text-xs text-slate-600 font-medium italic mt-1.5">"{status.rejectionReason}"</p>
+                )}
+                <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-wider">Ticket {status.ticketId}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="mb-6 p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-100 mt-2">
+            <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                    <Repeat size={14} className="text-[#e8767a]" />
+                    <p className="text-sm font-black text-slate-800">Exchange {status.ticketId}</p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black ${
+                    status.stage === 'delivered' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-[#fff5f5] text-[#d5666a] border border-[#f9aeaf]'
+                }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${status.stage === 'delivered' ? 'bg-emerald-500' : 'bg-[#e8767a] animate-pulse'}`} />
+                    {status.label}
+                </span>
+            </div>
+            <div className="relative pl-6 border-l-2 border-slate-100 space-y-4">
+                {(status.milestones || []).map((milestone) => (
+                    <div key={milestone.key} className="relative">
+                        <span className="absolute -left-[29px] top-0.5 flex items-center justify-center">
+                            {milestone.current ? (
+                                <span className="relative flex h-3.5 w-3.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8767a] opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#e8767a] ring-4 ring-slate-50" />
+                                </span>
+                            ) : milestone.reached ? (
+                                <span className="h-3.5 w-3.5 rounded-full bg-emerald-500 ring-4 ring-slate-50 flex items-center justify-center">
+                                    <Check size={8} className="text-white" strokeWidth={4} />
+                                </span>
+                            ) : (
+                                <span className="h-2.5 w-2.5 rounded-full bg-slate-200 ring-4 ring-slate-50" />
+                            )}
+                        </span>
+                        <p className={`text-xs font-black ${milestone.current ? 'text-[#e8767a]' : milestone.reached ? 'text-slate-700' : 'text-slate-300'}`}>
+                            {milestone.label}
+                        </p>
+                        {milestone.reached && (
+                            <>
+                                <p className="text-[11px] text-slate-500 font-medium mt-0.5">{EXCHANGE_MILESTONE_COPY[milestone.key]}</p>
+                                {milestone.at && (
+                                    <p className="text-[9px] text-slate-400 font-bold mt-0.5">
+                                        {new Date(milestone.at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                                    </p>
+                                )}
+                            </>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 // --- Return/Exchange Modal Component ---
 const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
@@ -238,6 +326,147 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
     );
 };
 
+// --- Exchange Modal Component ---
+// A separate, simpler flow from ReturnExchangeModal above: exchanges are only
+// for a wrong or damaged item, and always replace it with the exact same
+// product/size the customer originally ordered — there is nothing to choose,
+// no payout details, no request-type selector.
+const ExchangeModal = ({ order, itemIndex, token, onClose, onSubmitted }) => {
+    const item = order.items[itemIndex];
+    const [reason, setReason] = useState('wrong_item');
+    const [description, setDescription] = useState('');
+    const [images, setImages] = useState([]);
+    const [imagePreviews, setImagePreviews] = useState([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleImageChange = (e) => {
+        if (e.target.files) {
+            const filesArray = Array.from(e.target.files);
+            if (images.length + filesArray.length > 4) {
+                toast.error("You can upload up to 4 images.");
+                return;
+            }
+            setImages(prev => [...prev, ...filesArray]);
+            setImagePreviews(prev => [...prev, ...filesArray.map(file => URL.createObjectURL(file))]);
+        }
+    };
+
+    const removeImage = (index) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
+        setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (images.length < 1) {
+            toast.error("Please upload at least one photo as evidence.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        const formData = new FormData();
+        formData.append('orderId', order._id);
+        formData.append('orderItemIndex', itemIndex);
+        formData.append('reason', reason);
+        formData.append('description', description);
+        images.forEach(image => formData.append('images', image));
+
+        try {
+            const response = await axios.post(`${backendUrl}/api/exchange/request`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data', token }
+            });
+            if (response.data.success) {
+                toast.success("Exchange request submitted.");
+                onSubmitted();
+            } else {
+                toast.error(response.data.message);
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "An error occurred.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 overflow-y-auto"
+        >
+            <motion.div
+                initial={{ scale: 0.8, y: -50 }}
+                animate={{ scale: 1, y: 0 }}
+                className="bg-white rounded-lg shadow-xl w-full max-w-lg my-8"
+            >
+                <div className="p-6 border-b flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-gray-800">Request an Exchange</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        {item?.image && <img src={item.image} className="w-12 h-12 object-cover rounded-md shrink-0" />}
+                        <div className="min-w-0">
+                            <p className="text-sm font-bold text-gray-800 truncate">{item?.name}</p>
+                            <p className="text-xs text-gray-500">Size {item?.size} · Qty {item?.quantity}</p>
+                        </div>
+                    </div>
+                    <p className="text-xs text-slate-500 -mt-3">We'll send you back the exact same item, in full working condition.</p>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">What went wrong?</label>
+                        <select
+                            value={reason}
+                            onChange={e => setReason(e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded-md"
+                        >
+                            <option value="wrong_item">Wrong Item Delivered</option>
+                            <option value="damaged">Damaged or Defective Product</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="exchange-description" className="block text-sm font-medium text-gray-700 mb-1">Tell us more (optional)</label>
+                        <textarea
+                            id="exchange-description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            rows="3"
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#e8767a] focus:border-[#e8767a]"
+                            placeholder="Describe what's wrong with the item..."
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (1–4, required)</label>
+                        <div className="flex flex-wrap gap-2">
+                            {imagePreviews.map((preview, index) => (
+                                <div key={index} className="relative">
+                                    <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-md" />
+                                    <button type="button" onClick={() => removeImage(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><X size={12} /></button>
+                                </div>
+                            ))}
+                            {images.length < 4 && (
+                                <label className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                                    <FaCamera className="text-gray-400 text-xl" />
+                                    <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
+                                </label>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-1">{images.length}/4 images uploaded</p>
+                    </div>
+                    <div className="flex justify-end gap-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+                        <button type="submit" disabled={isSubmitting || images.length < 1} className="px-4 py-2 text-white bg-[#e8767a] rounded-lg disabled:bg-gray-300">
+                            {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                        </button>
+                    </div>
+                </form>
+            </motion.div>
+        </motion.div>
+    );
+};
+
 // --- Cancellation Modal Component ---
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
     const [reason, setReason] = useState('');
@@ -436,6 +665,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [exchangeModalItemIndex, setExchangeModalItemIndex] = useState(null);
   const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
   const [showCancelledAnimation, setShowCancelledAnimation] = useState(false);
   const [isCancellingReturnRequest, setIsCancellingReturnRequest] = useState(false);
@@ -618,6 +848,16 @@ export default function OrderDetailPage() {
     const currentDate = new Date();
     return (currentDate - deliveredDate) <= threeDaysInMillis;
   };
+
+  // Exchanges are per line-item and only for a wrong/damaged item — a tighter
+  // 2-day window than the 3-day return/refund window above, per business rule.
+  const EXCHANGE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+  const exchangeWindowOpen = displayStatus === 'Delivered' && order.deliveredAt
+    && (new Date() - new Date(order.deliveredAt)) <= EXCHANGE_WINDOW_MS;
+  const hasActiveReturnOrRefund = order.refundDetails?.status && !['none', 'rejected'].includes(order.refundDetails.status);
+  const exchangeForItem = (itemIndex) => (order.exchanges || []).find((exc) => exc.orderItemIndex === itemIndex);
+  const isExchangeEligibleForItem = (itemIndex) =>
+    exchangeWindowOpen && !hasActiveReturnOrRefund && !exchangeForItem(itemIndex);
 
   const isCancellationPossible = () => {
     const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
@@ -818,6 +1058,18 @@ export default function OrderDetailPage() {
                 onSubmitted={() => {
                     setIsReturnModalOpen(false);
                     fetchOrderDetails(); // Re-fetch order details to show updated status
+                }}
+            />
+        )}
+        {exchangeModalItemIndex !== null && (
+            <ExchangeModal
+                order={order}
+                itemIndex={exchangeModalItemIndex}
+                token={token}
+                onClose={() => setExchangeModalItemIndex(null)}
+                onSubmitted={() => {
+                    setExchangeModalItemIndex(null);
+                    fetchOrderDetails();
                 }}
             />
         )}
@@ -1465,6 +1717,19 @@ export default function OrderDetailPage() {
                       )}
                     </div>
                   </motion.div>
+                  {displayStatus === 'Delivered' && item.sku !== 'LUXE-MEMBERSHIP' && (
+                    exchangeForItem(index) ? (
+                      <ExchangeStatusCard exchange={exchangeForItem(index)} />
+                    ) : isExchangeEligibleForItem(index) ? (
+                      <button
+                        type="button"
+                        onClick={() => setExchangeModalItemIndex(index)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-[#e8767a] hover:text-[#d5666a] mt-1 mb-4 transition-colors"
+                      >
+                        <Repeat size={13} /> Wrong item or damaged? Exchange it
+                      </button>
+                    ) : null
+                  )}
                   {displayStatus === 'Delivered' && (
                     <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 mt-2">
                       <p className="text-sm font-bold text-slate-700 mb-2">Rate & Review this product:</p>

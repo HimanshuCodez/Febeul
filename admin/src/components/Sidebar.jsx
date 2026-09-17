@@ -6,7 +6,7 @@ import {
   MessageSquare, Star, FileText, Image, Mail, Settings,
   Wrench, Sliders, Zap, Type, ChevronDown, ChevronRight,
   Menu, X, Truck, Undo2, Tags, Trash2, Search,
-  ChevronsLeft, ChevronsRight, SearchX
+  ChevronsLeft, ChevronsRight, SearchX, Repeat
 } from 'lucide-react'
 
 // Grouped nav config — single source of truth for search, accordions, and rendering.
@@ -36,6 +36,7 @@ const NAV_SECTIONS = [
       { to: '/orders', icon: ShoppingBag, label: 'Orders', permission: '/orders' },
       { to: '/refund-requests', icon: RotateCcw, label: 'Refunds', permission: '/refund-requests' },
       { to: '/return-requests', icon: Undo2, label: 'Returns', permission: '/return-requests' },
+      { to: '/exchanges', icon: Repeat, label: 'Exchanges', permission: '/exchanges' },
       { to: '/gift-wraps', icon: Gift, label: 'Gift Wraps', permission: '/gift-wraps' },
       { to: '/coupons', icon: Ticket, label: 'Coupons', permission: '/coupons' },
     ],

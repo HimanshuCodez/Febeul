@@ -7,6 +7,8 @@ import { createAndAssignShipment, cancelShiprocketOrder } from '../utils/shiproc
 import { syncOrderTracking, syncOrdersTracking } from '../utils/orderTrackingSync.js';
 import { syncReturnTracking, syncReturnsTracking } from '../utils/returnTrackingSync.js';
 import { getReturnSettings, sanitizeOrderForCustomer, sanitizeOrdersForCustomer } from '../utils/returnStatus.js';
+import exchangeModel from '../models/exchangeModel.js';
+import { getExchangeSettings, sanitizeExchangesForCustomer, applyWindowExpiry } from '../utils/exchangeStatus.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
@@ -1104,9 +1106,22 @@ const getOrderById = async (req, res) => {
         // replaced with a customer-safe `returnStatus`, so internal statuses
         // can't surface in view-source even where the UI never renders them.
         const settings = await getReturnSettings();
+        const sanitizedOrder = sanitizeOrderForCustomer(order, settings);
+
+        // Exchanges are per line-item (unlike the whole-order return above), so
+        // they're attached as an array rather than a single object.
+        const exchanges = await exchangeModel.find({ orderId: order._id, userId: order.userId._id || order.userId });
+        let anyExpired = false;
+        for (const exchange of exchanges) {
+            if (applyWindowExpiry(exchange)) anyExpired = true;
+        }
+        if (anyExpired) await Promise.all(exchanges.filter(e => e.isModified()).map(e => e.save()));
+        const exchangeSettings = await getExchangeSettings();
+        sanitizedOrder.exchanges = sanitizeExchangesForCustomer(exchanges, exchangeSettings);
+
         res.json({
             success: true,
-            order: sanitizeOrderForCustomer(order, settings),
+            order: sanitizedOrder,
             trackingData: trackingData ? { tracking_data: trackingData } : null
         });
     } catch (error) {
