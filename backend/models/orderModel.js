@@ -8,6 +8,7 @@ const orderSchema = new mongoose.Schema({
         quantity: { type: Number, required: true },
         size: { type: String },
         sku: { type: String }, // Adding sku field
+        hsn: { type: String }, // HSN code snapshot from the product at order time
         name: { type: String, required: true}, // Adding name for easier access without populating
         image: { type: String, required: true}, // Adding image for easier access without populating
         price: { type: Number, required: true },

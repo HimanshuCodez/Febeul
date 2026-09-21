@@ -147,6 +147,7 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
             price: itemPrice,
             color: item.color,
             sku: product.variations.find(v => v.color === item.color)?.sku || '',
+            hsn: product.hsn || '',
             discountAmount: item.discountAmount || 0,
             appliedCoupon: item.appliedCoupon || null
         };
@@ -296,8 +297,9 @@ const constructEmailHtml = (order, templateHtml) => {
                 <td style="padding: 20px 0; border-bottom: 1px solid #f5f5f5;">
                     <div style="font-size: 14px; font-weight: 600; color: #333333;">${item.name}</div>
                     ${item.sku ? `<div style="font-size: 11px; color: #999999; margin-top: 4px;">SKU: ${item.sku}</div>` : ''}
+                    ${item.hsn ? `<div style="font-size: 11px; color: #999999; margin-top: 2px;">HSN: ${item.hsn}</div>` : ''}
                 </td>
-                <td align="center" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; color: #666666;">${itemQuantity}</td>
+                <td align="center" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; color: #666666;">${itemQuantity} pcs</td>
                 <td align="right" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; font-weight: 700; color: #333333;">₹${netTotal.toFixed(2)}</td>
             </tr>
         `;
@@ -1077,7 +1079,20 @@ const generateInvoice = async (req, res) => {
             return res.json({ success: false, message: 'Order not found.' });
         }
 
-        buildInvoicePDF(order, res);
+        // Older orders were saved before HSN was snapshotted — fill it from the product
+        const missingHsnIds = order.items.filter(i => !i.hsn && i.productId).map(i => i.productId);
+        let hsnByProductId = {};
+        if (missingHsnIds.length > 0) {
+            const products = await productModel.find({ _id: { $in: missingHsnIds } }).select('hsn');
+            hsnByProductId = Object.fromEntries(products.map(p => [p._id.toString(), p.hsn]));
+        }
+        const invoiceOrder = order.toObject();
+        invoiceOrder.items = invoiceOrder.items.map(i => ({
+            ...i,
+            hsn: i.hsn || hsnByProductId[i.productId?.toString()] || ''
+        }));
+
+        buildInvoicePDF(invoiceOrder, res);
 
     } catch (error) {
         console.error("Error in generateInvoice function:", error); // More specific error log
