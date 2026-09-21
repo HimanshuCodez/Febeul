@@ -304,12 +304,12 @@ export default function FebeulLuxe() {
       {/* Features Grid */}
       <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-8 text-center mb-16">
         {[
-          { img: "/van.png", title: "PRIORITY DELIVERY", desc: "Fast-track shipping on every order" },
+          { img: "/bus.png", title: "PRIORITY DELIVERY", desc: "Fast-track shipping on every order" },
           { img: "/gifts.png", title: "15 GIFT WRAPS", desc: "Premium packaging for your loved ones" },
           { img: "/bags.png", title: "LUXE PRIVE SALES", desc: "Exclusive access to boutique collections" },
-          { img: "/coupon.png", title: "EXCLUSIVE COUPONS", desc: "Vouchers included with every purchase" },
-          { img: "/5.png", title: "VIP SUPPORT", desc: "Dedicated concierge for all your needs" },
-          { img: "/6.png", title: "FREE SHIPPING", desc: "Zero delivery charges, nationwide" }
+          { img: "/discount.png", title: "EXCLUSIVE COUPONS", desc: "Vouchers included with every purchase" },
+          { img: "/customer.png", title: "VIP SUPPORT", desc: "Dedicated concierge for all your needs" },
+          { img: "/free_delivery.png", title: "FREE SHIPPING", desc: "Zero delivery charges, nationwide" }
         ].map((feature, i) => (
           <motion.div 
             key={i}
