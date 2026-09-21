@@ -24,7 +24,13 @@ const userSchema = new mongoose.Schema({
         ref: 'giftWrap',
         default: null
     },
+    // Legacy product-level wishlist; migrated lazily into wishlistItems by getWishlist.
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }],
+    wishlistItems: [{
+        _id: false,
+        product: { type: mongoose.Schema.Types.ObjectId, ref: 'product', required: true },
+        sku: { type: String, required: true }
+    }],
     addresses: [{
         name: { type: String, required: true },
         address: { type: String, required: true },

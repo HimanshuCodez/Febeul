@@ -292,7 +292,7 @@ const ProductDetailPage = () => {
   const [selectedVariationIndex, setSelectedVariationIndex] = useState(0);
   const [selectedSizeValue, setSelectedSizeValue] = useState(null);
   const [isProdDetailsExpanded, setIsProdDetailsExpanded] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistedSkus, setWishlistedSkus] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
   const [numOfReviews, setNumOfReviews] = useState(0);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -308,6 +308,7 @@ const ProductDetailPage = () => {
   const variations = product?.variations || [];
   const selectedVariation = variations[selectedVariationIndex] || {};
   const images = selectedVariation.images || [];
+  const isWishlisted = !!selectedVariation.sku && wishlistedSkus.includes(selectedVariation.sku);
 
   const currentSizeData = selectedVariation.sizes?.find(s => s.size === selectedSizeValue);
   const displayPrice = currentSizeData?.price;
@@ -500,8 +501,11 @@ const ProductDetailPage = () => {
             headers: { token },
           });
           if (response.data.success) {
-            const isProductInWishlist = response.data.wishlist.some(item => item._id === productId);
-            setIsWishlisted(isProductInWishlist);
+            setWishlistedSkus(
+              response.data.wishlist
+                .filter(item => item._id === productId)
+                .map(item => item.wishlistSku)
+            );
           }
         } catch (error) {
           console.error("Error checking wishlist", error);
@@ -518,14 +522,20 @@ const ProductDetailPage = () => {
       return;
     }
 
+    const sku = selectedVariation.sku;
+    if (!sku) {
+      toast.error("Please select a variation.");
+      return;
+    }
+
     const endpoint = isWishlisted ? 'remove' : 'add';
     try {
       const response = await axios.post(`${backendUrl}/api/user/wishlist/${endpoint}`,
-        { userId: user._id, productId: product._id },
+        { userId: user._id, productId: product._id, sku },
         { headers: { token } }
       );
       if (response.data.success) {
-        setIsWishlisted(!isWishlisted);
+        setWishlistedSkus(prev => isWishlisted ? prev.filter(s => s !== sku) : [...prev, sku]);
         toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
         fetchWishlistCount();
       }

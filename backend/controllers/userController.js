@@ -538,28 +538,51 @@ const getAllUsers = async (req, res) => {
     }
 }
 
-// Get user's wishlist
+// Get user's wishlist. Each entry is a product document plus `wishlistSku`
+// (the specific colour variation the user saved); a product saved under two
+// SKUs appears twice.
 const getWishlist = async (req, res) => {
     try {
-        const user = await userModel.findById(req.userId).populate('wishlist');
+        const user = await userModel.findById(req.userId).populate('wishlist').populate('wishlistItems.product');
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
-        res.json({ success: true, wishlist: user.wishlist });
+
+        // Lazy migration of legacy product-level entries: default to first variation's SKU.
+        if (user.wishlist.length > 0) {
+            for (const product of user.wishlist) {
+                if (!product) continue;
+                const sku = product.variations?.find((v) => v.sku)?.sku;
+                if (sku && !user.wishlistItems.some((i) => i.product?._id.equals(product._id) && i.sku === sku)) {
+                    user.wishlistItems.push({ product: product._id, sku });
+                }
+            }
+            user.wishlist = [];
+            await user.save();
+            await user.populate('wishlistItems.product');
+        }
+
+        const wishlist = user.wishlistItems
+            .filter((i) => i.product)
+            .map((i) => ({ ...i.product.toObject(), wishlistSku: i.sku }));
+        res.json({ success: true, wishlist });
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: "Error fetching wishlist" });
     }
 };
 
-// Add to wishlist
+// Add a specific product SKU to wishlist
 const addToWishlist = async (req, res) => {
     try {
-        const { productId } = req.body;
+        const { productId, sku } = req.body;
+        if (!productId || !sku) {
+            return res.json({ success: false, message: "Product and SKU are required" });
+        }
         const user = await userModel.findById(req.userId);
 
-        if (!user.wishlist.includes(productId)) {
-            user.wishlist.push(productId);
+        if (!user.wishlistItems.some((i) => i.product.toString() === productId && i.sku === sku)) {
+            user.wishlistItems.push({ product: productId, sku });
             await user.save();
         }
         res.json({ success: true, message: "Added to wishlist" });
@@ -569,13 +592,15 @@ const addToWishlist = async (req, res) => {
     }
 };
 
-// Remove from wishlist
+// Remove a specific product SKU from wishlist
 const removeFromWishlist = async (req, res) => {
     try {
-        const { productId } = req.body;
+        const { productId, sku } = req.body;
         const user = await userModel.findById(req.userId);
-        
-        user.wishlist = user.wishlist.filter((id) => id.toString() !== productId);
+
+        user.wishlistItems = user.wishlistItems.filter(
+            (i) => !(i.product.toString() === productId && i.sku === sku)
+        );
         await user.save();
         res.json({ success: true, message: "Removed from wishlist" });
     } catch (error) {

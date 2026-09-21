@@ -38,10 +38,13 @@ const fetchActiveCoupons = async () => {
   return couponsPromise;
 };
 
-const ProductCard = ({ product, onWishlistToggle }) => {
+const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [activeVariationIndex, setActiveVariationIndex] = useState(0);
+  const [wishlistedSkus, setWishlistedSkus] = useState([]);
+  const [activeVariationIndex, setActiveVariationIndex] = useState(() => {
+    const idx = initialSku ? (product.variations || []).findIndex(v => v.sku === initialSku) : -1;
+    return idx === -1 ? 0 : idx;
+  });
   const [activeCoupons, setActiveCoupons] = useState([]);
 
   const { user, token, isAuthenticated, fetchWishlistCount } = useAuthStore();
@@ -74,8 +77,11 @@ const ProductCard = ({ product, onWishlistToggle }) => {
             headers: { token }
           });
           if (response.data.success) {
-            const isProductInWishlist = response.data.wishlist.some(item => item._id === product._id);
-            setIsWishlisted(isProductInWishlist);
+            setWishlistedSkus(
+              response.data.wishlist
+                .filter(item => item._id === product._id)
+                .map(item => item.wishlistSku)
+            );
           }
         } catch (error) {
           console.error("Error checking wishlist", error);
@@ -95,19 +101,25 @@ const ProductCard = ({ product, onWishlistToggle }) => {
       return;
     }
 
+    const sku = activeVariation.sku;
+    if (!sku) {
+      toast.error("This item can't be wishlisted right now.");
+      return;
+    }
+
     const endpoint = isWishlisted ? 'remove' : 'add';
     try {
-      const response = await axios.post(`${backendUrl}/api/user/wishlist/${endpoint}`, 
-        { productId: product._id },
+      const response = await axios.post(`${backendUrl}/api/user/wishlist/${endpoint}`,
+        { productId: product._id, sku },
         { headers: { token } }
       );
       if (response.data.success) {
         const newWishlistState = !isWishlisted;
-        setIsWishlisted(newWishlistState);
+        setWishlistedSkus(prev => newWishlistState ? [...prev, sku] : prev.filter(s => s !== sku));
         toast.success(newWishlistState ? "Added to wishlist" : "Removed from wishlist");
         fetchWishlistCount();
         if (onWishlistToggle) {
-          onWishlistToggle(newWishlistState);
+          onWishlistToggle(newWishlistState, sku);
         }
       }
     } catch (error) {
@@ -117,7 +129,8 @@ const ProductCard = ({ product, onWishlistToggle }) => {
 
   const variations = product.variations || [];
   const activeVariation = variations[activeVariationIndex] || {};
-  
+  const isWishlisted = !!activeVariation.sku && wishlistedSkus.includes(activeVariation.sku);
+
   const firstSize = activeVariation.sizes?.[0];
   const displayPrice = firstSize?.price;
   const displayMrp = firstSize?.mrp;
