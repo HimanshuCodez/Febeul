@@ -63,26 +63,13 @@ const Footer = () => {
               (Monday–Saturday)
             </p>
             {/* Payment Gateway Logos */}
-            <div className="mt-5 flex flex-wrap items-center justify-center sm:justify-start gap-5 sm:gap-6">
-  {[
-    { src: "/1.png", alt: "UPI" },
-    { src: "/2.png", alt: "Visa" },
-    { src: "/3.png", alt: "Mastercard" },
-    { src: "/4.png", alt: "Net Banking" },
-    { src: "/cod.png", alt: "Cash on Delivery" },
-  ].map((icon) => (
-    <div
-      key={icon.alt}
-      className="h-12 sm:h-14 flex items-center justify-center"
-    >
-      <img
-        src={icon.src}
-        alt={icon.alt}
-        className="w-[55px] sm:w-[65px] max-h-12 sm:max-h-14 object-contain"
-      />
-    </div>
-  ))}
-</div>
+            <div className="mt-5 flex items-center justify-center sm:justify-start">
+              <img
+                src="/payment_methods.png"
+                alt="Secure payments: UPI, Cards, Net Banking, Cash on Delivery"
+                className="w-full max-w-xs object-contain"
+              />
+            </div>
           </div>
 
           {/* Links Sections */}
