@@ -660,6 +660,12 @@ const placeOrderStripe = async (req,res) => {
             mode: 'payment',
         })
 
+        // Record the session id now, while we have it for free from the create
+        // call — verifyStripe has no other way to look up which Stripe
+        // session/payment_intent belongs to this order, since success_url only
+        // carries orderId, not the session id, back to us.
+        await orderModel.findByIdAndUpdate(newOrder._id, { paymentDetails: { stripeSessionId: session.id } });
+
         res.json({success:true,session_url:session.url});
     } catch (error) {
         console.log(error)
@@ -680,11 +686,26 @@ const verifyStripe = async (req,res) => {
                 return res.json({ success: false, message: "Order not found" });
             }
 
+            // Capture the payment_intent behind this session so a future
+            // refund (cancelOrder, admin refund approval) has something to
+            // refund against — without this, a paid Stripe order has no
+            // recorded reference to it at all beyond the Stripe dashboard.
+            let stripePaymentIntentId;
+            try {
+                const sessionId = order.paymentDetails?.stripeSessionId;
+                if (sessionId) {
+                    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+                    stripePaymentIntentId = checkoutSession.payment_intent || undefined;
+                }
+            } catch (stripeLookupError) {
+                console.log("Could not retrieve Stripe session/payment_intent:", stripeLookupError.message);
+            }
+
             // Update order with payment success and confirmed status
             await orderModel.findByIdAndUpdate(orderId, {
                 payment: true,
-                // Assuming paymentDetails might contain stripe's charge ID or equivalent if needed
-                orderStatus: 'Confirmed' 
+                orderStatus: 'Confirmed',
+                ...(stripePaymentIntentId ? { 'paymentDetails.stripePaymentIntentId': stripePaymentIntentId } : {})
             });
             // Re-fetch the updated order for further processing
             const updatedOrder = await orderModel.findById(orderId).populate('userId');
@@ -1212,7 +1233,16 @@ const cancelOrder = async (req, res) => {
             order.orderStatus = 'Cancelled';
             order.refundDetails.status = 'none';
         } else {
+            // Any other prepaid method with no automated refund integration
+            // (currently: Stripe — not wired into checkout yet, but the model
+            // allows it). `order.payment` tells us whether money was actually
+            // collected; COD never reaches this branch, so this can't be
+            // confused with "never paid." Previously this always left
+            // refundDetails.status at its 'none' default even when money had
+            // been collected, which made the admin Refund Requests page show
+            // "No refund due" for an order that genuinely owed a refund.
             order.orderStatus = 'Cancelled';
+            order.refundDetails.status = order.payment ? 'pending' : 'none';
         }
 
         // Restore stock

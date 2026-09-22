@@ -423,4 +423,102 @@ const cancelReturnRequest = async (req, res) => {
     }
 };
 
-export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, approveRefund, rejectRefund, autoRefundOnCourierReturn, cancelReturnRequest };
+// --- Razorpay account activity (admin-only, read-only) ---------------------
+// Lets the Refunds page show recent Razorpay settlement/payment/refund
+// activity without the admin leaving the panel to check the Razorpay
+// dashboard. Deliberately NOT called "balance": the standard Razorpay
+// Payment Gateway API this app uses (RAZORPAY_KEY_ID/SECRET) has no endpoint
+// that returns a live account balance — that figure only exists via
+// RazorpayX (Razorpay's separate business-banking product), which this app
+// isn't set up for. Settlements are the closest honest substitute: money
+// that has actually moved from Razorpay to the merchant's bank account.
+const getRazorpaySummary = async (req, res) => {
+    try {
+        const settlements = await razorpayInstance.settlements.all({ count: 5 });
+        const items = settlements.items || [];
+        const latest = items[0] || null;
+
+        res.json({
+            success: true,
+            summary: {
+                lastSettlement: latest ? {
+                    id: latest.id,
+                    amount: (latest.amount_settled || 0) / 100,
+                    utr: latest.utr,
+                    status: latest.status,
+                    date: latest.processed_at ? new Date(latest.processed_at * 1000) : (latest.created_at ? new Date(latest.created_at * 1000) : null)
+                } : null,
+                // Sum of the last 5 settlements — a recent-activity signal, not
+                // a running account balance.
+                recentSettledTotal: items.reduce((sum, s) => sum + (s.amount_settled || 0), 0) / 100,
+                recentSettlementCount: items.length
+            }
+        });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error?.error?.description || error.message || 'Failed to reach Razorpay.' });
+    }
+};
+
+const RAZORPAY_TX_RESOURCES = ['settlements', 'payments', 'refunds'];
+
+const mapRazorpayItem = (type, item) => {
+    const at = (unixSeconds) => unixSeconds ? new Date(unixSeconds * 1000) : null;
+    if (type === 'settlements') {
+        return {
+            id: item.id,
+            amount: (item.amount_settled || 0) / 100,
+            fees: (item.fees || 0) / 100,
+            tax: (item.tax || 0) / 100,
+            utr: item.utr,
+            status: item.status,
+            date: at(item.processed_at) || at(item.created_at)
+        };
+    }
+    if (type === 'payments') {
+        return {
+            id: item.id,
+            amount: (item.amount || 0) / 100,
+            method: item.method,
+            status: item.status,
+            captured: item.captured,
+            email: item.email,
+            contact: item.contact,
+            orderId: item.order_id,
+            date: at(item.created_at)
+        };
+    }
+    // refunds
+    return {
+        id: item.id,
+        amount: (item.amount || 0) / 100,
+        paymentId: item.payment_id,
+        status: item.status,
+        speedProcessed: item.speed_processed,
+        date: at(item.created_at)
+    };
+};
+
+// One endpoint, three resources — mirrors exactly what the Razorpay
+// dashboard's own "Settlements" / "Payments" / "Refunds" tabs show, so this
+// really can replace the trip there rather than being a partial view of it.
+const getRazorpayTransactions = async (req, res) => {
+    try {
+        const type = RAZORPAY_TX_RESOURCES.includes(req.query.type) ? req.query.type : 'settlements';
+        const count = Math.min(Math.max(parseInt(req.query.count, 10) || 20, 1), 100);
+        const skip = Math.max(parseInt(req.query.skip, 10) || 0, 0);
+
+        const result = await razorpayInstance[type].all({ count, skip });
+        res.json({
+            success: true,
+            type,
+            total: result.count,
+            items: (result.items || []).map((item) => mapRazorpayItem(type, item))
+        });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error?.error?.description || error.message || 'Failed to reach Razorpay.' });
+    }
+};
+
+export { calculateRefundAmount, processPrepaidRefund, processCodRefund, requestRefund, approveRefund, rejectRefund, autoRefundOnCourierReturn, cancelReturnRequest, getRazorpaySummary, getRazorpayTransactions };
