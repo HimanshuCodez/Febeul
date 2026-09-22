@@ -15,6 +15,9 @@ import { Banknote, ExternalLink, RefreshCw, X, Landmark, CreditCard, RotateCcw }
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
+// Toggle to bring the "View Transactions" button (and its modal) back.
+const SHOW_TRANSACTIONS_BUTTON = false;
+
 const TABS = [
   { key: 'settlements', label: 'Settlements', icon: Landmark },
   { key: 'payments', label: 'Payments', icon: CreditCard },
@@ -228,12 +231,16 @@ const RazorpayActivity = ({ token }) => {
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button
-            onClick={() => setShowTransactions(true)}
-            className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all"
-          >
-            <ExternalLink size={13} /> View Transactions
-          </button>
+          {/* Hidden for now per request — flip SHOW_TRANSACTIONS_BUTTON back
+              on to restore it. The modal and backend endpoints are untouched. */}
+          {SHOW_TRANSACTIONS_BUTTON && (
+            <button
+              onClick={() => setShowTransactions(true)}
+              className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all"
+            >
+              <ExternalLink size={13} /> View Transactions
+            </button>
+          )}
         </div>
       </div>
 
