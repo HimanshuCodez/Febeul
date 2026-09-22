@@ -34,13 +34,16 @@ import { useNavigate } from "react-router-dom";
 const FebeulDashboard = ({ token }) => {
   const navigate = useNavigate();
   const role = localStorage.getItem("role");
+  // Read once at component scope — the redirect guard below and
+  // fetchDashboardData both need to know what this account can reach.
+  const permissions = useMemo(() => JSON.parse(localStorage.getItem('permissions') || '[]'), []);
+  const canListAllUsers = role === "admin" || permissions.includes('/allusers');
 
   useEffect(() => {
-    const permissions = JSON.parse(localStorage.getItem('permissions') || '[]');
     if (role !== "admin" && !permissions.includes('/')) {
       navigate("/list");
     }
-  }, [role, navigate]);
+  }, [role, permissions, navigate]);
 
   const [timeRange, setTimeRange] = useState("30days");
   const [startDate, setStartDate] = useState(
@@ -97,12 +100,18 @@ const FebeulDashboard = ({ token }) => {
     try {
       const queryParams = `range=${timeRange}${timeRange === "custom" ? `&startDate=${startDate}&endDate=${endDate}` : ""}`;
 
-      // Fire all dashboard requests in parallel instead of one-at-a-time —
-      // these are independent reads, so a waterfall of 8 sequential awaits
-      // was needlessly multiplying the initial load time.
+      // These 7 all sit behind the same '/' (Dashboard) permission
+      // (middleware/adminAuth.js), so anyone who can render this page at all
+      // can reach every one of them — a single Promise.all is safe here.
+      // '/api/user/allusers' is NOT in this batch: it needs the separate
+      // '/allusers' permission, and a staff account scoped to Dashboard-only
+      // doesn't have it. It used to be bundled into the same Promise.all,
+      // so its 403 rejected the whole batch and silently replaced every
+      // real number on this page — stats, charts, recent orders, all of it
+      // — with hardcoded sample data (even the fallback below that already
+      // knew how to cope with a missing user count could never be reached).
       const [
         statsResponse,
-        usersResponse,
         trendsResponse,
         dailyTrendsResponse,
         categoryResponse,
@@ -111,7 +120,6 @@ const FebeulDashboard = ({ token }) => {
         skuStocksResponse,
       ] = await Promise.all([
         axios.get(`${backendUrl}/api/admin/dashboard-stats?${queryParams}`, { headers: { token } }),
-        axios.get(`${backendUrl}/api/user/allusers`, { headers: { token } }),
         axios.get(`${backendUrl}/api/admin/monthly-trends?${queryParams}`, { headers: { token } }),
         axios.get(`${backendUrl}/api/admin/daily-trends?${queryParams}`, { headers: { token } }),
         axios.get(`${backendUrl}/api/admin/category-sales?${queryParams}`, { headers: { token } }),
@@ -120,13 +128,31 @@ const FebeulDashboard = ({ token }) => {
         axios.get(`${backendUrl}/api/admin/sku-stocks`, { headers: { token } }),
       ]);
 
-      if (statsResponse.data.success && usersResponse.data.success) {
+      if (statsResponse.data.success) {
         const stats = statsResponse.data.stats;
-        const totalUsersCount = usersResponse.data.users.length;
+
+        // All-time registered user count needs '/allusers' — only ask for
+        // it when this account actually has that permission, and never let
+        // its failure take the rest of the page down with it. Without it,
+        // fall back to the dashboard-stats endpoint's own totalUsers (new
+        // signups within the selected date range) — a real number, just a
+        // differently-scoped one, instead of fabricated data.
+        let totalUsersValue = stats.totalUsers;
+        if (canListAllUsers) {
+          try {
+            const usersResponse = await axios.get(`${backendUrl}/api/user/allusers`, { headers: { token } });
+            if (usersResponse.data.success) {
+              totalUsersValue = usersResponse.data.users.length;
+            }
+          } catch (usersErr) {
+            console.error("Error fetching all-users count:", usersErr);
+            setError("Showing new signups for this period — couldn't load the all-time user count.");
+          }
+        }
 
         setDashboardStats({
           totalUsers: {
-            value: formatValue(totalUsersCount),
+            value: formatValue(totalUsersValue),
             change: stats.userChange,
             type: stats.userChangeType,
           },
@@ -146,32 +172,6 @@ const FebeulDashboard = ({ token }) => {
             type: stats.avgOrderValueChangeType,
           },
         });
-      } else if (statsResponse.data.success) {
-        // Fallback if only stats are successful but users are not
-        const stats = statsResponse.data.stats;
-        setDashboardStats({
-          totalUsers: {
-            value: formatValue(stats.totalUsers),
-            change: stats.userChange,
-            type: stats.userChangeType,
-          },
-          totalOrders: {
-            value: formatValue(stats.totalOrders),
-            change: stats.orderChange,
-            type: stats.orderChangeType,
-          },
-          revenue: {
-            value: formatValue(stats.revenue, true),
-            change: stats.revenueChange,
-            type: stats.revenueChangeType,
-          },
-          avgOrderValue: {
-            value: formatValue(stats.avgOrderValue, true),
-            change: stats.avgOrderValueChange,
-            type: stats.avgOrderValueChangeType,
-          },
-        });
-        setError("Failed to fetch user count.");
       } else {
         setError("Failed to fetch dashboard data.");
       }
@@ -210,70 +210,19 @@ const FebeulDashboard = ({ token }) => {
       setError(
         "Failed to fetch dashboard data. Please check your backend endpoints.",
       );
-      // Fallback to sample data on error
+      // No fake numbers here: showing fabricated revenue/order figures when
+      // the backend is genuinely unreachable is worse than showing nothing
+      // — an admin could easily mistake sample data for a real, if bad, day.
       setDashboardStats({
-        totalUsers: { value: "1,245", change: "+12.5%", type: "up" },
-        totalOrders: { value: "346", change: "+8.2%", type: "up" },
-        revenue: { value: "$103,900", change: "+15.3%", type: "up" },
-        avgOrderValue: { value: "$300.29", change: "-2.1%", type: "down" },
+        totalUsers: { value: "—", change: "0%", type: "up" },
+        totalOrders: { value: "—", change: "0%", type: "up" },
+        revenue: { value: "—", change: "0%", type: "up" },
+        avgOrderValue: { value: "—", change: "0%", type: "up" },
       });
-      setMonthlyTrends([
-        { month: "Oct", orders: 45, revenue: 12500, users: 120 },
-        { month: "Nov", orders: 52, revenue: 15800, users: 145 },
-        { month: "Dec", orders: 48, revenue: 14200, users: 138 },
-        { month: "Jan", orders: 61, revenue: 18900, users: 167 },
-        { month: "Feb", orders: 72, revenue: 22400, users: 189 },
-        { month: "Mar", orders: 68, revenue: 20100, users: 201 },
-      ]);
-      setDailyTrends([
-        { date: "2026-03-01", orders: 5, revenue: 1200, users: 10 },
-        { date: "2026-03-02", orders: 8, revenue: 1500, users: 12 },
-        { date: "2026-03-03", orders: 4, revenue: 1100, users: 8 },
-        { date: "2026-03-04", orders: 12, revenue: 2800, users: 15 },
-        { date: "2026-03-05", orders: 9, revenue: 2100, users: 11 },
-        { date: "2026-03-06", orders: 15, revenue: 3500, users: 20 },
-        { date: "2026-03-07", orders: 11, revenue: 2400, users: 14 },
-      ]);
-      setCategorySales([
-        { name: "Electronics", value: 35, color: "#f9aeaf" },
-        { name: "Fashion", value: 28, color: "#e88b8d" },
-        { name: "Home & Living", value: 22, color: "#d66a6c" },
-        { name: "Beauty", value: 15, color: "#c44a4d" },
-      ]);
-      setRecentOrdersList([
-        {
-          id: "#60d5ecb8b3b1c8e1e8e8e8e8",
-          skus: "SKU-123, SKU-456",
-          amount: 245,
-          status: "Completed",
-          date: new Date(Date.now() - 2 * 3600000).toLocaleDateString(),
-          time: "2 hours ago",
-        },
-        {
-          id: "#60d5ecb8b3b1c8e1e8e8e8e9",
-          skus: "SKU-789",
-          amount: 189,
-          status: "Processing",
-          date: new Date(Date.now() - 4 * 3600000).toLocaleDateString(),
-          time: "4 hours ago",
-        },
-        {
-          id: "#60d5ecb8b3b1c8e1e8e8e8f0",
-          skus: "SKU-111",
-          amount: 432,
-          status: "Shipped",
-          date: new Date(Date.now() - 6 * 3600000).toLocaleDateString(),
-          time: "6 hours ago",
-        },
-        {
-          id: "#60d5ecb8b3b1c8e1e8e8e8f1",
-          skus: "SKU-222",
-          amount: 156,
-          status: "Pending",
-          date: new Date(Date.now() - 8 * 3600000).toLocaleDateString(),
-          time: "8 hours ago",
-        },
-      ]);
+      setMonthlyTrends([]);
+      setDailyTrends([]);
+      setCategorySales([]);
+      setRecentOrdersList([]);
     } finally {
       setLoading(false);
       setInitialLoading(false);

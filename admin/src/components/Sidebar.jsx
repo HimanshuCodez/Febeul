@@ -6,7 +6,8 @@ import {
   MessageSquare, Star, FileText, Image, Mail, Settings,
   Wrench, Sliders, Zap, Type, ChevronDown, ChevronRight,
   Menu, X, Truck, Undo2, Tags, Trash2, Search,
-  ChevronsLeft, ChevronsRight, SearchX, Repeat
+  ChevronsLeft, ChevronsRight, SearchX, Repeat,
+  UserCog, Activity
 } from 'lucide-react'
 
 // Grouped nav config — single source of truth for search, accordions, and rendering.
@@ -57,6 +58,14 @@ const NAV_SECTIONS = [
     items: [
       { to: '/tickets', icon: MessageSquare, label: 'Tickets', permission: '/tickets' },
       { to: '/reviews', icon: Star, label: 'Reviews', permission: '/reviews' },
+    ],
+  },
+  {
+    key: 'tracking',
+    label: 'Tracking',
+    items: [
+      { to: '/staff-tracking', icon: UserCog, label: 'Staff Tracking', permission: '/staff-tracking' },
+      { to: '/user-tracking', icon: Activity, label: 'User Tracking', permission: '/user-tracking' },
     ],
   },
   {

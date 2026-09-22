@@ -37,6 +37,8 @@ const AllUsers = ({ token }) => {
     { label: 'Generate Coupon', path: '/coupons' },
     { label: 'Tickets', path: '/tickets' },
     { label: 'Reviews', path: '/reviews' },
+    { label: 'Staff Tracking', path: '/staff-tracking' },
+    { label: 'User Tracking', path: '/user-tracking' },
     { label: 'CMS', path: '/cms' },
     { label: 'Hero Images', path: '/images' },
     { label: 'Email Marketing', path: '/send-mail' },

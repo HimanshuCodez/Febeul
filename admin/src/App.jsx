@@ -37,6 +37,7 @@ const TypographySettings = lazy(() => import('./pages/Settings/TypographySetting
 const ProductTaxonomy = lazy(() => import('./pages/Settings/ProductTaxonomy'))
 const Stats = lazy(() => import('./pages/Stats/Stats'))
 const ResetData = lazy(() => import('./pages/ResetData'))
+const ComingSoon = lazy(() => import('./pages/ComingSoon'))
 
 const PageFallback = () => (
   <div className='flex items-center justify-center py-24'>
@@ -116,6 +117,8 @@ const App = () => {
                 {isAllowed('/product-taxonomy') && <Route path='/product-taxonomy' element={<ProductTaxonomy token={token} />} />}
                 {isAllowed('/stats') && <Route path='/stats' element={<Stats token={token} />} />}
                 {isAllowed('/reset-data') && <Route path='/reset-data' element={<ResetData token={token} />} />}
+                {isAllowed('/staff-tracking') && <Route path='/staff-tracking' element={<ComingSoon title='Staff Tracking' subtitle="Track staff activity and performance — this feature isn't live yet." />} />}
+                {isAllowed('/user-tracking') && <Route path='/user-tracking' element={<ComingSoon title='User Tracking' subtitle="Track customer activity and behaviour — this feature isn't live yet." />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}

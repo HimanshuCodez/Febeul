@@ -21,7 +21,6 @@ import {
   Wallet
 } from 'lucide-react';
 import { REQUEST_CATEGORIES, categoryOf, isPrepaid } from '../utils/requestCategory';
-import RazorpayActivity from '../components/refunds/RazorpayActivity';
 
 const RefundRequests = ({ token }) => {
   const [requests, setRequests] = useState([]);
@@ -264,10 +263,6 @@ const RefundRequests = ({ token }) => {
               <Download size={14} /> Export to Excel
             </CSVLink>
         </div>
-      </div>
-
-      <div className="mb-6">
-        <RazorpayActivity token={token} />
       </div>
 
       <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
