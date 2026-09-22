@@ -329,7 +329,11 @@ const RefundRequests = ({ token }) => {
           >
             All ({categoryCounts.all})
           </button>
-          {REQUEST_CATEGORIES.map((cat) => (
+          {/* 'return' (Customer Return) is excluded here — those rows never
+              reach this page (see fetchRequests below), so the chip could
+              never show anything but zero. That queue lives on the Return
+              Requests page instead. */}
+          {REQUEST_CATEGORIES.filter((cat) => cat.key !== 'return').map((cat) => (
             <button
               key={cat.key}
               onClick={() => setFilterCategory(cat.key)}
@@ -507,39 +511,11 @@ const RefundRequests = ({ token }) => {
                 </div>
               </section>
 
-              {selectedRequest.refundDetails?.pickup && selectedRequest.refundDetails.pickup.status !== 'none' && (
-                <section>
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><RotateCcw size={12} /> Return Pickup Tracking</h4>
-                  <div className={`p-6 rounded-3xl border space-y-2 ${
-                    selectedRequest.refundDetails.pickup.status === 'failed' ? 'bg-amber-50 border-amber-100' : 'bg-orange-50 border-orange-100'
-                  }`}>
-                    <p className={`text-[10px] font-black uppercase ${selectedRequest.refundDetails.pickup.status === 'failed' ? 'text-amber-600' : 'text-orange-600'}`}>
-                      {selectedRequest.refundDetails.pickup.status.replace(/_/g, ' ')}
-                    </p>
-                    {selectedRequest.refundDetails.pickup.status === 'failed' ? (
-                      <p className="text-xs text-amber-800 font-medium">Auto-scheduling failed: {selectedRequest.refundDetails.pickup.failureReason || 'Unknown error.'} Arrange courier pickup manually with Shiprocket.</p>
-                    ) : (
-                      <>
-                        {selectedRequest.refundDetails.pickup.awb && (
-                          <p className="text-sm font-bold text-gray-900">Return AWB: {selectedRequest.refundDetails.pickup.awb} {selectedRequest.refundDetails.pickup.courier ? `(${selectedRequest.refundDetails.pickup.courier})` : ''}</p>
-                        )}
-                        {selectedRequest.refundDetails.pickup.scheduledDate && (
-                          <p className="text-xs text-gray-600">Scheduled: {new Date(selectedRequest.refundDetails.pickup.scheduledDate).toLocaleDateString()}</p>
-                        )}
-                        {selectedRequest.refundDetails.pickup.trackingHistory?.length > 0 && (
-                          <div className="pt-2 mt-2 border-t border-orange-100 space-y-1">
-                            {[...selectedRequest.refundDetails.pickup.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3).map((act, i) => (
-                              <p key={i} className="text-[10px] text-gray-600">
-                                <span className="font-bold">{act.activity || act.status}</span> · {new Date(act.date).toLocaleDateString()}
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </section>
-              )}
+              {/* Reverse-pickup tracking (refundDetails.pickup) is only ever
+                  scheduled for 'return'-type requests, which never reach this
+                  page — that queue and its pickup tracking live on the Return
+                  Requests page instead. Nothing removed here was ever
+                  reachable from this drawer. */}
             </div>
 
             <div className="p-8 border-t border-gray-100 bg-gray-50 flex flex-col gap-4">

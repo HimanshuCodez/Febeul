@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import ReturnDrawer from '../components/returns/ReturnDrawer';
 import { RETURN_TABS, TONES, toneOf, labelOf, fmtDate } from '../utils/returnStatus';
-import { REQUEST_CATEGORIES, categoryOf, isPrepaid } from '../utils/requestCategory';
+import { isPrepaid } from '../utils/requestCategory';
 
 // Return journey queue.
 //
@@ -49,7 +49,6 @@ const ReturnRequests = ({ token }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [activeTab, setActiveTab] = useState('approval');
-  const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -92,7 +91,6 @@ const ReturnRequests = ({ token }) => {
     const query = searchTerm.trim().toLowerCase();
     return rows.filter((row) => {
       if (bucketOf(row) !== activeTab) return false;
-      if (filterCategory !== 'all' && categoryOf(row) !== filterCategory) return false;
       if (overdueOnly && !row.view?.refundOverdue) return false;
 
       if (query) {
@@ -108,17 +106,7 @@ const ReturnRequests = ({ token }) => {
       if (endDate && time > new Date(endDate).setHours(23, 59, 59, 999)) return false;
       return true;
     });
-  }, [rows, activeTab, filterCategory, overdueOnly, searchTerm, startDate, endDate]);
-
-  const categoryCounts = useMemo(() => {
-    const inTab = rows.filter((row) => bucketOf(row) === activeTab);
-    const counts = { all: inTab.length, cancellation: 0, courier_return: 0, return: 0 };
-    inTab.forEach((row) => {
-      const cat = categoryOf(row);
-      if (cat) counts[cat] += 1;
-    });
-    return counts;
-  }, [rows, activeTab]);
+  }, [rows, activeTab, overdueOnly, searchTerm, startDate, endDate]);
 
   // Every drawer action posts, toasts, then re-reads the list — so the row, the
   // counts and the drawer can never show three different versions of a return.
@@ -328,29 +316,12 @@ const ReturnRequests = ({ token }) => {
           </div>
         </div>
 
-        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2 overflow-x-auto bg-white">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0 mr-1">Return Type</span>
-          <button
-            onClick={() => setFilterCategory('all')}
-            className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shrink-0 ${
-              filterCategory === 'all' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            All ({categoryCounts.all})
-          </button>
-          {REQUEST_CATEGORIES.map((cat) => (
-            <button
-              key={cat.key}
-              onClick={() => setFilterCategory(cat.key)}
-              title={cat.hint}
-              className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shrink-0 ${
-                filterCategory === cat.key ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {cat.label} ({categoryCounts[cat.key]})
-            </button>
-          ))}
-        </div>
+        {/* No "Return Type" filter here: /api/return/list only ever returns
+            requestType: 'return' rows (backend/controllers/returnController.js
+            RETURN_FILTER), so every row on this page is already a Customer
+            Return — a category filter over this data can never change the
+            result set. Cancellation and Courier Return (RTO) queues live on
+            the Refunds page. */}
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100">
