@@ -17,3 +17,8 @@ select,input,textarea{
     background-color: #ffebf5;
     border-color: #C586A5;
 }
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

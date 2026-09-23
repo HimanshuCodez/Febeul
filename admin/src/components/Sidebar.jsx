@@ -97,7 +97,7 @@ const highlight = (label, query) => {
   );
 };
 
-const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query }) => {
+const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query, onNavigate }) => {
   const baseClass = "mx-4 my-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium group";
   const activeClass = "bg-black text-white shadow-lg shadow-black/10 scale-[1.02]";
   const inactiveClass = "text-gray-500 hover:bg-gray-100 hover:text-black";
@@ -125,6 +125,7 @@ const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query 
     <NavLink
       to={to}
       title={collapsed ? label : undefined}
+      onClick={() => onNavigate?.(to)}
       className={({ isActive }) => `${baseClass} ${collapsedClass} ${isActive ? activeClass : inactiveClass}`}
     >
       <Icon size={20} />
@@ -133,7 +134,7 @@ const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query 
   );
 };
 
-const Sidebar = ({ role, permissions = [] }) => {
+const Sidebar = ({ role, permissions = [], onNavigate }) => {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -282,10 +283,11 @@ const Sidebar = ({ role, permissions = [] }) => {
                     label={item.label}
                     collapsed={collapsed}
                     query={isSearching ? query.trim() : ''}
+                    onNavigate={onNavigate}
                   />
                 ))}
                 {section.key === 'catalog' && location.pathname.includes('/update') && isAllowed('/list') && (isOpen) && (
-                  <SidebarItem to={location.pathname} icon={PlusCircle} label="Update Item" collapsed={collapsed} />
+                  <SidebarItem to={location.pathname} icon={PlusCircle} label="Update Item" collapsed={collapsed} onNavigate={onNavigate} />
                 )}
               </div>
             )}

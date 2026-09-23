@@ -1,8 +1,9 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react'
+import React, { useEffect, useRef, useState, Suspense, lazy } from 'react'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 import ScrollToTop from './components/ScrollToTop'
-import { Routes, Route } from 'react-router-dom'
+import PageRefreshOverlay from './components/PageRefreshOverlay'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Login from './components/Login'
 import ForgetPass from './pages/ForgetPass'
 import { ToastContainer } from 'react-toastify';
@@ -55,6 +56,25 @@ const App = () => {
   const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail')?localStorage.getItem('userEmail'):'');
   const [permissions, setPermissions] = useState(JSON.parse(localStorage.getItem('permissions') || '[]'));
 
+  const location = useLocation();
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [isPageRefreshing, setIsPageRefreshing] = useState(false);
+  const refreshTimeoutRef = useRef(null);
+
+  // Sidebar clicks always force the target page to remount (and re-fetch its
+  // data), even when clicking the page you're already on — mirrors hitting
+  // a browser refresh, but without a full reload.
+  const handleSidebarNavigate = () => {
+    setIsPageRefreshing(true);
+    setRefreshNonce((n) => n + 1);
+    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = setTimeout(() => setIsPageRefreshing(false), 550);
+  };
+
+  useEffect(() => () => {
+    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+  }, []);
+
   const isAllowed = (path) => {
     if (role === 'admin') return true;
     return permissions.includes(path);
@@ -71,6 +91,7 @@ const App = () => {
     <div className='bg-gray-50 min-h-screen'>
       <ScrollToTop />
       <ToastContainer />
+      <PageRefreshOverlay show={isPageRefreshing} />
       {token === ""
         ? <Routes>
             <Route path='/forgot-password' element={<ForgetPass />} />
@@ -80,8 +101,8 @@ const App = () => {
           <Navbar setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} role={role} email={userEmail} setPermissions={setPermissions} />
           <hr />
           <div className='flex w-full'>
-            <Sidebar role={role} permissions={permissions} />
-            <div className='w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'>
+            <Sidebar role={role} permissions={permissions} onNavigate={handleSidebarNavigate} />
+            <div key={`${location.pathname}-${refreshNonce}`} className='w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'>
               <Suspense fallback={<PageFallback />}>
               <Routes>
                 {/* Dashboard / Root */}
