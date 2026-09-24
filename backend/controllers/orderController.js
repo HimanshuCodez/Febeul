@@ -13,10 +13,7 @@ import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
 import { luxeEmailTemplate } from '../templates/luxemail.js'; // Import luxeEmailTemplate
-import fs from 'fs'; // For reading email template
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import path from 'path';
+import { getOrderConfirmationEmail } from '../utils/orderEmailTemplate.js';
 import productModel from "../models/productModel.js";
 import couponModel from "../models/couponModel.js"; // Import couponModel
 import counterModel from "../models/counterModel.js"; // Import counterModel
@@ -26,10 +23,6 @@ import giftWrapModel from "../models/giftWrapModel.js"; // Import giftWrapModel
 const SHIPPING_CHARGE_THRESHOLD = 499;
 const DEFAULT_SHIPPING_CHARGE = 50;
 const COD_CHARGE_AMOUNT = 50; // This will act as the COD fee / base shipping for non-luxe below threshold
-
-// Re-define __dirname in this context for template path resolution
-const __filenameController = fileURLToPath(import.meta.url);
-const __dirnameController = dirname(__filenameController);
 
 // gateway initialize
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -275,190 +268,6 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, isDelhi, couponOfferType, couponDiscount };
 };
 
-const constructEmailHtml = (order, templateHtml) => {
-    // Calculate global subtotal for pro-rating
-    const subtotalBeforeCoupon = order.items.reduce((sum, i) => sum + (parseFloat(i.price) * parseFloat(i.quantity)), 0);
-    const couponDiscount = parseFloat(order.couponDiscount || 0);
-
-    // Dynamically generate item rows
-    let itemRowsHtml = '';
-    order.items.forEach(item => {
-        const itemPrice = parseFloat(item.price || 0);
-        const itemQuantity = parseFloat(item.quantity || 0);
-        const itemGross = itemPrice * itemQuantity;
-
-        // Pro-rate the coupon discount for consistent net reporting per item
-        const itemProportion = subtotalBeforeCoupon > 0 ? (itemGross / subtotalBeforeCoupon) : 0;
-        const itemCouponDiscount = itemProportion * couponDiscount;
-        const netTotal = itemGross - itemCouponDiscount - (parseFloat(item.discountAmount || 0));
-
-        itemRowsHtml += `
-            <tr>
-                <td style="padding: 20px 0; border-bottom: 1px solid #f5f5f5;">
-                    <div style="font-size: 14px; font-weight: 600; color: #333333;">${item.name}</div>
-                    ${item.sku ? `<div style="font-size: 11px; color: #999999; margin-top: 4px;">SKU: ${item.sku}</div>` : ''}
-                    ${item.hsn ? `<div style="font-size: 11px; color: #999999; margin-top: 2px;">HSN: ${item.hsn}</div>` : ''}
-                </td>
-                <td align="center" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; color: #666666;">${itemQuantity} pcs</td>
-                <td align="right" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; font-weight: 700; color: #333333;">₹${netTotal.toFixed(2)}</td>
-            </tr>
-        `;
-    });
-
-    const emailShippingCharge = parseFloat(order.shippingCharge || 0);
-    const emailCodCharge = parseFloat(order.codCharge || 0);
-    const emailGiftWrapPrice = parseFloat(order.giftWrap && order.giftWrap.price || 0);
-    const emailProductAmount = parseFloat(order.productAmount || 0);
-    const emailOrderTotal = parseFloat(order.orderTotal || 0);
-
-    // Tax calculation following Indian Composite Supply rules (consistent with invoiceGenerator.js)
-    const netProductValue = subtotalBeforeCoupon - couponDiscount;
-    const ancillaryCharges = emailShippingCharge + emailCodCharge + emailGiftWrapPrice;
-    const totalInclusiveAmount = netProductValue + ancillaryCharges;
-
-    // Use a fixed 5% calculation for simple reporting in email (Detailed breakdown in PDF invoice)
-    const totalTaxableValue = totalInclusiveAmount / 1.05;
-    const totalTaxAmount = totalInclusiveAmount - totalTaxableValue;
-
-    const isDelhi = order.address.state && order.address.state.trim().toLowerCase() === 'delhi';
-    
-    let gstRowsHtml = '';
-    let gstRoundingNoteHtml = '';
-    if (isDelhi) {
-        const splitTax = totalTaxAmount / 2;
-        const roundedCgst = splitTax;
-        const roundedSgst = splitTax;
-        gstRowsHtml = `
-            <tr class="totals-row">
-                <td style="padding: 6px 0; font-size: 14px; color: #666666;">CGST (2.5%)</td>
-                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${splitTax.toFixed(2)}</td>
-            </tr>
-            <tr class="totals-row">
-                <td style="padding: 6px 0; font-size: 14px; color: #666666;">SGST (2.5%)</td>
-                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${splitTax.toFixed(2)}</td>
-            </tr>
-        `;
-        gstRoundingNoteHtml = `
-            <tr class="gst-rounding-note">
-                <td colspan="2" style="padding: 0 0 4px; font-size: 11px; color: #999999; text-align: right;">
-                    ${splitTax.toFixed(2)} rounded off to ${roundedCgst}
-                </td>
-            </tr>
-            <tr class="gst-rounding-note">
-                <td colspan="2" style="padding: 0 0 4px; font-size: 11px; color: #999999; text-align: right;">
-                    ${splitTax.toFixed(2)} rounded off to ${roundedSgst}
-                </td>
-            </tr>
-        `;
-    } else {
-        const roundedIgst = totalTaxAmount;
-        gstRowsHtml = `
-            <tr class="totals-row">
-                <td style="padding: 6px 0; font-size: 14px; color: #666666;">IGST (5%)</td>
-                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${totalTaxAmount.toFixed(2)}</td>
-            </tr>
-        `;
-        gstRoundingNoteHtml = `
-            <tr class="gst-rounding-note">
-                <td colspan="2" style="padding: 0 0 4px; font-size: 11px; color: #999999; text-align: right;">
-                    ${totalTaxAmount.toFixed(2)} rounded off to ${roundedIgst}
-                </td>
-            </tr>
-        `;
-    }
-
-    let couponDiscountRow = '';
-    if (couponDiscount > 0) {
-        let offerLabel = '';
-        if (order.couponOfferType && order.couponOfferType !== 'none') {
-            offerLabel = `<br><span style="font-size: 10px; font-weight: 700;">(${order.couponOfferType === 'prepaid' ? 'Prepaid Offer' : 'COD Offer'})</span>`;
-        }
-        couponDiscountRow = `
-            <tr class="totals-row">
-                <td style="padding: 6px 0; font-size: 14px; color: #666666;">Coupon Discount${offerLabel}</td>
-                <td align="right" style="padding: 6px 0; color: #155724; font-size: 14px;">- ₹${couponDiscount.toFixed(2)}</td>
-            </tr>
-        `;
-    }
-
-    let codChargeRow = '';
-    if (emailCodCharge > 0) {
-        codChargeRow = `
-            <tr class="totals-row">
-                <td style="padding: 6px 0; font-size: 14px; color: #666666;">COD Charges</td>
-                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${emailCodCharge.toFixed(2)}</td>
-            </tr>
-        `;
-    }
-
-    let giftWrapRow = '';
-    if (emailGiftWrapPrice > 0) {
-        giftWrapRow = `
-            <tr class="totals-row">
-                <td style="padding: 6px 0; font-size: 14px; color: #666666;">Gift Wrap (${order.giftWrap.name})</td>
-                <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${emailGiftWrapPrice.toFixed(2)}</td>
-            </tr>
-        `;
-    }
-
-    const orderDateFormatted = new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-    const sequentialInvoice = order.invoiceNumber ? order.invoiceNumber.toString().padStart(4, '0') : order._id.toString().slice(-8).toUpperCase();
-
-    const luxeMemberBadge = (order.isLuxeMemberAtTimeOfOrder || order.userId?.isLuxeMember)
-        ? '<span class="luxe-member-badge">✨ Luxe Member</span>'
-        : '';
-
-    const razorpayReferenceId = order.razorpayPaymentId || order.paymentDetails?.razorpay_payment_id;
-    const razorpayReferenceRow = (order.paymentMethod === 'Razorpay' && razorpayReferenceId)
-        ? `<strong>Razorpay Ref ID:</strong> ${razorpayReferenceId}<br>`
-        : '';
-    const bankRrnRow = (order.paymentMethod === 'Razorpay' && order.bankRRN)
-        ? `<strong>Bank RRN:</strong> ${order.bankRRN}<br>`
-        : '';
-    const shippingAddressLandmarkRow = order.address.landmark
-        ? `Landmark: ${order.address.landmark}<br>`
-        : '';
-    const shippingAddressFullLine = order.address.locality
-        ? `${order.address.address}, ${order.address.locality}`
-        : order.address.address;
-    const shippingAddressPhoneLine = order.address.alternatePhone
-        ? `${order.address.phone}, ${order.address.alternatePhone}`
-        : order.address.phone;
-
-    let finalHtml = templateHtml
-        .replace('{{orderId}}', order._id.toString().slice(-8).toUpperCase())
-        .replace('{{orderDate}}', orderDateFormatted)
-        .replace('{{invoiceNumber}}', `INV-${sequentialInvoice}`)
-        .replace('{{invoiceDate}}', orderDateFormatted)
-        .replace('{{paymentMethod}}', order.paymentMethod)
-        .replace('{{razorpayReferenceRow}}', razorpayReferenceRow)
-        .replace('{{bankRrnRow}}', bankRrnRow)
-        .replace('{{luxeMemberBadge}}', luxeMemberBadge)
-        .replace('{{billingAddressName}}', order.address.name)
-        .replace('{{billingAddressAddress}}', order.address.address)
-        .replace('{{billingAddressCity}}', order.address.city)
-        .replace('{{billingAddressZip}}', order.address.zip)
-        .replace('{{billingAddressCountry}}', 'India')
-        .replace('{{shippingAddressName}}', order.address.name)
-        .replace('{{shippingAddressAddress}}', shippingAddressFullLine)
-        .replace('{{shippingAddressLandmarkRow}}', shippingAddressLandmarkRow)
-        .replace('{{shippingAddressCity}}', order.address.city)
-        .replace('{{shippingAddressState}}', order.address.state || '')
-        .replace('{{shippingAddressZip}}', order.address.zip)
-        .replace('{{shippingAddressCountry}}', order.address.country || 'India')
-        .replace('{{shippingAddressPhone}}', shippingAddressPhoneLine)
-        .replace('{{itemRows}}', itemRowsHtml)
-        .replace('{{subtotal}}', subtotalBeforeCoupon.toFixed(2))
-        .replace('{{couponDiscountRow}}', couponDiscountRow)
-        .replace('{{shipping}}', emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE')
-        .replace('{{codChargeRow}}', codChargeRow)
-        .replace('{{giftWrapRow}}', giftWrapRow)
-        .replace('{{gstRows}}', gstRowsHtml)
-        .replace('{{totalAmount}}', emailOrderTotal.toFixed(2));
-
-    return finalHtml;
-};
-
 // Placing orders using COD Method
 const placeOrder = async (req,res) => {
     
@@ -556,10 +365,8 @@ const placeOrder = async (req,res) => {
         try {
             const populatedOrder = await orderModel.findById(newOrder._id).populate('userId').populate('items.productId', 'price');
             if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
-                const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
-                let emailTemplate = fs.readFileSync(templatePath, 'utf8');
-                const htmlContent = constructEmailHtml(populatedOrder, emailTemplate);
-                await sendEmail(populatedOrder.userId.email, `Febeul Order Confirmed - #${populatedOrder._id.toString().slice(-8).toUpperCase()}`, htmlContent);
+                const { subject, html } = await getOrderConfirmationEmail(populatedOrder);
+                await sendEmail(populatedOrder.userId.email, subject, html);
             }
         } catch (emailError) {
             console.error("Error sending order confirmation email for COD order:", emailError);
@@ -789,10 +596,8 @@ const verifyStripe = async (req,res) => {
                 try {
                     const populatedOrder = await orderModel.findById(orderId).populate('userId');
                     if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
-                        const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
-                        let emailTemplate = fs.readFileSync(templatePath, 'utf8');
-                        const htmlContent = constructEmailHtml(populatedOrder, emailTemplate);
-                        await sendEmail(populatedOrder.userId.email, `Febeul Order Confirmed - #${populatedOrder._id.toString().slice(-8).toUpperCase()}`, htmlContent);
+                        const { subject, html } = await getOrderConfirmationEmail(populatedOrder);
+                        await sendEmail(populatedOrder.userId.email, subject, html);
                     }
                 } catch (emailError) {
                     console.error("Error sending order confirmation email for Stripe order:", emailError);
@@ -983,10 +788,8 @@ const verifyRazorpay = async (req,res) => {
                     try {
                         const populatedOrder = await orderModel.findById(orderInfo.receipt).populate('userId');
                         if (populatedOrder && populatedOrder.userId && populatedOrder.userId.email) {
-                            const templatePath = path.resolve(__dirnameController, '../templates/orderConfirmationEmail.html');
-                            let emailTemplate = fs.readFileSync(templatePath, 'utf8');
-                            const htmlContent = constructEmailHtml(populatedOrder, emailTemplate);
-                            await sendEmail(populatedOrder.userId.email, `Febeul Order Confirmed - #${populatedOrder._id.toString().slice(-8).toUpperCase()}`, htmlContent);
+                            const { subject, html } = await getOrderConfirmationEmail(populatedOrder);
+                            await sendEmail(populatedOrder.userId.email, subject, html);
                         }
                     } catch (emailError) {
                         console.error("Error sending order confirmation email for Razorpay order:", emailError);

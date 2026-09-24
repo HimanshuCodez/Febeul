@@ -27,6 +27,7 @@ const Images = lazy(() => import('./pages/Images/Images'))
 const Cms = lazy(() => import('./pages/Texts/Cms'))
 const FebeulDashboard = lazy(() => import('./pages/Dashboard'))
 const NewUserMail = lazy(() => import('./pages/NewUserMail'))
+const OrderEmailTemplate = lazy(() => import('./pages/OrderEmailTemplate'))
 const RefundRequests = lazy(() => import('./pages/RefundRequests'))
 const ReturnRequests = lazy(() => import('./pages/ReturnRequests'))
 const Exchanges = lazy(() => import('./pages/Exchanges'))
@@ -130,6 +131,7 @@ const App = () => {
                 {isAllowed('/cms') && <Route path='/cms' element={<Cms token={token} />} />}
                 {isAllowed('/images') && <Route path='/images' element={<Images token={token} />} />}
                 {isAllowed('/send-mail') && <Route path='/send-mail' element={<NewUserMail token={token} />} />}
+                {isAllowed('/email-templates') && <Route path='/email-templates' element={<OrderEmailTemplate token={token} />} />}
                 {isAllowed('/maintenance') && <Route path='/maintenance' element={<MaintenanceMode token={token} />} />}
                 {isAllowed('/configurations') && <Route path='/configurations' element={<Configurations token={token} />} />}
                 {isAllowed('/delivery-control') && <Route path='/delivery-control' element={<DeliveryControl token={token} />} />}
