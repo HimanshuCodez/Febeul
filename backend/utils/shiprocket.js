@@ -28,6 +28,40 @@ export const shiprocketLogin = async () => {
   }
 };
 
+// Storefront prices are GST-inclusive at 5% (same rate calculateOrderPricing
+// and the PDF invoice use). Shiprocket treats selling_price as tax-inclusive
+// and needs this percentage to fill Taxable Value / CGST / SGST on its label
+// and invoice — without it those columns render as N/A.
+const GST_RATE_PERCENT = 5;
+
+// Shiprocket's per-item `discount` is per unit. Each line gets its own
+// discountAmount plus a pro-rata share of the order-level coupon — the saved
+// order.couponDiscount already includes the item-level discounts, so they're
+// subtracted out first to avoid counting them twice.
+const buildShiprocketOrderItems = (order) => {
+    const items = order.items || [];
+    const lineGross = items.map(item => (item.price || 0) * (item.quantity || 0));
+    const grossTotal = lineGross.reduce((sum, value) => sum + value, 0);
+    const itemDiscountTotal = items.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
+    const couponOnlyDiscount = Math.max(0, (order.couponDiscount || 0) - itemDiscountTotal);
+
+    return items.map((item, index) => {
+        const units = item.quantity || 1;
+        const couponShare = grossTotal > 0 ? couponOnlyDiscount * (lineGross[index] / grossTotal) : 0;
+        const lineDiscount = Math.min(lineGross[index], (item.discountAmount || 0) + couponShare);
+
+        return {
+            name: item.name,
+            sku: item.name, // Using name for SKU as per user's instruction
+            units: item.quantity,
+            selling_price: item.price,
+            discount: Number((lineDiscount / units).toFixed(2)),
+            tax: GST_RATE_PERCENT,
+            hsn: item.hsn || ""
+        };
+    });
+};
+
 export const createShiprocketOrder = async (order, token, paymentMethod) => {
     try {
         const response = await axios.post(
@@ -49,14 +83,8 @@ export const createShiprocketOrder = async (order, token, paymentMethod) => {
       
             shipping_is_billing: true,
       
-            order_items: order.items.map(item => ({
-              name: item.name,
-              sku: item.name, // Using name for SKU as per user's instruction
-              units: item.quantity,
-              selling_price: item.price,
-              hsn: "" // Add HSN code if available
-            })),
-      
+            order_items: buildShiprocketOrderItems(order),
+
             payment_method: paymentMethod,
             sub_total: order.totalPrice,
             length: 10,
@@ -314,7 +342,8 @@ export const buildShiprocketOrderPayload = (order) => ({
     items: order.items,
     totalPrice: order.orderTotal,
     shippingCharge: order.shippingCharge,
-    codCharge: order.codCharge
+    codCharge: order.codCharge,
+    couponDiscount: order.couponDiscount
 });
 
 // Creates a Shiprocket order for `order` via the Create Order API only.
