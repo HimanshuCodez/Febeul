@@ -16,7 +16,7 @@ import {
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 import GiftWrapModal from '../components/GiftWrapModal';
 import CouponCodeInput from '../components/CouponCodeInput';
@@ -1276,7 +1276,11 @@ export default function CheckoutPage() {
                         <div className="flex items-start flex-1 min-w-0">
                         <img src={actualImage} className="w-10 h-10 object-cover mr-2 rounded shrink-0" />
                         <div className="min-w-0">
-                            <p className="text-gray-800 font-medium break-words">{item.name}</p>
+                            <p className="text-gray-800 font-medium break-words">
+                              <Link to={`/product/${item._id}`} className="hover:underline">
+                                {item.name}
+                              </Link>
+                            </p>
                             <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
                         </div>
                         </div>

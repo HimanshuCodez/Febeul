@@ -209,7 +209,9 @@ const Cart = () => {
                   />
                   <div className="flex-1">
                     <h2 className="text-lg font-semibold text-gray-800">
-                      {item.name}
+                      <Link to={`/product/${item._id}`} className="hover:underline">
+                        {item.name}
+                      </Link>
                     </h2>
                     <p className="text-sm text-gray-500">
                       {item.size} / {item.color}

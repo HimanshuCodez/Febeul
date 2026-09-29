@@ -1694,7 +1694,13 @@ export default function OrderDetailPage() {
                     <div className="flex items-center flex-1 min-w-0">
                       <img src={item.image} className="w-14 h-14 object-cover mr-3 rounded-xl shrink-0 border border-slate-100" />
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-800 break-words text-sm sm:text-base">{item.name}</p>
+                        <p className="font-bold text-slate-800 break-words text-sm sm:text-base">
+                          {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? (
+                            <Link to={`/product/${item.productId}`} className="hover:underline">
+                              {item.name}
+                            </Link>
+                          ) : item.name}
+                        </p>
                         {item.sku && <p className="text-xs text-slate-400 break-words">SKU: {item.sku}</p>}
                         <div className="flex flex-wrap items-center gap-2 mt-1">
                           <p className="text-sm text-slate-500">Qty: {item.quantity}</p>

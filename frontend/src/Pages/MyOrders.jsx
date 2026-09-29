@@ -491,7 +491,16 @@ const MyOrders = () => {
 
                       <div className="space-y-1 min-w-0">
                         <p className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-1">
-                          {order.items.map(item => item.name).join(', ')}
+                          {order.items.map((item, index) => (
+                            <React.Fragment key={index}>
+                              {index > 0 && ', '}
+                              {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? (
+                                <Link to={`/product/${item.productId}`} className="hover:underline">
+                                  {item.name}
+                                </Link>
+                              ) : item.name}
+                            </React.Fragment>
+                          ))}
                         </p>
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
