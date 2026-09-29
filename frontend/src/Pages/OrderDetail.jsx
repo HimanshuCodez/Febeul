@@ -26,6 +26,8 @@ import { toast } from 'react-hot-toast';
 
 import SimilarItems from '../components/SimilarItems';
 import Reviews from '../components/Reviews';
+import BankAccountFields from '../components/BankAccountFields';
+import useBankAccountForm from '../hooks/useBankAccountForm';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -119,6 +121,8 @@ const ExchangeStatusCard = ({ exchange }) => {
 
 // --- Return/Exchange Modal Component ---
 const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
+    const savedAccount = useAuthStore((state) => state.user?.bankAccount);
+    const [bankAccountChoice, setBankAccountChoice] = useState('saved');
     const [reason, setReason] = useState('');
     const [type, setType] = useState('return'); // 'return' or 'refund'
     const [images, setImages] = useState([]);
@@ -129,18 +133,28 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
     // auto-refund to the original payment source — no choice needed there.
     const [payoutMethod, setPayoutMethod] = useState('bank'); // 'bank' or 'upi'
     const [upiId, setUpiId] = useState('');
-    const [bankDetails, setBankDetails] = useState({
-        accountHolderName: '',
-        bankAccount: '',
-        ifsc: '',
-        bankName: ''
-    });
+    const { form: bankForm, errors: bankErrors, handleChange: handleBankChange, validate: validateBankForm } = useBankAccountForm();
+
+    useEffect(() => {
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = previousOverflow; };
+    }, []);
 
     const isCod = order.paymentMethod === 'COD';
+    const hasSavedAccount = Boolean(savedAccount?.accountNumber);
+    const useSavedAccount = hasSavedAccount && bankAccountChoice === 'saved';
+    const selectedAccount = useSavedAccount ? savedAccount : bankForm;
+    const selectedBankDetails = {
+        accountHolderName: selectedAccount.accountHolderName,
+        bankAccount: selectedAccount.accountNumber,
+        ifsc: selectedAccount.ifsc,
+        bankName: selectedAccount.bankName
+    };
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setBankDetails(prev => ({ ...prev, [name]: value }));
+        setBankAccountChoice('new');
+        handleBankChange(e);
     };
 
     const handleImageChange = (e) => {
@@ -182,7 +196,10 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
             toast.error("Please provide your UPI ID for the refund.");
             return;
         }
-        if (isCod && payoutMethod === 'bank' && (!bankDetails.accountHolderName || !bankDetails.bankAccount || !bankDetails.ifsc)) {
+        if (isCod && payoutMethod === 'bank' && !useSavedAccount && !validateBankForm()) {
+            return;
+        }
+        if (isCod && payoutMethod === 'bank' && (!selectedBankDetails.accountHolderName || !selectedBankDetails.bankAccount || !selectedBankDetails.ifsc)) {
             toast.error("Please provide bank details for the refund.");
             return;
         }
@@ -196,7 +213,7 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
         if (isCod) {
             const payoutDetails = payoutMethod === 'upi'
                 ? { type: 'upi', upiId }
-                : { type: 'bank', ...bankDetails };
+                : { type: 'bank', ...selectedBankDetails };
             formData.append('payoutDetails', JSON.stringify(payoutDetails));
         }
         images.forEach(image => {
@@ -229,24 +246,29 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 overflow-y-auto"
+            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 pt-4 sm:items-center sm:p-6"
         >
             <motion.div
                 initial={{ scale: 0.8, y: -50 }}
                 animate={{ scale: 1, y: 0 }}
-                className="bg-white rounded-lg shadow-xl w-full max-w-lg my-8"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="return-request-title"
+                className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl"
             >
-                <div className="p-6 border-b flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Return or Refund Request</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6 sm:py-4">
+                    <h2 id="return-request-title" className="text-lg font-bold leading-snug text-gray-800 sm:text-xl">Return or Refund Request</h2>
+                    <button type="button" onClick={onClose} aria-label="Close return request" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e8767a]"><X size={24} /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+                  <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
+                        <label htmlFor="return-request-type" className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
                         <select 
+                            id="return-request-type"
                             value={type} 
                             onChange={e => setType(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded-md"
+                            className="min-h-12 w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-base"
                         >
                             <option value="return">Return Product</option>
                             <option value="refund">Full Refund Request</option>
@@ -259,64 +281,86 @@ const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             rows="3"
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#e8767a] focus:border-[#e8767a]"
+                            className="min-h-28 w-full rounded-lg border border-gray-300 p-3 text-base focus:ring-[#e8767a] focus:border-[#e8767a]"
                             placeholder="Describe the issue..."
                         ></textarea>
                     </div>
 
                     {isCod && (
-                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:p-4">
                             <h3 className="font-bold text-sm text-gray-800 flex items-center gap-2">
                                 <FaCreditCard className="text-[#e8767a]" />
                                 Refund Payout Method
                             </h3>
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-                                    <input type="radio" name="payoutMethod" value="bank" checked={payoutMethod === 'bank'} onChange={() => setPayoutMethod('bank')} />
+                            <div className="grid grid-cols-2 gap-2">
+                                <label className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-medium text-gray-700 ${payoutMethod === 'bank' ? 'border-[#e8767a] bg-rose-50' : 'border-gray-200 bg-white'}`}>
+                                    <input type="radio" name="payoutMethod" value="bank" checked={payoutMethod === 'bank'} onChange={() => setPayoutMethod('bank')} className="h-5 w-5 shrink-0 accent-[#e8767a]" />
                                     Bank Account
                                 </label>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-                                    <input type="radio" name="payoutMethod" value="upi" checked={payoutMethod === 'upi'} onChange={() => setPayoutMethod('upi')} />
+                                <label className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-medium text-gray-700 ${payoutMethod === 'upi' ? 'border-[#e8767a] bg-rose-50' : 'border-gray-200 bg-white'}`}>
+                                    <input type="radio" name="payoutMethod" value="upi" checked={payoutMethod === 'upi'} onChange={() => setPayoutMethod('upi')} className="h-5 w-5 shrink-0 accent-[#e8767a]" />
                                     UPI
                                 </label>
                             </div>
 
                             {payoutMethod === 'upi' ? (
-                                <input type="text" placeholder="yourname@upi" value={upiId} onChange={(e) => setUpiId(e.target.value)} className="w-full p-2 border rounded-md text-sm" required />
+                                <div>
+                                    <label htmlFor="return-upi-id" className="mb-1 block text-sm font-medium text-gray-700">UPI ID</label>
+                                    <input id="return-upi-id" type="text" placeholder="yourname@upi" value={upiId} onChange={(e) => setUpiId(e.target.value)} className="min-h-12 w-full rounded-lg border p-3 text-base" required />
+                                </div>
                             ) : (
-                                <div className="grid grid-cols-1 gap-3">
-                                    <input type="text" name="accountHolderName" placeholder="Account Holder Name" value={bankDetails.accountHolderName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
-                                    <input type="text" name="bankAccount" placeholder="Account Number" value={bankDetails.bankAccount} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" required />
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <input type="text" name="ifsc" placeholder="IFSC Code" value={bankDetails.ifsc} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm uppercase" required />
-                                        <input type="text" name="bankName" placeholder="Bank Name" value={bankDetails.bankName} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm" />
-                                    </div>
+                                <div className="space-y-3">
+                                    {hasSavedAccount && (
+                                        <>
+                                            <label className={`flex items-start gap-3 p-3 border rounded-md cursor-pointer ${useSavedAccount ? 'border-[#e8767a] bg-rose-50' : 'border-gray-200 bg-white'}`}>
+                                                <input type="radio" name="bankAccountChoice" value="saved" checked={useSavedAccount} onChange={() => setBankAccountChoice('saved')} className="mt-0.5 h-5 w-5 shrink-0 accent-[#e8767a]" />
+                                                <span className="min-w-0 text-sm">
+                                                    <span className="block font-semibold text-gray-800">Saved bank account</span>
+                                                    <span className="block text-gray-700 break-words">{savedAccount.accountHolderName}</span>
+                                                    <span className="block text-gray-500 break-words">{savedAccount.bankName}</span>
+                                                    <span className="block text-gray-700">Account ending in {savedAccount.accountNumber.slice(-4)}</span>
+                                                    <span className="block text-xs text-gray-500 mt-1">IFSC: {savedAccount.ifsc}</span>
+                                                </span>
+                                            </label>
+                                            <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm font-medium text-gray-700 ${!useSavedAccount ? 'border-[#e8767a] bg-rose-50' : 'border-gray-200 bg-white'}`}>
+                                                <input type="radio" name="bankAccountChoice" value="new" checked={!useSavedAccount} onChange={() => setBankAccountChoice('new')} className="h-5 w-5 shrink-0 accent-[#e8767a]" />
+                                                Add new bank account
+                                            </label>
+                                        </>
+                                    )}
+                                    {!useSavedAccount && (
+                                        <div className="[&_input]:min-h-12 [&_input]:text-base">
+                                            <BankAccountFields form={bankForm} errors={bankErrors} onChange={handleInputChange} />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload 4 Images (Required)</label>
-                        <div className="flex flex-wrap gap-2">
+                        <p className="mb-3 text-sm font-medium text-gray-700">Upload 4 Images (Required)</p>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                             {imagePreviews.map((preview, index) => (
                                 <div key={index} className="relative">
-                                    <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-md" />
-                                    <button type="button" onClick={() => removeImage(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><X size={12} /></button>
+                                    <img src={preview} alt={`Return photo ${index + 1}`} className="aspect-square w-full rounded-lg object-cover" />
+                                    <button type="button" onClick={() => removeImage(index)} aria-label={`Remove photo ${index + 1}`} className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white shadow-sm hover:bg-red-700"><X size={20} /></button>
                                 </div>
                             ))}
                             {images.length < 4 && (
-                                <label className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
+                                <label className="relative flex aspect-square min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:bg-gray-50 focus-within:border-[#e8767a] focus-within:ring-2 focus-within:ring-[#e8767a]">
                                     <FaCamera className="text-gray-400 text-xl" />
-                                    <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
+                                    <span className="text-sm font-medium text-gray-600">Add photos</span>
+                                    <input type="file" multiple accept="image/*" aria-label="Add return photos" onChange={handleImageChange} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                                 </label>
                             )}
                         </div>
-                        <p className="text-[10px] text-gray-500 mt-1">{images.length}/4 images uploaded</p>
+                        <p className="mt-2 text-xs text-gray-500">{images.length}/4 images uploaded</p>
                     </div>
-                    <div className="flex justify-end gap-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
-                        <button type="submit" disabled={isSubmitting || images.length !== 4} className="px-4 py-2 text-white bg-[#e8767a] rounded-lg disabled:bg-gray-300">
+                  </div>
+                    <div className="grid shrink-0 grid-cols-2 gap-3 border-t bg-white px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:justify-end sm:px-6">
+                        <button type="button" onClick={onClose} className="min-h-12 rounded-xl bg-gray-100 px-4 py-3 font-semibold text-gray-700 hover:bg-gray-200 sm:px-6">Cancel</button>
+                        <button type="submit" disabled={isSubmitting || images.length !== 4} className="min-h-12 rounded-xl bg-[#e8767a] px-4 py-3 font-semibold text-white hover:bg-[#d96569] disabled:cursor-not-allowed disabled:bg-gray-300 sm:px-6">
                             {isSubmitting ? 'Submitting...' : 'Submit'}
                         </button>
                     </div>

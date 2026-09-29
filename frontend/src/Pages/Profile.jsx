@@ -11,6 +11,8 @@ import MembershipStatus from "../components/MembershipStatus";
 import MyOrders from "./MyOrders"; 
 import CouponShows from "../components/CouponShows";
 import ScrollToTop from "../components/ScrollToTop";
+import BankAccountFields from "../components/BankAccountFields";
+import useBankAccountForm from "../hooks/useBankAccountForm";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -355,43 +357,15 @@ const ManageAddresses = ({ addresses, cardStyles }) => {
     )
 };
 
-const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-
-const emptyBankForm = { accountHolderName: "", accountNumber: "", confirmAccountNumber: "", ifsc: "", bankName: "" };
-
 const ManageBankAccount = ({ user, cardStyles }) => {
   const token = useAuthStore((state) => state.token);
   const savedAccount = user?.bankAccount?.accountNumber ? user.bankAccount : null;
 
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyBankForm);
-  const [errors, setErrors] = useState({});
+  const { form, errors, handleChange, validate, reset } = useBankAccountForm();
   const [submitting, setSubmitting] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    let nextValue = value;
-    if (name === "accountNumber" || name === "confirmAccountNumber") {
-      nextValue = value.replace(/\D/g, "").slice(0, 18);
-    } else if (name === "ifsc") {
-      nextValue = value.toUpperCase().replace(/\s/g, "").slice(0, 11);
-    }
-    setForm((prev) => ({ ...prev, [name]: nextValue }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-  };
-
-  const validate = () => {
-    const nextErrors = {};
-    if (!form.accountHolderName.trim()) nextErrors.accountHolderName = "Enter the account holder's name";
-    if (!form.bankName.trim()) nextErrors.bankName = "Enter the bank name";
-    if (!/^\d{9,18}$/.test(form.accountNumber)) nextErrors.accountNumber = "Enter a valid account number";
-    if (form.accountNumber !== form.confirmAccountNumber) nextErrors.confirmAccountNumber = "Account numbers do not match";
-    if (!IFSC_REGEX.test(form.ifsc)) nextErrors.ifsc = "Enter a valid IFSC code (e.g. HDFC0001234)";
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -407,7 +381,7 @@ const ManageBankAccount = ({ user, cardStyles }) => {
       if (response.data.success) {
         toast.success("Bank account added successfully");
         await useAuthStore.getState().getProfile();
-        setForm(emptyBankForm);
+        reset();
         setShowForm(false);
       } else {
         toast.error(response.data.message || "Failed to add bank account");
@@ -525,61 +499,11 @@ const ManageBankAccount = ({ user, cardStyles }) => {
         </div>
       ) : showForm ? (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <BankFormInput
-                name="accountHolderName"
-                label="Account Holder Name"
-                value={form.accountHolderName}
-                onChange={handleChange}
-                error={errors.accountHolderName}
-                placeholder="As per bank records"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <BankFormInput
-                name="bankName"
-                label="Bank Name"
-                value={form.bankName}
-                onChange={handleChange}
-                error={errors.bankName}
-                placeholder="e.g. HDFC Bank"
-              />
-            </div>
-            <BankFormInput
-              name="accountNumber"
-              label="Account Number"
-              value={form.accountNumber}
-              onChange={handleChange}
-              error={errors.accountNumber}
-              inputMode="numeric"
-              placeholder="Enter account number"
-            />
-            <BankFormInput
-              name="confirmAccountNumber"
-              label="Confirm Account Number"
-              value={form.confirmAccountNumber}
-              onChange={handleChange}
-              onPaste={(e) => e.preventDefault()}
-              error={errors.confirmAccountNumber}
-              inputMode="numeric"
-              placeholder="Re-enter account number"
-            />
-            <div className="sm:col-span-2">
-              <BankFormInput
-                name="ifsc"
-                label="IFSC Code"
-                value={form.ifsc}
-                onChange={handleChange}
-                error={errors.ifsc}
-                placeholder="e.g. HDFC0001234"
-              />
-            </div>
-          </div>
+          <BankAccountFields form={form} errors={errors} onChange={handleChange} />
           <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => { setShowForm(false); setForm(emptyBankForm); setErrors({}); }}
+              onClick={() => { setShowForm(false); reset(); }}
               className="w-full sm:w-auto px-6 py-2 rounded-full font-bold text-gray-600 border hover:bg-gray-50 transition-colors"
             >
               Cancel
@@ -604,17 +528,6 @@ const ManageBankAccount = ({ user, cardStyles }) => {
     </div>
   );
 };
-
-const BankFormInput = ({ label, error, ...props }) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <input
-      {...props}
-      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-pink-500 focus:border-pink-500 sm:text-sm ${error ? "border-red-400" : "border-gray-300"}`}
-    />
-    {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-  </div>
-);
 
 const InfoItem = ({ icon: Icon, label, value, isLuxe, wide = false }) => (
   <div className={`flex items-start space-x-3 ${wide ? 'md:col-span-2' : ''}`}>
