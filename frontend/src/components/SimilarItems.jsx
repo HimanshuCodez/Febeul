@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { toast } from 'react-hot-toast';
 import Loader from './Loader';
-import { Tag } from 'lucide-react';
+import { Tag, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -37,11 +37,14 @@ const fetchActiveCoupons = async () => {
   return couponsPromise;
 };
 
-const SimilarItems = ({ productId, token }) => {
+const SimilarItems = ({ productId, token, showDesktopNavigation = false }) => {
   const [similarProducts, setSimilarProducts] = useState([]);
   const [activeCoupons, setActiveCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const carouselRef = useRef(null);
+  const carouselId = useId();
+  const [scrollState, setScrollState] = useState({ left: false, right: false });
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isLuxeMember = user?.isLuxeMember;
@@ -78,6 +81,39 @@ const SimilarItems = ({ productId, token }) => {
     }
   }, [productId, token]);
 
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!showDesktopNavigation || !carousel) return;
+
+    carousel.scrollTo({ left: 0, behavior: 'instant' });
+    const updateScrollState = () => {
+      const left = carousel.scrollLeft > 1;
+      const right = carousel.scrollWidth - carousel.clientWidth - carousel.scrollLeft > 1;
+      setScrollState(previous => previous.left === left && previous.right === right ? previous : { left, right });
+    };
+
+    updateScrollState();
+    carousel.addEventListener('scroll', updateScrollState, { passive: true });
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(carousel);
+
+    return () => {
+      carousel.removeEventListener('scroll', updateScrollState);
+      observer.disconnect();
+    };
+  }, [showDesktopNavigation, similarProducts.length, error, productId]);
+
+  const scrollProducts = (direction) => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    const cardWidth = carousel.firstElementChild?.getBoundingClientRect().width || carousel.clientWidth;
+    const gap = parseFloat(window.getComputedStyle(carousel).columnGap) || 0;
+    carousel.scrollBy({
+      left: direction * (cardWidth + gap),
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    });
+  };
+
   const handleProductClick = (product) => {
     if (product.isLuxePrive && !isLuxeMember) {
       navigate('/luxe');
@@ -95,10 +131,42 @@ const SimilarItems = ({ productId, token }) => {
   return (
     <div className="max-w-screen-2xl mx-auto p-4 mt-8 relative min-h-[200px]">
       {loading && <Loader />}
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Similar Items</h2>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Similar Items</h2>
+        {showDesktopNavigation && similarProducts.length > 0 && (scrollState.left || scrollState.right) && (
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => scrollProducts(-1)}
+              disabled={!scrollState.left}
+              aria-label="Previous similar products"
+              aria-controls={carouselId}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition-colors hover:border-pink-500 hover:text-pink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-700"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollProducts(1)}
+              disabled={!scrollState.right}
+              aria-label="Next similar products"
+              aria-controls={carouselId}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition-colors hover:border-pink-500 hover:text-pink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-700"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
+      </div>
       
       {similarProducts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div
+          ref={carouselRef}
+          id={carouselId}
+          className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 ${showDesktopNavigation
+            ? 'lg:grid-cols-none lg:grid-flow-col lg:auto-cols-[calc((100%-4rem)/5)] xl:auto-cols-[calc((100%-5rem)/6)] lg:overflow-x-auto lg:snap-x lg:snap-mandatory no-scrollbar pb-3'
+            : 'lg:grid-cols-5 xl:grid-cols-6'}`}
+        >
           {similarProducts.map((product) => {
             const firstVar = product.variations?.[0] || {};
             const firstSize = firstVar.sizes?.[0] || {};
@@ -132,7 +200,7 @@ const SimilarItems = ({ productId, token }) => {
               <div
                 key={product._id}
                 onClick={() => handleProductClick(product)}
-                className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
+                className={`block min-w-0 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer ${showDesktopNavigation ? 'lg:snap-start' : ''}`}
               >
                 <div className="relative">
                   <img

@@ -14,6 +14,7 @@ import {
   XCircle,
   X,
   ChevronDown,
+  ChevronLeft,
   ChevronRight
 } from "lucide-react";
 import Loader from "../components/Loader";
@@ -303,6 +304,40 @@ const ProductDetailPage = () => {
 
   const [luxeProducts, setLuxeProducts] = useState([]);
   const [loadingLuxeProducts, setLoadingLuxeProducts] = useState(true);
+  const luxeCarouselRef = useRef(null);
+  const [luxeScrollState, setLuxeScrollState] = useState({ left: false, right: false });
+
+  useEffect(() => {
+    const carousel = luxeCarouselRef.current;
+    if (!carousel) return;
+
+    const updateScrollState = () => {
+      const left = carousel.scrollLeft > 1;
+      const right = carousel.scrollWidth - carousel.clientWidth - carousel.scrollLeft > 1;
+      setLuxeScrollState(previous => previous.left === left && previous.right === right ? previous : { left, right });
+    };
+
+    updateScrollState();
+    carousel.addEventListener('scroll', updateScrollState, { passive: true });
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(carousel);
+
+    return () => {
+      carousel.removeEventListener('scroll', updateScrollState);
+      observer.disconnect();
+    };
+  }, [luxeProducts.length, product?._id]);
+
+  const scrollLuxeProducts = (direction) => {
+    const carousel = luxeCarouselRef.current;
+    if (!carousel) return;
+    const cardWidth = carousel.firstElementChild?.getBoundingClientRect().width || carousel.clientWidth;
+    const gap = parseFloat(window.getComputedStyle(carousel).columnGap) || 0;
+    carousel.scrollBy({
+      left: direction * (cardWidth + gap),
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    });
+  };
 
   // Derived variables
   const variations = product?.variations || [];
@@ -908,14 +943,46 @@ const ProductDetailPage = () => {
           {/* Luxe Prive Section */}
           {luxeProducts.length > 0 && (
             <div className="mt-0 pt-16 border-t border-gray-200 bg-white pb-16">
-              <div className="text-center mb-10 flex flex-col items-center gap-2">
+              <div className="relative max-w-7xl mx-auto px-6 lg:px-28 text-center mb-10 flex flex-col items-center gap-2">
                 <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-[10px] font-bold">Member Exclusive</p>
                 <h2 className="text-4xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">LUXE PRIVE COLLECTION</h2>
+                {(luxeScrollState.left || luxeScrollState.right) && (
+                  <div className="hidden lg:flex items-center gap-2 absolute right-6 top-1/2 -translate-y-1/2">
+                    <button
+                      type="button"
+                      onClick={() => scrollLuxeProducts(-1)}
+                      disabled={!luxeScrollState.left}
+                      aria-label="Previous Luxe items"
+                      aria-controls="luxe-products-carousel"
+                      className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition-colors hover:border-pink-500 hover:text-pink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-700"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollLuxeProducts(1)}
+                      disabled={!luxeScrollState.right}
+                      aria-label="Next Luxe items"
+                      aria-controls="luxe-products-carousel"
+                      className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition-colors hover:border-pink-500 hover:text-pink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-700"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                {luxeProducts.map((product) => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
+              <div className="max-w-7xl mx-auto px-6">
+                <div
+                  ref={luxeCarouselRef}
+                  id="luxe-products-carousel"
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-none lg:grid-flow-col lg:auto-cols-[calc((100%-4.5rem)/4)] gap-4 md:gap-6 lg:overflow-x-auto lg:snap-x lg:snap-mandatory no-scrollbar pt-3 pb-6"
+                >
+                  {luxeProducts.map((product) => (
+                    <div key={product._id} className="min-w-0 lg:snap-start">
+                      <ProductCard product={product} />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -976,7 +1043,7 @@ const ProductDetailPage = () => {
       )}
       <div className="mt-0 pt-12 border-t border-gray-200 bg-white p-8">
         
-        <SimilarItems productId={productId} token={token} />
+        <SimilarItems productId={productId} token={token} showDesktopNavigation />
       </div>
       <AddressModal
         isOpen={isAddressModalOpen}
