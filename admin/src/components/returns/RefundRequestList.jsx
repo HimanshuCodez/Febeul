@@ -21,10 +21,29 @@ import {
 } from 'lucide-react';
 import { categoryLabel, categoryOf, isPrepaid } from '../../utils/requestCategory';
 
+const getPendingAge = (request, now) => {
+  if (!['pending', 'initiated', 'processing'].includes(request.refundDetails?.status)) return null;
+
+  const requestedAt = request.refundDetails?.requestedAt;
+  const requestedTime = requestedAt ? new Date(requestedAt).getTime() : NaN;
+  if (!Number.isFinite(requestedTime) || requestedTime > now) {
+    return { days: null, label: 'Date unavailable', title: 'A valid refund request date is not available.' };
+  }
+
+  const days = Math.floor((now - requestedTime) / (24 * 60 * 60 * 1000));
+  return {
+    days,
+    label: days === 0 ? 'Less than 1 day' : `${days} ${days === 1 ? 'day' : 'days'}`,
+    title: `Pending since ${new Date(requestedTime).toLocaleString()}. Counts full 24-hour days.`,
+  };
+};
+
 const RefundRequestList = ({
   token, requests, allOrders, loading, onRefresh,
   title = 'Refund Requests', description = 'Manage customer refund requests',
+  showPendingAge = false,
 }) => {
+  const [now, setNow] = useState(Date.now);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [startDate, setStartDate] = useState('');
@@ -37,6 +56,12 @@ const RefundRequestList = ({
   const [refundType, setRefundType] = useState('full');
   const [customRefundAmount, setCustomRefundAmount] = useState('');
   const [adminRefundComment, setAdminRefundComment] = useState('');
+
+  useEffect(() => {
+    if (!showPendingAge) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, [showPendingAge]);
 
   useEffect(() => {
     if (selectedRequest) {
@@ -182,6 +207,7 @@ const RefundRequestList = ({
     { label: 'Reason', key: 'reason' },
     { label: 'Refundable Amount', key: 'amount' },
     { label: 'Status', key: 'status' },
+    ...(showPendingAge ? [{ label: 'Days Pending', key: 'daysPending' }] : []),
     { label: 'Rejection Reason', key: 'rejectionReason' },
   ];
 
@@ -197,8 +223,9 @@ const RefundRequestList = ({
     reason: req.refundDetails?.reason || '',
     amount: req.refundDetails?.amount || req.orderTotal || 0,
     status: req.refundDetails?.status,
+    daysPending: showPendingAge ? getPendingAge(req, now)?.days ?? '' : '',
     rejectionReason: req.refundDetails?.rejectionReason || '',
-  })), [filteredRequests]);
+  })), [filteredRequests, showPendingAge, now]);
 
   return (
     <div>
@@ -286,16 +313,19 @@ const RefundRequestList = ({
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Payment</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                {showPendingAge && <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Pending For</th>}
                 <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 bg-white">
               {loading ? (
-                <tr><td colSpan="7" className="px-6 py-10 text-center text-gray-400 font-medium">Loading requests...</td></tr>
+                <tr><td colSpan={showPendingAge ? 8 : 7} className="px-6 py-10 text-center text-gray-400 font-medium">Loading requests...</td></tr>
               ) : filteredRequests.length === 0 ? (
-                <tr><td colSpan="7" className="px-6 py-20 text-center text-gray-400 font-medium">No requests found.</td></tr>
+                <tr><td colSpan={showPendingAge ? 8 : 7} className="px-6 py-20 text-center text-gray-400 font-medium">No requests found.</td></tr>
               ) : (
-                filteredRequests.map((req) => (
+                filteredRequests.map((req) => {
+                  const pendingAge = showPendingAge ? getPendingAge(req, now) : null;
+                  return (
                   <tr key={req._id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -344,13 +374,23 @@ const RefundRequestList = ({
                         {getStatusIcon(req.refundDetails?.status)}
                         <span className="text-xs font-bold text-gray-700 capitalize">{getStatusLabel(req.refundDetails?.status)}</span>
                     </td>
+                    {showPendingAge && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {pendingAge ? (
+                          <span title={pendingAge.title} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold">
+                            <Clock size={13} /> {pendingAge.label}
+                          </span>
+                        ) : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button onClick={() => setSelectedTicket(req)} aria-label={`View request ${req._id}`} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-900 hover:text-white transition-all shadow-sm">
                         <Eye size={18} />
                       </button>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

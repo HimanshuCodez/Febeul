@@ -37,7 +37,7 @@ const RefundRequests = ({ token }) => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen font-sans">
-      <RefundRequestList token={token} requests={requests} allOrders={allOrders} loading={loading} onRefresh={fetchRequests} />
+      <RefundRequestList token={token} requests={requests} allOrders={allOrders} loading={loading} onRefresh={fetchRequests} showPendingAge />
     </div>
   );
 };
