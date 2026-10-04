@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { backendUrl, currency } from '../App';
 import { toast } from 'react-toastify';
@@ -9,8 +9,9 @@ import {
   Inbox, TrendingUp, CreditCard, Wallet
 } from 'lucide-react';
 import ReturnDrawer from '../components/returns/ReturnDrawer';
+import RefundRequestList from '../components/returns/RefundRequestList';
 import { RETURN_TABS, TONES, toneOf, labelOf, fmtDate } from '../utils/returnStatus';
-import { isPrepaid } from '../utils/requestCategory';
+import { REQUEST_CATEGORIES, categoryOf, isPrepaid } from '../utils/requestCategory';
 
 // Return journey queue.
 //
@@ -44,6 +45,8 @@ const bucketOf = (row) => {
 
 const ReturnRequests = ({ token }) => {
   const [rows, setRows] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('return');
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,12 +61,22 @@ const ReturnRequests = ({ token }) => {
   const fetchReturns = useCallback(async ({ silent = false } = {}) => {
     silent ? setRefreshing(true) : setLoading(true);
     try {
-      const { data } = await axios.get(`${backendUrl}/api/return/list`, { headers: { token } });
-      if (data.success) {
-        setRows(data.returns || []);
-        setSettings(data.settings || null);
+      // Customer returns include journey data; cancellations and courier returns
+      // use the order list and retain their existing refund actions.
+      const [returnsResult, ordersResult] = await Promise.allSettled([
+        axios.get(`${backendUrl}/api/return/list`, { headers: { token } }),
+        axios.post(`${backendUrl}/api/order/list`, {}, { headers: { token } }),
+      ]);
+      if (returnsResult.status === 'fulfilled' && returnsResult.value.data.success) {
+        setRows(returnsResult.value.data.returns || []);
+        setSettings(returnsResult.value.data.settings || null);
       } else {
-        toast.error(data.message || 'Failed to load returns.');
+        toast.error(returnsResult.reason?.response?.data?.message || returnsResult.value?.data?.message || 'Failed to load customer returns.');
+      }
+      if (ordersResult.status === 'fulfilled' && ordersResult.value.data.success) {
+        setAllOrders(ordersResult.value.data.orders || []);
+      } else {
+        toast.error(ordersResult.reason?.response?.data?.message || ordersResult.value?.data?.message || 'Failed to load cancellation and courier returns.');
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to load returns.');
@@ -74,6 +87,20 @@ const ReturnRequests = ({ token }) => {
   }, [token]);
 
   useEffect(() => { fetchReturns(); }, [fetchReturns]);
+
+  const categoryRows = useMemo(() => {
+    const groups = { cancellation: [], courier_return: [] };
+    allOrders.forEach((order) => {
+      const category = categoryOf(order);
+      if (groups[category]) groups[category].push(order);
+    });
+    Object.values(groups).forEach((orders) => orders.sort((a, b) =>
+      new Date(b.refundDetails?.requestedAt || b.date) - new Date(a.refundDetails?.requestedAt || a.date)
+    ));
+    return groups;
+  }, [allOrders]);
+
+  const activeCategoryMeta = REQUEST_CATEGORIES.find((category) => category.key === activeCategory);
 
   // Selection is held by id, not by object, so the drawer re-renders with fresh
   // data after every action instead of showing a stale snapshot.
@@ -201,9 +228,9 @@ const ReturnRequests = ({ token }) => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Return Journey</h2>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Return Requests</h2>
           <p className="text-slate-500 font-medium text-sm">
-            Pickup to refund. Status is derived from three dates — no background jobs, nothing to get stuck.
+            Manage customer returns, cancellations and courier returns.
           </p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -214,17 +241,48 @@ const ReturnRequests = ({ token }) => {
           >
             <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Refresh
           </button>
-          <CSVLink
+          {activeCategory === 'return' && <CSVLink
             data={csvData}
             headers={csvHeaders}
             filename={`Returns_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`}
             className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
           >
             <Download size={13} /> Export
-          </CSVLink>
+          </CSVLink>}
         </div>
       </div>
 
+      <div className="flex items-center gap-2 overflow-x-auto mb-6" aria-label="Return type">
+        {REQUEST_CATEGORIES.map((category) => (
+          <button
+            key={category.key}
+            onClick={() => { setActiveCategory(category.key); setSelectedId(null); }}
+            title={category.hint}
+            aria-pressed={activeCategory === category.key}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shrink-0 ${
+              activeCategory === category.key
+                ? 'bg-slate-900 text-white shadow-lg'
+                : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            {category.label} ({category.key === 'return' ? rows.length : categoryRows[category.key].length})
+          </button>
+        ))}
+      </div>
+
+      {activeCategory !== 'return' ? (
+        <RefundRequestList
+          key={activeCategory}
+          token={token}
+          requests={categoryRows[activeCategory]}
+          allOrders={allOrders}
+          loading={loading}
+          onRefresh={() => fetchReturns({ silent: true })}
+          title={activeCategoryMeta.label}
+          description={activeCategoryMeta.hint}
+        />
+      ) : (
+        <>
       {/* Refund-deadline alert. Deliberately cuts across every tab: a refund can
           fall due while the parcel is still missing, and that is exactly the
           case where waiting costs the most. */}
@@ -315,13 +373,6 @@ const ReturnRequests = ({ token }) => {
             </div>
           </div>
         </div>
-
-        {/* No "Return Type" filter here: /api/return/list only ever returns
-            requestType: 'return' rows (backend/controllers/returnController.js
-            RETURN_FILTER), so every row on this page is already a Customer
-            Return — a category filter over this data can never change the
-            result set. Cancellation and Courier Return (RTO) queues live on
-            the Refunds page. */}
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100">
@@ -475,6 +526,8 @@ const ReturnRequests = ({ token }) => {
           onApprove={approveReturn}
           onReject={rejectReturn}
         />
+      )}
+        </>
       )}
     </div>
   );
