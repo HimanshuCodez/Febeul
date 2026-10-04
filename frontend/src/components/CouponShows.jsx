@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import axios from 'axios';
-import { Tag, X, Crown } from 'lucide-react';
+import { Tag, X, Crown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RedeemPopup from './RedeemApply';
 import useAuthStore from '../store/authStore';
@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {}, appliedCoupon = null, selectedPayment = "" }) => {
+const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {}, appliedCoupon = null, selectedPayment = "", showDesktopNavigation = false }) => {
   const { user, cartItems, token } = useAuthStore();
   const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
@@ -17,6 +17,9 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [pendingCoupon, setPendingCoupon] = useState(null);
+  const carouselRef = useRef(null);
+  const carouselId = useId();
+  const [scrollState, setScrollState] = useState({ left: false, right: false });
 
   useEffect(() => {
     const fetchCoupons = async () => {
@@ -79,14 +82,6 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
     onRedeem(coupon.code);
   };
 
-  if (loading) {
-    return <div className="my-4 text-center text-gray-600">Loading coupons...</div>;
-  }
-
-  if (error) {
-    return <div className="my-4 text-center text-red-600">{error}</div>;
-  }
-
   const skuMatches = (couponSKUs, sku) => !sku ? false : couponSKUs.some(
     (item) => item.trim().toLowerCase() === sku.trim().toLowerCase()
   );
@@ -98,6 +93,46 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
     (coupon.applicableSKUs.length === 0 ||
     productSKUs.some(sku => skuMatches(coupon.applicableSKUs, sku)))
   );
+
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!showDesktopNavigation || !carousel) return;
+
+    const updateScrollState = () => {
+      const left = carousel.scrollLeft > 1;
+      const right = carousel.scrollWidth - carousel.clientWidth - carousel.scrollLeft > 1;
+      setScrollState(previous => previous.left === left && previous.right === right ? previous : { left, right });
+    };
+
+    updateScrollState();
+    carousel.addEventListener('scroll', updateScrollState, { passive: true });
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(carousel);
+
+    return () => {
+      carousel.removeEventListener('scroll', updateScrollState);
+      observer.disconnect();
+    };
+  }, [showDesktopNavigation, loading, error, applicableCoupons.length]);
+
+  const scrollCoupons = (direction) => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    const cardWidth = carousel.firstElementChild?.getBoundingClientRect().width || carousel.clientWidth;
+    const gap = parseFloat(window.getComputedStyle(carousel).columnGap) || 0;
+    carousel.scrollBy({
+      left: direction * (cardWidth + gap),
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    });
+  };
+
+  if (loading) {
+    return <div className="my-4 text-center text-gray-600">Loading coupons...</div>;
+  }
+
+  if (error) {
+    return <div className="my-4 text-center text-red-600">{error}</div>;
+  }
 
   if (applicableCoupons.length === 0) {
     return (
@@ -139,8 +174,34 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
           animation: luxeIconPulse 1.8s ease-in-out infinite;
         }
       `}</style>
-      <h2 className="text-lg font-bold text-gray-800 mb-3">Available Coupons</h2>
-      <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="text-lg font-bold text-gray-800">Available Coupons</h2>
+        {showDesktopNavigation && (scrollState.left || scrollState.right) && (
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => scrollCoupons(-1)}
+              disabled={!scrollState.left}
+              aria-label="Previous coupons"
+              aria-controls={carouselId}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition-colors hover:border-pink-500 hover:text-pink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-700"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollCoupons(1)}
+              disabled={!scrollState.right}
+              aria-label="Next coupons"
+              aria-controls={carouselId}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition-colors hover:border-pink-500 hover:text-pink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-700"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
+      </div>
+      <div ref={carouselRef} id={carouselId} className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory">
         {applicableCoupons.map((coupon) => {
           const isApplied = appliedCoupon && appliedCoupon.code === coupon.code;
           const isLuxeCoupon = coupon.userType === 'luxe';

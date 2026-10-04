@@ -894,6 +894,7 @@ const ProductDetailPage = () => {
 
                   <div className="pt-6">
                     <CouponShows
+                      showDesktopNavigation
                       productSKUs={productSKUs}
                       onRedeem={onRedeemCoupon}
                       onRemove={onRemoveCoupon}
