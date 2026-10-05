@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { afterPaymentResponse } from '../analytics/service.js';
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
@@ -498,10 +499,12 @@ const verifyStripe = async (req,res) => {
             // refund against — without this, a paid Stripe order has no
             // recorded reference to it at all beyond the Stripe dashboard.
             let stripePaymentIntentId;
+            let analyticsStripeProof;
             try {
                 const sessionId = order.paymentDetails?.stripeSessionId;
                 if (sessionId) {
                     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+                    analyticsStripeProof = { gateway: 'stripe', id: checkoutSession.id, payment_status: checkoutSession.payment_status, amount_total: checkoutSession.amount_total, currency: checkoutSession.currency };
                     stripePaymentIntentId = checkoutSession.payment_intent || undefined;
                 }
             } catch (stripeLookupError) {
@@ -516,6 +519,7 @@ const verifyStripe = async (req,res) => {
             });
             // Re-fetch the updated order for further processing
             const updatedOrder = await orderModel.findById(orderId).populate('userId');
+            afterPaymentResponse(req, res, updatedOrder, analyticsStripeProof, !order.payment);
 
             // Check if this is a luxe membership purchase
             const isLuxeOrder = updatedOrder.items.some(item => item.name === "Febeul Luxe Membership");
@@ -702,7 +706,7 @@ const verifyRazorpay = async (req,res) => {
                     console.error("Error fetching Razorpay payment for RRN:", fetchErr);
                 }
 
-                await orderModel.findByIdAndUpdate(orderInfo.receipt, {
+                const analyticsPreviousOrder = await orderModel.findByIdAndUpdate(orderInfo.receipt, {
                     payment: true,
                     paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature },
                     razorpayPaymentId: razorpay_payment_id, // Store Razorpay Payment ID
@@ -711,6 +715,7 @@ const verifyRazorpay = async (req,res) => {
                 });
                 
                 const order = await orderModel.findById(orderInfo.receipt).populate('userId');
+                afterPaymentResponse(req, res, order, { gateway: 'razorpay', status: orderInfo.status, receipt: orderInfo.receipt, amount_paid: orderInfo.amount_paid, currency: orderInfo.currency }, !analyticsPreviousOrder?.payment);
 
                 // Check if this is a luxe membership purchase
                 const isLuxeOrder = order.items.some(item => item.name === "Febeul Luxe Membership");

@@ -4,8 +4,6 @@ import {
   Heart,
   User,
   ShoppingBag,
-  Facebook,
-  Instagram,
   Music2,
   BellDot,
   HeadphonesIcon,
@@ -13,7 +11,6 @@ import {
   X,
   TwitchIcon,
   XCircle,
-  AtSign,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -231,20 +228,8 @@ export default function Header() {
       {/* Top Banner */}
       <div className="bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-4"> {/* Social Icons */}
-            <a href="https://www.facebook.com/febeul" target="_blank">
-              <Facebook className="w-4 h-4 cursor-pointer hover:opacity-80" />
-            </a>
-            <a href="https://www.instagram.com/febeul.official" target="_blank">
-              <Instagram className="w-4 h-4 cursor-pointer hover:opacity-80" />
-            </a>
-            <a href="https://www.threads.com/@febeul.official" target="_blank">
-              <AtSign className="w-4 h-4 cursor-pointer hover:opacity-80" />
-            </a>
-          </div>
-
-          <div className="flex-1 flex justify-center min-w-0"> {/* Swiping Messages */}
-            <SwipingMessages />
+          <div className="mr-3 min-w-0 flex-1"> {/* Social links + swiping messages */}
+            <SwipingMessages messagesClassName="hidden md:block" />
           </div>
 
           <div className="flex items-center gap-1 cursor-pointer hover:opacity-80"> {/* Help Link */}

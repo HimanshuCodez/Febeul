@@ -37,9 +37,12 @@ const DeliveryControl = lazy(() => import('./pages/DeliveryControl'))
 const ImageOptimize = lazy(() => import('./pages/Settings/ImageOptimize'))
 const TypographySettings = lazy(() => import('./pages/Settings/TypographySettings'))
 const ProductTaxonomy = lazy(() => import('./pages/Settings/ProductTaxonomy'))
+const SocialsSettings = lazy(() => import('./pages/SocialsSettings'))
+const LuxePage = lazy(() => import('./pages/LuxePage'))
 const Stats = lazy(() => import('./pages/Stats/Stats'))
 const ResetData = lazy(() => import('./pages/ResetData'))
 const ComingSoon = lazy(() => import('./pages/ComingSoon'))
+const UserTracking = lazy(() => import('./pages/UserTracking'))
 
 const PageFallback = () => (
   <div className='flex items-center justify-center py-24'>
@@ -138,10 +141,12 @@ const App = () => {
                 {isAllowed('/image-optimize') && <Route path='/image-optimize' element={<ImageOptimize token={token} />} />}
                 {isAllowed('/typography') && <Route path='/typography' element={<TypographySettings token={token} />} />}
                 {isAllowed('/product-taxonomy') && <Route path='/product-taxonomy' element={<ProductTaxonomy token={token} />} />}
+                {isAllowed('/cms') && <Route path='/socials-settings' element={<SocialsSettings token={token} />} />}
+                {isAllowed('/cms') && <Route path='/luxe-page' element={<LuxePage token={token} />} />}
                 {isAllowed('/stats') && <Route path='/stats' element={<Stats token={token} />} />}
                 {isAllowed('/reset-data') && <Route path='/reset-data' element={<ResetData token={token} />} />}
                 {isAllowed('/staff-tracking') && <Route path='/staff-tracking' element={<ComingSoon title='Staff Tracking' subtitle="Track staff activity and performance — this feature isn't live yet." />} />}
-                {isAllowed('/user-tracking') && <Route path='/user-tracking' element={<ComingSoon title='User Tracking' subtitle="Track customer activity and behaviour — this feature isn't live yet." />} />}
+                {isAllowed('/user-tracking') && <Route path='/user-tracking' element={<UserTracking token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
                 {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}

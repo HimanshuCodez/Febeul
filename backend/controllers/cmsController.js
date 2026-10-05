@@ -1,6 +1,8 @@
 import cmsModel from '../models/cmsModel.js';
 import { v2 as cloudinary } from 'cloudinary';
 import { invalidateReturnSettingsCache } from '../utils/returnStatus.js';
+import { DEFAULT_SOCIAL_SETTINGS, validateSocialSettings } from '../utils/socialSettings.js';
+import { DEFAULT_LUXE_PAGE_CONTENT, validateLuxePageContent } from '../utils/luxePageContent.js';
 
 // @desc    Get CMS content by name
 // @route   GET /api/cms/:name
@@ -10,6 +12,10 @@ const getCmsContent = async (req, res) => {
         const content = await cmsModel.findOne({ name: req.params.name });
         if (content) {
             res.json({ success: true, content: content.content, creator: content.creator });
+        } else if (req.params.name === 'socialSettings') {
+            res.json({ success: true, content: DEFAULT_SOCIAL_SETTINGS });
+        } else if (req.params.name === 'luxePage') {
+            res.json({ success: true, content: DEFAULT_LUXE_PAGE_CONTENT });
         } else {
             res.json({ success: false, message: 'Content not found' });
         }
@@ -24,11 +30,26 @@ const getCmsContent = async (req, res) => {
 const updateCmsContent = async (req, res) => {
     try {
         const { name, content } = req.body;
+        let savedContent = content;
+        if (name === 'socialSettings') {
+            try {
+                savedContent = validateSocialSettings(content);
+            } catch (error) {
+                return res.status(400).json({ success: false, message: error.message });
+            }
+        }
+        if (name === 'luxePage') {
+            try {
+                savedContent = validateLuxePageContent(content);
+            } catch (error) {
+                return res.status(400).json({ success: false, message: error.message });
+            }
+        }
 
         const updatedContent = await cmsModel.findOneAndUpdate(
             { name },
             { 
-                content,
+                content: savedContent,
                 creator: {
                     name: req.userName || 'Admin',
                     email: req.userEmail || '',

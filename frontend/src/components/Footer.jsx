@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Youtube, Twitter, AtSign } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import axios from "axios";
+import SocialLinks from "./SocialLinks";
+import { analytics } from '../analytics/runtime';
 
 const Footer = () => {
   const [customPolicies, setCustomPolicies] = useState([]);
@@ -111,6 +112,7 @@ const Footer = () => {
                 Policies
               </h3>
               <ul className="space-y-2 text-sm mb-6">
+                <li><button type="button" onClick={analytics.openSettings} className="hover:text-white underline underline-offset-2">Cookie settings</button></li>
                 <li><Link to="/ReviewRating" target="_blank" rel="noopener noreferrer" className="hover:text-white">Review & Rating</Link></li>
                 <li><Link to="/TermsConditions" target="_blank" rel="noopener noreferrer" className="hover:text-white">Terms & Conditions</Link></li>
                 <li><Link to="/DataPrivacy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Data Privacy</Link></li>
@@ -135,13 +137,7 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 gap-4">
           <p>© {new Date().getFullYear()} Febeul.com. All Rights Reserved</p>
 
-          <div className="flex gap-5 text-gray-400">
-            <a href="https://www.facebook.com/febeul" target="_blank" className="hover:text-white"><Facebook size={20} /></a>
-            <a href="https://www.instagram.com/febeul.official" target="_blank" className="hover:text-white"><Instagram size={20} /></a>
-            <a href="https://www.threads.com/@febeul.official" target="_blank" className="hover:text-white"><AtSign size={20} /></a>
-            <a href="#" className="hover:text-white"><Youtube size={20} /></a>
-            <a href="#" className="hover:text-white"><Twitter size={20} /></a>
-          </div>
+          <SocialLinks placement="footer" className="flex-wrap justify-center gap-2 text-gray-400" />
         </div>
       </div>
     </footer>

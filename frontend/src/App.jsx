@@ -47,6 +47,7 @@ import BlockedPage from "./Pages/Blocked";
 import SwipingMessages from "./components/SwippingMsgs";
 import FebeulLoader from "./components/Loader";
 import ScrollToTop from "./components/ScrollToTop";
+import AnalyticsConsent from "./analytics/AnalyticsConsent";
 
 const AppContent = () => {
   const location = useLocation();
@@ -177,7 +178,7 @@ const AppContent = () => {
     <div>
       <ScrollToTop />
       <Toaster />
-      <SwipingMessages className="mobile-only"/>
+      <SwipingMessages className="mobile-only" showSocials={false}/>
       {showHeaderFooter && <Header />}
       <Routes>
         {/* Default route - Home */}
@@ -235,6 +236,7 @@ const AppContent = () => {
 const App = () => {
   return (
     <Router>
+      <AnalyticsConsent />
       <AppContent />
     </Router>
   );

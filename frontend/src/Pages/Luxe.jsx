@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
-import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaCrown, FaBusAlt, FaCheckCircle, FaStar, FaShieldAlt } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { motion as Motion, AnimatePresence } from "framer-motion";
+import { FaCrown, FaCheckCircle, FaStar, FaShieldAlt } from "react-icons/fa";
 import ProductCard from "../components/ProductCard";
 import Loader from "../components/Loader";
 import { toast } from "react-hot-toast";
+
+const defaultFeatures = [
+  { img: "/bus.png", title: "PRIORITY DELIVERY", desc: "Fast-track shipping on every order" },
+  { img: "/gifs.png", title: "15 GIFT WRAPS", desc: "Premium packaging for your loved ones" },
+  { img: "/bags.png", title: "LUXE PRIVE SALES", desc: "Exclusive access to boutique collections" },
+  { img: "/discount.png", title: "EXCLUSIVE COUPONS", desc: "Vouchers included with every purchase" },
+  { img: "/customer.png", title: "VIP SUPPORT", desc: "Dedicated concierge for all your needs" },
+  { img: "/free_delivery.png", title: "FREE SHIPPING", desc: "Zero delivery charges, nationwide" },
+];
 
 export default function FebeulLuxe() {
   const { user, token, isAuthenticated, getProfile } = useAuthStore();
@@ -25,13 +34,30 @@ export default function FebeulLuxe() {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [pageContent, setPageContent] = useState({});
+  const pageText = (section, key, fallback) => typeof pageContent[section]?.[key] === 'string' ? pageContent[section][key] : fallback;
+  const features = Array.isArray(pageContent.features) ? pageContent.features : defaultFeatures;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/luxePage`, { signal: controller.signal })
+      .then(({ data }) => {
+        if (data.success && data.content && typeof data.content === 'object' && !Array.isArray(data.content)) {
+          setPageContent(data.content);
+        }
+      })
+      .catch(error => {
+        if (!axios.isCancel(error)) console.error('Error fetching Luxe page content:', error);
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/cms/siteSettings`);
-        if (response.data.success) {
-          setSiteSettings(response.data.content);
+        if (response.data.success && response.data.content) {
+          setSiteSettings(current => ({ ...current, ...response.data.content }));
         }
       } catch (error) {
         console.error("Error fetching site settings:", error);
@@ -40,7 +66,7 @@ export default function FebeulLuxe() {
     fetchSiteSettings();
   }, []);
 
-  const fetchLuxePriveProducts = async () => {
+  const fetchLuxePriveProducts = useCallback(async () => {
     setLoadingProducts(true);
     try {
       const response = await axios.get(
@@ -57,7 +83,7 @@ export default function FebeulLuxe() {
         setLoadingProducts(false);
       }, 2000);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     const fetchRazorpayKey = async () => {
@@ -77,7 +103,7 @@ export default function FebeulLuxe() {
     } else {
         setLoadingProducts(false);
     }
-  }, [isAuthenticated, user?.isLuxeMember, token]);
+  }, [isAuthenticated, user?.isLuxeMember, token, fetchLuxePriveProducts]);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -239,8 +265,8 @@ export default function FebeulLuxe() {
         `}</style>
         {loadingProducts && <Loader />}
         <div className="text-center mb-10 flex flex-col items-center gap-4">
-          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs">Member Exclusive</p>
-          <h1 className="text-5xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">LUXE PRIVE SALE</h1>
+          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs">{pageText('member', 'eyebrow', 'Member Exclusive')}</p>
+          <h1 className="max-w-full break-words text-5xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">{pageText('member', 'title', 'LUXE PRIVE SALE')}</h1>
         </div>
 
         {luxeProducts.length > 0 ? (
@@ -251,8 +277,8 @@ export default function FebeulLuxe() {
           </div>
         ) : !loadingProducts && (
           <div className="text-center py-20">
-            <h2 className="text-2xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] mb-2 italic">New Arrivals Coming Soon</h2>
-            <p className="text-[#c98a8b] font-['Raleway'] text-sm">Check back later for your exclusive Luxe Prive collection.</p>
+            <h2 className="text-2xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] mb-2 italic">{pageText('member', 'emptyTitle', 'New Arrivals Coming Soon')}</h2>
+            <p className="whitespace-pre-line text-[#c98a8b] font-['Raleway'] text-sm">{pageText('member', 'emptyDescription', 'Check back later for your exclusive Luxe Prive collection.')}</p>
           </div>
         )}
       </section>
@@ -267,16 +293,16 @@ export default function FebeulLuxe() {
       
       <div className="text-center mb-12 flex flex-col items-center gap-4">
         
-        <div className="space-y-1">
-          <h1 className="text-5xl md:text-6xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">Luxe Membership</h1>
-          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs font-light">Experience The Elite</p>
+        <div className="max-w-full space-y-1 break-words">
+          <h1 className="text-5xl md:text-6xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">{pageText('hero', 'title', 'Luxe Membership')}</h1>
+          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs font-light">{pageText('hero', 'subtitle', 'Experience The Elite')}</p>
         </div>
       </div>
 
       {/* Promo Banner */}
       <AnimatePresence>
-        {showPromo && (
-          <motion.div
+        {showPromo && pageContent.promo?.enabled !== false && (
+          <Motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -286,54 +312,51 @@ export default function FebeulLuxe() {
               <div className="flex items-center gap-4">
                 <FaCrown className="text-2xl text-yellow-300" />
                 <div>
-                  <p className="font-['Raleway'] font-bold text-sm tracking-widest uppercase">Join Febeul Luxe Today</p>
-                  <p className="text-xs font-light opacity-90 font-['Raleway']">Unlock exclusive sales and premium benefits instantly.</p>
+                  <p className="font-['Raleway'] font-bold text-sm tracking-widest uppercase">{pageText('promo', 'title', 'Join Febeul Luxe Today')}</p>
+                  <p className="whitespace-pre-line text-xs font-light opacity-90 font-['Raleway']">{pageText('promo', 'description', 'Unlock exclusive sales and premium benefits instantly.')}</p>
                 </div>
               </div>
               <button 
+                type="button"
+                aria-label="Dismiss Luxe promotion"
                 onClick={() => setShowPromo(false)}
                 className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
               >
                 ×
               </button>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 
       {/* Features Grid */}
+      {features.length > 0 && (
       <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-8 text-center mb-16">
-        {[
-          { img: "/bus.png", title: "PRIORITY DELIVERY", desc: "Fast-track shipping on every order" },
-          { img: "/gifs.png", title: "15 GIFT WRAPS", desc: "Premium packaging for your loved ones" },
-          { img: "/bags.png", title: "LUXE PRIVE SALES", desc: "Exclusive access to boutique collections" },
-          { img: "/discount.png", title: "EXCLUSIVE COUPONS", desc: "Vouchers included with every purchase" },
-          { img: "/customer.png", title: "VIP SUPPORT", desc: "Dedicated concierge for all your needs" },
-          { img: "/free_delivery.png", title: "FREE SHIPPING", desc: "Zero delivery charges, nationwide" }
-        ].map((feature, i) => (
-          <motion.div 
-            key={i}
+        {features.map((feature, i) => (
+          <Motion.div
+            key={feature.id || i}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: i * 0.1 }}
-            className="flex flex-col items-center"
+            className="flex min-w-0 flex-col items-center break-words"
           >
             <div className="h-40 flex items-center justify-center mb-4">
-              <img src={feature.img} alt={feature.title} className="h-36 w-36 object-contain hover:scale-110 transition-transform duration-500" />
+              <img src={feature.img} alt={feature.title} className="h-28 w-28 sm:h-36 sm:w-36 object-contain hover:scale-110 transition-transform duration-500" />
             </div>
-            <h3 className="font-['Raleway'] font-bold text-xs tracking-[0.2em] text-[#b87a7b] uppercase mb-2">{feature.title}</h3>
-            <p className="text-[10px] text-[#c98a8b] font-['Raleway'] uppercase tracking-wider">{feature.desc}</p>
-          </motion.div>
+            <h3 className="max-w-full font-['Raleway'] font-bold text-xs tracking-[0.2em] text-[#b87a7b] uppercase mb-2">{feature.title}</h3>
+            <p className="max-w-full whitespace-pre-line text-[10px] text-[#c98a8b] font-['Raleway'] uppercase tracking-wider">{feature.desc}</p>
+          </Motion.div>
         ))}
       </div>
+      )}
 
       {/* Bottom Card */}
       <div className="max-w-md mx-auto bg-white rounded-3xl shadow-[0_20px_50px_rgba(249,174,175,0.2)] border border-[#f9aeaf]/20 px-8 py-10 text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#f9aeaf] via-[#e07f82] to-[#f9aeaf]" />
         
         <div className="mb-6">
-            <span className="font-['Raleway'] tracking-widest text-[#c98a8b] uppercase text-[10px] font-bold">Limited Time Offer</span>
+            <span className="font-['Raleway'] tracking-widest text-[#c98a8b] uppercase text-[10px] font-bold">{pageText('offer', 'label', 'Limited Time Offer')}</span>
         </div>
 
         <div className="flex items-center justify-center gap-4 mb-2">
@@ -342,26 +365,27 @@ export default function FebeulLuxe() {
             <span className="text-[#b87a7b] font-['Cormorant_Garamond'] font-bold text-5xl">
               ₹{Math.max(0, (siteSettings.membershipPrice || 129) - (appliedCoupon?.discountAmount || 0)).toFixed(0)}
             </span>
-            <span className="text-[10px] text-[#c98a8b] font-['Raleway'] font-bold uppercase tracking-tighter mt-1">Per Month</span>
+            <span className="text-[10px] text-[#c98a8b] font-['Raleway'] font-bold uppercase tracking-tighter mt-1">{pageText('offer', 'period', 'Per Month')}</span>
           </div>
         </div>
 
         {appliedCoupon && (
           <p className="text-[10px] text-[#e07f82] font-['Raleway'] font-bold uppercase tracking-wider mb-4">
-            Coupon "{appliedCoupon.code}" applied · -₹{appliedCoupon.discountAmount.toFixed(0)}
+            {pageText('coupon', 'label', 'Coupon')} "{appliedCoupon.code}" {pageText('coupon', 'appliedLabel', 'applied')} · -₹{appliedCoupon.discountAmount.toFixed(0)}
           </p>
         )}
 
         <div className="mb-8">
           {!appliedCoupon ? (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
-                placeholder="Have a coupon?"
-                className="flex-1 px-4 py-2.5 border border-[#f9aeaf]/40 rounded-xl text-xs font-['Raleway'] font-bold uppercase tracking-wider text-[#b87a7b] placeholder:text-[#c98a8b]/70 placeholder:normal-case placeholder:font-medium focus:outline-none focus:border-[#b87a7b] transition-all"
+                placeholder={pageText('coupon', 'placeholder', 'Have a coupon?')}
+                aria-label={pageText('coupon', 'placeholder', 'Have a coupon?') || 'Coupon code'}
+                className="min-w-0 flex-1 px-4 py-2.5 border border-[#f9aeaf]/40 rounded-xl text-xs font-['Raleway'] font-bold uppercase tracking-wider text-[#b87a7b] placeholder:text-[#c98a8b]/70 placeholder:normal-case placeholder:font-medium focus:outline-none focus:border-[#b87a7b] transition-all"
               />
               <button
                 type="button"
@@ -369,21 +393,21 @@ export default function FebeulLuxe() {
                 disabled={couponLoading || !couponCode.trim()}
                 className="px-5 py-2.5 bg-[#b87a7b] hover:bg-[#a66b6c] text-white rounded-xl text-xs font-['Raleway'] font-bold uppercase tracking-wider transition-all disabled:bg-gray-200 disabled:text-gray-400 shrink-0"
               >
-                {couponLoading ? "..." : "Apply"}
+                {couponLoading ? pageText('coupon', 'loadingLabel', '...') : pageText('coupon', 'applyLabel', 'Apply')}
               </button>
             </div>
           ) : (
             <div className="flex items-center justify-between bg-[#fdf5f5] border border-[#f9aeaf]/40 rounded-xl px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <FaCheckCircle className="text-[#e07f82] text-xs shrink-0" />
-                <span className="text-xs font-['Raleway'] font-bold text-[#b87a7b] uppercase tracking-wider">{appliedCoupon.code} applied</span>
+                <span className="text-xs font-['Raleway'] font-bold text-[#b87a7b] uppercase tracking-wider">{appliedCoupon.code} {pageText('coupon', 'appliedLabel', 'applied')}</span>
               </div>
               <button
                 type="button"
                 onClick={handleRemoveCoupon}
                 className="text-[#c98a8b] hover:text-[#b87a7b] text-[10px] font-['Raleway'] font-bold uppercase tracking-wider"
               >
-                Remove
+                {pageText('coupon', 'removeLabel', 'Remove')}
               </button>
             </div>
           )}
@@ -394,23 +418,23 @@ export default function FebeulLuxe() {
           disabled={isProcessing}
           className="w-full bg-[#b87a7b] hover:bg-[#a66b6c] transition-all text-white font-['Raleway'] font-bold tracking-widest py-4 rounded-2xl shadow-lg disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed uppercase text-sm"
         >
-          {isProcessing ? "Processing..." : (isAuthenticated ? "Become a Member" : "Login to Join")}
+          {isProcessing ? pageText('offer', 'processingLabel', 'Processing...') : (isAuthenticated ? pageText('offer', 'joinLabel', 'Become a Member') : pageText('offer', 'loginLabel', 'Login to Join'))}
         </button>
 
         <div className="mt-8 pt-8 border-t border-gray-50 flex flex-col gap-4">
-            <div className="flex items-center justify-center gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-4">
                 <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
-                    <FaCheckCircle className="text-[#e07f82]" /> Secure SSL
+                    <FaCheckCircle className="text-[#e07f82]" /> {pageText('offer', 'securityLabel', 'Secure SSL')}
                 </div>
                 <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
-                    <FaShieldAlt className="text-[#e07f82]" /> Safe Payment
+                    <FaShieldAlt className="text-[#e07f82]" /> {pageText('offer', 'paymentLabel', 'Safe Payment')}
                 </div>
                 <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
-                    <FaStar className="text-[#e07f82]" /> VIP Perks
+                    <FaStar className="text-[#e07f82]" /> {pageText('offer', 'perksLabel', 'VIP Perks')}
                 </div>
             </div>
-            <p className="text-[9px] text-[#c98a8b] opacity-60 leading-relaxed italic">
-                Membership benefits active for 30 days from purchase. Auto-renewal not active.
+            <p className="whitespace-pre-line text-[9px] text-[#c98a8b] opacity-60 leading-relaxed italic">
+                {pageText('offer', 'terms', 'Membership benefits active for 30 days from purchase. Auto-renewal not active.')}
             </p>
         </div>
       </div>

@@ -7,7 +7,7 @@ import {
   Wrench, Sliders, Zap, Type, ChevronDown, ChevronRight,
   Menu, X, Truck, Undo2, Tags, Trash2, Search,
   ChevronsLeft, ChevronsRight, SearchX, Repeat,
-  UserCog, Activity, MailCheck
+  UserCog, Activity, MailCheck, Share2, Crown
 } from 'lucide-react'
 
 // Grouped nav config — single source of truth for search, accordions, and rendering.
@@ -49,6 +49,7 @@ const NAV_SECTIONS = [
       { to: '/send-mail', icon: Mail, label: 'Email Marketing', permission: '/send-mail' },
       { to: '/email-templates', icon: MailCheck, label: 'Order Email Template', permission: '/email-templates' },
       { to: '/cms', icon: FileText, label: 'Content (CMS)', permission: '/cms' },
+      { to: '/luxe-page', icon: Crown, label: 'Luxe Page', permission: '/cms' },
       { to: '/images', icon: Image, label: 'Hero Images', permission: '/images' },
       { to: '/policy-update', icon: ShieldCheck, label: 'Policies', permission: '/policy-update' },
     ],
@@ -76,6 +77,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/maintenance', icon: Wrench, label: 'Maintenance', permission: '/maintenance' },
       { to: '/configurations', icon: Sliders, label: 'Config', permission: '/configurations' },
+      { to: '/socials-settings', icon: Share2, label: 'Social Links', permission: '/cms' },
       { to: '/delivery-control', icon: Truck, label: 'Delivery Zones', permission: '/delivery-control' },
       { to: '/image-optimize', icon: Zap, label: 'Image Opt', permission: '/image-optimize' },
       { to: '/typography', icon: Type, label: 'Typography', permission: '/typography' },

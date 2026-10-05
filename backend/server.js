@@ -22,6 +22,7 @@ import cmsRouter from './routes/cmsRoute.js';
 import resetRouter from './routes/resetRoute.js';
 import emailTemplateRouter from './routes/emailTemplateRoute.js';
 import errorHandler from './middleware/errorHandler.js'
+import analyticsRouter from './analytics/routes.js'
 
 // App Config
 const app = express()
@@ -30,6 +31,8 @@ connectDB()
 connectCloudinary()
 
 // middlewares
+// Isolated parser keeps the analytics limit from changing existing API limits.
+app.use('/api/analytics', cors(), analyticsRouter)
 app.use(express.json())
 app.use(cors())
 

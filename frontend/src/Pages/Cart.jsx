@@ -63,7 +63,7 @@ const Cart = () => {
     try {
         const response = await axios.post(`${backendUrl}/api/cart/update`, 
             { userId: user._id, itemId, size, color, quantity: newQuantity },
-            { headers: { token } }
+            { headers: { token }, analyticsEvent: { name: delta > 0 ? 'add_to_cart' : 'remove_from_cart', quantity: Math.abs(delta), amount: Math.abs(delta) * item.price, currency: 'INR' } }
         );
         if (!response.data.success) {
             toast.error("Failed to update cart.");
@@ -76,6 +76,7 @@ const Cart = () => {
   };
 
   const handleRemove = async (itemId, size, color) => {
+    const removedItem = cartItems.find(item => item._id === itemId && item.size === size && item.color === color);
     // Optimistic update
     const updatedItems = cartItems.filter(i => 
         !(i._id === itemId && i.size === size && i.color === color)
@@ -85,7 +86,7 @@ const Cart = () => {
     try {
         const response = await axios.post(`${backendUrl}/api/cart/remove`, 
             { userId: user._id, itemId, size, color },
-            { headers: { token } }
+            { headers: { token }, analyticsEvent: { name: 'remove_from_cart', quantity: removedItem?.quantity, amount: removedItem?.quantity * removedItem?.price, currency: 'INR' } }
         );
         if (response.data.success) {
             toast.success("Item removed from cart.");
