@@ -226,7 +226,7 @@ const AppContent = () => {
         <Route path="*" element={<h2>404 Page Not Found</h2>} />
       </Routes>
       <Chatbot />
-      <FebeulMembership />
+      {location.pathname !== "/" && <FebeulMembership />}
       {showHeaderFooter && <Footer />}
     </div>
   );

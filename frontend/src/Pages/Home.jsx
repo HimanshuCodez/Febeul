@@ -12,6 +12,7 @@ import DiscountBanner from '../components/JoinNow'
 import Aboutt from '../components/Aboutt'
 import AllProductsCarousel from '../components/Extras/AllProductsCarousel'
 import BestSellerCarousel from '../components/Extras/BestSellerCarousel'
+import FebeulMembership from '../components/Membership'
 
 const SectionHeading = ({ title, subtitle, subtitleLink }) => (
   <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -43,6 +44,7 @@ const SectionHeading = ({ title, subtitle, subtitleLink }) => (
 const Home = () => {
   return (
     <div>
+      <FebeulMembership autoOpenDelay={2000} centered />
       <Hero />
       <OfferBar />
       <div className=''><Spotlight /></div>
