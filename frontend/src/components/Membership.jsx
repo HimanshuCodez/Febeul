@@ -132,32 +132,18 @@ const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false }) => {
               ) : (
               <>
               {/* Header block */}
-              <div className={`relative overflow-hidden bg-gradient-to-br from-pink-400 to-pink-600 shrink-0 ${centered ? "min-h-44 md:row-span-2 md:min-h-full" : "h-36"}`}>
+              <div className="relative h-36 overflow-hidden bg-gradient-to-br from-pink-400 to-pink-600 shrink-0">
                 <img
                   src="https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=600&auto=format&fit=crop"
                   alt="Febeul Luxe Banner"
                   className="absolute inset-0 w-full h-full object-cover opacity-35 mix-blend-overlay"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-pink-950/60 via-pink-700/10 to-transparent"></div>
-                {centered && (
-                  <div aria-hidden="true" className="absolute inset-x-0 top-14 hidden flex-col items-center text-white md:flex">
-                    <div className="flex h-24 w-24 rotate-12 items-center justify-center rounded-3xl border border-white/40 bg-white/15 shadow-xl backdrop-blur-md">
-                      <Gem className="h-12 w-12 -rotate-12" strokeWidth={1.2} />
-                    </div>
-                    <span className="mt-7 text-xs font-semibold uppercase tracking-[0.4em] text-pink-100">A little more luxe</span>
-                  </div>
-                )}
-                <div className={`text-white drop-shadow-md text-left ${centered ? "relative px-6 pb-6 pt-12 md:absolute md:bottom-10 md:left-8 md:right-8 md:p-0" : "absolute bottom-4 left-5"}`}>
+                <div className="absolute bottom-4 left-5 text-white drop-shadow-md text-left">
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-pink-100">Febeul Club</span>
-                  <h2 id={titleId} className={`mt-1 ${centered ? "text-3xl font-medium leading-tight md:text-4xl" : "text-xl font-black"}`}>
-                    {isLuxeMember ? "Luxe VIP Lounge" : "Luxe Membership"}
-                    {!centered && (isLuxeMember ? " 👑" : " 💎")}
+                  <h2 id={titleId} className="mt-1 text-xl font-black">
+                    {isLuxeMember ? "Luxe VIP Lounge 👑" : "Luxe Membership 💎"}
                   </h2>
-                  {centered && (
-                    <p className="mt-3 max-w-xs text-sm leading-relaxed text-pink-50">
-                      {isLuxeMember ? "Welcome back. Your favourite privileges are waiting for you." : "Because every shopping moment deserves something special."}
-                    </p>
-                  )}
                 </div>
               </div>
               <button
@@ -171,7 +157,7 @@ const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false }) => {
 
               {/* Conditional body based on VIP status */}
               {isLuxeMember ? (
-                <div className={`p-5 space-y-5 flex-1 ${centered ? "md:px-7 md:pt-14" : ""}`}>
+                <div className="p-5 space-y-5 flex-1">
                   {/* Gold VIP Member Card */}
                   <Motion.div
                     whileHover={{ y: -3 }}
@@ -233,12 +219,7 @@ const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false }) => {
               ) : (
                 <div className="flex-1 flex flex-col">
                   {/* Non-member offer */}
-                  <div className={`p-5 text-center shrink-0 ${centered ? "md:px-7 md:pt-12" : ""}`}>
-                    {centered && (
-                      <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-pink-100 bg-pink-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-pink-600">
-                        <Sparkles size={12} /> Your VIP invitation
-                      </span>
-                    )}
+                  <div className="p-5 text-center shrink-0">
                     <h3 className="text-base font-black text-slate-800">
                       Unlock Luxe VIP Privileges
                     </h3>
@@ -254,15 +235,6 @@ const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false }) => {
                     >
                       Join Luxe for ₹{membershipPrice}/mo
                     </button>
-                    {centered && (
-                      <button
-                        type="button"
-                        onClick={() => setOpen(false)}
-                        className="mt-3 text-xs font-semibold text-slate-500 underline-offset-4 transition hover:text-pink-600 hover:underline"
-                      >
-                        Maybe later, keep exploring
-                      </button>
-                    )}
                     {!isAuthenticated && (
                       <p className="text-slate-400 text-xs mt-3 font-semibold">
                         Already a member?{" "}

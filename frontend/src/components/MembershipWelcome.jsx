@@ -4,8 +4,8 @@ import { ArrowUpRight, Crown, Gem, Heart, Pause, Play, Sparkles, X } from "lucid
 import { Link } from "react-router-dom";
 import "./MembershipWelcome.css";
 
-// Pink lingerie GIF by triumphlingerie. Keep the still for reduced motion and playback controls.
-// Source: https://giphy.com/stickers/Triumphlingerie-lingerie-triumph-u0e4suUhmKMCasjTyE
+// Lingerie runway GIF by fashgif. Keep the still for reduced motion and playback controls.
+// Source: https://giphy.com/gifs/fashgif-fashion-pink-fashgif-Z3qghaoYwEbvi
 const lingerieGif = "/luxe-lingerie.gif";
 const lingerieStill = "/luxe-lingerie-still.gif";
 const sparklePositions = [
@@ -46,24 +46,22 @@ const MembershipWelcome = ({
         </div>
 
         <div className="luxe-artwork" aria-hidden="true">
-          <div className="luxe-artwork-ring" />
           {imageFailed ? (
             <Heart className="h-24 w-24 text-pink-500" strokeWidth={1} />
           ) : (
             <img
               src={motionStopped ? lingerieStill : lingerieGif}
               alt=""
-              width="480"
+              width="319"
               height="480"
               decoding="async"
               onError={() => setImageFailed(true)}
             />
           )}
-          <span className="luxe-artwork-heart"><Heart size={18} fill="currentColor" /></span>
         </div>
 
         <div className="luxe-hero-caption">
-          <p>A little more<br /><em>lovely.</em></p>
+          <p>A little more<br /> <em>lovely.</em></p>
           <span>Soft details. Extra privileges. All yours.</span>
         </div>
         {!reduceMotion && (
@@ -84,7 +82,8 @@ const MembershipWelcome = ({
           {isLuxeMember ? "Your Luxe VIP lounge" : "An invitation to something special"}
         </span>
         <h2 id={titleId} className="luxe-title">
-          {isLuxeMember ? <>Welcome back,<br /><em>beautiful.</em></> : <>Your VIP era<br /><em>starts here.</em></>}
+          <span>{isLuxeMember ? "Welcome back," : "Your VIP era"}</span>
+          <em>{isLuxeMember ? "beautiful." : "starts here."}</em>
         </h2>
         <p className="luxe-description">
           {isLuxeMember
