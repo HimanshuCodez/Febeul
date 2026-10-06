@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { CSVLink } from 'react-csv';
+import useSearchPrefill from '../search/useSearchPrefill';
 import { 
   Download, Search, FileText, Trash2, Plus,
   Calendar, CalendarRange, Tag, User, Users, Info,
@@ -13,7 +14,7 @@ const Coupons = ({ token }) => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const role = localStorage.getItem('role');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useSearchPrefill();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [editingCouponId, setEditingCouponId] = useState(null);

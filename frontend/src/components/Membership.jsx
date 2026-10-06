@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useId } from "react";
+import React, { useState, useEffect, useRef, useId, useSyncExternalStore } from "react";
 import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { 
   Gem, 
@@ -14,6 +14,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import MembershipWelcome from "./MembershipWelcome";
+import { analytics } from '../analytics/runtime';
 
 const benefits = [
   { name: "Priority Delivery", desc: "Shipped on the fast track", icon: Zap, color: "from-amber-400 to-orange-500" },
@@ -30,19 +31,26 @@ const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false }) => {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef(null);
   const timerRef = useRef(null);
+  const hasOpenedRef = useRef(false);
   const previousFocusRef = useRef(null);
   const titleId = useId();
   const reduceMotion = useReducedMotion();
+  const consentState = useSyncExternalStore(analytics.subscribe, analytics.getSnapshot);
+  const waitingForConsent = !consentState.ready || (consentState.enabled && !consentState.consent) || consentState.managing;
 
   const isLuxeMember = user?.isLuxeMember || false;
   const membershipPrice = siteSettings?.membershipPrice ?? 129;
 
   useEffect(() => {
-    if (autoOpenDelay === null) return;
+    // Let the bottom consent bar be usable before opening a promotional modal.
+    if (autoOpenDelay === null || waitingForConsent || hasOpenedRef.current) return;
 
-    timerRef.current = window.setTimeout(() => setOpen(true), autoOpenDelay);
+    timerRef.current = window.setTimeout(() => {
+      hasOpenedRef.current = true;
+      setOpen(true);
+    }, autoOpenDelay);
     return () => window.clearTimeout(timerRef.current);
-  }, [autoOpenDelay]);
+  }, [autoOpenDelay, waitingForConsent]);
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +79,7 @@ const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false }) => {
           aria-haspopup="dialog"
           onClick={() => {
             window.clearTimeout(timerRef.current);
+            hasOpenedRef.current = true;
             setOpen(true);
           }}
           className="relative bg-gradient-to-r from-pink-400 to-pink-500 text-white p-4 rounded-full shadow-2xl flex items-center justify-center border border-white/20"

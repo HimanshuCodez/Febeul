@@ -2,8 +2,11 @@ import express from 'express';
 import adminAuth from '../middleware/adminAuth.js';
 import * as adminController from '../controllers/adminController.js';
 import { updateStaffPermissions, toggleBlockUser } from '../controllers/userController.js';
+import adminSearchRouter from './adminSearchRoute.js';
 
 const adminRouter = express.Router();
+
+adminRouter.use('/search', adminSearchRouter);
 
 adminRouter.get('/dashboard-stats', adminAuth, adminController.getDashboardStats);
 adminRouter.get('/monthly-trends', adminAuth, adminController.getMonthlyTrends);

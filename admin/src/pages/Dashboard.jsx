@@ -30,6 +30,7 @@ import {
 import { FaRupeeSign } from "react-icons/fa";
 import { backendUrl, currency } from "../App"; // Import backendUrl and currency
 import { useNavigate } from "react-router-dom";
+import UniversalSearch from "../components/UniversalSearch";
 
 const FebeulDashboard = ({ token }) => {
   const navigate = useNavigate();
@@ -480,6 +481,7 @@ const FebeulDashboard = ({ token }) => {
           </div>
         </div>
       </header>
+      <UniversalSearch token={token} backendUrl={backendUrl} role={role} permissions={permissions} />
 
       {error && (
         <div className="flex items-center justify-between gap-3 mb-8 px-5 py-4 bg-red-50 border border-red-200 rounded-xl text-red-700">

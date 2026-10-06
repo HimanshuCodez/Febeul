@@ -9,6 +9,7 @@ import {
   ChevronsLeft, ChevronsRight, SearchX, Repeat,
   UserCog, Activity, MailCheck, Share2, Crown
 } from 'lucide-react'
+import './Sidebar.css'
 
 // Grouped nav config — single source of truth for search, accordions, and rendering.
 const NAV_SECTIONS = [
@@ -101,50 +102,63 @@ const highlight = (label, query) => {
 };
 
 const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query, onNavigate }) => {
-  const baseClass = "mx-4 my-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium group";
-  const activeClass = "bg-black text-white shadow-lg shadow-black/10 scale-[1.02]";
-  const inactiveClass = "text-gray-500 hover:bg-gray-100 hover:text-black";
-  const collapsedClass = collapsed ? "!mx-2 !px-0 justify-center" : "";
+  const baseClass = "admin-sidebar-item mx-4 my-1 flex items-center gap-3 px-4 py-3 rounded-xl font-medium group";
+  const activeClass = "admin-sidebar-item-current";
+  const inactiveClass = "admin-sidebar-item-idle";
+  const collapsedClass = collapsed ? "admin-sidebar-item-collapsed !mx-2 !px-0 justify-center" : "";
 
   if (onClick) {
     return (
-      <div
+      <button
+        type="button"
         onClick={onClick}
+        aria-expanded={Boolean(active)}
+        aria-label={collapsed ? label : undefined}
         title={collapsed ? label : undefined}
-        className={`${baseClass} ${collapsedClass} cursor-pointer ${active ? 'text-black' : inactiveClass}`}
+        className={`${baseClass} ${collapsedClass} admin-sidebar-toggle text-left ${active ? 'text-black' : inactiveClass}`}
       >
-        <Icon size={20} className={active ? 'text-black' : 'group-hover:text-black'} />
-        {!collapsed && <p className='flex-1'>{label}</p>}
+        <Icon size={20} className="admin-sidebar-icon shrink-0" aria-hidden="true" />
+        {!collapsed && <span className='flex-1'>{label}</span>}
         {!collapsed && (
-          <div>
-            {active ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </div>
+          <ChevronDown size={16} className={`admin-sidebar-chevron shrink-0 ${active ? '' : '-rotate-90'}`} aria-hidden="true" />
         )}
-      </div>
+      </button>
     );
   }
 
   return (
     <NavLink
       to={to}
+      end
+      aria-label={collapsed ? label : undefined}
       title={collapsed ? label : undefined}
       onClick={() => onNavigate?.(to)}
       className={({ isActive }) => `${baseClass} ${collapsedClass} ${isActive ? activeClass : inactiveClass}`}
     >
-      <Icon size={20} />
-      {!collapsed && <p>{highlight(label, query)}</p>}
+      {({ isActive }) => (
+        <>
+          <Icon size={20} className="admin-sidebar-icon shrink-0" aria-hidden="true" />
+          {!collapsed && <span className="min-w-0 flex-1">{highlight(label, query)}</span>}
+          {isActive && <span className="admin-sidebar-current-marker" aria-hidden="true" />}
+          {isActive && !collapsed && (
+            <span className="admin-sidebar-current-arrow shrink-0" aria-hidden="true"><ChevronRight size={16} strokeWidth={2.5} /></span>
+          )}
+          {isActive && collapsed && <span className="admin-sidebar-current-dot" aria-hidden="true" />}
+        </>
+      )}
     </NavLink>
   );
 };
 
 const Sidebar = ({ role, permissions = [], onNavigate }) => {
   const location = useLocation();
+  const activeAccordion = NAV_SECTIONS.find(section => section.accordion && (
+    section.items.some(item => item.to === location.pathname) ||
+    (section.key === 'catalog' && location.pathname.startsWith('/update/'))
+  ))?.key;
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [openSections, setOpenSections] = useState(() => ({
-    catalog: location.pathname === '/add' || location.pathname === '/list' || location.pathname === '/luxelist' || location.pathname.includes('/update'),
-    system: location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography' || location.pathname === '/delivery-control' || location.pathname === '/product-taxonomy',
-  }));
+  const [openSections, setOpenSections] = useState(() => activeAccordion ? { [activeAccordion]: true } : {});
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem('admin_sidebar_collapsed') === 'true';
@@ -155,13 +169,8 @@ const Sidebar = ({ role, permissions = [], onNavigate }) => {
   const searchInputRef = useRef(null);
 
   useEffect(() => {
-    if (location.pathname === '/add' || location.pathname === '/list' || location.pathname === '/luxelist' || location.pathname.includes('/update')) {
-      setOpenSections((prev) => ({ ...prev, catalog: true }));
-    }
-    if (location.pathname === '/maintenance' || location.pathname === '/configurations' || location.pathname === '/image-optimize' || location.pathname === '/typography' || location.pathname === '/delivery-control' || location.pathname === '/product-taxonomy') {
-      setOpenSections((prev) => ({ ...prev, system: true }));
-    }
-  }, [location.pathname]);
+    if (activeAccordion) setOpenSections(prev => ({ ...prev, [activeAccordion]: true }));
+  }, [location.pathname, activeAccordion]);
 
   // Close the mobile drawer whenever the route changes
   useEffect(() => {
@@ -259,7 +268,7 @@ const Sidebar = ({ role, permissions = [], onNavigate }) => {
         const isOpen = isSearching || openSections[section.key];
 
         return (
-          <div key={section.key} className="flex flex-col mb-1">
+          <div key={section.key} className="admin-sidebar-section flex flex-col mb-1" data-current={activeAccordion === section.key || undefined}>
             {!collapsed && (
               <p className="px-6 mt-4 mb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                 {section.label}
@@ -277,7 +286,7 @@ const Sidebar = ({ role, permissions = [], onNavigate }) => {
             )}
 
             {(!showAsAccordion || isOpen) && (
-              <div className="flex flex-col">
+              <div className={showAsAccordion ? 'admin-sidebar-section-items flex flex-col' : 'flex flex-col'}>
                 {section.items.map((item) => (
                   <SidebarItem
                     key={item.to}
@@ -316,14 +325,15 @@ const Sidebar = ({ role, permissions = [], onNavigate }) => {
       {/* Mobile: backdrop */}
       {isMobileOpen && (
         <div
-          className='md:hidden fixed inset-0 bg-black/50 z-40'
+          className='admin-sidebar-backdrop md:hidden fixed inset-0 bg-black/50 z-40'
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
       {/* Mobile: slide-out drawer */}
       <div
-        className={`md:hidden fixed top-0 left-0 h-full w-[80%] max-w-xs bg-white z-50 shadow-2xl overflow-y-auto no-scrollbar transform transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        aria-hidden={!isMobileOpen}
+        className={`admin-sidebar-shell md:hidden fixed top-0 left-0 h-full w-[80%] max-w-xs bg-white z-50 shadow-2xl overflow-y-auto no-scrollbar transform transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className='flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10'>
 
@@ -341,7 +351,7 @@ const Sidebar = ({ role, permissions = [], onNavigate }) => {
       </div>
 
       {/* Desktop: static sidebar */}
-      <div className={`hidden md:flex md:flex-col h-screen sticky top-0 bg-white border-r border-gray-100 py-6 overflow-y-auto no-scrollbar transition-all duration-200 ${collapsed ? 'md:w-20' : 'md:w-[18%] lg:w-64'}`}>
+      <div className={`admin-sidebar-shell hidden md:flex md:flex-col h-screen sticky top-0 bg-white border-r border-gray-100 py-6 overflow-y-auto no-scrollbar transition-all duration-200 ${collapsed ? 'md:w-20' : 'md:w-[18%] lg:w-64'}`}>
         <div className={`flex items-center mb-2 sticky top-0 bg-white z-10 ${collapsed ? 'justify-center px-2' : 'justify-end px-4'}`}>
           <button
             onClick={() => setCollapsed((prev) => !prev)}

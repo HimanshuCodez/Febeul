@@ -4,7 +4,7 @@ The existing admin **Tracking → User Tracking** link (`/user-tracking`) now op
 
 ## Configuration
 
-Collection is **disabled by default**. No existing `.env` file was changed. When ready, set these variables on the backend and restart it:
+Collection is **disabled by default in code**. This workspace's local `backend/.env` now sets `ANALYTICS_ENABLED=true`; deployment environments must set their own flag. Backend configuration:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ No production deployment, production database connection, production environment
 
 ## Consent and privacy
 
-- The responsive banner offers **Accept all**, **Reject optional** and **Manage preferences**. Analytics is off by default. Advertising remains false and has no preference toggle because the repository has no advertising integration.
+- The full-width banner slides up from the bottom and offers **Accept all**, **Reject optional** and **Manage preferences**. It uses stacked actions on mobile and respects reduced-motion preferences. The Home membership promotion waits for the cookie choice, then opens after its existing two-second delay, once per Home mount. Analytics is off by default. Advertising remains false and has no preference toggle because the repository has no advertising integration.
 - Essential sign-in, cart, checkout and operational order/payment records remain available with every choice. The footer's **Cookie settings** button reopens preferences, including when analytics is disabled.
 - `febeul.cookie-consent` in localStorage stores the consent version, ISO timestamp, analytics boolean and advertising=false. The identifier-free `/api/analytics/config` request does not create a visitor record. Configuration failure disables tracking for that page lifetime.
 - Only after valid consent and enabled configuration can the client generate cryptographically random UUIDs. `febeul.analytics-visitor` stores a browser ID and expiry in localStorage. `febeul.analytics-session` stores a tab session, last-activity time and sanitized attribution in sessionStorage. There are no analytics cookies or external tracker scripts.
@@ -116,7 +116,7 @@ The backend suite creates a disposable local MongoDB with `mongodb-memory-server
 
 Verification includes acceptance/rejection/withdrawal, no pre-consent IDs/events, no backfill, version validation, cross-tab withdrawal, aborting in-flight delivery, bounded retries/queues, duplicate events/purchases, gateway payment verification, operational data separation, authorization, payload/rate limits, real Mongo aggregation/indexes, currency/refund arithmetic, abandonment across date boundaries, pagination, existing cart/order creation, Stripe/Razorpay callbacks and checkout during analytics failure. New analytics/admin code passes focused ESLint; both apps build successfully. The repositories still emit existing Browserslist/chunk warnings, and npm reports existing dependency vulnerabilities; no broad dependency/security upgrade was attempted.
 
-Final results: **10 backend tests, 8 client tests, and 5 browser tests passed**. Both production builds, focused lint for the new frontend/admin code, and `git diff --check` passed. Mobile banner and desktop dashboard screenshots were inspected. Build/test artifacts stay outside tracked application assets.
+Final results: **10 backend tests, 8 client tests, and 6 browser tests passed**. Both production builds, focused lint for the new frontend/admin code, and `git diff --check` passed. Mobile banner, Home consent priority and desktop dashboard screenshots were inspected. Build/test artifacts stay outside tracked application assets.
 
 New development dependencies only: backend `mongodb-memory-server` and `nock`; frontend `@playwright/test`. No runtime dependency was added. The lockfiles include npm's compatible transitive resolution changes for these test dependencies.
 
@@ -127,7 +127,7 @@ Existing Social Links/Luxe CMS changes were preserved and are not part of this f
 - Shared: `shared/analyticsPrivacy.js`, `shared/package.json`.
 - Backend new: `backend/analytics/config.js`, `models.js`, `validation.js`, `service.js`, `reports.js`, `routes.js`; `backend/tests/analytics.test.js`; `backend/.env.analytics.example`.
 - Backend integration: `backend/server.js`, `backend/middleware/adminAuth.js`, `backend/controllers/orderController.js`, `backend/package.json`, `backend/package-lock.json`.
-- Frontend new: `frontend/src/analytics/client.js`, `runtime.js`, `shoppingBridge.js`, `AnalyticsConsent.jsx`; `frontend/tests/analytics-client.test.mjs`; `frontend/tests/browser/analytics.spec.mjs`; `frontend/playwright.analytics.config.mjs`.
-- Frontend integration: `frontend/src/App.jsx`, `frontend/src/components/Footer.jsx`, `frontend/src/Pages/Cart.jsx`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/.gitignore`.
+- Frontend new: `frontend/src/analytics/client.js`, `runtime.js`, `shoppingBridge.js`, `AnalyticsConsent.jsx`, `AnalyticsConsent.css`; `frontend/tests/analytics-client.test.mjs`; `frontend/tests/browser/analytics.spec.mjs`; `frontend/playwright.analytics.config.mjs`.
+- Frontend integration: `frontend/src/App.jsx`, `frontend/src/components/Footer.jsx`, `frontend/src/components/Membership.jsx`, `frontend/src/Pages/Cart.jsx`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/.gitignore`.
 - Admin: `admin/src/pages/UserTracking.jsx`, `admin/src/App.jsx`. The existing Sidebar User Tracking link and staff permission entry already point at `/user-tracking` and did not need modification for analytics.
 - Documentation: `docs/analytics.md`.

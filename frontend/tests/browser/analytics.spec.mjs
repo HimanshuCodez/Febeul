@@ -79,6 +79,35 @@ test('Accept all enables future activity without replaying the current page', as
   expect(consent.analytics).toBe(true); expect(consent.advertising).toBe(false); expect(consent.timestamp).toBeTruthy();
 });
 
+test('Home keeps cookie choices accessible before the timed membership popup', async ({ page }) => {
+  const data = await mockStore(page);
+  await page.clock.install();
+  await page.goto(`${shop}/`, { waitUntil: 'domcontentloaded' });
+  const banner = page.getByRole('region', { name: 'Cookie consent' });
+  await expect(banner).toBeVisible();
+  await page.clock.fastForward(3500);
+  await expect(page.getByRole('button', { name: 'Close membership popup' })).toHaveCount(0);
+  expect(await storedIDs(page)).toEqual([null, null]);
+  await page.screenshot({ path: test.info().outputPath('consent-home-desktop.png') });
+  await page.getByRole('button', { name: 'Manage preferences', exact: true }).click();
+  await page.clock.fastForward(3500);
+  await expect(page.getByRole('dialog', { name: 'Cookie settings' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close membership popup' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Reject optional', exact: true }).click();
+  await page.clock.fastForward(2500);
+  await expect(page.getByRole('button', { name: 'Close membership popup' })).toBeVisible();
+  await expect(banner).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close membership popup' }).click();
+  await page.clock.runFor(500);
+  await page.getByRole('button', { name: 'Cookie settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Save preferences' }).click();
+  await page.clock.fastForward(2500);
+  await expect(page.getByRole('button', { name: 'Close membership popup' })).toHaveCount(0);
+  await flush(page);
+  expect(data.events).toHaveLength(0);
+  expect(data.errors).toEqual([]);
+});
+
 test('product view, add-to-bag and cart quantity/removal events follow actual UI success', async ({ page }) => {
   const data = await mockStore(page);
   await page.addInitScript(() => localStorage.setItem('token', 'local-test-token'));

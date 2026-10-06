@@ -4,6 +4,7 @@ import { backendUrl, currency } from '../App'
 import { toast } from 'react-toastify'
 import { assets } from '../assets/assets'
 import { CSVLink } from 'react-csv'
+import useSearchPrefill from '../search/useSearchPrefill'
 import {
   Package, User, Mail, Phone, MapPin, Truck, Calendar, DollarSign,
   CreditCard, Tag, BadgeCheck, AlertCircle, ChevronDown, ChevronUp,
@@ -32,7 +33,7 @@ const Orders = ({ token }) => {
 
   const [orderStartDate, setOrderStartDate] = useState('');
   const [orderEndDate, setOrderEndDate] = useState('');
-  const [orderSearch, setOrderSearch] = useState('');
+  const [orderSearch, setOrderSearch] = useSearchPrefill();
 
   // Sorting Configs
   const [pincodeSort, setPincodeSort] = useState({ key: 'orderCount', direction: 'desc' });

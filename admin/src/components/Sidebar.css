@@ -1,0 +1,136 @@
+.admin-sidebar-item {
+  position: relative;
+  min-height: 48px;
+  isolation: isolate;
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 220ms ease, transform 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-sidebar-item-idle {
+  color: #6b7280;
+}
+
+.admin-sidebar-icon,
+.admin-sidebar-chevron {
+  transition: transform 220ms ease, color 180ms ease;
+}
+
+.admin-sidebar-item-current {
+  color: #fff;
+  background: linear-gradient(115deg, #151515, #33232c);
+  box-shadow: 0 7px 16px -6px rgb(83 30 55 / 38%), inset 0 0 0 1px rgb(249 174 175 / 20%);
+}
+
+.admin-sidebar-item-current .admin-sidebar-icon {
+  color: #f9c0cd;
+}
+
+.admin-sidebar-current-marker {
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: #f9aeaf;
+  box-shadow: 0 0 10px rgb(249 174 175 / 45%);
+  animation: admin-sidebar-marker-in 240ms ease-out both;
+}
+
+.admin-sidebar-current-arrow {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  color: #ffd5df;
+  border-radius: 8px;
+  background: rgb(249 174 175 / 15%);
+  animation: admin-sidebar-arrow-in 280ms ease-out both;
+}
+
+.admin-sidebar-current-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f9aeaf;
+}
+
+.admin-sidebar-section[data-current] > .admin-sidebar-toggle {
+  color: #a53f60;
+  background-color: #fff5f7;
+}
+
+.admin-sidebar-item:focus-visible {
+  outline: 2px solid #c586a5;
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .admin-sidebar-item:hover {
+    transform: translateX(3px);
+    box-shadow: 0 6px 14px -8px rgb(83 30 55 / 35%);
+  }
+
+  .admin-sidebar-item-idle:hover {
+    background-color: #fff2f5;
+    color: #9f3756;
+  }
+
+  .admin-sidebar-item:hover .admin-sidebar-icon {
+    transform: scale(1.08);
+  }
+
+  .admin-sidebar-item-current:hover {
+    box-shadow: 0 9px 20px -6px rgb(83 30 55 / 45%);
+  }
+}
+
+.admin-sidebar-item:active {
+  transform: scale(.97);
+}
+
+.admin-sidebar-section-items {
+  animation: admin-sidebar-section-in 200ms ease-out both;
+}
+
+.admin-sidebar-backdrop {
+  animation: admin-sidebar-backdrop-in 200ms ease-out both;
+}
+
+@keyframes admin-sidebar-marker-in {
+  from { opacity: 0; transform: scaleY(.3); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+@keyframes admin-sidebar-arrow-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes admin-sidebar-section-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes admin-sidebar-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar-shell,
+  .admin-sidebar-shell *,
+  .admin-sidebar-backdrop {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .admin-sidebar-item:hover,
+  .admin-sidebar-item:active,
+  .admin-sidebar-item:hover .admin-sidebar-icon {
+    transform: none;
+  }
+}

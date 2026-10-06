@@ -4,6 +4,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
+    "test:admin-search": "node --test tests/admin-search.test.js",
     "test:analytics": "node --test tests/analytics.test.js",
     "start": "node server.js",
     "server": "nodemon server.js"

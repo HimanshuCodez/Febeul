@@ -4,11 +4,12 @@ import { backendUrl, currency } from '../App'
 import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
 import { CSVLink } from 'react-csv'
+import useSearchPrefill from '../search/useSearchPrefill'
 
 const List = ({ token }) => {
 
   const [list, setList] = useState([])
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useSearchPrefill();
   const [selectedSkus, setSelectedSkus] = useState([]); // Tracks "productId|sku|size"
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
@@ -121,6 +122,7 @@ const List = ({ token }) => {
   const filteredList = list.filter(item => {
     const searchLower = searchQuery.toLowerCase().trim();
     return (
+      String(item._id).toLowerCase().includes(searchLower) ||
       item.name.toLowerCase().includes(searchLower) ||
       item.category.toLowerCase().includes(searchLower) ||
       item.variations?.some(variation => 

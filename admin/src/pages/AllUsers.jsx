@@ -3,6 +3,7 @@ import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 import { CalendarRange, X } from 'lucide-react';
+import useSearchPrefill from '../search/useSearchPrefill';
 
 const AllUsers = ({ token }) => {
   const [users, setUsers] = useState([]);
@@ -16,7 +17,7 @@ const AllUsers = ({ token }) => {
   const [selectedPermissions, setSelectedPermissions] = useState([]);
 
   // Search and Filter State
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useSearchPrefill();
   const [roleFilter, setRoleFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');

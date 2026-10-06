@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 const getRequiredPermission = (fullPath) => {
+    if (fullPath === '/api/admin/search') return '/';
     if (fullPath.startsWith('/api/analytics/reports')) return '/user-tracking';
     if (fullPath.startsWith('/api/admin/dashboard-stats') || 
         fullPath.startsWith('/api/admin/monthly-trends') || 
