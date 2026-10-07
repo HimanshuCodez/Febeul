@@ -29,7 +29,6 @@ export const searchPages = [
   ['Image Optimization', '/image-optimize', '/image-optimize', 'Settings', 'images quality compression performance'],
   ['Typography', '/typography', '/typography', 'Settings', 'font fonts text size style'],
   ['Product Taxonomy', '/product-taxonomy', '/product-taxonomy', 'Settings', 'categories sizes colors attributes'],
-  ['System Stats', '/stats', '/stats', 'System', 'statistics database server health'],
   ['Reset Data', '/reset-data', '/reset-data', 'Settings', 'reset clear database'],
 ].map(([title, href, permission, section, keywords]) => ({
   id: `page:${href}`, type: 'Pages & settings', title, href, permission, subtitle: section, keywords,

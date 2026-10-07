@@ -350,16 +350,16 @@ export const getActiveCoupons = async (req, res) => {
         }).sort({ createdAt: -1 });
 
         // Filter coupons:
-        // 1. If specificUsers is empty -> show to all
-        // 2. If specificUsers has entries -> show only if user email or ID is in it
+        // Luxe membership and specific-customer restrictions both apply.
         const filteredCoupons = coupons.filter(coupon => {
+            if (coupon.userType === 'luxe' && !user.isLuxeMember) {
+                return false;
+            }
+
             if (coupon.specificUsers && coupon.specificUsers.length > 0) {
                 if (!(coupon.specificUsers.includes(user.email) || coupon.specificUsers.includes(userId))) {
                     return false;
                 }
-            } else if (coupon.userType === 'luxe' && !user.isLuxeMember) {
-                // Also respect userType restriction for public listing
-                return false;
             }
 
             // Hide coupons the user has already redeemed up to their per-user limit

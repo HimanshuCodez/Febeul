@@ -373,6 +373,7 @@ const MyOrders = () => {
           >
             {filteredOrders.map((order) => {
               const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
+              const totalQuantity = order.items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
               const displayStatus = getOrderDisplayStatus(order);
               // "Returned" always means the courier sent it back (a customer
               // return uses refundDetails.pickup, not this field) — only the
@@ -463,60 +464,51 @@ const MyOrders = () => {
                     )}
                   </div>
 
-                  {/* Body of the card (Items thumbnail strip & pricing) */}
+                  {/* Body of the card (Items, quantities & pricing) */}
                   <div className="p-3.5 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 sm:gap-6">
-                    {/* Item Thumbnails & Info */}
-                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                      <div className="flex -space-x-2 sm:-space-x-2.5 overflow-hidden shrink-0">
-                        {order.items.slice(0, 3).map((item, index) => (
-                          <div key={index} className="relative group/thumb flex-shrink-0">
+                    {/* Keep each product's quantity beside its name, including single units. */}
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <ul className="space-y-3">
+                        {order.items.map((item, index) => (
+                          <li key={index} className="flex items-center gap-3 sm:gap-4 min-w-0">
                             <img
                               src={item.image}
                               alt={item.name}
-                              className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded-lg sm:rounded-xl border-2 border-white shadow-sm bg-slate-50"
+                              className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 object-cover rounded-lg sm:rounded-xl border-2 border-white shadow-sm bg-slate-50"
                             />
-                            {item.quantity > 1 && (
-                              <span className="absolute -bottom-1 -right-1 bg-slate-900 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white">
-                                {item.quantity}
-                              </span>
-                            )}
-                          </div>
+                            <div className="min-w-0 space-y-1.5">
+                              <p className="text-xs sm:text-sm font-bold text-slate-800 break-words">
+                                {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? (
+                                  <Link to={`/product/${item.productId}`} className="hover:underline">
+                                    {item.name}
+                                  </Link>
+                                ) : item.name}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
+                                {item.size && <span className="text-slate-500 font-medium">Size: {item.size}</span>}
+                                <span className="inline-flex items-center rounded-md border border-pink-100 bg-pink-50 px-2 py-0.5 font-bold text-pink-700 whitespace-nowrap">
+                                  Qty: {item.quantity}
+                                </span>
+                              </div>
+                            </div>
+                          </li>
                         ))}
-                        {order.items.length > 3 && (
-                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-100 border-2 border-white rounded-lg sm:rounded-xl flex items-center justify-center text-xs font-bold text-slate-500 shadow-sm">
-                            +{order.items.length - 3}
-                          </div>
-                        )}
-                      </div>
+                      </ul>
 
-                      <div className="space-y-1 min-w-0">
-                        <p className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-1">
-                          {order.items.map((item, index) => (
-                            <React.Fragment key={index}>
-                              {index > 0 && ', '}
-                              {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? (
-                                <Link to={`/product/${item.productId}`} className="hover:underline">
-                                  {item.name}
-                                </Link>
-                              ) : item.name}
-                            </React.Fragment>
-                          ))}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                          <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                            {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                          {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} in this order
+                        </span>
+                        {order.couponDiscount > 0 && (
+                          <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-black border border-emerald-100 uppercase tracking-wider">
+                            Discount Applied
                           </span>
-                          {order.couponDiscount > 0 && (
-                            <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-black border border-emerald-100 uppercase tracking-wider">
-                              Discount Applied
-                            </span>
-                          )}
-                          {isLuxe && (
-                            <span className="text-[9px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-black border border-amber-100 uppercase tracking-wider flex items-center gap-1">
-                              <Crown size={10} className="text-amber-600" /> Luxe Member
-                            </span>
-                          )}
-                        </div>
+                        )}
+                        {isLuxe && (
+                          <span className="text-[9px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-black border border-amber-100 uppercase tracking-wider flex items-center gap-1">
+                            <Crown size={10} className="text-amber-600" /> Luxe Member
+                          </span>
+                        )}
                       </div>
                     </div>
 

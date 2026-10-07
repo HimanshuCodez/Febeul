@@ -10,6 +10,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {}, appliedCoupon = null, selectedPayment = "", showDesktopNavigation = false }) => {
   const { user, cartItems, token } = useAuthStore();
+  const isLuxeMember = Boolean(token && user?.isLuxeMember);
   const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +56,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
   }, [appliedCoupon, pendingCoupon]);
 
   const handleRedeemClick = (coupon) => {
-    if (coupon.userType === 'luxe' && !user?.isLuxeMember) {
+    if (coupon.userType === 'luxe' && !isLuxeMember) {
       toast.error("This coupon is reserved for Luxe Members only.");
       navigate('/luxe');
       return;
@@ -88,6 +89,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
 
   const applicableCoupons = coupons.filter(coupon =>
     coupon.isActive &&
+    (coupon.userType !== 'luxe' || isLuxeMember) &&
     new Date(coupon.expiryDate) > new Date() && // Exclude expired coupons
     (coupon.offerType === 'none' || !coupon.offerType) && // Filter out cod and prepaid
     (coupon.applicableSKUs.length === 0 ||
@@ -205,7 +207,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
         {applicableCoupons.map((coupon) => {
           const isApplied = appliedCoupon && appliedCoupon.code === coupon.code;
           const isLuxeCoupon = coupon.userType === 'luxe';
-          const isLuxeRestricted = isLuxeCoupon && !user?.isLuxeMember;
+          const isLuxeRestricted = isLuxeCoupon && !isLuxeMember;
 
           // Check if quantity condition is met
           let currentQuantity = 0;
@@ -278,7 +280,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
                   )}
                   {isLuxeCoupon && (
                     <p className="luxe-shimmer-text font-black mt-1">
-                      {user?.isLuxeMember ? '✨ LUXE EXCLUSIVE' : '🔒 LUXE MEMBERS ONLY'}
+                      {isLuxeMember ? '✨ LUXE EXCLUSIVE' : '🔒 LUXE MEMBERS ONLY'}
                     </p>
                   )}
                 </div>
@@ -324,7 +326,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
       </div>
 
       <RedeemPopup 
-        open={isModalOpen} 
+        open={isModalOpen && (selectedCoupon?.userType !== 'luxe' || isLuxeMember)}
         handleClose={() => setIsModalOpen(false)} 
         coupon={selectedCoupon} 
       />

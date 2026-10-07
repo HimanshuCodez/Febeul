@@ -5,6 +5,7 @@ import { toast } from 'react-toastify'
 import { assets } from '../assets/assets'
 import { CSVLink } from 'react-csv'
 import useSearchPrefill from '../search/useSearchPrefill'
+import { buildOrderAnalyticsExports, prepareOrderCsvRows } from '../utils/orderAnalyticsExports'
 import {
   Package, User, Mail, Phone, MapPin, Truck, Calendar, DollarSign,
   CreditCard, Tag, BadgeCheck, AlertCircle, ChevronDown, ChevronUp,
@@ -580,7 +581,7 @@ const Orders = ({ token }) => {
     { label: 'Courier', key: 'courier' },
   ];
 
-  const orderCsvData = useMemo(() => filteredOrders.map(order => ({
+  const orderCsvData = useMemo(() => prepareOrderCsvRows(filteredOrders.map(order => ({
     orderItemId: order.orderItemId || '',
     orderId: order._id,
     date: order.date ? new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
@@ -603,7 +604,7 @@ const Orders = ({ token }) => {
     pincode: order.address?.zip || '',
     awb: order.shiprocket?.awb || '',
     courier: order.shiprocket?.courier || '',
-  })), [filteredOrders]);
+  }))), [filteredOrders]);
 
   // Pagination Logic for main Orders
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -722,6 +723,14 @@ const Orders = ({ token }) => {
     return sortData(matches, refundSort);
   }, [analytics.refunds, refundSearch, refundStateFilter, refundSort]);
 
+  const analyticsExports = useMemo(() => buildOrderAnalyticsExports(activeTab, {
+    states: filteredStates,
+    pincodes: filteredPincodes,
+    buyers: filteredBuyers,
+    returns: filteredReturns,
+    refunds: filteredRefunds,
+  }), [activeTab, filteredStates, filteredPincodes, filteredBuyers, filteredReturns, filteredRefunds]);
+
   const navTabs = [
     { key: 'orders', label: 'All Orders', icon: Package, count: filteredOrders.length },
     { key: 'pincodes', label: 'Pincodes & States', icon: MapPin, count: analytics.pincodes.length },
@@ -764,6 +773,26 @@ const Orders = ({ token }) => {
         })}
       </div>
 
+      {/* Exports for the analytics tabs */}
+      {analyticsExports.length > 0 && (
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-gray-500">CSV exports use each table&apos;s current filters and sort order.</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {analyticsExports.map(exportData => (
+              <CSVLink
+                key={exportData.name}
+                data={exportData.data}
+                headers={exportData.headers}
+                filename={`${exportData.name}_Export_${new Date().toISOString().split('T')[0]}.csv`}
+                aria-label={`Export ${exportData.name.replace(/_/g, ' ')}`}
+                className="flex items-center gap-1.5 bg-emerald-600 text-white px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                <Download size={14} /> {exportData.label}
+              </CSVLink>
+            ))}
+          </div>
+        </div>
+      )}
       {/* -------------------- TAB 1: ALL ORDERS -------------------- */}
       {activeTab === 'orders' && (
         <div>
@@ -1445,7 +1474,7 @@ const Orders = ({ token }) => {
               </div>
 
               <div className="overflow-x-auto bg-white rounded-2xl border border-gray-100 shadow-sm max-h-[500px] overflow-y-auto">
-                <table className="min-w-full divide-y divide-gray-100">
+                <table className="min-w-full divide-y divide-gray-100 [&_th]:whitespace-nowrap [&_th]:align-middle [&_td]:align-top">
                   <thead className="bg-gray-50/50 sticky top-0 z-10">
                     <tr>
                       <SortHeader label="Return Date" sortKey="date" currentSort={returnSort} onSort={(k) => handleSort(k, returnSort, setReturnSort)} />
