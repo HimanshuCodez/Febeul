@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import axios from 'axios';
 import { Tag, X, Crown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import RedeemPopup from './RedeemApply';
 import useAuthStore from '../store/authStore';
 import { toast } from 'react-hot-toast';
@@ -9,9 +9,11 @@ import { toast } from 'react-hot-toast';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {}, appliedCoupon = null, selectedPayment = "", showDesktopNavigation = false }) => {
-  const { user, cartItems, token } = useAuthStore();
-  const isLuxeMember = Boolean(token && user?.isLuxeMember);
+  const { user, cartItems, token, isAuthenticated } = useAuthStore();
+  const isSignedIn = Boolean(token && isAuthenticated);
+  const isLuxeMember = Boolean(isSignedIn && user?.isLuxeMember);
   const navigate = useNavigate();
+  const location = useLocation();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,29 +25,38 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
   const [scrollState, setScrollState] = useState({ left: false, right: false });
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchCoupons = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+      setLoading(true);
+      setError(null);
+      setCoupons([]);
+      setPendingCoupon(null);
+      setSelectedCoupon(null);
+      setIsModalOpen(false);
       try {
-        const response = await axios.get(`${backendUrl}/api/coupon/all`, { headers: { token } });
+        const endpoint = isSignedIn ? 'all' : 'active';
+        const response = await axios.get(`${backendUrl}/api/coupon/${endpoint}`, {
+          ...(isSignedIn ? { headers: { token } } : {}),
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
         if (response.data.success) {
-          // Show all active coupons
           setCoupons(response.data.coupons);
         } else {
           setError(response.data.message || 'Failed to fetch coupons.');
         }
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error('Error fetching coupons:', err);
         setError('Error fetching coupons. Please try again later.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchCoupons();
-  }, [token]);
+    return () => controller.abort();
+  }, [token, isSignedIn]);
 
   useEffect(() => {
     if (appliedCoupon && pendingCoupon && appliedCoupon.code === pendingCoupon.code) {
@@ -56,6 +67,17 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
   }, [appliedCoupon, pendingCoupon]);
 
   const handleRedeemClick = (coupon) => {
+    if (!isSignedIn) {
+      const params = new URLSearchParams(location.search);
+      // ProductPage already supports applying a selected coupon after authentication.
+      if (location.pathname.startsWith('/product/')) params.set('coupon', coupon.code);
+      const search = params.toString();
+      navigate('/auth', {
+        state: { from: `${location.pathname}${search ? `?${search}` : ''}${location.hash}` },
+      });
+      return;
+    }
+
     if (coupon.userType === 'luxe' && !isLuxeMember) {
       toast.error("This coupon is reserved for Luxe Members only.");
       navigate('/luxe');
@@ -90,6 +112,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
   const applicableCoupons = coupons.filter(coupon =>
     coupon.isActive &&
     (coupon.userType !== 'luxe' || isLuxeMember) &&
+    (isSignedIn || !coupon.specificUsers?.length) &&
     new Date(coupon.expiryDate) > new Date() && // Exclude expired coupons
     (coupon.offerType === 'none' || !coupon.offerType) && // Filter out cod and prepaid
     (coupon.applicableSKUs.length === 0 ||
@@ -205,7 +228,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
       </div>
       <div ref={carouselRef} id={carouselId} className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory">
         {applicableCoupons.map((coupon) => {
-          const isApplied = appliedCoupon && appliedCoupon.code === coupon.code;
+          const isApplied = isSignedIn && appliedCoupon && appliedCoupon.code === coupon.code;
           const isLuxeCoupon = coupon.userType === 'luxe';
           const isLuxeRestricted = isLuxeCoupon && !isLuxeMember;
 
@@ -237,7 +260,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
           const isPaymentRestricted = false;
 
           const isAnotherApplied = appliedCoupon && appliedCoupon.code !== coupon.code;
-          const isDisabled = isLuxeRestricted || isQuantityRestricted || isAmountRestricted || isAnotherApplied;
+          const isDisabled = isSignedIn && (isLuxeRestricted || isQuantityRestricted || isAmountRestricted || isAnotherApplied);
 
           return (
             <div key={coupon._id} className={`flex-shrink-0 snap-start w-[280px] flex flex-col justify-between gap-3 p-4 border rounded-xl transition-all ${
@@ -297,7 +320,9 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
                       : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-100'
                     }`}
                   >
-                    {isLuxeRestricted 
+                    {!isSignedIn
+                      ? 'Log in to apply'
+                      : isLuxeRestricted
                       ? 'Join Luxe' 
                       : isAnotherApplied 
                       ? 'Coupon Active' 
@@ -326,7 +351,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
       </div>
 
       <RedeemPopup 
-        open={isModalOpen && (selectedCoupon?.userType !== 'luxe' || isLuxeMember)}
+        open={isSignedIn && isModalOpen && (selectedCoupon?.userType !== 'luxe' || isLuxeMember)}
         handleClose={() => setIsModalOpen(false)} 
         coupon={selectedCoupon} 
       />

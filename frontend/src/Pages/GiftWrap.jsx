@@ -161,11 +161,13 @@ export default function GiftWrapPage() {
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {giftWraps.map((wrap) => (
-                    <motion.div
+                    <motion.button
                       key={wrap._id}
+                      type="button"
+                      aria-pressed={selectedWrap?._id === wrap._id}
                       whileHover={{ scale: 1.03 }}
-                      onClick={() => setSelectedWrap(wrap)}
-                      className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                      onClick={() => setSelectedWrap(current => current?._id === wrap._id ? null : wrap)}
+                      className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400 focus-visible:ring-offset-2 ${
                         selectedWrap?._id === wrap._id 
                           ? 'shadow-lg' 
                           : 'border-gray-200 hover:border-gray-300'
@@ -186,7 +188,7 @@ export default function GiftWrapPage() {
                         <p className="text-xs font-light text-gray-700 mb-1">{wrap.name}</p>
                         <p className="text-sm font-semibold" style={{ color: '#f47b7d' }}>{getDisplayedPrice(wrap)}</p>
                       </div>
-                    </motion.div>
+                    </motion.button>
                   ))}
                 </div>
               </div>
