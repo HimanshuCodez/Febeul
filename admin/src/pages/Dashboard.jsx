@@ -1,36 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  FiUsers,
-  FiShoppingBag,
-  FiTrendingUp,
-  FiArrowUp,
-  FiArrowDown,
-  FiSearch,
-  FiX,
-  FiRefreshCw,
-  FiAlertTriangle,
-  FiFilter,
-} from "react-icons/fi";
-import { FaRupeeSign } from "react-icons/fa";
 import { backendUrl, currency } from "../App"; // Import backendUrl and currency
 import { useNavigate } from "react-router-dom";
-import UniversalSearch from "../components/UniversalSearch";
+import DashboardOverview from "../components/DashboardOverview";
 
 const FebeulDashboard = ({ token }) => {
   const navigate = useNavigate();
@@ -61,6 +33,9 @@ const FebeulDashboard = ({ token }) => {
   const [error, setError] = useState(null);
   const [orderSearch, setOrderSearch] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [userCountScope, setUserCountScope] = useState('period');
+  const [stockAvailable, setStockAvailable] = useState(false);
 
   // States for dashboard data
   const [dashboardStats, setDashboardStats] = useState({
@@ -90,8 +65,8 @@ const FebeulDashboard = ({ token }) => {
   // Helper to format numbers for display
   const formatValue = (value, isCurrency = false) => {
     if (value === undefined || value === null) return "N/A";
-    if (isCurrency) return currency + value.toLocaleString();
-    return value.toLocaleString();
+    if (isCurrency) return currency + value.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    return value.toLocaleString('en-IN');
   };
 
   const fetchDashboardData = async () => {
@@ -139,11 +114,13 @@ const FebeulDashboard = ({ token }) => {
         // signups within the selected date range) — a real number, just a
         // differently-scoped one, instead of fabricated data.
         let totalUsersValue = stats.totalUsers;
+        let nextUserCountScope = 'period';
         if (canListAllUsers) {
           try {
             const usersResponse = await axios.get(`${backendUrl}/api/user/allusers`, { headers: { token } });
             if (usersResponse.data.success) {
               totalUsersValue = usersResponse.data.users.length;
+              nextUserCountScope = 'all';
             }
           } catch (usersErr) {
             console.error("Error fetching all-users count:", usersErr);
@@ -151,6 +128,7 @@ const FebeulDashboard = ({ token }) => {
           }
         }
 
+        setUserCountScope(nextUserCountScope);
         setDashboardStats({
           totalUsers: {
             value: formatValue(totalUsersValue),
@@ -202,14 +180,22 @@ const FebeulDashboard = ({ token }) => {
         setSkuSales(skuSalesResponse.data.skuSales);
       }
 
+      setStockAvailable(Boolean(skuStocksResponse.data.success));
       if (skuStocksResponse.data.success) {
         const sortedStocks = [...skuStocksResponse.data.skuStocks].sort((a, b) => a.stock - b.stock);
         setSkuStocks(sortedStocks);
+      } else {
+        setSkuStocks([]);
+      }
+      if ([statsResponse, trendsResponse, dailyTrendsResponse, categoryResponse, ordersResponse, skuSalesResponse, skuStocksResponse].every(response => response.data.success)) {
+        setLastUpdated(new Date());
+      } else {
+        setError('Some dashboard data could not be updated. Refresh to try again.');
       }
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       setError(
-        "Failed to fetch dashboard data. Please check your backend endpoints.",
+        "Dashboard data couldn't be loaded. Refresh to try again.",
       );
       // No fake numbers here: showing fabricated revenue/order figures when
       // the backend is genuinely unreachable is worse than showing nothing
@@ -224,6 +210,9 @@ const FebeulDashboard = ({ token }) => {
       setDailyTrends([]);
       setCategorySales([]);
       setRecentOrdersList([]);
+      setSkuSales([]);
+      setSkuStocks([]);
+      setStockAvailable(false);
     } finally {
       setLoading(false);
       setInitialLoading(false);
@@ -287,684 +276,23 @@ const FebeulDashboard = ({ token }) => {
     }
   };
 
-  const StatCard = ({
-    icon: Icon,
-    title,
-    value,
-    change,
-    changeType,
-    gradient,
-    glow,
-  }) => (
-    <div className="group relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 overflow-hidden">
-      <div
-        className={`absolute -top-8 -right-8 w-28 h-28 rounded-full ${gradient} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity duration-300`}
-      ></div>
-      <div className="relative flex items-start gap-4">
-        <div
-          className={`w-14 h-14 rounded-xl flex items-center justify-center ${gradient} shadow-lg ${glow} group-hover:scale-110 transition-transform duration-300`}
-        >
-          <Icon className="text-white" size={24} />
-        </div>
-        <div className="flex-1">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            {title}
-          </div>
-          <div className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
-            {value}
-          </div>
-          <div
-            className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${changeType === "up" ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"}`}
-          >
-            {changeType === "up" ? (
-              <FiArrowUp size={12} />
-            ) : (
-              <FiArrowDown size={12} />
-            )}
-            <span>{change}</span>
-          </div>
-        </div>
-      </div>
-      <div
-        className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full ${gradient} transition-all duration-500 ease-out`}
-      ></div>
-    </div>
-  );
-
-  const SectionHeading = ({ icon: Icon, title, subtitle, accent = "bg-pink-50 text-[#f9aeaf]" }) => (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-1">
-        <span className={`p-1.5 rounded-lg ${accent}`}>
-          <Icon size={16} />
-        </span>
-        <h3 className="text-xl font-bold text-gray-900 tracking-tight">{title}</h3>
-      </div>
-      {subtitle && (
-        <p className="text-sm text-gray-500 font-medium pl-1">{subtitle}</p>
-      )}
-    </div>
-  );
-
-  const SkeletonBlock = ({ className = "" }) => (
-    <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`}></div>
-  );
-
-  const OrderRow = ({ order }) => {
-    const getStatusColor = (status) => {
-      const colors = {
-        Completed: "text-green-600",
-        Processing: "text-yellow-600",
-        Shipped: "text-blue-600",
-        Pending: "text-gray-600",
-      };
-      return colors[status] || "text-gray-600";
-    };
-
-    const getStatusDotColor = (status) => {
-      const colors = {
-        Completed: "bg-green-600",
-        Processing: "bg-yellow-600",
-        Shipped: "bg-blue-600",
-        Pending: "bg-gray-600",
-      };
-      return colors[status] || "bg-gray-600";
-    };
-
-    return (
-      <div className="grid grid-cols-5 gap-4 p-4 bg-gray-50 rounded-xl items-center text-sm hover:bg-gray-100 transition-all duration-200 hover:translate-x-1">
-        <div className="font-semibold text-gray-900 truncate pr-2" title={order.id}>{order.id}</div>
-        <div className="text-gray-700 font-mono text-xs truncate" title={order.skus}>{order.skus}</div>
-        <div className="font-bold text-gray-900">
-          {currency}
-          {order.amount?.toFixed(2)}
-        </div>
-        <div
-          className={`flex items-center gap-2 font-semibold ${getStatusColor(order.status)}`}
-        >
-          <span
-            className={`w-2 h-2 rounded-full ${getStatusDotColor(order.status)}`}
-          ></span>
-          {order.status}
-        </div>
-        <div className="flex flex-col text-gray-500">
-          <span className="text-xs font-medium">
-            {(() => {
-              try {
-                const d = new Date(order.date);
-                return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString();
-              } catch (e) {
-                return "N/A";
-              }
-            })()}
-          </span>
-          <span className="text-[10px] opacity-75">{order.time}</span>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-gray-50 via-pink-50/30 to-gray-100 p-8 overflow-hidden">
-      {/* Decorative background accents */}
-      <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d] opacity-[0.12] blur-3xl"></div>
-      <div className="pointer-events-none absolute top-1/3 -right-32 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-[#e88b8d] to-[#c44a4d] opacity-[0.10] blur-3xl"></div>
-      <div className="pointer-events-none absolute bottom-0 left-1/4 w-72 h-72 rounded-full bg-gradient-to-br from-[#d66a6c] to-[#b33a3d] opacity-[0.08] blur-3xl"></div>
-
-      <div className="relative z-10">
-      {/* Header */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 pb-6 border-b-2 border-gray-200/70 gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d] shadow-lg shadow-pink-200 flex items-center justify-center">
-              <FiTrendingUp className="text-white" size={22} />
-            </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-[#f9aeaf] via-[#e88b8d] to-[#c44a4d] bg-clip-text text-transparent tracking-tight">
-              Febeul
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 pl-1">
-            <p className="text-gray-600 font-medium">Admin Dashboard</p>
-            {!initialLoading && loading && (
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-[#e88b8d] bg-pink-50 px-2.5 py-1 rounded-full border border-pink-100">
-                <FiRefreshCw size={12} className="animate-spin" />
-                Updating...
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full lg:w-auto">
-          {timeRange === "custom" && (
-            <div className="flex items-center gap-2 bg-white p-2 border-2 border-gray-200 rounded-xl shadow-sm">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-2 py-1 border-none text-sm font-medium text-gray-700 focus:outline-none"
-              />
-              <span className="text-gray-400 font-bold">-</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="px-2 py-1 border-none text-sm font-medium text-gray-700 focus:outline-none"
-              />
-            </div>
-          )}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={fetchDashboardData}
-              disabled={loading}
-              title="Refresh data"
-              className={`flex items-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 hover:border-[#f9aeaf] hover:text-[#f9aeaf] hover:shadow-md shadow-sm ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <FiRefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              className={`flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] text-white rounded-xl text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-pink-200 hover:-translate-y-0.5 ${exporting ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <FaRupeeSign size={18} />
-              {exporting ? "Exporting..." : "Export Report"}
-            </button>
-            <select
-              className="px-6 py-3 border-2 border-gray-200 rounded-xl bg-white text-sm font-medium text-gray-700 cursor-pointer transition-all duration-300 hover:border-[#f9aeaf] focus:outline-none focus:border-[#f9aeaf] focus:ring-4 focus:ring-[#f9aeaf]/20"
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-            >
-              <option value="7days">Last 7 Days</option>
-              <option value="30days">Last 30 Days</option>
-              <option value="90days">Last 90 Days</option>
-              <option value="year">This Year</option>
-              <option value="custom">Custom Range</option>
-            </select>
-          </div>
-        </div>
-      </header>
-      <UniversalSearch token={token} backendUrl={backendUrl} role={role} permissions={permissions} />
-
-      {error && (
-        <div className="flex items-center justify-between gap-3 mb-8 px-5 py-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-          <div className="flex items-center gap-3">
-            <FiAlertTriangle size={18} />
-            <span className="text-sm font-semibold">{error}</span>
-          </div>
-          <button
-            onClick={() => setError(null)}
-            className="text-red-400 hover:text-red-600 transition-colors"
-            title="Dismiss"
-          >
-            <FiX size={18} />
-          </button>
-        </div>
-      )}
-
-      {initialLoading ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            {[0, 1, 2, 3].map((i) => (
-              <SkeletonBlock key={i} className="h-[132px]" />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-            <SkeletonBlock className="lg:col-span-3 h-[420px]" />
-            <SkeletonBlock className="h-[300px]" />
-            <SkeletonBlock className="h-[300px]" />
-            <SkeletonBlock className="h-[300px]" />
-            <SkeletonBlock className="lg:col-span-3 h-[300px]" />
-          </div>
-          <SkeletonBlock className="h-[300px]" />
-        </>
-      ) : (
-        <>
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatCard
-          icon={FiUsers}
-          title="Total Users"
-          value={dashboardStats.totalUsers.value}
-          change={dashboardStats.totalUsers.change}
-          changeType={dashboardStats.totalUsers.type}
-          gradient="bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d]"
-          glow="shadow-pink-200"
-        />
-        <StatCard
-          icon={FiShoppingBag}
-          title="Total Orders"
-          value={dashboardStats.totalOrders.value}
-          change={dashboardStats.totalOrders.change}
-          changeType={dashboardStats.totalOrders.type}
-          gradient="bg-gradient-to-br from-[#e88b8d] to-[#d66a6c]"
-          glow="shadow-rose-200"
-        />
-        <StatCard
-          icon={FaRupeeSign}
-          title="Revenue"
-          value={dashboardStats.revenue.value}
-          change={dashboardStats.revenue.change}
-          changeType={dashboardStats.revenue.type}
-          gradient="bg-gradient-to-br from-[#d66a6c] to-[#c44a4d]"
-          glow="shadow-red-200"
-        />
-        <StatCard
-          icon={FaRupeeSign}
-          title="Avg Order Value"
-          value={dashboardStats.avgOrderValue.value}
-          change={dashboardStats.avgOrderValue.change}
-          changeType={dashboardStats.avgOrderValue.type}
-          gradient="bg-gradient-to-br from-[#c44a4d] to-[#b33a3d]"
-          glow="shadow-red-300"
-        />
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-        {/* Revenue Chart */}
-        <div className="lg:col-span-3 bg-white rounded-3xl p-8 shadow-xl border border-gray-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10">
-            <FiTrendingUp size={120} className="text-[#f9aeaf]" />
-          </div>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 relative z-10">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="p-1.5 bg-pink-50 rounded-lg">
-                  <FaRupeeSign className="text-[#f9aeaf]" size={16} />
-                </span>
-                <h3 className="text-2xl font-black text-gray-900 tracking-tight">
-                  Revenue Intelligence
-                </h3>
-              </div>
-              <p className="text-sm text-gray-400 font-semibold tracking-wide uppercase">
-                Daily Financial Performance
-              </p>
-            </div>
-            <div className="flex items-center gap-6 mt-4 md:mt-0">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] shadow-sm"></div>
-                <span className="text-xs font-bold text-gray-500 uppercase">Gross Revenue</span>
-              </div>
-              <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-xs font-bold text-gray-400 mr-2 uppercase">Today</span>
-                <span className="text-lg font-black text-gray-900">
-                  {currency}
-                  {(() => {
-                    const todayStr = new Date().toISOString().split("T")[0];
-                    const lastTrend = dailyTrends[dailyTrends.length - 1];
-                    return (lastTrend && lastTrend.date === todayStr ? lastTrend.revenue : 0).toLocaleString();
-                  })()}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <ResponsiveContainer width="100%" height={380}>
-            <AreaChart data={dailyTrends}>
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f9aeaf" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#f9aeaf" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis
-                dataKey="date"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 700 }}
-                dy={15}
-                tickFormatter={(str) => {
-                  try {
-                    const date = new Date(str);
-                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                  } catch (e) { return str; }
-                }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 700 }}
-                tickFormatter={(val) => `${currency}${val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val}`}
-              />
-              <Tooltip
-                cursor={{ stroke: '#f9aeaf', strokeWidth: 2, strokeDasharray: '5 5' }}
-                content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-2xl border border-pink-50 ring-4 ring-pink-50/20">
-                        <p className="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">
-                          {new Date(label).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f9aeaf] to-[#e88b8d] flex items-center justify-center shadow-lg shadow-pink-200">
-                            <FaRupeeSign className="text-white" size={18} />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-gray-500 uppercase leading-none">Revenue</p>
-                            <p className="text-xl font-black text-gray-900">
-                              {currency}{payload[0].value.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                stroke="#f9aeaf"
-                strokeWidth={4}
-                fillOpacity={1}
-                fill="url(#colorRevenue)"
-                animationBegin={0}
-                animationDuration={1500}
-                animationEasing="ease-in-out"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Orders Chart */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-          <SectionHeading icon={FiShoppingBag} title="Order Trends" subtitle="Monthly orders" />
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="month"
-                stroke="#888"
-                style={{ fontSize: "12px" }}
-              />
-              <YAxis stroke="#888" style={{ fontSize: "12px" }} />
-              <Tooltip
-                contentStyle={{
-                  background: "#fff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                }}
-              />
-              <Bar dataKey="orders" fill="#e88b8d" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* SKU Sales Chart */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-          <SectionHeading icon={FiTrendingUp} title="Top Selling SKUs" subtitle="Distribution by SKU" />
-          <ResponsiveContainer width="100%" height={340}>
-            <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-              <Pie
-                data={skuSales}
-                cx="50%"
-                cy="45%"
-                innerRadius={55}
-                outerRadius={75}
-                paddingAngle={5}
-                dataKey="totalSold"
-                nameKey="sku"
-              >
-                {skuSales.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={
-                      [
-                        "#f9aeaf",
-                        "#e88b8d",
-                        "#d66a6c",
-                        "#c44a4d",
-                        "#b33a3d",
-                        "#ffcdd2",
-                        "#f8bbd0",
-                        "#e1bee7",
-                        "#d1c4e9",
-                        "#c5cae9",
-                      ][index % 10]
-                    }
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  background: "#fff",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                }}
-                formatter={(value, name) => [value + " Units", `SKU: ${name}`]}
-              />
-              <Legend
-                verticalAlign="bottom"
-                align="center"
-                iconSize={8}
-                iconType="circle"
-                wrapperStyle={{
-                  fontSize: "11px",
-                  lineHeight: "18px",
-                  paddingTop: "12px",
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  columnGap: "12px",
-                  rowGap: "4px",
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Category Sales Chart */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-          <SectionHeading icon={FiFilter} title="Category Sales" subtitle="Distribution by category" />
-          {categorySales.length > 0 ? (
-            <ResponsiveContainer width="100%" height={340}>
-              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                <Pie
-                  data={categorySales}
-                  cx="50%"
-                  cy="45%"
-                  innerRadius={55}
-                  outerRadius={75}
-                  paddingAngle={5}
-                  dataKey="value"
-                  nameKey="name"
-                >
-                  {categorySales.map((entry, index) => (
-                    <Cell key={`cat-cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "#fff",
-                    border: "1px solid #e5e5e5",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                  }}
-                  formatter={(value, name) => [value, name]}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  align="center"
-                  iconSize={8}
-                  iconType="circle"
-                  wrapperStyle={{
-                    fontSize: "11px",
-                    lineHeight: "18px",
-                    paddingTop: "12px",
-                    display: "flex",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                    columnGap: "12px",
-                    rowGap: "4px",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[340px] flex items-center justify-center text-sm text-gray-400 font-medium">
-              No category sales data for this period
-            </div>
-          )}
-        </div>
-
-        {/* SKU Stocks List */}
-        <div className="lg:col-span-3 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-pink-50 text-[#f9aeaf]">
-                <FiAlertTriangle size={16} />
-              </span>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">
-                  Stock Levels by SKU
-                </h3>
-                <p className="text-sm text-gray-500 font-medium">
-                  Current inventory per variation
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setLowStockOnly((prev) => !prev)}
-                className={`flex items-center gap-1.5 text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-widest transition-colors ${
-                  lowStockOnly
-                    ? "bg-red-100 text-red-600 border-red-200"
-                    : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <FiFilter size={12} />
-                Low Stock Only
-              </button>
-              <div className="bg-pink-50 text-[#f9aeaf] text-[10px] font-black px-3 py-1 rounded-full border border-pink-100 uppercase tracking-widest">
-                Live Stock
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-hidden border border-gray-100 rounded-xl">
-            <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-gray-50 sticky top-0 z-10 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU</th>
-                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Product & Color</th>
-                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Qty</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {filteredStocks.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="px-6 py-8 text-center text-sm text-gray-400 font-medium">
-                        No SKUs match this filter
-                      </td>
-                    </tr>
-                  )}
-                  {filteredStocks.map((item, index) => (
-                    <tr key={index} className="hover:bg-pink-50/20 transition-colors group">
-                      <td className="px-6 py-4">
-                        <span className="font-mono font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded text-xs group-hover:bg-white border border-transparent group-hover:border-gray-200">
-                          {item.sku}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-600 truncate max-w-[200px]">
-                        {item.name}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`inline-block px-3 py-1 rounded-lg font-black text-xs min-w-[45px] text-center ${
-                          item.stock <= 5 
-                            ? "bg-red-100 text-red-600 animate-pulse" 
-                            : item.stock <= 15 
-                              ? "bg-yellow-100 text-yellow-600" 
-                              : "bg-green-100 text-green-600"
-                        }`}>
-                          {item.stock}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Orders */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-pink-50 text-[#f9aeaf]">
-              <FiShoppingBag size={16} />
-            </span>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">
-                Recent Orders
-              </h3>
-              <p className="text-sm text-gray-500 font-medium">
-                Latest customer transactions
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:flex-none md:w-64">
-              <FiSearch
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                value={orderSearch}
-                onChange={(e) => setOrderSearch(e.target.value)}
-                placeholder="Search order ID, SKU, status..."
-                className="w-full pl-9 pr-8 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:border-[#f9aeaf] focus:ring-4 focus:ring-[#f9aeaf]/20 transition-all"
-              />
-              {orderSearch && (
-                <button
-                  onClick={() => setOrderSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  title="Clear search"
-                >
-                  <FiX size={14} />
-                </button>
-              )}
-            </div>
-            <button
-              onClick={() => navigate("/orders")}
-              className="px-6 py-3 bg-gradient-to-r from-[#f9aeaf] to-[#e88b8d] text-white rounded-xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap"
-            >
-              View All Orders
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {/* Header */}
-          <div className="grid grid-cols-5 gap-4 px-4 pb-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
-            <div>Order ID</div>
-            <div>SKU</div>
-            <div>Amount</div>
-            <div>Status</div>
-            <div>Date & Time</div>
-          </div>
-
-          {/* Orders */}
-          {filteredOrders.length === 0 ? (
-            <div className="text-center py-10 text-sm text-gray-400 font-medium">
-              No orders match {'"'}{orderSearch.trim()}{'"'}
-            </div>
-          ) : (
-            filteredOrders.map((order, index) => (
-              <OrderRow key={index} order={order} />
-            ))
-          )}
-        </div>
-      </div>
-      </>
-      )}
-      </div>
-    </div>
+    <DashboardOverview
+      token={token} role={role} permissions={permissions}
+      timeRange={timeRange} setTimeRange={setTimeRange}
+      startDate={startDate} setStartDate={setStartDate}
+      endDate={endDate} setEndDate={setEndDate}
+      loading={loading} initialLoading={initialLoading} exporting={exporting}
+      error={error} dismissError={() => setError(null)}
+      lastUpdated={lastUpdated} userCountScope={userCountScope}
+      dashboardStats={dashboardStats} monthlyTrends={monthlyTrends}
+      dailyTrends={dailyTrends} categorySales={categorySales} skuSales={skuSales}
+      skuStocks={skuStocks} filteredStocks={filteredStocks} stockAvailable={stockAvailable}
+      recentOrdersList={recentOrdersList} filteredOrders={filteredOrders}
+      orderSearch={orderSearch} setOrderSearch={setOrderSearch}
+      lowStockOnly={lowStockOnly} setLowStockOnly={setLowStockOnly}
+      refresh={fetchDashboardData} exportReport={handleExport}
+    />
   );
 };
 

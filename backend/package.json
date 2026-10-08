@@ -4,6 +4,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
+    "test:shiprocket": "node --test tests/shiprocket.test.js",
     "test:admin-search": "node --test tests/admin-search.test.js",
     "test:analytics": "node --test tests/analytics.test.js",
     "start": "node server.js",
