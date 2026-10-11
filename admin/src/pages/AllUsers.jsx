@@ -1,15 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
-import { CalendarRange, X } from 'lucide-react';
+import { CalendarRange, X, Users, UserCheck, ShieldCheck, Crown, Search, SlidersHorizontal, Plus, RefreshCw, ChevronLeft, ChevronRight, Gift, LockKeyhole, ShieldOff, Check, CircleAlert } from 'lucide-react';
 import useSearchPrefill from '../search/useSearchPrefill';
+
+const buttonClass = 'inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-[#eae5ed] bg-white px-4 py-2.5 text-xs font-medium text-[#64566e] hover:border-[#d8cbdc] hover:bg-[#faf6fa]';
+const darkButtonClass = 'inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-[#2f2633] bg-[#2f2633] px-4 py-2.5 text-xs font-medium text-white hover:border-[#49374e] hover:bg-[#49374e]';
+const badgeClass = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-medium';
+const pageButtonClass = 'inline-flex min-h-8 min-w-8 items-center justify-center gap-1 rounded-md border px-2 text-[11px]';
+const cellClass = 'flex min-w-0 flex-col items-start gap-1.5 before:text-[10px] before:text-[#897491] before:content-[attr(data-label)] xl:table-cell xl:border-b xl:border-[#f3eff6] xl:px-3 xl:py-3.5 xl:align-middle xl:before:hidden';
+const emptyClass = 'flex min-h-[270px] flex-col items-center justify-center gap-2.5 border-t border-[#f3edf6] px-5 py-8 text-center';
+const avatarColors = ['border-[#f1e4ed] bg-[#fbf0f5] text-[#ab6a89]', 'border-[#e5eded] bg-[#eef5f5] text-[#6c8286]', 'border-[#f0e9db] bg-[#faf5eb] text-[#95815f]', 'border-[#eae2f4] bg-[#f3effa] text-[#8b77a1]'];
+const summaryIcons = { dark: 'bg-white/5 text-[#e4b0c4]', green: 'bg-[#edf5f0] text-[#5e8c74]', rose: 'bg-[#fcf0f5] text-[#b5748e]', purple: 'bg-[#f4eff7] text-[#9478a4]' };
+const roleColors = { user: 'bg-[#f2eff6] text-[#887095]', staff: 'bg-[#eef1fb] text-[#6e7da4]', admin: 'bg-[#f3ecf9] text-[#9672ab]' };
 
 const AllUsers = ({ token }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [savingPermissions, setSavingPermissions] = useState(false);
+  const dialogRef = useRef(null);
+  const modalTriggerRef = useRef(null);
   
   // Modal State
   const [email, setEmail] = useState('');
@@ -58,6 +71,7 @@ const AllUsers = ({ token }) => {
   };
 
   const openPermissionsModal = (user = null) => {
+    modalTriggerRef.current = document.activeElement;
     if (user) {
       setEmail(user.email);
       setRole(user.role || 'user');
@@ -69,6 +83,19 @@ const AllUsers = ({ token }) => {
     }
     setShowModal(true);
   };
+
+  useEffect(() => {
+    if (!showModal) return;
+    const dialog = dialogRef.current;
+    const previousOverflow = document.body.style.overflow;
+    dialog?.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = previousOverflow;
+      modalTriggerRef.current?.focus();
+    };
+  }, [showModal]);
 
   const handleToggleBlock = async (user) => {
     const confirmMessage = user.isBlocked
@@ -93,6 +120,8 @@ const AllUsers = ({ token }) => {
   };
 
   const handleSavePermissions = async () => {
+    if (savingPermissions) return;
+    setSavingPermissions(true);
     try {
       const response = await axios.post(`${backendUrl}/api/admin/update-permissions`, {
         email,
@@ -109,10 +138,14 @@ const AllUsers = ({ token }) => {
       }
     } catch (err) {
       toast.error("Failed to update permissions");
+    } finally {
+      setSavingPermissions(false);
     }
   };
 
   const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await axios.get(`${backendUrl}/api/user/allusers`, {
         headers: {
@@ -168,245 +201,229 @@ const AllUsers = ({ token }) => {
     setCurrentPage(1);
   }, [searchTerm, roleFilter, startDate, endDate]);
 
-  if (loading) {
-    return <p className="p-4">Loading users...</p>;
-  }
 
-  if (error) {
-    return <p className="p-4 text-red-500">Error: {error}</p>;
-  }
+  useEffect(() => {
+    setCurrentPage(previous => Math.max(1, Math.min(previous, totalPages || 1)));
+  }, [totalPages]);
+
+  const hasFilters = Boolean(searchTerm || roleFilter !== 'all' || startDate || endDate);
+  const clearFilters = () => {
+    setSearchTerm('');
+    setRoleFilter('all');
+    clearDateFilter();
+  };
+  const summary = [
+    { label: 'Total users', value: users.length, icon: Users, note: 'All registered accounts', tone: 'dark' },
+    { label: 'Active accounts', value: users.filter(user => !user.isBlocked).length, icon: UserCheck, note: users.filter(user => user.isBlocked).length + ' blocked accounts', tone: 'green' },
+    { label: 'Luxe members', value: users.filter(user => user.isLuxeMember).length, icon: Crown, note: 'Membership access', tone: 'rose' },
+    { label: 'Staff & admins', value: users.filter(user => ['staff', 'admin'].includes(user.role)).length, icon: ShieldCheck, note: 'Team accounts', tone: 'purple' },
+  ];
+  const initials = name => (name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+  const joinedDate = value => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+  };
 
   return (
-    <div className='p-4 relative'>
-      <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4'>
-        <div className='flex items-center gap-4'>
-          <h2 className='text-2xl font-bold'>All Users</h2>
-          <span className='bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold'>
-            {filteredUsers.length} Users
-          </span>
+    <div className="mx-auto w-full max-w-[1600px] font-['Outfit',sans-serif] text-[#29232e] [&_*]:[font-family:inherit] [&_button]:transition-colors [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50 [&_button:focus-visible]:outline [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-[#a85070] [&_input:focus-visible]:outline-[#a85070] [&_select:focus-visible]:outline-[#a85070] motion-reduce:[&_*]:animate-none motion-reduce:[&_*]:transition-none">
+      <header className="flex flex-col gap-5 pb-6 pt-1 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="mb-2.5 flex items-center gap-2 text-[11px] font-medium tracking-[0.15em] text-[#8b7782]"><span className="h-[7px] w-[7px] rotate-45 rounded-sm bg-[#c77893]" />FEBEUL / PEOPLE</p>
+          <h1 className="text-3xl font-semibold leading-tight tracking-[-0.04em] lg:text-[38px]">All users<span className="text-[#c77893]">.</span></h1>
+          <p className="mt-2 text-xs text-[#776d80] sm:text-[13px]">Your customers, members, and team in one place.</p>
         </div>
-        <div className='flex flex-col sm:flex-row gap-3 w-full md:w-auto'>
-          <input 
-            type="text" 
-            placeholder="Search name, email, phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className='border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-black w-full sm:w-64'
-          />
-          <select 
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className='border border-gray-300 rounded-md px-3 py-2 text-sm outline-none bg-white'
-          >
-            <option value="all">All Roles</option>
-            <option value="staff">Staff/Admin</option>
-            <option value="user">Normal Users</option>
-          </select>
-          <div className={`flex items-center gap-2 rounded-md px-3 py-2 border transition-colors ${(startDate || endDate) ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-300'}`}>
-            <CalendarRange size={15} className={(startDate || endDate) ? 'text-pink-500' : 'text-gray-400'} />
-            <input
-              type="date"
-              value={startDate}
-              max={endDate || undefined}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
-              aria-label="Joined from"
-            />
-            <span className="text-gray-300 text-xs font-bold">→</span>
-            <input
-              type="date"
-              value={endDate}
-              min={startDate || undefined}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="text-xs font-semibold text-gray-700 bg-transparent focus:outline-none cursor-pointer"
-              aria-label="Joined to"
-            />
-            {(startDate || endDate) && (
-              <button onClick={clearDateFilter} title="Clear date filter" className="text-pink-400 hover:text-red-500 transition-colors">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => openPermissionsModal()}
-            className='bg-black text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition-colors whitespace-nowrap'
-          >
-            Add Staff Permissions
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" className={buttonClass + ' !px-3'} onClick={fetchUsers} disabled={loading} aria-label="Refresh users" title="Refresh users">
+            <RefreshCw size={17} className={loading ? 'motion-safe:animate-spin' : ''} />
+          </button>
+          <button type="button" className={darkButtonClass + ' flex-1 lg:flex-none'} onClick={() => openPermissionsModal()}>
+            <Plus size={17} aria-hidden="true" />Add Staff Permissions
           </button>
         </div>
+      </header>
+
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-4" aria-label="All account totals">
+        {summary.map(({ label, value, icon: Icon, note, tone }) => (
+          <article key={label} className={'rounded-xl border p-4 shadow-sm motion-safe:animate-[fadeIn_0.3s_ease-out] sm:p-5 ' + (tone === 'dark' ? 'border-[#2f2633] bg-[#2f2633] text-white' : 'border-[#eae5ed] bg-white')} aria-label={label}>
+            <div className={'flex items-center justify-between gap-2 text-[11px] font-medium sm:text-xs ' + (tone === 'dark' ? 'text-[#e0d5e3]' : 'text-[#776d80]')}>
+              <span>{label}</span><span className={'grid h-8 w-8 shrink-0 place-items-center rounded-lg ' + summaryIcons[tone]}><Icon size={17} aria-hidden="true" /></span>
+            </div>
+            <strong className="mb-2 mt-3 block text-3xl font-semibold leading-tight tracking-[-0.04em] tabular-nums">{loading || error ? '\u2014' : value.toLocaleString('en-IN')}</strong>
+            <p className={'text-[10px] leading-relaxed sm:text-[11px] ' + (tone === 'dark' ? 'text-[#c5b8cb]' : 'text-[#84758e]')}>{loading || error ? 'Account totals unavailable' : note}</p>
+          </article>
+        ))}
       </div>
+      <p className="mb-6 mt-2.5 text-[10px] leading-relaxed text-[#897b92] sm:text-[11px]">Account totals include all users, regardless of the filters below.</p>
 
-      {/* Permissions Modal */}
-      {showModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-lg w-full max-w-md p-6 shadow-xl'>
-            <h3 className='text-xl font-bold mb-4'>Manage Staff Permissions</h3>
-            
-            <div className='mb-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>User Email</label>
-              <input 
-                type="email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter user email"
-                className='w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-black'
-              />
+      <section className="overflow-hidden rounded-2xl border border-[#eae5ed] bg-white shadow-sm" aria-labelledby="users-directory-title">
+        <div className="flex items-start justify-between gap-3 px-4 py-5 sm:items-center sm:px-6">
+          <div>
+            <h2 id="users-directory-title" className="text-base font-semibold tracking-tight sm:text-[17px]">User directory</h2>
+            <p className="mt-1 text-[11px] leading-relaxed text-[#776d80] sm:text-xs">Manage account access and staff permissions.</p>
+          </div>
+          <span className="shrink-0 rounded-md border border-[#efdee7] bg-[#faf1f6] px-2 py-1 text-[10px] font-medium text-[#947184] sm:px-2.5 sm:text-[11px]">{loading || error ? '\u2014' : filteredUsers.length} users</span>
+        </div>
+        <div className="flex flex-col gap-3 px-4 pb-5 sm:px-6">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#eae5ed] px-3 text-[#9a849f] focus-within:border-[#ba8099] focus-within:ring-2 focus-within:ring-[#faf0f5] sm:max-w-[460px]">
+              <Search size={17} className="shrink-0" aria-hidden="true" />
+              <label htmlFor="users-search" className="sr-only">Search users</label>
+              <input id="users-search" type="search" className="min-w-0 flex-1 border-0 bg-transparent py-3 text-xs text-[#55465d] outline-none placeholder:text-[#95859e]" placeholder="Search name, email, phone..." value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />
+              {searchTerm && <button type="button" className="grid min-h-8 min-w-6 place-items-center" onClick={() => setSearchTerm('')} aria-label="Clear user search"><X size={15} /></button>}
             </div>
-
-            <div className='mb-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>Role</label>
-              <select 
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className='w-full border border-gray-300 rounded-md px-3 py-2 outline-none'
-              >
-                <option value="user">User</option>
-                <option value="staff">Staff</option>
+            <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[#eae5ed] px-3 text-[#9983a2]">
+              <SlidersHorizontal size={15} aria-hidden="true" /><span className="sr-only">Filter by role</span>
+              <select className="min-w-0 flex-1 border-0 bg-white py-3 text-xs text-[#675571]" value={roleFilter} onChange={event => setRoleFilter(event.target.value)}>
+                <option value="all">All Roles</option><option value="staff">Staff/Admin</option><option value="user">Normal Users</option>
               </select>
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <span className="inline-flex w-full items-center gap-1.5 text-[11px] text-[#8b7a95] sm:w-auto"><CalendarRange size={15} aria-hidden="true" />Joined date</span>
+            <div className="flex w-full min-w-0 items-end gap-1.5 sm:w-auto sm:items-center sm:gap-2">
+              <label className="flex min-w-0 flex-1 flex-col gap-1 text-[11px] text-[#998a9f] sm:flex-row sm:items-center sm:gap-2">
+                <span>From</span>
+                <input type="date" className="min-w-0 w-full rounded-md border-[#eae5ed] bg-white px-1 py-2 text-[11px] text-[#6d5878] sm:w-auto sm:px-2" value={startDate} max={endDate || undefined} onChange={event => setStartDate(event.target.value)} aria-label="Joined from" />
+              </label>
+              <span className="pb-2 text-[#b6a7be] sm:pb-0" aria-hidden="true">&ndash;</span>
+              <label className="flex min-w-0 flex-1 flex-col gap-1 text-[11px] text-[#998a9f] sm:flex-row sm:items-center sm:gap-2">
+                <span>To</span>
+                <input type="date" className="min-w-0 w-full rounded-md border-[#eae5ed] bg-white px-1 py-2 text-[11px] text-[#6d5878] sm:w-auto sm:px-2" value={endDate} min={startDate || undefined} onChange={event => setEndDate(event.target.value)} aria-label="Joined to" />
+              </label>
+              {(startDate || endDate) && <button type="button" className="grid min-h-8 min-w-6 place-items-center text-[#a85070]" onClick={clearDateFilter} aria-label="Clear date filter" title="Clear date filter"><X size={15} /></button>}
             </div>
+            {hasFilters && <button type="button" className="ml-auto inline-flex min-h-8 items-center gap-1 text-[11px] text-[#a85070] hover:text-[#73364e]" onClick={clearFilters}><X size={13} />Clear filters</button>}
+          </div>
+        </div>
 
-            <div className='mb-6'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Allowed Pages</label>
-              <div className='grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-100 rounded'>
-                {permissionOptions.map((opt) => (
-                  <label key={opt.path} className='flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors'>
-                    <input 
-                      type="checkbox"
-                      checked={selectedPermissions.includes(opt.path)}
-                      onChange={() => togglePermission(opt.path)}
-                      className='w-4 h-4 accent-black'
-                    />
-                    <span className='text-sm text-gray-600'>{opt.label}</span>
+        {error ? (
+          <div className={emptyClass} role="alert">
+            <span className="mb-1 grid h-12 w-12 place-items-center rounded-xl bg-[#fcf0f4] text-[#b96e89]"><CircleAlert size={25} /></span>
+            <h3 className="text-base font-medium">Couldn&apos;t load users</h3>
+            <p className="max-w-[300px] break-words text-xs text-[#947c9e]">{error}</p>
+            <button type="button" className={buttonClass + ' mt-1'} onClick={fetchUsers}>Try again</button>
+          </div>
+        ) : loading ? (
+          <div className="px-4 sm:px-6" role="status" aria-label="Loading users">
+            <span className="sr-only">Loading users...</span>
+            {[0, 1, 2, 3, 4].map(index => (
+              <div key={index} className="flex items-center gap-3 border-t border-[#f3edf6] py-6 motion-safe:animate-pulse">
+                <span className="h-9 w-9 rounded-lg bg-[#eee7f2]" />
+                <div className="flex-1 space-y-2"><div className="h-2.5 w-28 rounded bg-[#eee7f2]" /><div className="h-2.5 w-20 rounded bg-[#eee7f2]" /></div>
+                <span className="hidden h-2.5 w-20 rounded bg-[#eee7f2] sm:block" />
+              </div>
+            ))}
+          </div>
+        ) : paginatedUsers.length > 0 ? (
+          <>
+            <div className="w-full overflow-auto border-t border-[#f1ecf4]">
+              <table className="block w-full text-left text-xs xl:table xl:min-w-[1000px]">
+                <caption className="sr-only">Registered users, membership, account status, and permissions</caption>
+                <thead className="hidden bg-[#faf8fb] text-[11px] font-medium text-[#8c7799] xl:table-header-group [&_th]:whitespace-nowrap [&_th]:px-3 [&_th]:py-3 [&_th]:font-medium [&_th:first-child]:pl-6 [&_th:last-child]:pr-6">
+                  <tr><th scope="col">User</th><th scope="col">Phone</th><th scope="col">Role</th><th scope="col">Membership</th><th scope="col">Gift wraps</th><th scope="col">Joined</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
+                </thead>
+                <tbody className="block px-4 sm:px-6 xl:table-row-group xl:px-0 [&_tr:last-child_td]:border-b-0">
+                  {paginatedUsers.map((user, index) => (
+                    <tr key={user._id} className="grid grid-cols-2 gap-x-3 gap-y-4 border-b border-[#eae5ed] py-5 last:border-b-0 hover:bg-[#fdfafd] sm:grid-cols-3 xl:table-row xl:border-0 xl:py-0">
+                      <td className="col-span-full min-w-0 xl:border-b xl:border-[#f3eff6] xl:py-3.5 xl:pl-6 xl:pr-3 xl:align-middle">
+                        <div className="flex min-w-0 items-center gap-3 xl:min-w-[175px]">
+                          <span className={'grid h-9 w-9 shrink-0 place-items-center rounded-xl border text-xs font-semibold ' + avatarColors[index % avatarColors.length]} aria-hidden="true">{initials(user.name || user.email)}</span>
+                          <div className="min-w-0">
+                            <strong className="block text-[13px] font-medium text-[#504256] [overflow-wrap:anywhere] xl:max-w-[200px] xl:text-xs">{user.name || 'N/A'}</strong>
+                            <span className="mt-1 block text-[11px] text-[#8c7b97] [overflow-wrap:anywhere] xl:max-w-[215px]" title={user.email}>{user.email}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className={cellClass} data-label="Phone"><span className="whitespace-nowrap text-[11px] tabular-nums text-[#86728f]">{user.mobile || 'N/A'}</span></td>
+                      <td className={cellClass} data-label="Role"><span className={badgeClass + ' capitalize ' + (roleColors[user.role] || roleColors.user)}>{user.role || 'user'}</span></td>
+                      <td className={cellClass} data-label="Membership">{user.isLuxeMember ? <span className={badgeClass + ' bg-[#faf1e5] text-[#a17e49]'}><Crown size={12} aria-hidden="true" />Luxe</span> : <span className="text-[11px] text-[#9c8ba6]">Standard</span>}</td>
+                      <td className={cellClass} data-label="Gift wraps"><span className="inline-flex items-center gap-1.5 text-[11px] text-[#8f789c]"><Gift size={14} className="text-[#b7a3bf]" aria-hidden="true" />{user.giftWrapsLeft ?? 0}</span></td>
+                      <td className={cellClass} data-label="Joined"><span className="whitespace-nowrap text-[11px] tabular-nums text-[#86728f]">{joinedDate(user.createdAt)}</span></td>
+                      <td className={cellClass} data-label="Status"><span className={badgeClass + (user.isBlocked ? ' bg-[#faeef2] text-[#b0607b]' : ' bg-[#edf6f1] text-[#4f876c]')}><i className="h-1 w-1 rounded-full bg-current" />{user.isBlocked ? 'Blocked' : 'Active'}</span></td>
+                      <td className="col-span-full min-w-0 xl:border-b xl:border-[#f3eff6] xl:py-3.5 xl:pl-3 xl:pr-6 xl:align-middle">
+                        <div className="flex flex-wrap items-start gap-2 xl:flex-col xl:gap-1">
+                          <button type="button" className="inline-flex min-h-9 items-center justify-center gap-1 whitespace-nowrap rounded-md border border-[#e9dfee] bg-white px-2 py-1.5 text-[10px] font-medium text-[#94749f] hover:border-[#ceafdb] hover:bg-[#faf5fd] sm:text-[11px] xl:min-h-7 xl:text-[10px]" onClick={() => openPermissionsModal(user)} aria-label={'View Permissions for ' + user.email}><LockKeyhole size={14} aria-hidden="true" />View Permissions</button>
+                          <button type="button" className={'inline-flex min-h-9 items-center justify-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[10px] font-medium sm:text-[11px] xl:min-h-7 xl:text-[10px] ' + (user.isBlocked ? 'text-[#6a9580] hover:bg-[#eef7f2] hover:text-[#47755c]' : 'text-[#af7388] hover:bg-[#fcf0f4] hover:text-[#a04d6a]')} onClick={() => handleToggleBlock(user)} aria-label={(user.isBlocked ? 'Unblock' : 'Block') + ' ' + user.email}>
+                            {user.isBlocked ? <UserCheck size={14} aria-hidden="true" /> : <ShieldOff size={14} aria-hidden="true" />}{user.isBlocked ? 'Unblock' : 'Block'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 border-t border-[#eae5ed] px-4 py-4 sm:justify-between sm:px-6">
+              <p className="text-[11px] text-[#94809f] [&_strong]:font-medium [&_strong]:text-[#715a7c]">Showing <strong>{(currentPage - 1) * itemsPerPage + 1}&ndash;{Math.min(currentPage * itemsPerPage, filteredUsers.length)}</strong> of <strong>{filteredUsers.length}</strong> users</p>
+              {totalPages > 1 && <nav className="flex min-w-0 items-center justify-center gap-1 sm:gap-2" aria-label="User directory pagination">
+                <button type="button" className={pageButtonClass + ' border-[#eae1ef] bg-white text-[#8b6d9a] hover:enabled:bg-[#faf6fc]'} onClick={() => setCurrentPage(previous => Math.max(previous - 1, 1))} disabled={currentPage === 1} aria-label="Previous page"><ChevronLeft size={15} /><span className="hidden sm:inline">Previous</span></button>
+                <div className="flex flex-wrap items-center justify-center gap-1">
+                  {[...Array(totalPages)].map((_, index) => {
+                    const pageNumber = index + 1;
+                    if (pageNumber === 1 || pageNumber === totalPages || (pageNumber >= currentPage - 2 && pageNumber <= currentPage + 2)) {
+                      return <button type="button" key={pageNumber} className={pageButtonClass + (currentPage === pageNumber ? ' border-[#34283c] bg-[#34283c] text-white' : ' border-[#eae1ef] bg-white text-[#8b6d9a] hover:bg-[#faf6fc]')} onClick={() => setCurrentPage(pageNumber)} aria-label={'Page ' + pageNumber} aria-current={currentPage === pageNumber ? 'page' : undefined}>{pageNumber}</button>;
+                    }
+                    if (pageNumber === currentPage - 3 || pageNumber === currentPage + 3) return <span key={pageNumber} className="px-0.5 text-[11px] text-[#b3a0bf]" aria-hidden="true">&hellip;</span>;
+                    return null;
+                  })}
+                </div>
+                <button type="button" className={pageButtonClass + ' border-[#eae1ef] bg-white text-[#8b6d9a] hover:enabled:bg-[#faf6fc]'} onClick={() => setCurrentPage(previous => Math.min(previous + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page"><span className="hidden sm:inline">Next</span><ChevronRight size={15} /></button>
+              </nav>}
+            </div>
+          </>
+        ) : (
+          <div className={emptyClass}>
+            <span className="mb-1 grid h-12 w-12 place-items-center rounded-xl bg-[#f8f2fa] text-[#af91bb]">{hasFilters ? <Search size={25} /> : <Users size={25} />}</span>
+            <h3 className="text-base font-medium">{hasFilters ? 'No matching users' : 'Your directory is ready'}</h3>
+            <p className="max-w-[300px] text-xs text-[#947c9e]">{hasFilters ? 'Try a different name, role, or joined date range.' : 'Registered customers and team members will appear here.'}</p>
+            {hasFilters && <button type="button" className={buttonClass + ' mt-1'} onClick={clearFilters}>Clear filters</button>}
+          </div>
+        )}
+      </section>
+      <footer className="flex flex-wrap items-start justify-between gap-3 pb-1 pt-5 text-[10px] text-[#94809f] sm:text-[11px]">
+        <span className="inline-flex items-start gap-1.5"><ShieldCheck size={13} className="shrink-0" aria-hidden="true" />Account access is controlled by staff permissions.</span><span>10 users per page</span>
+      </footer>
+
+      {showModal && (
+        <dialog ref={dialogRef} className="m-auto max-h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-[660px] flex-col overflow-hidden rounded-2xl border border-[#e5dbe9] bg-white p-0 text-[#29232e] shadow-2xl backdrop:bg-[#201727]/50 backdrop:backdrop-blur-sm open:flex motion-safe:animate-[fadeIn_0.2s_ease-out]" aria-labelledby="users-permissions-title" aria-describedby="users-permissions-description" onCancel={event => { event.preventDefault(); if (!savingPermissions) setShowModal(false); }}>
+          <div className="flex shrink-0 items-start gap-2.5 border-b border-[#eae5ed] px-4 py-5 sm:items-center sm:gap-3 sm:px-6">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#f9edf3] text-[#af6c8b] sm:h-11 sm:w-11"><ShieldCheck size={23} aria-hidden="true" /></span>
+            <div>
+              <h2 id="users-permissions-title" className="text-base font-semibold leading-tight tracking-tight sm:text-lg">Manage Staff Permissions</h2>
+              <p id="users-permissions-description" className="mt-1 text-[11px] text-[#918099] sm:text-xs">Set an existing account&apos;s role and allowed pages.</p>
+            </div>
+            <button type="button" className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#a68baf] hover:bg-[#f6f1f8]" aria-label="Close permissions" onClick={() => setShowModal(false)} disabled={savingPermissions}><X size={19} /></button>
+          </div>
+          <div className="min-h-0 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
+            <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
+              <label className="flex min-w-0 flex-col gap-2 text-xs font-medium text-[#7c6189]" htmlFor="users-permission-email">User Email
+                <input id="users-permission-email" className="min-h-[42px] min-w-0 rounded-lg border-[#e3d8ea] bg-white px-3 py-2.5 text-[13px] font-normal text-[#61466f]" type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="Enter user email" disabled={savingPermissions} autoFocus />
+              </label>
+              <label className="flex min-w-0 flex-col gap-2 text-xs font-medium text-[#7c6189]" htmlFor="users-permission-role">Role
+                <select id="users-permission-role" className="min-h-[42px] min-w-0 rounded-lg border-[#e3d8ea] bg-white px-3 py-2.5 text-[13px] font-normal text-[#61466f]" value={role} onChange={event => setRole(event.target.value)} disabled={savingPermissions}><option value="user">User</option><option value="staff">Staff</option></select>
+              </label>
+            </div>
+            <fieldset disabled={savingPermissions} className="min-w-0 border-0">
+              <legend className="mb-3 w-full text-xs font-medium text-[#7c6189]">Allowed Pages <span className="float-right text-[11px] font-normal text-[#ab809d]">{selectedPermissions.length} selected</span></legend>
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                {permissionOptions.map(option => (
+                  <label key={option.path} className={'flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-2.5 text-[11px] sm:px-2.5 sm:text-xs ' + (selectedPermissions.includes(option.path) ? 'border-[#e8c9da] bg-[#faf0f6] text-[#a86589]' : 'border-[#eee6f3] text-[#8b709b] hover:bg-[#fcf8fe]')}>
+                    <input type="checkbox" className="h-4 w-4 shrink-0 rounded accent-[#ac6689]" checked={selectedPermissions.includes(option.path)} onChange={() => togglePermission(option.path)} />
+                    <span>{option.label}</span>
+                    {selectedPermissions.includes(option.path) && <Check size={13} className="ml-auto hidden shrink-0 sm:block" aria-hidden="true" />}
                   </label>
                 ))}
               </div>
-            </div>
-
-            <div className='flex justify-end gap-3'>
-              <button 
-                onClick={() => setShowModal(false)}
-                className='px-4 py-2 text-gray-600 hover:text-gray-800 font-medium'
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSavePermissions}
-                className='bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors font-medium'
-              >
-                Save Permissions
-              </button>
-            </div>
+            </fieldset>
           </div>
-        </div>
-      )}
-
-      {paginatedUsers.length > 0 ? (
-        <>
-          <div className='overflow-x-auto border border-gray-200 rounded-lg'>
-            <table className='min-w-full bg-white divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
-                <tr>
-                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Name</th>
-                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Email</th>
-                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Phone</th>
-                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Role</th>
-                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Luxe</th>
-                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Gift Wraps</th>
-                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Status</th>
-                  <th className='py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider'>Actions</th>
-                </tr>
-              </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
-                {paginatedUsers.map((user) => (
-                  <tr key={user._id} className='hover:bg-gray-50 transition-colors'>
-                    <td className='py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900'>{user.name || 'N/A'}</td>
-                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.email}</td>
-                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.mobile || 'N/A'}</td>
-                    <td className='py-3 px-4 whitespace-nowrap text-sm'>
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        user.role === 'admin' ? 'bg-red-100 text-red-700' : 
-                        user.role === 'staff' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.isLuxeMember ? 'Yes' : 'No'}</td>
-                    <td className='py-3 px-4 whitespace-nowrap text-sm text-gray-500'>{user.giftWrapsLeft}</td>
-                    <td className='py-3 px-4 whitespace-nowrap text-sm'>
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        user.isBlocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                      }`}>
-                        {user.isBlocked ? 'Blocked' : 'Active'}
-                      </span>
-                    </td>
-                    <td className='py-3 px-4 whitespace-nowrap text-sm'>
-                      <div className='flex items-center gap-3'>
-                        <button
-                          onClick={() => openPermissionsModal(user)}
-                          className='text-blue-600 hover:text-blue-800 font-medium underline'
-                        >
-                          View Permissions
-                        </button>
-                        <button
-                          onClick={() => handleToggleBlock(user)}
-                          className={`font-medium underline ${user.isBlocked ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'}`}
-                        >
-                          {user.isBlocked ? 'Unblock' : 'Block'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[#eae5ed] bg-[#fdfbfe] px-4 py-4 sm:px-6">
+            <button type="button" className={buttonClass} onClick={() => setShowModal(false)} disabled={savingPermissions}>Cancel</button>
+            <button type="button" className={darkButtonClass} onClick={handleSavePermissions} disabled={savingPermissions}>
+              {savingPermissions ? <RefreshCw size={15} className="motion-safe:animate-spin" aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}{savingPermissions ? 'Saving...' : 'Save Permissions'}
+            </button>
           </div>
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className='flex flex-wrap justify-center items-center gap-2 mt-8 mb-4'>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className='px-4 py-2 border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
-              >
-                Previous
-              </button>
-              
-              <div className='flex gap-1'>
-                {[...Array(totalPages)].map((_, i) => {
-                  const pageNum = i + 1;
-                  // Only show first, last, and pages around current
-                  if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)) {
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-10 h-10 border rounded-md text-sm font-bold transition-all ${currentPage === pageNum ? 'bg-black text-white border-black shadow-md scale-105' : 'border-gray-300 hover:bg-gray-50 text-gray-600'}`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  } else if (pageNum === currentPage - 3 || pageNum === currentPage + 3) {
-                    return <span key={pageNum} className='flex items-end px-1 text-gray-400'>...</span>;
-                  }
-                  return null;
-                })}
-              </div>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className='px-4 py-2 border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <p className='p-4 text-gray-500'>No users found matching your search or date range.</p>
+        </dialog>
       )}
-
     </div>
   );
 };
