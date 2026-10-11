@@ -39,6 +39,7 @@ const TypographySettings = lazy(() => import('./pages/Settings/TypographySetting
 const ProductTaxonomy = lazy(() => import('./pages/Settings/ProductTaxonomy'))
 const SocialsSettings = lazy(() => import('./pages/SocialsSettings'))
 const LuxePage = lazy(() => import('./pages/LuxePage'))
+const HomeGiftOffer = lazy(() => import('./pages/HomeGiftOffer'))
 const Stats = lazy(() => import('./pages/Stats/Stats'))
 const ResetData = lazy(() => import('./pages/ResetData'))
 const ComingSoon = lazy(() => import('./pages/ComingSoon'))
@@ -106,7 +107,7 @@ const App = () => {
           <hr />
           <div className='flex w-full'>
             <Sidebar role={role} permissions={permissions} onNavigate={handleSidebarNavigate} />
-            <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/tickets', '/orders', '/reviews', '/user-tracking'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
+            <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/tickets', '/orders', '/reviews', '/user-tracking'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname === '/home-gift-offer' && isAllowed('/cms')) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
               ? 'min-w-0 flex-1 px-3 py-5 sm:px-6 lg:px-8 lg:py-8 text-gray-600 text-base'
               : 'w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'}>
               <Suspense fallback={<PageFallback />}>
@@ -145,6 +146,7 @@ const App = () => {
                 {isAllowed('/product-taxonomy') && <Route path='/product-taxonomy' element={<ProductTaxonomy token={token} />} />}
                 {isAllowed('/cms') && <Route path='/socials-settings' element={<SocialsSettings token={token} />} />}
                 {isAllowed('/cms') && <Route path='/luxe-page' element={<LuxePage token={token} />} />}
+                {isAllowed('/cms') && <Route path='/home-gift-offer' element={<HomeGiftOffer token={token} />} />}
                 {isAllowed('/stats') && <Route path='/stats' element={<Stats token={token} />} />}
                 {isAllowed('/reset-data') && <Route path='/reset-data' element={<ResetData token={token} />} />}
                 {isAllowed('/staff-tracking') && <Route path='/staff-tracking' element={<ComingSoon title='Staff Tracking' subtitle="Track staff activity and performance — this feature isn't live yet." />} />}

@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:gift-offer": "playwright test --config playwright.gift-offer.config.mjs",
     "test:analytics": "node --test tests/analytics-client.test.mjs",
     "test:analytics:browser": "playwright test --config playwright.analytics.config.mjs",
     "dev": "vite",

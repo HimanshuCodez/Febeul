@@ -3,6 +3,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { invalidateReturnSettingsCache } from '../utils/returnStatus.js';
 import { DEFAULT_SOCIAL_SETTINGS, validateSocialSettings } from '../utils/socialSettings.js';
 import { DEFAULT_LUXE_PAGE_CONTENT, validateLuxePageContent } from '../utils/luxePageContent.js';
+import { getPublicGiftOffer, validateGiftOfferForSave } from '../utils/homeGiftOffer.js';
 
 // @desc    Get CMS content by name
 // @route   GET /api/cms/:name
@@ -10,6 +11,10 @@ import { DEFAULT_LUXE_PAGE_CONTENT, validateLuxePageContent } from '../utils/lux
 const getCmsContent = async (req, res) => {
     try {
         const content = await cmsModel.findOne({ name: req.params.name });
+        if (req.params.name === 'homeGiftOffer') {
+            res.set('Cache-Control', 'no-store');
+            return res.json({ success: true, content: await getPublicGiftOffer(content?.content) });
+        }
         if (content) {
             res.json({ success: true, content: content.content, creator: content.creator });
         } else if (req.params.name === 'socialSettings') {
@@ -31,6 +36,13 @@ const updateCmsContent = async (req, res) => {
     try {
         const { name, content } = req.body;
         let savedContent = content;
+        if (name === 'homeGiftOffer') {
+            try {
+                savedContent = await validateGiftOfferForSave(content);
+            } catch (error) {
+                return res.status(400).json({ success: false, message: error.message });
+            }
+        }
         if (name === 'socialSettings') {
             try {
                 savedContent = validateSocialSettings(content);

@@ -1,5 +1,5 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import Hero from '../components/HeroSection'
 import OfferBar from '../components/ReturnBanner'
 import StylesSection from '../components/Banner'
@@ -13,6 +13,7 @@ import Aboutt from '../components/Aboutt'
 import AllProductsCarousel from '../components/Extras/AllProductsCarousel'
 import BestSellerCarousel from '../components/Extras/BestSellerCarousel'
 import FebeulMembership from '../components/Membership'
+import HomeGiftOffer from '../components/HomeGiftOffer'
 
 const SectionHeading = ({ title, subtitle, subtitleLink }) => (
   <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -42,9 +43,13 @@ const SectionHeading = ({ title, subtitle, subtitleLink }) => (
 );
 
 const Home = () => {
+  const [giftOpen, setGiftOpen] = useState(false);
+  const location = useLocation();
+  const returningToGift = new URLSearchParams(location.search).get('gift') === '1';
   return (
     <div>
-      <FebeulMembership autoOpenDelay={2000} centered />
+      <FebeulMembership autoOpenDelay={2000} autoOpenPaused={giftOpen || returningToGift} centered />
+      <HomeGiftOffer open={giftOpen} onOpenChange={setGiftOpen} />
       <Hero />
       <OfferBar />
       <div className=''><Spotlight /></div>

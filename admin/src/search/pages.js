@@ -16,6 +16,7 @@ export const searchPages = [
   ['Order Email Template', '/email-templates', '/email-templates', 'Marketing & Content', 'email settings notifications'],
   ['Content (CMS)', '/cms', '/cms', 'Marketing & Content', 'settings website text swiping messages promo banner info bar shipping scan shop staff details'],
   ['Luxe Page', '/luxe-page', '/cms', 'Marketing & Content', 'settings membership benefits images text'],
+  ['Home Gift Offer', '/home-gift-offer', '/cms', 'Marketing & Content', 'settings home welcome coupon popup gift badge colors promotion'],
   ['Hero Images', '/images', '/images', 'Marketing & Content', 'settings home banner carousel photos'],
   ['Policies', '/policy-update', '/policy-update', 'Marketing & Content', 'settings privacy terms conditions refund shipping policy'],
   ['Tickets', '/tickets', '/tickets', 'Support', 'customer support help messages'],

@@ -25,7 +25,7 @@ const benefits = [
   { name: "Free Shipping", desc: "Zero delivery fees always", icon: Truck, color: "from-cyan-400 to-blue-500" },
 ];
 
-const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false }) => {
+const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false, autoOpenPaused = false }) => {
   const navigate = useNavigate();
   const { user, isAuthenticated, siteSettings } = useAuthStore();
   const [open, setOpen] = useState(false);
@@ -43,14 +43,14 @@ const FebeulMembershipWidget = ({ autoOpenDelay = null, centered = false }) => {
 
   useEffect(() => {
     // Let the bottom consent bar be usable before opening a promotional modal.
-    if (autoOpenDelay === null || waitingForConsent || hasOpenedRef.current) return;
+    if (autoOpenDelay === null || autoOpenPaused || waitingForConsent || hasOpenedRef.current) return;
 
     timerRef.current = window.setTimeout(() => {
       hasOpenedRef.current = true;
       setOpen(true);
     }, autoOpenDelay);
     return () => window.clearTimeout(timerRef.current);
-  }, [autoOpenDelay, waitingForConsent]);
+  }, [autoOpenDelay, autoOpenPaused, waitingForConsent]);
 
   useEffect(() => {
     if (!open) return;

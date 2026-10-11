@@ -51,6 +51,7 @@ const NAV_SECTIONS = [
       { to: '/email-templates', icon: MailCheck, label: 'Order Email Template', permission: '/email-templates' },
       { to: '/cms', icon: FileText, label: 'Content (CMS)', permission: '/cms' },
       { to: '/luxe-page', icon: Crown, label: 'Luxe Page', permission: '/cms' },
+      { to: '/home-gift-offer', icon: Gift, label: 'Home Gift Offer', permission: '/cms' },
       { to: '/images', icon: Image, label: 'Hero Images', permission: '/images' },
       { to: '/policy-update', icon: ShieldCheck, label: 'Policies', permission: '/policy-update' },
     ],
