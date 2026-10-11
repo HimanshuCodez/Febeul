@@ -140,6 +140,104 @@ test('payload limits, rate limits, retention indexes and safe feature disable', 
   assert.equal(await AnalyticsEvent.countDocuments(), 0); assert.equal(await orderModel.countDocuments(), 1);
 });
 
+test('funnel drill-down totals match summary cohorts, with independent activity and session filters', async () => {
+  const range = reportRange({});
+  const stages = ['product_view', 'add_to_cart', 'checkout_started', 'purchase'];
+  const contexts = Array.from({ length: 8 }, () => context());
+  // Earlier stages outside the date range, in another session, or expired must not qualify.
+  await AnalyticsEvent.insertMany([
+    ...contexts.slice(0, 4).flatMap((ctx, index) => stages.slice(0, index + 1).map(name => event(ctx, name, name === 'purchase' ? { orderId: new mongoose.Types.ObjectId(), amount: 100, currency: 'INR' } : {}))),
+    event(contexts[1], 'add_to_cart'),
+    event(contexts[4], 'add_to_cart'),
+    event(contexts[5], 'product_view', { timestamp: new Date(+range.start - 1) }), event(contexts[5], 'add_to_cart'),
+    event(contexts[6], 'product_view', { expiresAt: new Date(Date.now() - 1000) }), event(contexts[6], 'add_to_cart'),
+    event({ ...contexts[7], visitorId: contexts[0].visitorId }, 'purchase', { orderId: new mongoose.Types.ObjectId(), amount: 100, currency: 'INR' }),
+  ]);
+  const summary = await summaryReport(range);
+  for (const stage of ['product', 'cart', 'checkout', 'purchase']) {
+    const report = await journeyReport(range, 1, { stage });
+    assert.equal(report.total, summary.sessions[stage]);
+    const expectedEvent = stages[['product', 'cart', 'checkout', 'purchase'].indexOf(stage)];
+    assert.ok(report.rows.every(row => row.timeline.every(item => item.name === expectedEvent)));
+  }
+  assert.equal((await journeyReport(range, 1, { stage: 'cart' })).total, 3);
+  assert.equal((await journeyReport(range, 1, { event: 'add_to_cart' })).total, 6);
+  assert.equal((await journeyReport(range, 1, { event: 'purchase' })).total, 2);
+  const full = await journeyReport(range, 1, { sessionId: contexts[3].sessionId });
+  assert.equal(full.total, 1); assert.equal(full.rows[0].timeline.length, 4);
+  assert.equal((await journeyReport(range, 1, { stage: 'purchase', sessionId: contexts[0].sessionId })).total, 0);
+});
+
+test('journeys identify only recorded signed-in actions and expose allowlisted account/product/order details', async () => {
+  const ctx = context(), range = reportRange({});
+  await userModel.updateOne({ _id: user._id }, { $set: { password: 'private-password', otp: 'private-otp', bankAccount: { accountNumber: 'private-bank' } } });
+  const secondUser = await userModel.create({ name: 'Second account', email: 'second@example.test' });
+  const product = await productModel.create({ name: 'Rose lounge set', description: 'Test', category: 'Lingerie', date: Date.now(), variations: [] });
+  const order = await createOrder({ address: { name: 'private-address' }, items: [{ productId: product._id, name: product.name, quantity: 2, price: 199, image: 'private-image' }] });
+  await AnalyticsEvent.insertMany([
+    event(ctx, 'product_view', { productId: product._id }),
+    event(ctx, 'add_to_cart', { productId: product._id, quantity: 2, userId: user._id }),
+    event(ctx, 'checkout_started', { userId: secondUser._id }),
+    event(ctx, 'purchase', { userId: secondUser._id, orderId: order._id, amount: 199, currency: 'INR' }),
+  ]);
+  const full = (await journeyReport(range)).rows[0];
+  assert.equal(full.accounts.length, 2); assert.equal(full.anonymousEvents, 1);
+  assert.ok(full.accounts.some(account => account.email === user.email));
+  assert.ok(full.accounts.every(account => Object.keys(account).sort().join(',') === '_id,email,name'));
+  const view = full.timeline.find(item => item.name === 'product_view');
+  assert.equal(view.userId, undefined); assert.equal(view.productName, product.name);
+  const purchase = full.timeline.find(item => item.name === 'purchase');
+  assert.equal(String(purchase.userId), String(secondUser._id));
+  assert.deepEqual(purchase.items, [{ productId: product._id, name: product.name, quantity: 2 }]);
+  assert.ok(!JSON.stringify(full).includes('private-'));
+  const views = (await journeyReport(range, 1, { stage: 'product' })).rows[0];
+  assert.deepEqual(views.accounts, []); assert.equal(views.anonymousEvents, 1);
+  const cart = (await journeyReport(range, 1, { stage: 'cart' })).rows[0];
+  assert.equal(cart.accounts.length, 1); assert.equal(cart.accounts[0].email, user.email);
+  await userModel.deleteOne({ _id: user._id }); await productModel.deleteOne({ _id: product._id });
+  const missing = (await journeyReport(range, 1, { event: 'add_to_cart' })).rows[0];
+  assert.equal(missing.accounts[0].name, 'Unavailable account'); assert.equal(missing.accounts[0].email, undefined);
+  assert.equal(missing.timeline[0].productName, 'Unavailable product');
+  assert.equal((await request('/api/analytics/withdraw', { visitorId: ctx.visitorId })).status, 204);
+  assert.equal((await journeyReport(range)).total, 0);
+  assert.equal(await orderModel.countDocuments(), 1);
+});
+
+test('filtered journey pagination and event limits apply after selecting matching sessions/activity', async () => {
+  const ctx = context(), range = reportRange({});
+  const start = new Date(); start.setUTCHours(0, 0, 1, 0);
+  await AnalyticsEvent.insertMany([
+    ...Array.from({ length: 105 }, (_, index) => event(ctx, 'page_view', { timestamp: new Date(+start + index) })),
+    event(ctx, 'product_view', { timestamp: new Date(+start + 106) }),
+    ...Array.from({ length: 102 }, (_, index) => event(ctx, 'add_to_cart', { userId: user._id, timestamp: new Date(+start + 107 + index) })),
+    ...Array.from({ length: 11 }, () => context()).flatMap(item => [event(item, 'product_view'), event(item, 'add_to_cart')]),
+    ...Array.from({ length: 12 }, () => event(context(), 'search', { searchTerm: 'rose' })),
+  ]);
+  const first = await journeyReport(range, 1, { stage: 'cart' });
+  const second = await journeyReport(range, 2, { stage: 'cart' });
+  assert.equal(first.total, 12); assert.equal(first.rows.length, 10); assert.equal(second.rows.length, 2);
+  assert.equal(new Set([...first.rows, ...second.rows].map(row => row._id)).size, 12);
+  const delayed = [...first.rows, ...second.rows].find(row => row._id === ctx.sessionId);
+  assert.equal(delayed.events, 208); assert.equal(delayed.matchingEvents, 102); assert.equal(delayed.timeline.length, 100);
+  assert.ok(delayed.timeline.every(item => item.name === 'add_to_cart')); assert.equal(delayed.accounts[0].email, user.email);
+  assert.equal((await journeyReport(range, 1, { event: 'search' })).total, 12);
+});
+
+test('identity-bearing journey filters retain admin authorization and reject invalid query values', async () => {
+  await AnalyticsEvent.create(event(context(), 'add_to_cart', { userId: user._id }));
+  const path = '/api/analytics/reports/journeys?event=add_to_cart';
+  assert.equal((await request(path)).status, 401); assert.equal((await request(path, null, auth())).status, 401);
+  const staff = await userModel.create({ email: 'report-staff@example.test', role: 'staff', permissions: ['/orders'] });
+  const staffToken = jwt.sign(String(staff._id), process.env.JWT_SECRET);
+  assert.equal((await request(path, null, staffToken)).status, 403);
+  await userModel.updateOne({ _id: staff._id }, { $set: { permissions: ['/user-tracking'] } });
+  assert.equal((await request(path, null, staffToken)).body.rows[0].accounts[0].email, user.email);
+  assert.equal((await request(path, null, admin())).body.rows[0].accounts[0].email, user.email);
+  for (const query of ['stage=nope', 'stage=toString', 'stage=cart&stage=product', 'event=password', 'event[$ne]=purchase', 'stage=cart&event=add_to_cart', 'sessionId=invalid', 'page=0']) {
+    assert.equal((await request('/api/analytics/reports/journeys?' + query, null, admin())).status, 400, query);
+  }
+});
+
 test('real cart routes keep add/update/remove behavior while analytics is unavailable', async () => {
   process.env.ANALYTICS_ENABLED = 'false';
   const product = await productModel.create({ name: 'Test lingerie', description: 'Test', category: 'Lingerie', sizes: ['M'], date: Date.now(), variations: [{ color: 'Rose', images: ['test.png'], sizes: [{ size: 'M', price: 199, stock: 10 }] }] });

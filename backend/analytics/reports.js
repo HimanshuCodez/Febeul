@@ -1,6 +1,9 @@
 import { AnalyticsEvent, AnalyticsPayment } from './models.js';
 import orderModel from '../models/orderModel.js';
+import userModel from '../models/userModel.js';
+import productModel from '../models/productModel.js';
 import { analyticsConfig } from './config.js';
+import { FUNNEL_STAGES } from './validation.js';
 
 const run = (model, pipeline) => model.aggregate(pipeline).option({ maxTimeMS: 10000, allowDiskUse: true });
 const retained = () => ({ expiresAt: { $gt: new Date() } });
@@ -51,10 +54,47 @@ function revenueReport(model, match) {
   ]);
 }
 
-export async function journeyReport(range, page = 1) {
+export async function journeyReport(range, page = 1, filters = {}) {
+  // Filter sessions using the same stage coverage as summaryReport, before pagination.
+  // The timeline then shows the selected activity, including events after the first 100
+  // unrelated events. Guest actions are never attributed to a later signed-in account.
+  const required = filters.stage ? FUNNEL_STAGES[filters.stage] : filters.event ? [filters.event] : [];
+  const selectedEvent = required.at(-1);
+  const relevant = selectedEvent ? { $eq: ['$name', selectedEvent] } : true;
+  const match = { ...eventMatch(range), ...(filters.sessionId ? { sessionId: filters.sessionId } : {}) };
+  const timeline = [
+    { $match: { ...match, ...(selectedEvent ? { name: selectedEvent } : {}), $expr: { $eq: ['$sessionId', '$$session'] } } },
+    { $sort: { timestamp: 1, _id: 1 } }, { $limit: 100 },
+    { $lookup: { from: productModel.collection.name, localField: 'productId', foreignField: '_id', pipeline: [{ $project: { name: 1 } }], as: 'product' } },
+    { $lookup: { from: orderModel.collection.name, let: { order: '$orderId', event: '$name' }, pipeline: [
+      { $match: { $expr: { $and: [{ $eq: ['$$event', 'purchase'] }, { $eq: ['$_id', '$$order'] }] } } },
+      { $project: { _id: 0, items: { $map: { input: { $slice: [{ $ifNull: ['$items', []] }, 100] }, as: 'item', in: { productId: '$$item.productId', name: '$$item.name', quantity: '$$item.quantity' } } } } },
+    ], as: 'order' } },
+    { $project: {
+      _id: 0, eventId: 1, name: 1, timestamp: 1, path: 1, productId: 1, quantity: 1, searchTerm: 1, currency: 1, amount: 1, userId: 1, orderId: 1,
+      productName: { $cond: [{ $ifNull: ['$productId', false] }, { $ifNull: [{ $arrayElemAt: ['$product.name', 0] }, 'Unavailable product'] }, '$$REMOVE'] },
+      items: { $ifNull: [{ $arrayElemAt: ['$order.items', 0] }, []] },
+    } },
+  ];
   const rows = await run(AnalyticsEvent, [
-    { $match: eventMatch(range) }, eventGroup, { $sort: { lastAt: -1, _id: 1 } },
-    { $facet: { total: [{ $count: 'count' }], rows: [{ $skip: (page - 1) * 10 }, { $limit: 10 }, { $lookup: { from: AnalyticsEvent.collection.name, let: { session: '$_id' }, pipeline: [{ $match: { ...eventMatch(range), $expr: { $eq: ['$sessionId', '$$session'] } } }, { $sort: { timestamp: 1, _id: 1 } }, { $limit: 100 }, { $project: { _id: 0, name: 1, timestamp: 1, path: 1, productId: 1, quantity: 1, searchTerm: 1, currency: 1, amount: 1 } }], as: 'timeline' } }] } },
+    { $match: match },
+    { $group: { ...eventGroup.$group,
+      matchingEvents: countIf(relevant),
+      anonymousEvents: countIf({ $and: [relevant, { $eq: [{ $ifNull: ['$userId', null] }, null] }] }),
+      accountIds: { $addToSet: { $cond: [relevant, { $ifNull: ['$userId', null] }, null] } },
+    } },
+    ...(required.length ? [{ $match: { names: { $all: required } } }] : []),
+    { $sort: { lastAt: -1, _id: 1 } },
+    { $facet: { total: [{ $count: 'count' }], rows: [
+      { $skip: (page - 1) * 10 }, { $limit: 10 },
+      { $set: { accountIds: { $setDifference: ['$accountIds', [null]] } } },
+      { $lookup: { from: userModel.collection.name, localField: 'accountIds', foreignField: '_id', pipeline: [{ $project: { _id: 1, name: 1, email: 1 } }], as: 'accounts' } },
+      { $lookup: { from: AnalyticsEvent.collection.name, let: { session: '$_id' }, pipeline: timeline, as: 'timeline' } },
+    ] } },
   ]);
-  return { page, pageSize: 10, total: rows[0]?.total[0]?.count || 0, rows: rows[0]?.rows || [] };
+  const journeys = (rows[0]?.rows || []).map(({ accountIds, accounts, ...row }) => ({
+    ...row,
+    accounts: accountIds.map(id => accounts.find(account => String(account._id) === String(id)) || { _id: id, name: 'Unavailable account' }),
+  }));
+  return { page, pageSize: 10, total: rows[0]?.total[0]?.count || 0, rows: journeys };
 }

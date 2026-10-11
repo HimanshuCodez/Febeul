@@ -4,7 +4,7 @@ import authUser from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 import { AnalyticsEvent, AnalyticsRevocation } from './models.js';
 import { analyticsConfig, expiresAt } from './config.js';
-import { validateBatch, reportRange } from './validation.js';
+import { validateBatch, reportRange, journeyFilters } from './validation.js';
 import { ingestEvents } from './service.js';
 import { summaryReport, journeyReport } from './reports.js';
 import { UUID } from '../../shared/analyticsPrivacy.js';
@@ -52,14 +52,15 @@ export function createAnalyticsRouter(deps = {}) {
   router.use('/reports', adminAuth, (req, res, next) => req.role === 'admin' || (req.role === 'staff' && req.permissions?.includes('/user-tracking')) ? next() : res.status(403).json({ success: false, message: 'User Tracking permission required' }));
   router.get('/reports/:report', async (req, res) => {
     if (!['summary', 'journeys'].includes(req.params.report)) return res.status(404).json({ success: false });
-    let range, page;
+    let range, page, filters;
     try {
       range = reportRange(req.query);
       page = Number(req.query.page || 1);
       if (!Number.isInteger(page) || page < 1 || page > 10000) throw new Error('Invalid page');
+      if (req.params.report === 'journeys') filters = journeyFilters(req.query);
     } catch (error) { return res.status(400).json({ success: false, message: error.message }); }
     try {
-      const data = req.params.report === 'summary' ? await summary(range) : await journeys(range, page);
+      const data = req.params.report === 'summary' ? await summary(range) : await journeys(range, page, filters);
       res.json({ success: true, ...data });
     } catch { res.status(503).json({ success: false, message: 'Analytics reports temporarily unavailable. Please retry.' }); }
   });

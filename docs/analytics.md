@@ -60,7 +60,7 @@ Optional payment writes run after the HTTP response finishes/closes, are bounded
 - `POST /api/analytics/events`: optional user auth, validated 1–20-event batches, allowlisted server-owned schema. Unknown properties are not persisted. Disabled ingestion returns 204.
 - `POST /api/analytics/withdraw`: revokes the unguessable browser ID and removes its event records. This is a privacy control, not an activity event.
 - `GET /api/analytics/reports/summary?from=YYYY-MM-DD&to=YYYY-MM-DD`.
-- `GET /api/analytics/reports/journeys?from=...&to=...&page=1`.
+- `GET /api/analytics/reports/journeys?from=...&to=...&page=1`. Optional `stage=product|cart|checkout|purchase` filters to the same session cohort as the corresponding funnel count. Alternatively, `event=page_view|product_view|search|add_to_cart|remove_from_cart|checkout_started|purchase` selects any session with that activity. `sessionId=<UUID>` selects one retained session. Invalid filters and combining `stage` with `event` return 400.
 
 Both report endpoints use the existing admin middleware and existing `/user-tracking` permission. Primary/database admins are permitted; database staff need that explicit permission. Legacy ENV staff without an explicit permission list are denied. Ordinary storefront tokens and unauthenticated requests cannot read reports.
 
@@ -81,7 +81,7 @@ Event indexes cover event ID, unique purchase order, server timestamp, browser/s
 | Product → cart → checkout → purchase | Same-session stage coverage in the range. Each stage requires all preceding event types, but does not enforce their time order. It is explicitly labeled, not presented as an ordered path reconstruction. |
 | Conversion | Sessions with any verified purchase in the range ÷ consented sessions with any event in the range × 100. This denominator is separate from product-stage coverage. |
 | Referral/campaign | Session counts grouped by the first recorded attribution in the range. Attribution starts after consent and does not reconstruct a pre-consent landing source. |
-| Journeys | Session-grouped retained events in the selected range, ordered by server receipt time. UUIDs are pseudonymous browser/session references; no names/emails/account IDs are exposed in the report. |
+| Journeys | Session-grouped retained events in the selected range, ordered by server receipt time. UUIDs are browser/session references, not people. Accounts on matching signed-in events display their current name/email via the event's existing server-derived user ID. Guest events remain unidentified; an account elsewhere in the same session does not identify them. |
 | Abandonment | Sessions with a checkout start in the selected range, no verified purchase at/after their latest checkout, and no event for the configured inactivity period. Assessment uses all retained activity through now, including purchases after the selected end date. |
 | Verified payments, all consent choices | Retained operational payment facts captured since enablement, grouped by verification date and currency. These do not require browser attribution. Not a reconstruction of all historical gateway transactions. |
 | Verified purchases, consented journeys | The consented event subset of verified payments, by server verification date and currency. |
@@ -89,6 +89,16 @@ Event indexes cover event ID, unique purchase order, server timestamp, browser/s
 | Refunds / net | Current `refundDetails.status === 'completed'` amounts reduce the original payment cohort's gross amount, capped at the amount paid. Pending/initiated/processing refunds are shown separately and not deducted. Net = verified gross − completed refunds. Refunds can revise earlier reports; they are not reported by refund date. |
 
 Amounts include tax/shipping charged by the existing flow; gateway fees are not deducted. Currency totals are never added together. The existing order schema has one refund summary, so analytics reflects that summary rather than inventing a complete refund transaction ledger.
+
+### Inspecting the visitors behind a count
+
+Select **Product viewed**, **Also added to cart**, **Also started checkout**, or **Also purchased** to jump to the matching sessions. These lists use the existing funnel definition, including all preceding event types within the selected UTC date range; they do not require chronological order. The Add-to-cart, Remove-from-cart and Checkout starts cards select independent activity types. The activity dropdown also offers page views, searches and purchases without requiring earlier funnel stages.
+
+Expand a session to see the account recorded on each action, current product names, quantities, sanitized searches, page paths and timestamps. Verified purchases include the order ID and a projection of its purchased item names/product IDs/quantities. Client amounts remain labeled as reported amounts. **View full journey** opens that session's other retained actions within the same date range. Changing the activity or dates resets pagination to page one.
+
+Filtering occurs before pagination (10 sessions per page). A filtered timeline contains the first 100 matching actions, so an action after 100 unrelated page views remains visible. `matchingEvents` gives the matching count; `events` remains the original total session count in the range. Full journeys retain the original first-100-events limit. Purchased order item lists are capped at 100 items. Product names and account details are current record values, not historical snapshots; deleted records show as unavailable.
+
+Identity enrichment is read-only and limited to existing consented event user IDs. User lookups explicitly project only ID, name and email. Order lookups project only item product ID, name and quantity; addresses, passwords, payment credentials and other private fields are excluded. No identity is inferred from an order, email, browser ID, guest action or later login. Multiple recorded accounts remain separate. Expired/withdrawn visitor events cannot supply these details. The same existing admin authorization and explicit User Tracking staff permission protect these reports; no new tracking, identifiers, dependencies or configuration are introduced.
 
 ## Existing behavior and limits
 
@@ -119,6 +129,8 @@ Verification includes acceptance/rejection/withdrawal, no pre-consent IDs/events
 Final results: **10 backend tests, 8 client tests, and 6 browser tests passed**. Both production builds, focused lint for the new frontend/admin code, and `git diff --check` passed. Mobile banner, Home consent priority and desktop dashboard screenshots were inspected. Build/test artifacts stay outside tracked application assets.
 
 New development dependencies only: backend `mongodb-memory-server` and `nock`; frontend `@playwright/test`. No runtime dependency was added. The lockfiles include npm's compatible transitive resolution changes for these test dependencies.
+
+Visitor-detail follow-up verification: **14 backend tests and 8 browser scenarios passed**, including stage membership versus summary counts, identity projection, mixed guest/signed-in sessions, deleted records, withdrawal, filtered pagination, actions after the timeline cap, query validation, authorization, full journeys, request failures and stale responses. Admin build, focused UserTracking lint and whitespace checks passed. Mobile/desktop detail views were inspected; this follow-up adds no dependencies or environment variables.
 
 ## Files added or changed for this feature
 

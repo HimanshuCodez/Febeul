@@ -106,7 +106,7 @@ const App = () => {
           <hr />
           <div className='flex w-full'>
             <Sidebar role={role} permissions={permissions} onNavigate={handleSidebarNavigate} />
-            <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/tickets', '/orders', '/reviews'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
+            <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/tickets', '/orders', '/reviews', '/user-tracking'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
               ? 'min-w-0 flex-1 px-3 py-5 sm:px-6 lg:px-8 lg:py-8 text-gray-600 text-base'
               : 'w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'}>
               <Suspense fallback={<PageFallback />}>

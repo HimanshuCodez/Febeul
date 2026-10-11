@@ -57,3 +57,28 @@ export function reportRange(query) {
   if (!Number.isFinite(+start) || !Number.isFinite(+last) || start.toISOString().slice(0, 10) !== startText || last.toISOString().slice(0, 10) !== endText || start > last || last - start > 365 * 86400000) throw new Error('Select a valid range of at most 366 days');
   return { start, end: new Date(+last + 86400000), from: startText, to: endText };
 }
+
+export const FUNNEL_STAGES = {
+  product: ['product_view'],
+  cart: ['product_view', 'add_to_cart'],
+  checkout: ['product_view', 'add_to_cart', 'checkout_started'],
+  purchase: ['product_view', 'add_to_cart', 'checkout_started', 'purchase'],
+};
+
+export function journeyFilters(query) {
+  const filters = {};
+  if (query.stage !== undefined) {
+    if (typeof query.stage !== 'string' || !Object.hasOwn(FUNNEL_STAGES, query.stage)) throw new Error('Invalid funnel stage');
+    filters.stage = query.stage;
+  }
+  if (query.event !== undefined) {
+    if (typeof query.event !== 'string' || ![...CLIENT_EVENTS, 'purchase'].includes(query.event)) throw new Error('Invalid activity type');
+    filters.event = query.event;
+  }
+  if (filters.stage && filters.event) throw new Error('Choose a funnel stage or an activity type');
+  if (query.sessionId !== undefined) {
+    if (typeof query.sessionId !== 'string' || !UUID.test(query.sessionId)) throw new Error('Invalid session ID');
+    filters.sessionId = query.sessionId;
+  }
+  return filters;
+}

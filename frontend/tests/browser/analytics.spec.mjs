@@ -182,3 +182,116 @@ test('User Tracking dashboard uses existing sidebar route, handles empty results
   await expect(page.getByRole('heading', { name: 'Popular products' })).toBeVisible();
   await page.screenshot({ path: test.info().outputPath('analytics-dashboard.png'), fullPage: true });
 });
+
+async function mockJourneyDetails(page) {
+  await page.addInitScript(() => { localStorage.setItem('token', 'local-admin'); localStorage.setItem('role', 'admin'); });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const account = { _id: '650000000000000000000001', name: 'Amelia Rose', email: 'amelia@example.test' };
+  const stages = { product: ['product_view'], cart: ['product_view', 'add_to_cart'], checkout: ['product_view', 'add_to_cart', 'checkout_started'], purchase: ['product_view', 'add_to_cart', 'checkout_started', 'purchase'] };
+  const uuid = index => '00000000-0000-4000-8000-' + String(index).padStart(12, '0');
+  const event = (name, userId) => ({ name, timestamp: '2026-10-10T10:00:00Z', path: '/products', ...(userId ? { userId } : {}), ...(['product_view', 'add_to_cart', 'remove_from_cart'].includes(name) ? { productId, productName: 'Rose Lace Set' } : {}), ...(['add_to_cart', 'remove_from_cart'].includes(name) ? { quantity: 2 } : {}), ...(name === 'search' ? { searchTerm: 'rose lace' } : {}), ...(name === 'purchase' ? { orderId: '650000000000000000000099', amount: 199, currency: 'INR', items: [{ productId, name: 'Rose Lace Set', quantity: 2 }] } : {}) });
+  const rows = Array.from({ length: 16 }, (_, index) => {
+    const names = index === 0 ? ['page_view', ...stages.purchase, 'remove_from_cart', 'search'] : index === 1 ? stages.checkout : index < 6 ? stages.product : ['add_to_cart'];
+    const timeline = names.map(name => event(name, index === 0 && !['product_view', 'page_view'].includes(name) ? account._id : null));
+    return { _id: uuid(index + 1), visitorId: uuid(index + 101), names, events: timeline.length, firstAt: '2026-10-10T10:00:00Z', lastAt: '2026-10-10T11:00:00Z', timeline };
+  });
+  const metrics = { success: true, config: { enabled: true, retentionDays: 90, abandonmentMinutes: 30 }, visitors: { total: 16, new: 16, returning: 0 }, sessions: { total: 16, purchasing: 1, product: 6, cart: 2, checkout: 2, purchase: 1 }, conversionRate: 6.25, activity: [{ _id: 'add_to_cart', events: 12 }, { _id: 'remove_from_cart', events: 1 }, { _id: 'checkout_started', events: 2 }], products: [], searches: [], sources: [], payments: [], trackedPayments: [], operational: [], abandonment: { abandoned: 1, checkouts: 2, purchased: 1 } };
+  const state = { calls: [], errors: [], fail: false, empty: false, delay: false };
+  page.on('pageerror', error => state.errors.push(error.message));
+  await page.route('**/*', async route => {
+    const request = route.request(), url = new URL(request.url());
+    if (url.pathname.startsWith('/api/')) {
+      state.calls.push({ url, method: request.method(), token: request.headers().token });
+      if (!url.pathname.endsWith('/journeys')) return route.fulfill({ json: metrics });
+      if (state.fail) return route.fulfill({ status: 503, json: { success: false, message: 'Journey details temporarily unavailable' } });
+      const stage = url.searchParams.get('stage'), type = url.searchParams.get('event'), sessionId = url.searchParams.get('sessionId');
+      if (state.delay && stage === 'cart') await new Promise(resolve => setTimeout(resolve, 700));
+      const required = stages[stage] || (type ? [type] : []);
+      const selected = required.at(-1), pageNumber = Number(url.searchParams.get('page') || 1);
+      const matching = state.empty ? [] : rows.filter(row => required.every(name => row.names.includes(name)) && (!sessionId || row._id === sessionId));
+      return route.fulfill({ json: { success: true, total: matching.length, page: pageNumber, pageSize: 10, rows: matching.slice((pageNumber - 1) * 10, pageNumber * 10).map(row => {
+        const timeline = row.timeline.filter(item => !selected || item.name === selected);
+        return { ...row, timeline, matchingEvents: timeline.length, anonymousEvents: timeline.filter(item => !item.userId).length, accounts: timeline.some(item => item.userId === account._id) ? [account] : [] };
+      }) } });
+    }
+    if (url.origin === admin) return route.continue();
+    return route.abort();
+  });
+  return state;
+}
+
+test('funnel stages reveal matching accounts and guest activity, purchase items and full sessions', async ({ page }) => {
+  const state = await mockJourneyDetails(page);
+  await page.goto(`${admin}/user-tracking`);
+  const journeys = page.getByRole('region', { name: 'Consented visitor journeys' });
+  for (const [stage, label, count] of [['product', 'Product viewed', 6], ['cart', 'Also added to cart', 2], ['checkout', 'Also started checkout', 2], ['purchase', 'Also purchased', 1]]) {
+    await page.getByRole('button', { name: new RegExp('^' + label) }).click();
+    await expect(page.getByLabel('Activity filter')).toHaveValue('stage:' + stage);
+    await expect(journeys.locator('details')).toHaveCount(count);
+    await expect(journeys.getByRole('heading', { name: label, exact: true })).toBeVisible();
+    if (stage === 'product') await expect(journeys.getByText('amelia@example.test', { exact: true })).toHaveCount(0);
+    else await expect(journeys.getByText('amelia@example.test', { exact: true })).toBeVisible();
+  }
+  await journeys.locator('summary').first().click();
+  await expect(journeys.getByText('Verified payment: INR 199')).toBeVisible();
+  await expect(journeys.getByText(/Order: 650000000000000000000099/)).toBeVisible();
+  await expect(journeys.getByText(/Rose Lace Set.*Qty 2/)).toBeVisible();
+  await journeys.getByRole('button', { name: 'View full journey' }).click();
+  await expect(page.getByLabel('Activity filter')).toHaveValue('session');
+  await expect(journeys.locator('details')).toHaveCount(1);
+  await expect(journeys.getByText('Guest / unidentified', { exact: true }).first()).toBeVisible();
+  await expect(journeys.getByText('Quantity: 2').first()).toBeVisible();
+  await expect(journeys.getByText(/Search:.*rose lace/)).toBeVisible();
+  await expect(journeys.locator('summary').getByText('Amelia Rose', { exact: false })).toBeVisible();
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await journeys.evaluate(element => element.scrollIntoView({ block: 'start' }));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+    if ([390, 1440].includes(width)) await page.screenshot({ path: test.info().outputPath('journey-details-' + width + '.png') });
+  }
+  expect(state.calls.every(call => call.method === 'GET' && call.token === 'local-admin')).toBe(true);
+  expect(state.errors).toEqual([]);
+});
+
+test('journey activity filters preserve pagination/dates and handle errors, empty and stale responses', async ({ page }) => {
+  const state = await mockJourneyDetails(page);
+  await page.goto(`${admin}/user-tracking`);
+  const journeys = page.getByRole('region', { name: 'Consented visitor journeys' });
+  await page.getByRole('button', { name: /^Add-to-cart events/ }).click();
+  await expect(page.getByLabel('Activity filter')).toHaveValue('event:add_to_cart');
+  await expect(journeys.locator('details')).toHaveCount(10);
+  await journeys.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(journeys.locator('details')).toHaveCount(2);
+  expect(state.calls.at(-1).url.searchParams.get('event')).toBe('add_to_cart');
+  expect(state.calls.at(-1).url.searchParams.get('page')).toBe('2');
+  await page.getByLabel('From (UTC)', { exact: true }).fill('2026-10-01');
+  await page.getByLabel('To (UTC, inclusive)', { exact: true }).fill('2026-10-11');
+  await page.getByRole('button', { name: 'Apply dates' }).click();
+  await expect(journeys.locator('details')).toHaveCount(10);
+  expect(state.calls.filter(call => call.url.pathname.endsWith('/journeys')).at(-1).url.searchParams.get('page')).toBe('1');
+  await page.getByLabel('Activity filter').selectOption('event:search');
+  await expect(journeys.locator('details')).toHaveCount(1);
+  await journeys.locator('summary').click();
+  await expect(journeys.getByText(/Search:.*rose lace/)).toBeVisible();
+  state.fail = true;
+  await page.getByLabel('Activity filter').selectOption('event:remove_from_cart');
+  await expect(journeys.getByRole('alert')).toContainText('Journey details temporarily unavailable');
+  state.fail = false;
+  await journeys.getByRole('button', { name: 'Retry' }).click();
+  await expect(journeys.locator('details')).toHaveCount(1);
+  state.empty = true;
+  await page.getByLabel('Activity filter').selectOption('event:page_view');
+  await expect(journeys.getByText('No consented sessions match this activity in the selected range.')).toBeVisible();
+  state.empty = false; state.delay = true;
+  await page.getByRole('button', { name: /^Also added to cart/ }).click();
+  await expect.poll(() => state.calls.some(call => call.url.searchParams.get('stage') === 'cart')).toBe(true);
+  await page.getByRole('button', { name: /^Product viewed/ }).click();
+  await expect(journeys.locator('details')).toHaveCount(6);
+  await page.waitForTimeout(800);
+  await expect(journeys.getByText('amelia@example.test', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Activity filter')).toHaveValue('stage:product');
+  await journeys.getByRole('button', { name: 'Clear activity filter' }).click();
+  await expect(page.getByLabel('Activity filter')).toHaveValue('all');
+  await expect(journeys.locator('details')).toHaveCount(10);
+  expect(state.errors).toEqual([]);
+});
