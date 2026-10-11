@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { ShoppingBag, ArrowRight, Package, Crown, X, CreditCard, Search, Filter } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import Loader from "../components/Loader";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL; // Assume backendUrl is accessible
 
@@ -45,20 +46,22 @@ const OrderProgressStrip = ({ status }) => {
   const currentLevel = STAGE_LEVELS[status] ?? 0;
 
   return (
-    <div className="flex items-center w-full mt-1">
+    <ol aria-label="Delivery progress" className="grid w-full grid-cols-5">
       {JOURNEY_STAGES.map((stage, index) => {
         const stageLevel = STAGE_LEVELS[stage];
         const isDone = stageLevel <= currentLevel;
         return (
-          <React.Fragment key={stage}>
-            <div className={`w-2 h-2 rounded-full shrink-0 ${isDone ? "bg-pink-500" : "bg-slate-200"}`} />
+          <li key={stage} aria-current={stageLevel === currentLevel ? "step" : undefined} className="relative flex min-w-0 flex-col items-center">
             {index < JOURNEY_STAGES.length - 1 && (
-              <div className={`flex-1 h-0.5 ${stageLevel < currentLevel ? "bg-pink-500" : "bg-slate-200"}`} />
+              <span aria-hidden="true" className={`absolute left-1/2 top-1 h-0.5 w-full ${stageLevel < currentLevel ? "bg-pink-500" : "bg-slate-200"}`} />
             )}
-          </React.Fragment>
+            <span aria-hidden="true" className={`relative z-10 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white ${isDone ? "bg-pink-500" : "bg-slate-200"}`} />
+            <span className={`mt-2.5 hidden px-1 text-center text-[10px] leading-snug sm:block ${stageLevel === currentLevel ? "font-semibold text-pink-600" : "text-slate-500"}`}>{stage}</span>
+            <span className="sr-only sm:hidden">{stage}{isDone ? " reached" : " pending"}</span>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 };
 
@@ -66,6 +69,30 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
   const [reason, setReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dialogRef = useRef(null);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialogRef.current?.querySelector("select")?.focus();
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); }
+      if (event.key !== "Tab") return;
+      const controls = [...dialogRef.current.querySelectorAll('button:not(:disabled), select, input, [tabindex="0"]')].filter(element => element.getClientRects().length);
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    const dialog = dialogRef.current;
+    dialog.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      dialog.removeEventListener("keydown", handleKeyDown);
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+  }, [onClose]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,32 +129,39 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
     }
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
+  return createPortal(
+    <Motion.div
+      initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+      transition={{ duration: reduceMotion ? 0 : 0.18 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-900/50 p-3 font-sans backdrop-blur-sm sm:p-6"
     >
-      <motion.div
-        initial={{ scale: 0.95, y: 20 }}
+      <Motion.div
+        initial={reduceMotion ? false : { scale: 0.98, y: 12 }}
         animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.95, y: 20 }}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        exit={reduceMotion ? { opacity: 0 } : { scale: 0.98, y: 12, opacity: 0 }}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cancel-order-title"
+        transition={{ duration: reduceMotion ? 0 : 0.18 }}
+        className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-pink-100 bg-white shadow-2xl [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-pink-400 [&_button]:focus-visible:ring-offset-2"
       >
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4 border-b border-pink-100 bg-pink-50/40 p-5 sm:p-6">
           <div>
-            <h3 className="text-lg sm:text-xl font-black text-slate-900">Cancel Order</h3>
-            <p className="text-xs font-bold text-slate-400 mt-1 break-all">{order.orderItemId ? `#${order.orderItemId}` : `#${order._id}`}</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-pink-600">Order management</p>
+            <h3 id="cancel-order-title" className="text-xl font-semibold text-slate-900">Cancel Order</h3>
+            <p className="mt-2 break-all text-xs text-slate-500">{order.orderItemId ? `#${order.orderItemId}` : `#${order._id}`}</p>
           </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200">
+          <button type="button" onClick={onClose} aria-label="Close cancellation dialog" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-pink-100 bg-white text-slate-500 transition-colors hover:bg-pink-50">
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 sm:space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-6">
           <div>
-            <label htmlFor="cancel-reason" className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Reason</label>
+            <label htmlFor="cancel-reason" className="mb-2 block text-sm font-medium text-slate-700">Reason</label>
             <select
               id="cancel-reason"
               value={reason}
@@ -150,7 +184,7 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
 
           {reason === "Other" && (
             <div>
-              <label htmlFor="custom-reason" className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Please specify the reason</label>
+              <label htmlFor="custom-reason" className="mb-2 block text-sm font-medium text-slate-700">Please specify the reason</label>
               <input
                 type="text"
                 id="custom-reason"
@@ -164,26 +198,28 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
           )}
 
           {order.paymentMethod === "Razorpay" && order.payment && (
-            <div className="bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl p-4 text-xs font-bold">
+            <div className="rounded-xl border border-pink-100 bg-pink-50/60 p-4 text-xs leading-relaxed text-slate-600">
               The full prepaid amount will be refunded to the original Razorpay payment source.
             </div>
           )}
 
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-5 py-3 rounded-xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">
+          <div className="flex flex-col-reverse gap-2.5 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+            <button type="button" onClick={onClose} className="min-h-11 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
               Keep Order
             </button>
-            <button type="submit" disabled={isSubmitting} className="px-5 py-3 rounded-xl bg-rose-600 text-white text-xs font-black uppercase tracking-widest disabled:bg-slate-300">
+            <button type="submit" disabled={isSubmitting} className="min-h-11 rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-wait disabled:bg-slate-300">
               {isSubmitting ? "Cancelling..." : "Confirm Cancel"}
             </button>
           </div>
         </form>
-      </motion.div>
-    </motion.div>
+      </Motion.div>
+    </Motion.div>,
+    document.body
   );
 };
 
 const MyOrders = () => {
+  const reduceMotion = useReducedMotion();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [orderToCancel, setOrderToCancel] = useState(null);
@@ -299,61 +335,56 @@ const MyOrders = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-4 sm:py-8 px-3 sm:px-4 font-sans">
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-slate-100/80 border border-slate-100 p-4 sm:p-6 md:p-8">
-
-        {/* Header Section */}
-        <div className="flex items-center flex-wrap justify-between gap-3 border-b border-slate-100 pb-4 sm:pb-6 mb-5 sm:mb-8">
-          <div>
-            <h2 className="text-lg sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-              <ShoppingBag className="text-pink-500 w-5 h-5 sm:w-6 sm:h-6" /> My Orders
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Track and manage your recent purchases</p>
+    <section aria-labelledby="my-orders-title" className="mx-auto w-full min-w-0 max-w-5xl px-3 py-5 font-sans sm:px-4 sm:py-8 [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-pink-400 [&_button]:focus-visible:ring-offset-2 motion-reduce:[&_*]:transition-none motion-reduce:[&_*]:animate-none">
+      <div className="min-w-0">
+        <header className="mb-6 flex flex-wrap items-start justify-between gap-4 sm:mb-7">
+          <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-pink-100 bg-pink-50 text-pink-500 sm:h-12 sm:w-12"><ShoppingBag size={22} strokeWidth={1.7} aria-hidden="true" /></span>
+            <div className="min-w-0">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-pink-600">Your account</p>
+              <h2 id="my-orders-title" className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">My Orders</h2>
+              <p className="mt-2 text-xs leading-relaxed text-slate-500 sm:text-sm">Track your purchases and find every order detail in one place.</p>
+            </div>
           </div>
-          <span className="bg-pink-50 text-pink-600 font-black text-[11px] sm:text-xs px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-2xl border border-pink-100">
-            {filteredOrders.length} {filteredOrders.length === 1 ? 'Order' : 'Orders'}
+          <span aria-live="polite" className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-pink-100 bg-white px-3 py-1.5 text-xs text-slate-500">
+            <span className="font-semibold text-pink-600">{filteredOrders.length}</span> {filteredOrders.length === 1 ? 'Order' : 'Orders'}
           </span>
-        </div>
+        </header>
 
         {orders.length > 0 && (
-          <div className="mb-5 sm:mb-8 space-y-3">
-            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <div className="mb-5 min-w-0 space-y-4 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-sm sm:mb-6 sm:p-4">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
+                  aria-label="Search your orders"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by Order ID, Order Item ID, or product name"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-400"
+                  className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50/60 py-3 pl-10 pr-3 text-xs text-slate-700 outline-none transition-colors placeholder:text-slate-400 focus:border-pink-400 focus:bg-white focus:ring-2 focus:ring-pink-100 sm:text-sm"
                 />
               </div>
               <select
+                aria-label="Order date range"
                 value={timeFilter}
                 onChange={(e) => setTimeFilter(e.target.value)}
-                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-400"
+                className="min-h-11 min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 sm:w-44"
               >
                 <option value="All">All Time</option>
                 <option value="Last 30 Days">Last 30 Days</option>
                 <option value="Last 6 Months">Last 6 Months</option>
-                {availableYears.map((year) => (
-                  <option key={year} value={String(year)}>{year}</option>
-                ))}
+                {availableYears.map((year) => <option key={year} value={String(year)}>{year}</option>)}
               </select>
             </div>
-
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
-              <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div role="group" aria-label="Order status filters" className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
               {STATUS_FILTERS.map((f) => (
                 <button
                   key={f.label}
                   type="button"
+                  aria-pressed={statusFilter === f.label}
                   onClick={() => setStatusFilter(f.label)}
-                  className={`shrink-0 px-3 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide border transition-all ${
-                    statusFilter === f.label
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                  }`}
+                  className={'min-h-9 rounded-full border px-3 py-2 text-xs font-medium transition-colors sm:px-3.5 ' + (statusFilter === f.label ? 'border-pink-200 bg-pink-50 text-pink-700' : 'border-transparent bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800')}
                 >
                   {f.label}
                 </button>
@@ -363,11 +394,11 @@ const MyOrders = () => {
         )}
 
         {filteredOrders.length > 0 ? (
-          <motion.div 
-            initial="hidden"
+          <Motion.div
+            initial={reduceMotion ? false : "hidden"}
             animate="visible"
             variants={{
-              visible: { transition: { staggerChildren: 0.08 } }
+              visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.04 } }
             }}
             className="space-y-4 sm:space-y-6"
           >
@@ -401,172 +432,114 @@ const MyOrders = () => {
                 : null;
 
               return (
-                <motion.div
+                <Motion.article
                   key={order._id}
+                  aria-label={'Order ' + (order.orderItemId || order._id)}
                   variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
+                    hidden: { opacity: 0, y: reduceMotion ? 0 : 12 },
+                    visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.25 } }
                   }}
-                  whileHover={{ y: -2 }}
-                  className="bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                  className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
                 >
-                  <div className="bg-slate-50/60 px-3.5 sm:px-5 py-3 sm:py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
-                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                  <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-4 sm:px-5">
+                    <dl className="grid min-w-0 grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 sm:gap-5">
                       {order.orderItemId && (
-                        <>
-                          <div>
-                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order Item ID</span>
-                            <span className="text-xs sm:text-sm font-extrabold text-slate-800 break-all select-all">#{order.orderItemId}</span>
-                          </div>
-                          <div className="h-6 w-[1px] bg-slate-200" />
-                        </>
+                        <div className="min-w-0">
+                          <dt className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">Order Item ID</dt>
+                          <dd className="break-all text-xs font-semibold text-slate-800 select-all sm:text-sm">#{order.orderItemId}</dd>
+                        </div>
                       )}
-                      <div>
-                        <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Order ID</span>
-                        <span className="text-xs sm:text-sm font-extrabold text-slate-800 break-all select-all">#{order._id}</span>
+                      <div className="min-w-0">
+                        <dt className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">Date Placed</dt>
+                        <dd className="text-xs font-medium text-slate-700 sm:text-sm">{new Date(order.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</dd>
                       </div>
-                      <div className="h-6 w-[1px] bg-slate-200" />
-                      <div>
-                        <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Date Placed</span>
-                        <span className="text-[11px] sm:text-xs font-bold text-slate-600">
-                          {new Date(order.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
+                      <div className={order.orderItemId ? 'col-span-2 min-w-0 sm:col-span-1' : 'min-w-0'}>
+                        <dt className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">Order ID</dt>
+                        <dd className="break-all text-xs font-medium text-slate-600 select-all">#{order._id}</dd>
                       </div>
-                    </div>
+                    </dl>
+                  </div>
 
-                    <div className="flex items-center gap-3">
-                      {/* Status Badge */}
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-black capitalize ${
-                        displayStatus === "Processing" ? "bg-amber-50 text-amber-700 border border-amber-100" :
-                        displayStatus === "Shipped" || displayStatus === "Out for delivery" ? "bg-blue-50 text-blue-700 border border-blue-100" :
-                        displayStatus === "Delivered" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                        displayStatus === "Cancelled" ? "bg-rose-50 text-rose-700 border border-rose-100" :
-                        "bg-slate-50 text-slate-700 border border-slate-100"
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          displayStatus === "Processing" ? "bg-amber-500 animate-pulse" :
-                          displayStatus === "Shipped" || displayStatus === "Out for delivery" ? "bg-blue-500" :
-                          displayStatus === "Delivered" ? "bg-emerald-500" :
-                          displayStatus === "Cancelled" ? "bg-rose-500" :
-                          "bg-slate-500"
-                        }`} />
+                  <div className="space-y-4 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2.5">
+                      <span className={'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold capitalize ' + (
+                        displayStatus === 'Processing' ? 'border-amber-100 bg-amber-50 text-amber-700' :
+                        displayStatus === 'Shipped' || displayStatus === 'Out for delivery' ? 'border-blue-100 bg-blue-50 text-blue-700' :
+                        displayStatus === 'Delivered' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' :
+                        displayStatus === 'Cancelled' ? 'border-rose-100 bg-rose-50 text-rose-700' :
+                        'border-slate-200 bg-slate-50 text-slate-700'
+                      )}>
+                        <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
                         {displayStatusLabel}
                       </span>
+                      <span className="text-xs text-slate-500">{totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} in this order</span>
                     </div>
-                  </div>
-
-                  <div className="px-3.5 sm:px-5 pt-3 sm:pt-4">
                     <OrderProgressStrip status={displayStatus} />
-                    {refundSubLabel && (
-                      <p className="text-[9px] sm:text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 sm:px-2.5 py-1 inline-block mt-1">
-                        {refundSubLabel}
-                      </p>
-                    )}
+                    {refundSubLabel && <p className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-800">{refundSubLabel}</p>}
                   </div>
 
-                  {/* Body of the card (Items, quantities & pricing) */}
-                  <div className="p-3.5 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 sm:gap-6">
-                    {/* Keep each product's quantity beside its name, including single units. */}
-                    <div className="flex-1 min-w-0 space-y-3">
-                      <ul className="space-y-3">
-                        {order.items.map((item, index) => (
-                          <li key={index} className="flex items-center gap-3 sm:gap-4 min-w-0">
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 object-cover rounded-lg sm:rounded-xl border-2 border-white shadow-sm bg-slate-50"
-                            />
-                            <div className="min-w-0 space-y-1.5">
-                              <p className="text-xs sm:text-sm font-bold text-slate-800 break-words">
-                                {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? (
-                                  <Link to={`/product/${item.productId}`} className="hover:underline">
-                                    {item.name}
-                                  </Link>
-                                ) : item.name}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
-                                {item.size && <span className="text-slate-500 font-medium">Size: {item.size}</span>}
-                                <span className="inline-flex items-center rounded-md border border-pink-100 bg-pink-50 px-2 py-0.5 font-bold text-pink-700 whitespace-nowrap">
-                                  Qty: {item.quantity}
-                                </span>
-                              </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                  <ul className="mx-4 min-w-0 divide-y divide-slate-100 border-t border-slate-100 sm:mx-5">
+                    {order.items.map((item, index) => (
+                      <li key={index} className="flex min-w-0 items-center gap-3 py-4 sm:gap-4">
+                        {item.image ? <img src={item.image} alt={item.name} className="h-20 w-16 shrink-0 rounded-xl border border-slate-100 bg-slate-50 object-cover sm:h-24 sm:w-20" /> : <span className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-pink-400 sm:h-24 sm:w-20"><Package size={24} aria-hidden="true" /></span>}
+                        <div className="min-w-0 flex-1">
+                          <p className="break-words text-sm font-semibold leading-relaxed text-slate-800">
+                            {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? <Link to={'/product/' + item.productId} className="rounded transition-colors hover:text-pink-600 hover:underline focus-visible:outline-pink-400">{item.name}</Link> : item.name}
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                            {item.size && <span className="rounded-md bg-slate-50 px-2 py-1 text-slate-500">Size: <span className="font-medium text-slate-700">{item.size}</span></span>}
+                            <span className="inline-flex items-center whitespace-nowrap rounded-md border border-pink-100 bg-pink-50 px-2 py-1 font-semibold text-pink-700">Qty: {item.quantity}</span>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
 
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                          {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} in this order
-                        </span>
-                        {order.couponDiscount > 0 && (
-                          <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-black border border-emerald-100 uppercase tracking-wider">
-                            Discount Applied
-                          </span>
-                        )}
-                        {isLuxe && (
-                          <span className="text-[9px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-black border border-amber-100 uppercase tracking-wider flex items-center gap-1">
-                            <Crown size={10} className="text-amber-600" /> Luxe Member
-                          </span>
-                        )}
-                      </div>
+                  {(order.couponDiscount > 0 || isLuxe) && <div className="flex flex-wrap items-center gap-2 px-4 pb-4 sm:px-5">
+                    {order.couponDiscount > 0 && <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-medium text-emerald-700">Discount Applied</span>}
+                    {isLuxe && <span className="inline-flex items-center gap-1 rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-700"><Crown size={12} aria-hidden="true" /> Luxe Member</span>}
+                  </div>}
+
+                  <div className="flex min-w-0 flex-col gap-4 border-t border-slate-100 bg-slate-50/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Total Amount</p>
+                      <p className="mt-1 break-words text-xl font-semibold tracking-tight text-slate-900 tabular-nums">&#8377;{(order.displayTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      {order.paymentMethod && <p className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500"><CreditCard size={12} aria-hidden="true" />{order.paymentMethod}</p>}
                     </div>
-
-                    {/* Price and Details/Cancel Button */}
-                    <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 pt-3 md:pt-0 border-t border-slate-100 md:border-0">
-                      <div className="text-left md:text-right">
-                        <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Amount</span>
-                        <span className="text-base sm:text-lg font-black text-slate-900">₹{(order.displayTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                        {canCancel(displayStatus) && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setOrderToCancel(order); }}
-                            className="text-[11px] sm:text-xs text-rose-600 hover:text-white font-bold border border-rose-100 hover:bg-rose-500 hover:border-rose-500 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-all active:scale-95"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleViewOrderDetails(order._id)}
-                          className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-xs shadow-sm hover:shadow active:scale-95 transition-all whitespace-nowrap"
-                        >
-                          Details <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                    <div className="flex min-w-0 items-center gap-2 sm:shrink-0">
+                      {canCancel(displayStatus) && <button type="button" onClick={(e) => { e.stopPropagation(); setOrderToCancel(order); }} className="min-h-11 flex-1 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-600 transition-colors hover:border-rose-300 hover:bg-rose-50 sm:flex-none">Cancel</button>}
+                      <button type="button" onClick={() => handleViewOrderDetails(order._id)} className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-black sm:flex-none">Details <ArrowRight size={15} aria-hidden="true" /></button>
                     </div>
                   </div>
-
-                </motion.div>
+                </Motion.article>
               );
             })}
-          </motion.div>
+          </Motion.div>
         ) : orders.length > 0 ? (
-          <div className="text-center py-20 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 p-8">
-            <div className="bg-white p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto shadow-sm border border-slate-100 mb-6">
-              <Filter className="w-10 h-10 text-slate-300" />
+          <div className="rounded-2xl border border-dashed border-pink-200 bg-white px-4 py-14 text-center sm:px-8 sm:py-16">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-pink-100 bg-pink-50 text-pink-400">
+              <Filter className="h-7 w-7 text-pink-400" />
             </div>
-            <h3 className="text-lg font-black text-slate-700">No Matching Orders</h3>
-            <p className="text-slate-400 text-sm font-medium mt-2 max-w-sm mx-auto">No orders match your current search or filters. Try adjusting them.</p>
+            <h3 className="text-xl font-semibold text-slate-800">No Matching Orders</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500">No orders match your current search or filters. Try adjusting them.</p>
             <button
               type="button"
               onClick={clearFilters}
-              className="mt-6 inline-flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg active:scale-95 transition-all"
+              className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               Clear Filters
             </button>
           </div>
         ) : (
-          <div className="text-center py-20 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 p-8">
-            <div className="bg-white p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto shadow-sm border border-slate-100 mb-6">
-              <ShoppingBag className="w-10 h-10 text-slate-300" />
+          <div className="rounded-2xl border border-dashed border-pink-200 bg-white px-4 py-14 text-center sm:px-8 sm:py-16">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-pink-100 bg-pink-50 text-pink-400">
+              <ShoppingBag className="h-7 w-7 text-pink-400" />
             </div>
-            <h3 className="text-lg font-black text-slate-700">No Orders Yet</h3>
-            <p className="text-slate-400 text-sm font-medium mt-2 max-w-sm mx-auto">You haven't made any purchases yet. Explore our premium collection and make your first order!</p>
+            <h3 className="text-xl font-semibold text-slate-800">No Orders Yet</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500">You haven't made any purchases yet. Explore our premium collection and make your first order!</p>
             <Link
               to="/"
-              className="mt-6 inline-flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-lg shadow-pink-100 active:scale-95 transition-all"
+              className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-pink-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pink-600"
             >
               Start Shopping <ArrowRight className="w-4 h-4" />
             </Link>
@@ -588,7 +561,7 @@ const MyOrders = () => {
           />
         )}
       </AnimatePresence>
-    </div>
+    </section>
   );
 };
 
