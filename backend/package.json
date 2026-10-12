@@ -4,6 +4,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
+    "test:coupon-skus": "node --test tests/coupon-skus.test.js",
     "test:gift-offer": "node --test tests/home-gift-offer.test.js",
     "test:shiprocket": "node --test tests/shiprocket.test.js",
     "test:admin-search": "node --test tests/admin-search.test.js",

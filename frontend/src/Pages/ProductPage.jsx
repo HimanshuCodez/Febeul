@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -283,7 +283,7 @@ const ProductDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token, isAuthenticated, fetchWishlistCount, fetchCartCount, getStateServiceability, siteSettings: globalSiteSettings } = useAuthStore();
-  const goToAuth = () => navigate("/auth", { state: { from: `${location.pathname}${location.search}` } });
+  const goToAuth = useCallback(() => navigate("/auth", { state: { from: `${location.pathname}${location.search}` } }), [navigate, location.pathname, location.search]);
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -298,9 +298,10 @@ const ProductDetailPage = () => {
   const [numOfReviews, setNumOfReviews] = useState(0);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponResult, setCouponResult] = useState(null);
+  const couponRequestRef = useRef(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  const [autoApplied, setAutoApplied] = useState(false);
+  const couponAttemptRef = useRef(null);
 
   const [luxeProducts, setLuxeProducts] = useState([]);
   const [loadingLuxeProducts, setLoadingLuxeProducts] = useState(true);
@@ -350,6 +351,19 @@ const ProductDetailPage = () => {
   const displayMrp = currentSizeData?.mrp;
   const isOutOfStock = !currentSizeData || Number(currentSizeData.stock) <= 0;
 
+  // A discount belongs to the exact selection and price that the API validated.
+  const couponSelectionKey = JSON.stringify([
+    productId, product?._id, colorParam, selectedVariation.sku, selectedSizeValue, displayPrice, token,
+  ]);
+  const appliedCoupon = isAuthenticated && couponResult?.selectionKey === couponSelectionKey
+    ? couponResult
+    : null;
+
+  useEffect(() => {
+    setCouponResult(null);
+    return () => couponRequestRef.current?.abort();
+  }, [couponSelectionKey]);
+
   const finalDisplayPrice = appliedCoupon
     ? Math.max(0, displayPrice - appliedCoupon.discountAmount)
     : displayPrice;
@@ -359,7 +373,7 @@ const ProductDetailPage = () => {
       ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
       : 0;
 
-  const productSKUs = product ? [...new Set(product.variations.map(v => v.sku).filter(Boolean))] : [];
+  const productSKUs = selectedVariation.sku ? [selectedVariation.sku] : [];
 
   useEffect(() => {
     const fetchLuxePriveProducts = async () => {
@@ -412,7 +426,7 @@ const ProductDetailPage = () => {
     setIsAddressModalOpen(false);
   };
 
-  const onRedeemCoupon = async (couponCode) => {
+  const onRedeemCoupon = useCallback(async (couponCode) => {
     if (!isAuthenticated) {
       toast.error("Please log in to apply coupons.");
       goToAuth();
@@ -422,10 +436,15 @@ const ProductDetailPage = () => {
       toast.error("Please select a size first.");
       return;
     }
-    if (!selectedVariation || !selectedVariation.sku) {
+    if (!selectedVariation.sku) {
       toast.error("Product SKU not found for selected variation.");
       return;
     }
+
+    couponRequestRef.current?.abort();
+    couponAttemptRef.current = JSON.stringify([productId, colorParam, couponCode, token]);
+    const controller = new AbortController();
+    couponRequestRef.current = controller;
 
     try {
       const response = await axios.post(`${backendUrl}/api/coupon/apply-product-coupon`, {
@@ -436,11 +455,15 @@ const ProductDetailPage = () => {
           quantity: 1,
         },
         userId: user._id,
-      }, { headers: { token } });
+      }, { headers: { token }, signal: controller.signal });
+
+      // Ignore responses for a selection the shopper has already left.
+      if (controller.signal.aborted) return;
 
       if (response.data.success) {
         toast.success(`Coupon '${couponCode}' applied! You save ₹${response.data.discountAmount.toFixed(2)}.`); 
-        setAppliedCoupon({
+        setCouponResult({
+          selectionKey: couponSelectionKey,
           code: couponCode,
           discountAmount: response.data.discountAmount,
           discountType: response.data.discountType,
@@ -454,7 +477,7 @@ const ProductDetailPage = () => {
 
       } else {
         toast.error(response.data.message);
-        setAppliedCoupon(null);
+        setCouponResult(null);
 
         // Remove from URL if invalid
         const newParams = new URLSearchParams(searchParams);
@@ -462,14 +485,16 @@ const ProductDetailPage = () => {
         setSearchParams(newParams, { replace: true });
       }
     } catch (error) {
+      if (controller.signal.aborted) return;
       console.error('Error applying product coupon:', error);
       toast.error(error.response?.data?.message || 'Failed to apply coupon.');
-      setAppliedCoupon(null);
+      setCouponResult(null);
     }
-  };
+  }, [isAuthenticated, goToAuth, selectedSizeValue, selectedVariation.sku, productId, colorParam, token, displayPrice, user, couponSelectionKey, searchParams, setSearchParams]);
 
   const onRemoveCoupon = () => {
-    setAppliedCoupon(null);
+    couponRequestRef.current?.abort();
+    setCouponResult(null);
     toast.success("Coupon removed.");
 
     // Update URL
@@ -480,11 +505,17 @@ const ProductDetailPage = () => {
 
   // Auto-apply coupon from URL
   useEffect(() => {
-    if (couponParam && product && isAuthenticated && !appliedCoupon && !autoApplied && selectedSizeValue) {     
-      onRedeemCoupon(couponParam);
-      setAutoApplied(true);
+    if (!couponParam) {
+      if (!appliedCoupon) couponAttemptRef.current = null;
+      return;
     }
-  }, [couponParam, product, isAuthenticated, selectedSizeValue, autoApplied]);
+    const attemptKey = JSON.stringify([productId, colorParam, couponParam, token]);
+    // Wait until a color link has loaded its actual variation, including browser navigation.
+    const requestedIndex = Math.max(0, product?.variations.findIndex(v => v.color?.toLowerCase() === colorParam?.toLowerCase()) ?? 0);
+    if (!loading && product?._id === productId && selectedVariationIndex === requestedIndex && isAuthenticated && !appliedCoupon && couponAttemptRef.current !== attemptKey && selectedSizeValue) {
+      onRedeemCoupon(couponParam);
+    }
+  }, [couponParam, colorParam, token, product, productId, loading, selectedVariationIndex, isAuthenticated, selectedSizeValue, appliedCoupon, onRedeemCoupon]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -819,6 +850,10 @@ const ProductDetailPage = () => {
                             <div
                               key={index}
                               onClick={() => {
+                                if (index !== selectedVariationIndex) {
+                                  couponRequestRef.current?.abort();
+                                  setCouponResult(null);
+                                }
                                 setSelectedVariationIndex(index);
                                 if (variation.sizes && variation.sizes.length > 0) {
                                   setSelectedSizeValue(variation.sizes[0].size);
@@ -861,7 +896,16 @@ const ProductDetailPage = () => {
                           return (
                             <button
                               key={sizeData.size}
-                              onClick={() => setSelectedSizeValue(sizeData.size)}
+                              onClick={() => {
+                                if (sizeData.size !== selectedSizeValue) {
+                                  couponRequestRef.current?.abort();
+                                  setCouponResult(null);
+                                  const newParams = new URLSearchParams(searchParams);
+                                  newParams.delete('coupon');
+                                  setSearchParams(newParams, { replace: true });
+                                }
+                                setSelectedSizeValue(sizeData.size);
+                              }}
                               className={`min-w-[50px] h-10 border rounded-xl transition-all relative overflow-hidden text-[11px] font-black tracking-widest ${
                                 selectedSizeValue === sizeData.size
                                   ? "border-black bg-black text-white shadow-lg"
@@ -929,6 +973,7 @@ const ProductDetailPage = () => {
 
                   <div className="pt-6">
                     <CouponShows
+                      key={couponSelectionKey}
                       showDesktopNavigation
                       productSKUs={productSKUs}
                       onRedeem={onRedeemCoupon}
