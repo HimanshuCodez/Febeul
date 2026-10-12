@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -34,9 +34,33 @@ export default function FebeulLuxe() {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [membershipCoupons, setMembershipCoupons] = useState([]);
+  const couponInput = useRef(null);
   const [pageContent, setPageContent] = useState({});
   const pageText = (section, key, fallback) => typeof pageContent[section]?.[key] === 'string' ? pageContent[section][key] : fallback;
   const features = Array.isArray(pageContent.features) ? pageContent.features : defaultFeatures;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setMembershipCoupons([]);
+    if (isAuthenticated && user?.isLuxeMember) return;
+
+    const signedIn = Boolean(isAuthenticated && token);
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/coupon/${signedIn ? 'all' : 'active'}`, {
+      params: { purpose: 'membership' },
+      ...(signedIn ? { headers: { token } } : {}),
+      signal: controller.signal,
+    }).then(({ data }) => {
+      if (controller.signal.aborted || !data.success) return;
+      setMembershipCoupons((data.coupons || []).filter(coupon =>
+        coupon.userType === 'membership' && coupon.isActive && new Date(coupon.expiryDate) > new Date()
+      ));
+    }).catch(error => {
+      if (!axios.isCancel(error)) console.error('Error fetching membership coupons:', error);
+    });
+
+    return () => controller.abort();
+  }, [isAuthenticated, token, user?.isLuxeMember]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -375,10 +399,39 @@ export default function FebeulLuxe() {
           </p>
         )}
 
+        {!appliedCoupon && membershipCoupons.length > 0 && (
+          <section aria-label="Luxe membership coupons" className="mb-4 mt-6 text-left">
+            <h2 className="mb-3 font-['Raleway'] text-xs font-bold text-[#b87a7b]">Membership offers</h2>
+            <div className="space-y-2">
+              {membershipCoupons.map(coupon => (
+                <div key={coupon._id || coupon.code} className="rounded-xl border border-dashed border-[#b87a7b]/40 bg-[#fdf5f5] p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="min-w-0 break-all font-['Raleway'] text-xs font-bold tracking-wide text-[#b87a7b]">{coupon.code}</span>
+                    <button
+                      type="button"
+                      aria-label={`Use coupon ${coupon.code}`}
+                      disabled={couponLoading || isProcessing}
+                      onClick={() => { setCouponCode(coupon.code); couponInput.current?.focus({ preventScroll: true }); }}
+                      className="shrink-0 rounded-lg border border-[#b87a7b]/30 bg-white px-3 py-2 font-['Raleway'] text-[10px] font-bold text-[#b87a7b] transition-colors hover:bg-[#b87a7b] hover:text-white disabled:opacity-50 focus-visible:outline-[#b87a7b]"
+                    >
+                      Use code
+                    </button>
+                  </div>
+                  <p className="mt-1 font-['Raleway'] text-xs font-semibold text-[#b87a7b]">
+                    {coupon.discountType === 'percentage' ? `${coupon.discountValue}% off membership` : `₹${Number(coupon.discountValue).toLocaleString('en-IN')} off membership`}
+                  </p>
+                  {coupon.description && <p className="mt-1 break-words font-['Raleway'] text-[11px] leading-relaxed text-[#9b6869]">{coupon.description}</p>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="mb-8">
           {!appliedCoupon ? (
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
+                ref={couponInput}
                 type="text"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}

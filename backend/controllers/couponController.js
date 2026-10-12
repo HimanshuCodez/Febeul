@@ -346,12 +346,17 @@ export const getActiveCoupons = async (req, res) => {
 
         const coupons = await couponModel.find({ 
             isActive: true,
-            expiryDate: { $gt: new Date() } 
+            expiryDate: { $gt: new Date() },
+            // Membership purchase offers are requested only by the Luxe signup page.
+            userType: req.query.purpose === 'membership' ? 'membership' : { $ne: 'membership' },
         }).sort({ createdAt: -1 });
 
         // Filter coupons:
         // Luxe membership and specific-customer restrictions both apply.
         const filteredCoupons = coupons.filter(coupon => {
+            if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
+                return false;
+            }
             if (coupon.userType === 'luxe' && !user.isLuxeMember) {
                 return false;
             }
@@ -484,13 +489,15 @@ export const getPublicActiveCoupons = async (req, res) => {
         const coupons = await couponModel.find({ 
             isActive: true,
             expiryDate: { $gt: new Date() },
+            userType: req.query.purpose === 'membership' ? 'membership' : { $ne: 'membership' },
             $or: [
                 { specificUsers: { $exists: false } },
                 { specificUsers: { $size: 0 } }
             ]
         }).sort({ createdAt: -1 });
 
-        res.json({ success: true, coupons });
+        const availableCoupons = coupons.filter(coupon => !coupon.usageLimit || coupon.usageCount < coupon.usageLimit);
+        res.json({ success: true, coupons: availableCoupons });
     } catch (error) {
         console.error('Error fetching public coupons:', error);
         res.status(500).json({ success: false, message: 'Error fetching coupons.' });

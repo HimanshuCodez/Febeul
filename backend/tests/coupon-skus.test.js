@@ -63,3 +63,49 @@ test('cart coupons discount only matching lines; unrestricted coupons still cove
   assert.equal(unrestricted.data.discountAmount, 360);
   assert.equal((await couponModel.findById(coupon._id)).usageCount, 0);
 });
+
+test('membership purchase coupons are listed only for the membership page', async t => {
+  const saved = await request('/add', { code: 'JOIN30', userType: 'membership', discountType: 'fixed', discountValue: 30, expiryDate: '2099-12-31' }, adminToken());
+  assert.equal(saved.data.success, true);
+  const fields = { discountType: 'fixed', discountValue: 20, expiryDate: '2099-12-31', userType: 'membership' };
+  await couponModel.create([
+    { ...fields, code: 'LUXESHOP', userType: 'luxe' },
+    { ...fields, code: 'JOINPRIVATE', specificUsers: [customer.email] },
+    { ...fields, code: 'JOINOTHER', specificUsers: ['someone-else@example.test'] },
+    { ...fields, code: 'JOINUSED', usersWhoUsed: [{ userId: customer._id }], usageLimitPerUser: 1 },
+    { ...fields, code: 'JOINEXHAUSTED', usageLimit: 1, usageCount: 1 },
+    { ...fields, code: 'JOINEXPIRED', expiryDate: '2000-01-01' },
+    { ...fields, code: 'JOININACTIVE', isActive: false },
+  ]);
+  const getCodes = async (path, token) => {
+    const response = await fetch(base + path, { headers: token ? { token } : {} });
+    assert.equal(response.status, 200);
+    const data = await response.json();
+    assert.equal(data.success, true);
+    return data.coupons.map(c => c.code).sort();
+  };
+
+  await t.test('ordinary coupon lists exclude membership offers while admin retains them', async () => {
+    assert.deepEqual(await getCodes('/active'), ['ANY20', 'LUXESHOP', 'ROSE20']);
+    assert.deepEqual(await getCodes('/all', customerToken), ['ANY20', 'ROSE20']);
+    await userModel.findByIdAndUpdate(customer._id, { isLuxeMember: true });
+    assert.deepEqual(await getCodes('/all', customerToken), ['ANY20', 'LUXESHOP', 'ROSE20']);
+    await userModel.findByIdAndUpdate(customer._id, { isLuxeMember: false });
+    assert.ok((await getCodes('/list', adminToken())).includes('JOIN30'));
+  });
+
+  await t.test('membership lists preserve audience, expiry and usage restrictions', async () => {
+    assert.deepEqual(await getCodes('/active?purpose=membership'), ['JOIN30', 'JOINUSED']);
+    assert.deepEqual(await getCodes('/all?purpose=membership', customerToken), ['JOIN30', 'JOINPRIVATE']);
+  });
+
+  await t.test('non-members can apply membership offers only to the membership purchase', async () => {
+    const membership = await request('/apply-product-coupon', { code: 'JOIN30', productItem: { sku: 'LUXE-MEMBERSHIP', price: 129, quantity: 1 }, userId: String(customer._id) });
+    assert.equal(membership.status, 200);
+    assert.equal(membership.data.discountAmount, 30);
+    const product = await request('/apply-product-coupon', { code: 'JOIN30', productItem: { sku: 'STYLE-ROSE', price: 500, quantity: 1 }, userId: String(customer._id) });
+    assert.equal(product.status, 400);
+    const cart = await request('/apply', { code: 'JOIN30', items: [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }], userId: String(customer._id) });
+    assert.equal(cart.status, 400);
+  });
+});

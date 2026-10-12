@@ -657,7 +657,7 @@ const Coupons = ({ token }) => {
                         </select>
                         {newCoupon.userType === 'membership' && (
                           <p className='text-[10px] text-slate-400 font-bold mt-1.5'>
-                            Only redeemable on the Luxe Membership purchase itself — works even for non-members. SKU/Min Order/Min Qty rules still apply.
+                            Shown only on the Luxe page above the coupon-code input. Redeemable on the membership purchase, including for non-members. SKU/Min Order/Min Qty rules still apply.
                           </p>
                         )}
                       </div>
