@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, ShoppingCart, Eye, Sparkles, Tag, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowRight, Heart, ImageOff, Tag, Star } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -46,6 +45,8 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
     return idx === -1 ? 0 : idx;
   });
   const [activeCoupons, setActiveCoupons] = useState([]);
+  const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const [failedImage, setFailedImage] = useState(null);
 
   const { user, token, isAuthenticated, fetchWishlistCount } = useAuthStore();
   const navigate = useNavigate();
@@ -108,6 +109,7 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
     }
 
     const endpoint = isWishlisted ? 'remove' : 'add';
+    setIsUpdatingWishlist(true);
     try {
       const response = await axios.post(`${backendUrl}/api/user/wishlist/${endpoint}`,
         { productId: product._id, sku },
@@ -122,8 +124,10 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
           onWishlistToggle(newWishlistState, sku);
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update wishlist.");
+    } finally {
+      setIsUpdatingWishlist(false);
     }
   };
 
@@ -168,200 +172,137 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
   };
 
   const bestCouponPrice = getBestCouponPrice();
+  const image = isHovered ? hoverImage : defaultImage;
+  const productLink = product.isLuxePrive && !isLuxeMember
+    ? '/luxe'
+    : `/product/${product._id}${activeVariation.color ? `?color=${encodeURIComponent(activeVariation.color)}` : ''}`;
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      whileHover={{ y: -8 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-shadow duration-500 w-full max-w-[280px] sm:max-w-[300px] mx-auto"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+    <article
+      aria-label={product.name}
+      className="group relative mx-auto flex h-full w-full min-w-0 max-w-[280px] flex-col rounded-xl border border-stone-200/80 bg-white p-1.5 text-left shadow-sm transition-shadow duration-200 hover:shadow-md motion-reduce:transition-none sm:max-w-[300px] sm:p-2"
     >
-      <div className="relative">
+      <div
+        className="relative shrink-0"
+        onPointerEnter={(event) => { if (event.pointerType === 'mouse') setIsHovered(true); }}
+        onPointerLeave={() => setIsHovered(false)}
+      >
         <Link
-          to={product.isLuxePrive && !isLuxeMember ? '#' : `/product/${product._id}`}
+          to={productLink}
           onClick={handleProductClick}
-          className={`block ${product.isLuxePrive && !isLuxeMember ? 'cursor-not-allowed' : ''}`}
+          aria-label={`View ${product.name}`}
+          className="block aspect-[3/4] overflow-hidden rounded-lg bg-[#f7f5f2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
         >
-          {/* Image Section */}
-          <div className="relative aspect-[3/4] overflow-hidden bg-slate-100">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={isHovered ? hoverImage : defaultImage}
-                src={isHovered ? hoverImage : defaultImage}
-                alt={product.name}
-                className="w-full h-full object-cover"
-                initial={{ opacity: 0.8, scale: 1.05 }}
-                animate={{ opacity: 1, scale: isHovered ? 1.1 : 1 }}
-                exit={{ opacity: 0.8 }}
-                transition={{ duration: 0.5 }}
-              />
-            </AnimatePresence>
-
-            {/* Shimmer Overlay */}
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none"
-              initial={{ x: '-100%' }}
-              animate={isHovered ? { x: '100%' } : { x: '-100%' }}
-              transition={{ duration: 0.8, ease: "easeInOut" }}
+          {image && image !== failedImage ? (
+            <img
+              src={image}
+              alt={product.name}
+              className="block h-full w-full object-contain"
+              onError={() => setFailedImage(image)}
             />
-
-            {/* Action Buttons */}
-            <div className="absolute top-4 right-4 flex flex-col gap-3 z-20">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleWishlistToggle}
-                className={`p-2.5 rounded-full shadow-lg backdrop-blur-md transition-colors duration-300 ${
-                  isWishlisted ? 'bg-pink-500 text-white' : 'bg-white/90 text-gray-700 hover:bg-white'
-                }`}
-                initial={{ x: 20, opacity: 0 }}
-                animate={{ x: isHovered ? 0 : 20, opacity: isHovered ? 1 : 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (product.isLuxePrive && !isLuxeMember) {
-                    navigate('/luxe');
-                    toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
-                  } else {
-                    navigate(`/product/${product._id}`);
-                  }
-                }}
-                className="p-2.5 bg-white/90 text-gray-700 rounded-full shadow-lg backdrop-blur-md hover:bg-white transition-colors duration-300"
-                initial={{ x: 20, opacity: 0 }}
-                animate={{ x: isHovered ? 0 : 20, opacity: isHovered ? 1 : 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Eye className="w-5 h-5" />
-              </motion.button>
-            </div>
-
-            {/* Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
-              {discount > 0 && (
-                <motion.span 
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="bg-red-500 text-white px-3 py-1 text-[10px] font-black rounded-full shadow-lg tracking-wider"
-                >
-                  {discount}% OFF
-                </motion.span>
-              )}
-              {product.isNewProduct && (
-                <motion.span 
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="bg-emerald-500 text-white px-3 py-1 text-[10px] font-black rounded-full shadow-lg tracking-wider flex items-center gap-1"
-                >
-                  <Sparkles size={10} /> NEW
-                </motion.span>
-              )}
-            </div>
-
-            {/* Luxe Indicator */}
-            {product.isLuxePrive && (
-              <motion.div 
-                className="absolute bottom-4 left-4 w-12 h-12"
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 4, repeat: Infinity }}
-              >
-                <img src="/luxeprive.png" alt="Luxe" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" />
-              </motion.div>
-            )}
-          </div>
+          ) : (
+            <span className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-xs text-stone-500">
+              <ImageOff size={24} aria-hidden="true" />
+              Image unavailable
+            </span>
+          )}
         </Link>
 
-        {/* Content Section */}
-        <div className="p-4 space-y-3">
-          <Link
-            to={product.isLuxePrive && !isLuxeMember ? '#' : `/product/${product._id}`}
-            onClick={handleProductClick}
-            className="block h-10"
-          >
-            <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 leading-tight group-hover:text-pink-600 transition-colors duration-300">
-              {product.name}
-            </h3>
-          </Link>
+        <button
+          type="button"
+          onClick={handleWishlistToggle}
+          disabled={isUpdatingWishlist}
+          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-pressed={isWishlisted}
+          aria-busy={isUpdatingWishlist}
+          className={`absolute right-1.5 top-1.5 flex h-10 w-10 items-center justify-center rounded-full border border-white/80 shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none sm:right-2 sm:top-2 ${
+            isWishlisted ? 'bg-rose-50 text-rose-600' : 'bg-white/95 text-stone-800 hover:bg-rose-50 hover:text-rose-600'
+          }`}
+        >
+          <Heart size={19} aria-hidden="true" className={isWishlisted ? 'fill-current' : ''} />
+        </button>
 
+        <div className="pointer-events-none absolute left-1.5 top-1.5 flex max-w-[calc(100%-3.5rem)] flex-col items-start gap-1.5 sm:left-2 sm:top-2">
+          {discount > 0 && (
+            <span className="rounded-md bg-rose-100 px-2 py-1 text-[9px] font-semibold tracking-wide text-rose-900 sm:text-[10px]">
+              {discount}% OFF
+            </span>
+          )}
+          {product.isNewProduct && (
+            <span className="rounded-md bg-white/95 px-2 py-1 text-[9px] font-semibold tracking-wide text-stone-800 sm:text-[10px]">NEW</span>
+          )}
+        </div>
+        {product.isLuxePrive && (
+          <img src="/luxeprive.png" alt="Luxe Privé" className="pointer-events-none absolute bottom-2 left-2 h-9 w-9 object-contain sm:h-11 sm:w-11" />
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col px-1 pb-1 pt-3 sm:px-1.5 sm:pt-3.5">
+        <Link to={productLink} onClick={handleProductClick} className="rounded-sm focus-visible:outline-pink-500">
+          <h3 className="min-h-10 line-clamp-2 break-words text-[13px] font-semibold leading-5 text-stone-900 [font-family:var(--primary-font)] transition-colors group-hover:text-rose-700 sm:text-sm" title={product.name}>
+            {product.name}
+          </h3>
+        </Link>
+
+        <div className="mt-1 flex min-h-5 items-center gap-1 text-[11px] text-stone-600 sm:gap-1.5 sm:text-xs">
           {product.numOfReviews > 0 && (
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-0.5 bg-green-700 text-white px-1.5 py-0.5 rounded text-[11px] font-bold">
-                <span>{product.averageRating.toFixed(1)}</span>
-                <Star size={10} className="fill-current" />
-              </div>
-              <span className="text-xs text-gray-500">({product.numOfReviews})</span>
+            <>
+              <Star size={13} className="shrink-0 fill-amber-500 text-amber-500" aria-hidden="true" />
+              <span aria-label={`${Number(product.averageRating || 0).toFixed(1)} out of 5 stars`}>{Number(product.averageRating || 0).toFixed(1)}</span>
+              <span className="text-stone-500">({product.numOfReviews})</span>
+            </>
+          )}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-base font-semibold tracking-tight text-stone-950 sm:text-lg">
+            {displayPrice != null ? `₹${displayPrice.toLocaleString('en-IN')}` : 'Price unavailable'}
+          </span>
+          {displayMrp > displayPrice && (
+            <span className="text-[11px] text-stone-500 line-through sm:text-xs">₹{displayMrp.toLocaleString('en-IN')}</span>
+          )}
+        </div>
+
+        <div className="mt-2 min-h-8">
+          {bestCouponPrice !== null && (
+            <div className="flex items-start gap-1.5 rounded-md bg-[#edf5ee] px-2 py-1.5 text-[10px] leading-4 text-[#315b3d] sm:text-[11px]">
+              <Tag size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <span>Save ₹{(displayPrice - bestCouponPrice).toLocaleString('en-IN')} with coupon</span>
             </div>
           )}
-
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1 text-left w-full">
-              <div className="flex items-center gap-2">
-                <span className="text-base font-black text-gray-900">₹{displayPrice?.toLocaleString('en-IN')}</span>
-                {displayMrp > displayPrice && (
-                  <span className="text-xs text-gray-400 line-through font-medium">₹{displayMrp.toLocaleString('en-IN')}</span>
-                )}
-              </div>
-              {bestCouponPrice && (
-                <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 w-fit text-[10px] font-bold uppercase tracking-wider mt-0.5">
-                  <Tag size={10} className="fill-current text-emerald-600 shrink-0" />
-                  <span>Save ₹{(displayPrice - bestCouponPrice).toLocaleString('en-IN')} with coupon</span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Swatches */}
-          <div className="h-6 flex items-center">
-            {variations.length > 1 && (
-                <div className="flex items-center gap-1.5">
-                    {variations.slice(0, 4).map((variation, index) => (
-                        <motion.div
-                            key={index}
-                            whileHover={{ scale: 1.2 }}
-                            onClick={() => setActiveVariationIndex(index)}
-                            onMouseEnter={() => setActiveVariationIndex(index)}
-                            className={`w-6 h-6 rounded-full overflow-hidden border transition-all cursor-pointer flex-shrink-0 ${
-                                activeVariationIndex === index ? 'border-pink-500 ring-1 ring-pink-500' : 'border-gray-200 hover:border-gray-400'
-                            }`}
-                        >
-                            <div className="w-full h-full bg-gray-100">
-                                {variation.images?.[0] ? (
-                                    <img 
-                                      src={variation.images[0]} 
-                                      alt="" 
-                                      className="w-full h-full object-cover" 
-                                    />
-                                ) : (
-                                  <div 
-                                    className="w-full h-full" 
-                                    style={{ backgroundColor: variation.colorCode || '#ddd' }}
-                                  />
-                                )}
-                            </div>
-                        </motion.div>
-                    ))}
-                    {variations.length > 4 && (
-                      <span className="text-[10px] font-bold text-gray-400 ml-1">+{variations.length - 4}</span>
-                    )}
-                </div>
-            )}
-          </div>
         </div>
+
+        <div className="mb-3 mt-2 flex min-h-8 flex-wrap items-center gap-1" role="group" aria-label="Choose colour">
+          {variations.length > 1 && variations.slice(0, 4).map((variation, index) => {
+            const colour = variation.colorCode || (variation.color && CSS.supports('color', variation.color) ? variation.color : null);
+            return (
+              <button
+                key={variation.sku || index}
+                type="button"
+                aria-label={`Select ${variation.color || `colour ${index + 1}`}`}
+                aria-pressed={activeVariationIndex === index}
+                title={variation.color || `Colour ${index + 1}`}
+                onClick={() => { setActiveVariationIndex(index); setIsHovered(false); }}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border p-[3px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 ${activeVariationIndex === index ? 'border-stone-900' : 'border-transparent hover:border-stone-300'}`}
+              >
+                <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-black/10 bg-stone-100" style={colour ? { backgroundColor: colour } : undefined}>
+                  {!colour && variation.images?.[0] && <img src={variation.images[0]} alt="" className="h-full w-full object-contain" />}
+                </span>
+              </button>
+            );
+          })}
+          {variations.length > 4 && <span className="ml-0.5 text-[10px] text-stone-500">+{variations.length - 4}</span>}
+        </div>
+
+        <Link
+          to={productLink}
+          onClick={handleProductClick}
+          className="mt-auto flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md bg-stone-900 px-2 py-2.5 text-[11px] font-medium text-white transition-colors hover:bg-stone-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 motion-reduce:transition-none sm:gap-2 sm:text-xs"
+        >
+          View product <ArrowRight size={15} className="shrink-0" aria-hidden="true" />
+        </Link>
       </div>
-    </motion.div>
+    </article>
   );
 };
 
