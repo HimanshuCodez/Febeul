@@ -193,7 +193,7 @@ const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
     patch({ html: html.slice(0, start) + text + html.slice(end) })
     requestAnimationFrame(() => {
       if (!el) return
-      el.focus()
+      el.focus({ preventScroll: true })
       el.setSelectionRange(start + text.length, start + text.length)
     })
   }

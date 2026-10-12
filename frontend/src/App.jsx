@@ -47,6 +47,7 @@ import BlockedPage from "./Pages/Blocked";
 import SwipingMessages from "./components/SwippingMsgs";
 import FebeulLoader from "./components/Loader";
 import ScrollToTop from "./components/ScrollToTop";
+import BackToTop from "./components/BackToTop";
 import AnalyticsConsent from "./analytics/AnalyticsConsent";
 
 const AppContent = () => {
@@ -227,6 +228,7 @@ const AppContent = () => {
         <Route path="*" element={<h2>404 Page Not Found</h2>} />
       </Routes>
       <Chatbot />
+      {showHeaderFooter && <BackToTop />}
       {location.pathname !== "/" && <FebeulMembership />}
       {showHeaderFooter && <Footer />}
     </div>

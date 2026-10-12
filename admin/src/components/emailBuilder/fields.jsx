@@ -242,6 +242,7 @@ export const TokenMenu = ({ tokens, onPick, label = 'Insert variable' }) => {
 
 export const RichTextInput = ({ label, value, onChange, token, tokens }) => {
   const quillRef = useRef(null)
+  const selectionRef = useRef(null)
 
   const modules = useMemo(() => ({
     toolbar: {
@@ -282,10 +283,22 @@ export const RichTextInput = ({ label, value, onChange, token, tokens }) => {
   const insertToken = (text) => {
     const editor = quillRef.current?.getEditor()
     if (!editor) return
-    const range = editor.getSelection(true)
+    const pageScroll = { left: window.scrollX, top: window.scrollY, behavior: 'instant' }
+    const editorScrollTop = editor.root.scrollTop
+    const range = editor.getSelection() || selectionRef.current
     const index = range ? range.index : editor.getLength() - 1
     editor.insertText(index, text, 'user')
-    editor.setSelection(index + text.length, 0)
+    // Restore the caret without the browser or Quill scrolling the page to it.
+    editor.root.focus({ preventScroll: true })
+    editor.setSelection(index + text.length, 0, 'silent')
+    selectionRef.current = { index: index + text.length, length: 0 }
+    const restoreScroll = () => {
+      editor.root.scrollTop = editorScrollTop
+      window.scrollTo(pageScroll)
+    }
+    restoreScroll()
+    // ReactQuill also restores its selection after the controlled value updates.
+    requestAnimationFrame(restoreScroll)
   }
 
   return (
@@ -301,6 +314,7 @@ export const RichTextInput = ({ label, value, onChange, token, tokens }) => {
           value={value || ''}
           // Ignore Quill's own normalisation of the initial HTML so opening a block doesn't mark the template dirty.
           onChange={(html, _delta, source) => { if (source === 'user') onChange(html) }}
+          onChangeSelection={(range) => { if (range) selectionRef.current = range }}
           modules={modules}
         />
       </div>
