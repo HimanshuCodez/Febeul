@@ -1,0 +1,146 @@
+import cmsModel from '../models/cmsModel.js';
+import { EMAIL_TEMPLATE_OPTIONS } from '../../shared/emailTemplates.js';
+import { REQUEST_TYPE_LABEL, RETURN_REQUEST_CREATED_HTML, REFUND_PROCESSED_HTML } from '../templates/returnEmail.js';
+import { LUXE_EXPIRED_HTML } from '../templates/luxeExpiredEmail.js';
+import {
+    ORDER_EMAIL_CMS_NAME, ORDER_BLOCK_TYPES, BLOCK_DEFAULTS,
+    getDefaultOrderEmailContent, getTemplateMeta, normalizeContent,
+    renderOrderEmail, renderTemplateHtml,
+} from './orderEmailTemplate.js';
+
+const textToken = (key, label) => ({ key, label, group: 'text' });
+const customerTokens = [textToken('userName', 'Customer name'), textToken('currentYear', 'Current year')];
+const orderToken = textToken('orderId', 'Order ID');
+
+const DEFINITIONS = {
+    'order-confirmation': {
+        cmsName: ORDER_EMAIL_CMS_NAME,
+        requiredHtmlTokens: ['itemRows', 'totalAmount', 'orderId'],
+    },
+    'return-request': {
+        cmsName: 'returnRequestEmail',
+        subject: 'We Received Your Request',
+        html: RETURN_REQUEST_CREATED_HTML,
+        title: '{{requestLabel}} Received',
+        body: '<p>Hello {{userName}},</p><p>We\'ve received your {{requestLabelLower}} and it\'s now under review.</p><p><strong>Order #{{orderId}}</strong></p><p>We\'ll email you again as soon as this is processed. You can also track its progress anytime from your Order History.</p>',
+        tokens: [...customerTokens, orderToken, textToken('requestLabel', 'Request type'), textToken('requestLabelLower', 'Request type (lowercase)')],
+        requiredHtmlTokens: ['orderId', 'requestLabelLower'],
+    },
+    'refund-processed': {
+        cmsName: 'refundProcessedEmail',
+        subject: 'Your Febeul Refund Has Been Processed',
+        html: REFUND_PROCESSED_HTML,
+        title: 'Refund Processed',
+        body: '<p>Hello {{userName}},</p><p>Your refund has been processed to {{methodLabel}}.</p><h2>₹{{refundAmount}}</h2><p><strong>Order #{{orderId}}</strong></p><p>Refunds to a bank/UPI account may take a few business days to reflect. Prepaid gateway refunds are usually visible within 5-7 business days depending on your bank.</p>',
+        tokens: [...customerTokens, orderToken, textToken('refundAmount', 'Refund amount'), textToken('methodLabel', 'Refund destination'), textToken('paymentMethod', 'Payment method')],
+        requiredHtmlTokens: ['orderId', 'refundAmount', 'methodLabel'],
+    },
+    'luxe-expired': {
+        cmsName: 'luxeExpiredEmail',
+        subject: 'Your Febeul Luxe Membership Has Expired',
+        html: LUXE_EXPIRED_HTML,
+        title: 'Membership Expired',
+        body: '<p><strong>LUXE MEMBER</strong></p><p>Hello, {{userName}}!</p><p>Your <strong>Febeul Luxe</strong> membership has expired, and you no longer have access to priority delivery, free gift wraps, Luxe Prive sales, and other exclusive member perks.</p><p>Renew today to pick up right where you left off.</p>',
+        button: { text: 'RENEW MEMBERSHIP', url: 'https://febeul.onrender.com/luxe' },
+        tokens: [...customerTokens, textToken('renewalUrl', 'Membership renewal link')],
+        requiredHtmlTokens: ['userName'],
+    },
+};
+
+export const getEmailTemplateDefinition = (type) => {
+    if (!Object.hasOwn(DEFINITIONS, type)) return null;
+    return { ...EMAIL_TEMPLATE_OPTIONS.find(option => option.id === type), ...DEFINITIONS[type] };
+};
+
+export const getDefaultEmailContent = (type) => {
+    if (type === 'order-confirmation') return getDefaultOrderEmailContent();
+    const definition = getEmailTemplateDefinition(type);
+    if (!definition) throw new Error('Unknown email template');
+    const block = (id, blockType, overrides = {}) => ({ id, type: blockType, ...structuredClone(BLOCK_DEFAULTS[blockType]), ...overrides });
+    return {
+        ...getDefaultOrderEmailContent(),
+        // Preserve the existing emails exactly; the visual builder also has a matching starting design.
+        mode: 'html',
+        subject: definition.subject,
+        preheader: definition.title,
+        html: definition.html,
+        theme: { ...getDefaultOrderEmailContent().theme, accent: '#b87a7b', accentText: '#b87a7b', bodyFont: 'Helvetica', headingFont: 'Helvetica', radius: 20 },
+        blocks: [
+            block('logo', 'logo', { imageUrl: 'https://febeul.onrender.com/removebgLogo.png', showDivider: false }),
+            block('hero', 'hero', { title: definition.title, subtitle: '', titleSize: 28 }),
+            block('message', 'text', { html: definition.body, align: 'center', paddingY: 30 }),
+            ...(definition.button ? [block('renew', 'button', { ...definition.button, bgColor: '#b87a7b', radius: 30 })] : []),
+            block('footer', 'footer', { html: '', links: [], legal: '© {{currentYear}} Febeul. All rights reserved.' }),
+        ],
+    };
+};
+
+export const normalizeEmailContent = (type, raw) => {
+    const content = normalizeContent(raw, getDefaultEmailContent(type));
+    if (type !== 'order-confirmation') {
+        content.blocks = content.blocks.filter(block => !ORDER_BLOCK_TYPES.includes(block.type));
+    }
+    return content;
+};
+
+export const getEmailTemplateMeta = (type) => {
+    const definition = getEmailTemplateDefinition(type);
+    const meta = getTemplateMeta();
+    return {
+        ...meta,
+        ...(type !== 'order-confirmation' ? {
+            tokens: definition.tokens,
+            orderBlockTypes: [],
+            blockDefaults: Object.fromEntries(Object.entries(meta.blockDefaults).filter(([key]) => !ORDER_BLOCK_TYPES.includes(key))),
+        } : {}),
+        requiredHtmlTokens: definition.requiredHtmlTokens,
+    };
+};
+
+const escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const fillTokens = (template, tokens) => template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
+    (match, key) => Object.hasOwn(tokens, key) ? String(tokens[key] ?? '') : match);
+
+export const buildEmailTokens = (type, data = {}) => {
+    const tokens = { userName: data.userName || (type === 'luxe-expired' ? 'Luxe Member' : 'Customer'), currentYear: String(new Date().getFullYear()) };
+    if (type === 'return-request' || type === 'refund-processed') tokens.orderId = String(data.orderId || '').slice(-8).toUpperCase();
+    if (type === 'return-request') {
+        tokens.requestLabel = Object.hasOwn(REQUEST_TYPE_LABEL, data.requestType) ? REQUEST_TYPE_LABEL[data.requestType] : 'Return/Refund Request';
+        tokens.requestLabelLower = tokens.requestLabel.toLowerCase();
+    }
+    if (type === 'refund-processed') {
+        tokens.refundAmount = Number(data.amount || 0).toFixed(2);
+        tokens.paymentMethod = data.method || '';
+        tokens.methodLabel = data.method === 'Razorpay' ? 'your original payment source' : 'your provided payout details';
+    }
+    if (type === 'luxe-expired') tokens.renewalUrl = 'https://febeul.onrender.com/luxe';
+    return tokens;
+};
+
+export const buildSampleEmailData = () => ({
+    userName: 'Priya Sharma', orderId: '000000000000000A1B2C3D4E', requestType: 'return', amount: 1299, method: 'Razorpay',
+});
+
+export const renderEmailTemplate = (type, rawContent, data) => {
+    const content = normalizeEmailContent(type, rawContent);
+    if (type === 'order-confirmation') return renderOrderEmail(content, data);
+    const tokens = buildEmailTokens(type, data);
+    const htmlTokens = Object.fromEntries(Object.entries(tokens).map(([key, value]) => [key, escapeHtml(value)]));
+    const template = content.mode === 'html' && content.html.trim() ? content.html : renderTemplateHtml(content);
+    const subject = fillTokens(content.subject, tokens).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    return { subject: subject || getEmailTemplateDefinition(type).subject, html: fillTokens(template, htmlTokens) };
+};
+
+export const loadEmailContent = async (type) => {
+    const definition = getEmailTemplateDefinition(type);
+    if (!definition) throw new Error('Unknown email template');
+    try {
+        const doc = await cmsModel.findOne({ name: definition.cmsName }).lean();
+        return normalizeEmailContent(type, doc?.content);
+    } catch (error) {
+        console.error(`Failed to load ${type} email template, falling back to default:`, error);
+        return getDefaultEmailContent(type);
+    }
+};
+
+export const getSavedEmail = async (type, data) => renderEmailTemplate(type, await loadEmailContent(type), data);

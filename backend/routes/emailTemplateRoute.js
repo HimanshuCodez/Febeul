@@ -3,20 +3,21 @@ import adminAuth from '../middleware/adminAuth.js';
 import upload from '../middleware/multer.js';
 import { uploadCmsImage } from '../controllers/cmsController.js';
 import {
-    getOrderEmailTemplate,
-    saveOrderEmailTemplate,
-    resetOrderEmailTemplate,
-    previewOrderEmailTemplate,
-    sendTestOrderEmail,
+    requireEmailTemplate,
+    getEmailTemplate,
+    saveEmailTemplate,
+    resetEmailTemplate,
+    previewEmailTemplate,
+    sendTestEmail,
 } from '../controllers/emailTemplateController.js';
 
 const emailTemplateRouter = express.Router();
 
-emailTemplateRouter.get('/order-confirmation', adminAuth, getOrderEmailTemplate);
-emailTemplateRouter.post('/order-confirmation', adminAuth, saveOrderEmailTemplate);
-emailTemplateRouter.delete('/order-confirmation', adminAuth, resetOrderEmailTemplate);
-emailTemplateRouter.post('/order-confirmation/preview', adminAuth, previewOrderEmailTemplate);
-emailTemplateRouter.post('/order-confirmation/test', adminAuth, sendTestOrderEmail);
 emailTemplateRouter.post('/upload', adminAuth, upload.single('image'), uploadCmsImage);
+emailTemplateRouter.get('/:type', adminAuth, requireEmailTemplate, getEmailTemplate);
+emailTemplateRouter.post('/:type', adminAuth, requireEmailTemplate, saveEmailTemplate);
+emailTemplateRouter.delete('/:type', adminAuth, requireEmailTemplate, resetEmailTemplate);
+emailTemplateRouter.post('/:type/preview', adminAuth, requireEmailTemplate, previewEmailTemplate);
+emailTemplateRouter.post('/:type/test', adminAuth, requireEmailTemplate, sendTestEmail);
 
 export default emailTemplateRouter;

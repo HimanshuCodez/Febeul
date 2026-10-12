@@ -3,8 +3,7 @@ import userModel from "../models/userModel.js";
 import Razorpay from "razorpay";
 import { v2 as cloudinary } from "cloudinary";
 import { createReturnOrder, buildShiprocketOrderPayload, cancelShiprocketOrder } from "../utils/shiprocket.js";
-import { sendEmail } from "../utils/sendEmail.js";
-import { returnRequestCreatedEmailTemplate, refundProcessedEmailTemplate } from "../templates/returnEmail.js";
+import { sendTemplateEmail } from "../utils/sendTemplateEmail.js";
 import { appendReturnHistory, INTERNAL_STATUS } from "../utils/returnStatus.js";
 
 const razorpayInstance = new Razorpay({
@@ -215,10 +214,10 @@ const approveRefund = async (req, res) => {
             await order.save();
 
             if (order.userId?.email) {
-                sendEmail(
+                sendTemplateEmail(
+                    'refund-processed',
                     order.userId.email,
-                    'Your Febeul Refund Has Been Processed',
-                    refundProcessedEmailTemplate(order.userId.name || 'Customer', order._id, refundAmount, order.paymentMethod)
+                    { userName: order.userId.name, orderId: order._id, amount: refundAmount, method: order.paymentMethod }
                 );
             }
 
@@ -307,10 +306,10 @@ const requestRefund = async (req, res) => {
 
         const user = await userModel.findById(userId);
         if (user?.email) {
-            sendEmail(
+            sendTemplateEmail(
+                'return-request',
                 user.email,
-                'We Received Your Request',
-                returnRequestCreatedEmailTemplate(user.name || 'Customer', order._id, updateData['refundDetails.requestType'])
+                { userName: user.name, orderId: order._id, requestType: updateData['refundDetails.requestType'] }
             );
         }
 
@@ -354,10 +353,10 @@ const autoRefundOnCourierReturn = async (order) => {
 
         const user = await userModel.findById(order.userId);
         if (user?.email) {
-            sendEmail(
+            sendTemplateEmail(
+                'refund-processed',
                 user.email,
-                'Your Febeul Refund Has Been Processed',
-                refundProcessedEmailTemplate(user.name || 'Customer', order._id, refundAmount, order.paymentMethod)
+                { userName: user.name, orderId: order._id, amount: refundAmount, method: order.paymentMethod }
             );
         }
     } catch (error) {

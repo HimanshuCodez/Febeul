@@ -56,7 +56,7 @@ const AllUsers = ({ token }) => {
     { label: 'CMS', path: '/cms' },
     { label: 'Hero Images', path: '/images' },
     { label: 'Email Marketing', path: '/send-mail' },
-    { label: 'Order Email Template', path: '/email-templates' },
+    { label: 'Email Templates', path: '/email-templates' },
     { label: 'Maintenance Mode', path: '/maintenance' },
     { label: 'Configurations', path: '/configurations' },
     { label: 'Product Taxonomy', path: '/product-taxonomy' },

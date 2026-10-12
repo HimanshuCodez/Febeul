@@ -48,7 +48,7 @@ const NAV_SECTIONS = [
     label: 'Marketing & Content',
     items: [
       { to: '/send-mail', icon: Mail, label: 'Email Marketing', permission: '/send-mail' },
-      { to: '/email-templates', icon: MailCheck, label: 'Order Email Template', permission: '/email-templates' },
+      { to: '/email-templates', icon: MailCheck, label: 'Email Templates', permission: '/email-templates' },
       { to: '/cms', icon: FileText, label: 'Content (CMS)', permission: '/cms' },
       { to: '/luxe-page', icon: Crown, label: 'Luxe Page', permission: '/cms' },
       { to: '/home-gift-offer', icon: Gift, label: 'Home Gift Offer', permission: '/cms' },

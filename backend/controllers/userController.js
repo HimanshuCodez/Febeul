@@ -5,7 +5,7 @@ import axios from 'axios';
 import userModel from "../models/userModel.js";
 import { Resend } from 'resend';
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
-import { luxeExpiredEmailTemplate } from '../templates/luxeExpiredEmail.js';
+import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
 import fs from 'fs'; // For reading email template
 import path from 'path'; // Also needed here
 import { fileURLToPath } from 'url';
@@ -372,10 +372,10 @@ const getProfile = async (req,res) => {
             await user.save(); // Save the updated user status
 
             if (user.email) {
-                sendEmail(
+                sendTemplateEmail(
+                    'luxe-expired',
                     user.email,
-                    "Your Febeul Luxe Membership Has Expired",
-                    luxeExpiredEmailTemplate(user.name || 'Luxe Member')
+                    { userName: user.name }
                 ).catch(err => console.error("Error sending Luxe expiry email:", err));
             }
         }

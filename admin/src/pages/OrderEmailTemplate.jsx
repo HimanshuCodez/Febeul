@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import {
@@ -7,6 +7,7 @@ import {
   Upload, Undo2, X,
 } from 'lucide-react'
 import { backendUrl } from '../App'
+import { EMAIL_TEMPLATE_OPTIONS } from '../../../shared/emailTemplates'
 import BlockEditor, { BLOCK_TYPES, blockSummary } from '../components/emailBuilder/BlockEditor'
 import { TextInput, ColorInput, RangeInput, SelectInput, TokenMenu, uploadEmailImage } from '../components/emailBuilder/fields'
 
@@ -20,9 +21,9 @@ const THEME_PRESETS = [
   { name: 'Sage', theme: { pageBg: '#f3f6f2', cardBg: '#ffffff', accent: '#8fae8b', accentSoft: '#e8f0e6', accentText: '#56785a', textColor: '#27322a' } },
 ]
 
-const REQUIRED_HTML_TOKENS = ['itemRows', 'totalAmount', 'orderId']
-
-const OrderEmailTemplate = ({ token }) => {
+const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
+  const templateApi = `${API}/${templateType.id}`
+  const isOrderTemplate = templateType.id === 'order-confirmation'
   const [loading, setLoading] = useState(true)
   const [content, setContent] = useState(null)
   const [savedJson, setSavedJson] = useState('')
@@ -57,11 +58,16 @@ const OrderEmailTemplate = ({ token }) => {
   const dirty = !!content && JSON.stringify(content) !== savedJson
   const textTokens = useMemo(() => (meta?.tokens || []).filter((t) => t.group === 'text'), [meta])
 
+  useEffect(() => {
+    onStateChange({ dirty, busy: saving || resetting || sendingTest || htmlUploading })
+  }, [dirty, saving, resetting, sendingTest, htmlUploading, onStateChange])
+
   // ---------- Load ----------
   useEffect(() => {
+    const controller = new AbortController()
     const load = async () => {
       try {
-        const res = await axios.get(`${API}/order-confirmation`, { headers: { token } })
+        const res = await axios.get(templateApi, { headers: { token }, signal: controller.signal })
         if (res.data.success) {
           setContent(res.data.content)
           setSavedJson(JSON.stringify(res.data.content))
@@ -71,13 +77,14 @@ const OrderEmailTemplate = ({ token }) => {
           toast.error(res.data.message || 'Failed to load template')
         }
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to load template')
+        if (!axios.isCancel(err)) toast.error(err.response?.data?.message || 'Failed to load template')
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
     load()
-  }, [token])
+    return () => controller.abort()
+  }, [token, templateApi])
 
   // ---------- Live preview (debounced, server-rendered so it matches the real email exactly) ----------
   useEffect(() => {
@@ -86,7 +93,7 @@ const OrderEmailTemplate = ({ token }) => {
     const timer = setTimeout(async () => {
       setPreviewLoading(true)
       try {
-        const res = await axios.post(`${API}/order-confirmation/preview`, { content, source }, { headers: { token }, signal: controller.signal })
+        const res = await axios.post(`${templateApi}/preview`, { content, source }, { headers: { token }, signal: controller.signal })
         if (res.data.success) {
           setPreview(res.data)
           setPreviewError('')
@@ -100,7 +107,7 @@ const OrderEmailTemplate = ({ token }) => {
       }
     }, 450)
     return () => { clearTimeout(timer); controller.abort() }
-  }, [content, source, token])
+  }, [content, source, token, templateApi])
 
   useEffect(() => {
     if (!boxRef.current) return
@@ -215,12 +222,12 @@ const OrderEmailTemplate = ({ token }) => {
     }
     setSaving(true)
     try {
-      const res = await axios.post(`${API}/order-confirmation`, { content }, { headers: { token } })
+      const res = await axios.post(templateApi, { content }, { headers: { token } })
       if (res.data.success) {
         setContent(res.data.content)
         setSavedJson(JSON.stringify(res.data.content))
         setInfo({ creator: res.data.creator, updatedAt: res.data.updatedAt, isDefault: false })
-        toast.success('Template saved — new orders will use it')
+        toast.success(`${templateType.label} template saved — future emails will use it`)
       } else {
         toast.error(res.data.message || 'Failed to save')
       }
@@ -232,10 +239,10 @@ const OrderEmailTemplate = ({ token }) => {
   }
 
   const handleReset = async () => {
-    if (!window.confirm('Reset the order confirmation email to the original Febeul design? Your customisations will be lost.')) return
+    if (!window.confirm(`Reset the ${templateType.label} email to the original Febeul design? Your customisations will be lost.`)) return
     setResetting(true)
     try {
-      const res = await axios.delete(`${API}/order-confirmation`, { headers: { token } })
+      const res = await axios.delete(templateApi, { headers: { token } })
       if (res.data.success) {
         setContent(res.data.content)
         setSavedJson(JSON.stringify(res.data.content))
@@ -265,7 +272,7 @@ const OrderEmailTemplate = ({ token }) => {
     }
     setSendingTest(true)
     try {
-      const res = await axios.post(`${API}/order-confirmation/test`, { content, to: testTo.trim(), source }, { headers: { token } })
+      const res = await axios.post(`${templateApi}/test`, { content, to: testTo.trim(), source }, { headers: { token } })
       if (res.data.success) toast.success(res.data.message)
       else toast.error(res.data.message || 'Failed to send test email')
     } catch (err) {
@@ -280,15 +287,15 @@ const OrderEmailTemplate = ({ token }) => {
     if (!content) return []
     const list = []
     if (content.mode === 'html') {
-      const missing = REQUIRED_HTML_TOKENS.filter((k) => !new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`).test(content.html || ''))
-      if (missing.length) list.push(`Your HTML is missing ${missing.map((k) => `{{${k}}}`).join(', ')} — customers won't see that order information.`)
-    } else {
+      const missing = (meta?.requiredHtmlTokens || []).filter((k) => !new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`).test(content.html || ''))
+      if (missing.length) list.push(`Your HTML is missing ${missing.map((k) => `{{${k}}}`).join(', ')} — customers won't see that email information.`)
+    } else if (isOrderTemplate) {
       const visible = (type) => content.blocks.some((b) => b.type === type && !b.hidden)
       if (!visible('items')) list.push('The "Ordered Items" block is hidden or missing — customers won\'t see what they bought.')
       if (!visible('totals')) list.push('The "Price Summary" block is hidden or missing — customers won\'t see their order total.')
     }
     return list
-  }, [content])
+  }, [content, meta, isOrderTemplate])
 
   const missingOrderBlocks = useMemo(
     () => (meta && content ? meta.orderBlockTypes.filter((t) => !content.blocks.some((b) => b.type === t)) : []),
@@ -319,11 +326,11 @@ const OrderEmailTemplate = ({ token }) => {
       <div className='flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-4'>
         <div>
           <h1 className='text-2xl font-bold text-gray-800 flex items-center gap-3'>
-            Order Confirmation Email
+            {templateType.label} Email
             {dirty && <span className='text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700'>Unsaved changes</span>}
           </h1>
           <p className='text-sm text-gray-500 mt-1'>
-            Design the email customers receive right after placing an order.{' '}
+            {templateType.description}{' '}
             {info.isDefault
               ? <span className='text-gray-400'>Currently using the default design.</span>
               : info.creator && (
@@ -340,10 +347,10 @@ const OrderEmailTemplate = ({ token }) => {
               <Undo2 size={16} /> Discard
             </button>
           )}
-          <button onClick={handleReset} disabled={resetting || info.isDefault} className='flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 disabled:opacity-50'>
+          <button onClick={handleReset} disabled={resetting || saving || (info.isDefault && !dirty)} className='flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 disabled:opacity-50'>
             {resetting ? <Loader2 size={16} className='animate-spin' /> : <RotateCcw size={16} />} Reset to default
           </button>
-          <button onClick={handleSave} disabled={saving || !dirty} className='flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-lg bg-black hover:bg-gray-800 text-white disabled:bg-gray-400'>
+          <button onClick={handleSave} disabled={saving || resetting || !dirty} className='flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-lg bg-black hover:bg-gray-800 text-white disabled:bg-gray-400'>
             {saving ? <Loader2 size={16} className='animate-spin' /> : <Save size={16} />} Save template
           </button>
         </div>
@@ -366,7 +373,7 @@ const OrderEmailTemplate = ({ token }) => {
               <h2 className='text-sm font-bold text-gray-800 flex items-center gap-2'><span className='w-2 h-2 bg-pink-400 rounded-full' /> Email settings</h2>
               <TokenMenu tokens={textTokens} onPick={(t) => patch({ subject: `${content.subject}${content.subject.endsWith(' ') ? '' : ' '}${t}` })} label='Add to subject' />
             </div>
-            <TextInput label='Subject line' value={content.subject} onChange={(v) => patch({ subject: v })} placeholder='Febeul Order Confirmed - #{{orderId}}' />
+            <TextInput label='Subject line' value={content.subject} onChange={(v) => patch({ subject: v })} placeholder={`${templateType.label} email subject`} />
             {content.mode === 'builder' && (
               <TextInput label='Preview text' value={content.preheader} onChange={(v) => patch({ preheader: v })}
                 hint='The grey snippet shown next to the subject in the inbox.' />
@@ -460,6 +467,7 @@ const OrderEmailTemplate = ({ token }) => {
                       </div>
                       <div className='grid grid-cols-2 sm:grid-cols-3 gap-2'>
                         {Object.entries(BLOCK_TYPES)
+                          .filter(([type]) => meta.blockDefaults[type])
                           .filter(([type, def]) => !def.order || missingOrderBlocks.includes(type))
                           .map(([type, def]) => {
                             const Icon = def.icon
@@ -561,11 +569,11 @@ const OrderEmailTemplate = ({ token }) => {
                 {previewLoading && <Loader2 size={14} className='animate-spin text-gray-400' />}
               </div>
               <div className='flex items-center gap-2'>
-                <select value={source} onChange={(e) => setSource(e.target.value)}
+                {isOrderTemplate ? <select value={source} onChange={(e) => setSource(e.target.value)}
                   className='text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-black bg-white'>
                   <option value='sample'>Sample order</option>
                   <option value='latest'>Latest real order</option>
-                </select>
+                </select> : <span className='text-xs text-gray-500'>Sample customer data</span>}
                 <div className='inline-flex rounded-lg border border-gray-200 overflow-hidden'>
                   <button onClick={() => setDevice('desktop')} title='Desktop' className={`px-2.5 py-1.5 ${device === 'desktop' ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-50'}`}><Monitor size={15} /></button>
                   <button onClick={() => setDevice('mobile')} title='Mobile' className={`px-2.5 py-1.5 ${device === 'mobile' ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-50'}`}><Smartphone size={15} /></button>
@@ -611,7 +619,7 @@ const OrderEmailTemplate = ({ token }) => {
 
           <div className='bg-white rounded-xl shadow-sm border p-4 flex flex-col gap-3'>
             <h2 className='text-sm font-bold text-gray-800 flex items-center gap-2'><span className='w-2 h-2 bg-blue-500 rounded-full' /> Send a test email</h2>
-            <p className='text-xs text-gray-500'>Sends the current (unsaved) design, filled with the {source === 'latest' ? 'latest real order' : 'sample order'}.</p>
+            <p className='text-xs text-gray-500'>Sends the current (unsaved) design, filled with {isOrderTemplate ? (source === 'latest' ? 'the latest real order' : 'the sample order') : 'sample customer data'}.</p>
             <div className='flex gap-2'>
               <input type='email' value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder='you@example.com'
                 className='flex-1 min-w-0 px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-black' />
@@ -623,6 +631,32 @@ const OrderEmailTemplate = ({ token }) => {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+const OrderEmailTemplate = ({ token }) => {
+  const [templateId, setTemplateId] = useState('order-confirmation')
+  const [editorState, setEditorState] = useState({ dirty: false, busy: false })
+  const templateType = EMAIL_TEMPLATE_OPTIONS.find(option => option.id === templateId)
+
+  const selectTemplate = (id) => {
+    if (id === templateId) return
+    if (editorState.dirty && !window.confirm('Discard unsaved changes and switch email templates?')) return
+    setEditorState({ dirty: false, busy: false })
+    setTemplateId(id)
+  }
+
+  return (
+    <div className='w-full max-w-[1400px] mx-auto'>
+      <div className='mb-6 max-w-md'>
+        <label htmlFor='email-template-type' className='block text-sm font-semibold text-gray-700 mb-2'>Email template</label>
+        <select id='email-template-type' value={templateId} onChange={e => selectTemplate(e.target.value)} disabled={editorState.busy}
+          className='w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-black disabled:opacity-50'>
+          {EMAIL_TEMPLATE_OPTIONS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+        </select>
+      </div>
+      <EmailTemplateEditor key={templateId} token={token} templateType={templateType} onStateChange={setEditorState} />
     </div>
   )
 }

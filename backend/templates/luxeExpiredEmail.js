@@ -1,5 +1,4 @@
-export const luxeExpiredEmailTemplate = (userName) => {
-    return `
+export const LUXE_EXPIRED_HTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -88,18 +87,17 @@ export const luxeExpiredEmailTemplate = (userName) => {
         </div>
         <div class="content" style="text-align: center;">
             <div class="membership-badge">LUXE MEMBER</div>
-            <p class="welcome-text">Hello, ${userName}!</p>
+            <p class="welcome-text">Hello, {{userName}}!</p>
             <p>Your <strong>Febeul Luxe</strong> membership has expired, and you no longer have access to priority delivery, free gift wraps, Luxe Prive sales, and other exclusive member perks.</p>
             <p>Renew today to pick up right where you left off.</p>
 
-            <a href="https://febeul.onrender.com/luxe" class="cta-button">RENEW MEMBERSHIP</a>
+            <a href="{{renewalUrl}}" class="cta-button">RENEW MEMBERSHIP</a>
         </div>
         <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Febeul. All rights reserved.</p>
+            <p>&copy; {{currentYear}} Febeul. All rights reserved.</p>
             <p>You received this email because your Febeul Luxe membership expired.</p>
         </div>
     </div>
 </body>
 </html>
     `;
-};

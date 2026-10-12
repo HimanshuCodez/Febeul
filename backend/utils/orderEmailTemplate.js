@@ -126,18 +126,17 @@ export const getTemplateMeta = () => ({
     orderBlockTypes: ORDER_BLOCK_TYPES,
 });
 
-export const normalizeContent = (raw) => {
-    const d = getDefaultOrderEmailContent();
+export const normalizeContent = (raw, d = getDefaultOrderEmailContent()) => {
     if (!raw || typeof raw !== 'object') return d;
     return {
-        mode: raw.mode === 'html' ? 'html' : 'builder',
+        mode: ['html', 'builder'].includes(raw.mode) ? raw.mode : d.mode,
         subject: typeof raw.subject === 'string' && raw.subject.trim() ? raw.subject.slice(0, 200) : d.subject,
         preheader: typeof raw.preheader === 'string' ? raw.preheader.slice(0, 250) : d.preheader,
         theme: { ...d.theme, ...(raw.theme && typeof raw.theme === 'object' ? raw.theme : {}) },
         blocks: Array.isArray(raw.blocks)
             ? raw.blocks.filter((b) => b && typeof b === 'object' && BLOCK_DEFAULTS[b.type]).slice(0, 80)
             : d.blocks,
-        html: typeof raw.html === 'string' ? raw.html : '',
+        html: typeof raw.html === 'string' ? raw.html : d.html,
     };
 };
 
@@ -378,7 +377,7 @@ export const renderTemplateHtml = (rawContent) => {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="x-apple-disable-message-reformatting">
-<title>Order Confirmed - Febeul</title>
+<title>${esc(content.subject)}</title>
 <style>
 ${fontImport}
 body { margin:0; padding:0; -webkit-font-smoothing:antialiased; }

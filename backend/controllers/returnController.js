@@ -18,8 +18,7 @@ import {
     RETURN_TABS
 } from '../utils/returnStatus.js';
 import { syncReturnsTracking, syncReturnTracking } from '../utils/returnTrackingSync.js';
-import { sendEmail } from '../utils/sendEmail.js';
-import { refundProcessedEmailTemplate } from '../templates/returnEmail.js';
+import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
 
 const RETURN_FILTER = { 'refundDetails.requestType': 'return' };
 
@@ -334,10 +333,10 @@ const recordRefundSettlement = async (req, res) => {
         await order.save();
 
         if (order.userId?.email) {
-            sendEmail(
+            sendTemplateEmail(
+                'refund-processed',
                 order.userId.email,
-                'Your Febeul Refund Has Been Processed',
-                refundProcessedEmailTemplate(order.userId.name || 'Customer', order._id, settledAmount, order.paymentMethod)
+                { userName: order.userId.name, orderId: order._id, amount: settledAmount, method: order.paymentMethod }
             );
         }
 
