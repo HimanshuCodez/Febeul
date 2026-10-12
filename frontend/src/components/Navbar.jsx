@@ -171,8 +171,16 @@ export default function Header() {
 
   useEffect(() => {
     setIsMenuOpen(false);
+    setIsSearchOpen(false);
     setOpenMegaMenus({});
   }, [location]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const closeMobileSearch = () => { if (desktop.matches) setIsSearchOpen(false); };
+    desktop.addEventListener("change", closeMobileSearch);
+    return () => desktop.removeEventListener("change", closeMobileSearch);
+  }, []);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -256,7 +264,7 @@ export default function Header() {
                     <button onClick={() => setIsMenuOpen(true)} className="md:hidden p-2 text-gray-700">
                       <Menu className="h-6 w-6" />
                     </button>
-                    <button onClick={() => setIsSearchOpen(true)} className="md:hidden p-2 text-gray-700"> {/* Mobile search icon */}
+                    <button type="button" aria-label="Open search" onClick={() => setIsSearchOpen(true)} className="md:hidden p-2 text-gray-700"> {/* Mobile search icon */}
                       <Search className="h-6 w-6" />
                     </button>
                     <div className="hidden md:block w-full max-w-sm lg:max-w-lg ml-4"> {/* SearchBar desktop only */}
@@ -530,9 +538,9 @@ export default function Header() {
         <div className="md:hidden fixed inset-0 bg-white z-50 p-4">
           <div className="flex items-center gap-2">
             <div className="flex-grow">
-              <SearchBar onNavigate={() => setIsSearchOpen(false)} />
+              <SearchBar onNavigate={() => setIsSearchOpen(false)} onClose={() => setIsSearchOpen(false)} />
             </div>
-            <button onClick={() => setIsSearchOpen(false)}>
+            <button type="button" aria-label="Close search" className="relative z-50 p-1" onClick={() => setIsSearchOpen(false)}>
               <X className="h-6 w-6 text-gray-600" />
             </button>
           </div>

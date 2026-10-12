@@ -4,11 +4,14 @@ import axios from "axios";
 import { Clock, Flame, Search, X, Loader2 } from "lucide-react";
 import useAuthStore from "../store/authStore";
 import { toast } from "react-hot-toast";
+import { useReducedMotion } from "framer-motion";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const MAX_HISTORY = 5;
+const DEFAULT_PLACEHOLDER = "Search for products, categories...";
+const SEARCH_HINTS = ["lingerie", "nightwear", "pajamas", "bestsellers"];
 
-export default function SearchBar({ onNavigate }) {
+export default function SearchBar({ onNavigate, onClose }) {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -20,9 +23,37 @@ export default function SearchBar({ onNavigate }) {
   const inputRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [dropdownRect, setDropdownRect] = useState(null);
+  const [typingPlaceholder, setTypingPlaceholder] = useState("Search for ");
+  const reduceMotion = useReducedMotion();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isLuxeMember = user?.isLuxeMember;
+
+  // Animate only the idle hint; never change the query or issue searches for it.
+  useEffect(() => {
+    if (showResults || query || reduceMotion) return;
+    let hintIndex = 0;
+    let characterIndex = 0;
+    let deleting = false;
+    let timer;
+    const typeNextCharacter = () => {
+      const hint = SEARCH_HINTS[hintIndex];
+      characterIndex += deleting ? -1 : 1;
+      setTypingPlaceholder(`Search for ${hint.slice(0, characterIndex)}`);
+      let delay = deleting ? 45 : 90;
+      if (characterIndex === hint.length) {
+        deleting = true;
+        delay = 1500;
+      } else if (characterIndex === 0) {
+        deleting = false;
+        hintIndex = (hintIndex + 1) % SEARCH_HINTS.length;
+        delay = 300;
+      }
+      timer = window.setTimeout(typeNextCharacter, delay);
+    };
+    timer = window.setTimeout(typeNextCharacter, 300);
+    return () => window.clearTimeout(timer);
+  }, [showResults, query, reduceMotion]);
 
   // Load history from localStorage on component mount
   useEffect(() => {
@@ -62,7 +93,7 @@ export default function SearchBar({ onNavigate }) {
       }
     };
     fetchTrending();
-  }, [showResults]);
+  }, [showResults, query]);
 
   // Click outside just dismisses the dropdown, keeping the typed query intact
   useEffect(() => {
@@ -78,37 +109,23 @@ export default function SearchBar({ onNavigate }) {
     };
   }, []);
 
-  // Block page scroll while the dropdown is open (desktop + mobile).
-  // `overflow: hidden` on body alone doesn't stop touch-scroll/rubber-banding
-  // on iOS Safari, so pin the body in place at its current scroll offset and
-  // restore the scroll position when the dropdown closes.
+  // Lock the viewport without moving the body or changing the sticky header's
+  // scroll container. Fixing the body makes the header disappear on scrolled pages.
   useEffect(() => {
     if (!showResults) return;
 
-    const scrollY = window.scrollY;
-    const { body, documentElement } = document;
-    const prevBodyPosition = body.style.position;
-    const prevBodyTop = body.style.top;
-    const prevBodyLeft = body.style.left;
-    const prevBodyRight = body.style.right;
-    const prevBodyOverflow = body.style.overflow;
+    const { documentElement } = document;
     const prevHtmlOverflow = documentElement.style.overflow;
+    const prevScrollbarGutter = documentElement.style.scrollbarGutter;
 
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.overflow = "hidden";
+    if (window.innerWidth > documentElement.clientWidth) {
+      documentElement.style.scrollbarGutter = "stable";
+    }
     documentElement.style.overflow = "hidden";
 
     return () => {
-      body.style.position = prevBodyPosition;
-      body.style.top = prevBodyTop;
-      body.style.left = prevBodyLeft;
-      body.style.right = prevBodyRight;
-      body.style.overflow = prevBodyOverflow;
       documentElement.style.overflow = prevHtmlOverflow;
-      window.scrollTo(0, scrollY);
+      documentElement.style.scrollbarGutter = prevScrollbarGutter;
     };
   }, [showResults]);
 
@@ -122,18 +139,32 @@ export default function SearchBar({ onNavigate }) {
     const updateRect = () => {
       if (searchBarRef.current) {
         const rect = searchBarRef.current.getBoundingClientRect();
-        setDropdownRect({ top: rect.bottom, left: rect.left, width: rect.width });
+        // The desktop input can disappear when switching to the mobile layout.
+        if (!rect.width || !rect.height) {
+          setShowResults(false);
+          return;
+        }
+        const viewport = window.visualViewport;
+        const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+        setDropdownRect({
+          top: rect.bottom,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: Math.max(0, Math.min(window.innerHeight * 0.65, viewportBottom - rect.bottom - 16)),
+        });
       }
     };
 
     updateRect();
     window.addEventListener("resize", updateRect);
+    window.addEventListener("scroll", updateRect, { passive: true });
     window.addEventListener("orientationchange", updateRect);
     window.visualViewport?.addEventListener("resize", updateRect);
     window.visualViewport?.addEventListener("scroll", updateRect);
 
     return () => {
       window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect);
       window.removeEventListener("orientationchange", updateRect);
       window.visualViewport?.removeEventListener("resize", updateRect);
       window.visualViewport?.removeEventListener("scroll", updateRect);
@@ -193,6 +224,7 @@ export default function SearchBar({ onNavigate }) {
 
   const dismissResults = () => {
     setShowResults(false);
+    onClose?.();
   };
 
   const closeSearch = () => {
@@ -317,7 +349,7 @@ export default function SearchBar({ onNavigate }) {
       {/* Backdrop — blocks/dims the rest of the page while the dropdown is open */}
       {showResults && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 transition-opacity"
+          className="fixed inset-0 z-40 bg-black/40 transition-opacity touch-none"
           onClick={dismissResults}
           aria-hidden="true"
         />
@@ -333,7 +365,8 @@ export default function SearchBar({ onNavigate }) {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search for products, categories..."
+            aria-label="Search products"
+            placeholder={showResults || query || reduceMotion ? DEFAULT_PLACEHOLDER : typingPlaceholder}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -369,7 +402,7 @@ export default function SearchBar({ onNavigate }) {
           className="fixed bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden"
           style={{ top: dropdownRect.top + 6, left: dropdownRect.left, width: dropdownRect.width }}
         >
-          <div className="max-h-[60vh] sm:max-h-[65vh] overflow-y-auto overscroll-contain">
+          <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: dropdownRect.maxHeight }}>
             {/* When user has typed something */}
             {query ? (
               <>

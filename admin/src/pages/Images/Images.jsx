@@ -14,6 +14,7 @@ const FONT_GROUPS = {
 };
 
 const SYSTEM_FONTS = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New', 'system-ui'];
+const BANNER_MEDIA_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 
 const FontSelect = ({ value, onChange }) => (
   <select
@@ -127,6 +128,11 @@ const Images = ({ token }) => {
   }, [pillFontFamily]);
 
   const handleFileUpload = async (type, index, file, subType = '') => {
+    if (!file) return;
+    if (['hero', 'pose', 'styleSectionBg'].includes(type) && !BANNER_MEDIA_TYPES.includes(file.type)) {
+      toast.error('Choose a JPG, PNG, WebP or animated GIF');
+      return;
+    }
     const formData = new FormData();
     formData.append('image', file);
     setLoading(true);
@@ -138,10 +144,8 @@ const Images = ({ token }) => {
       if (response.data.success) {
         const url = response.data.imageUrl;
         if (type === 'hero') {
-          const newSlides = [...slides];
-          if (subType === 'mobile') newSlides[index].mobile = url;
-          else newSlides[index].desktop = url;
-          setSlides(newSlides);
+          const field = subType === 'mobile' ? 'mobile' : 'desktop';
+          setSlides(current => current.map((slide, slideIndex) => slideIndex === index ? { ...slide, [field]: url } : slide));
         } else if (type === 'spotlight') {
           const newSpotlight = [...spotlight];
           newSpotlight[index].image = url;
@@ -153,16 +157,18 @@ const Images = ({ token }) => {
           else newShows[index].desktopVideo = url;
           setShows(newShows);
         } else if (type === 'pose') {
-          if (subType === 'mobile') setPoseSection({ ...poseSection, mobile: url });
-          else setPoseSection({ ...poseSection, desktop: url });
+          const field = subType === 'mobile' ? 'mobile' : 'desktop';
+          setPoseSection(current => ({ ...current, [field]: url }));
         } else if (type === 'styleSectionBg') {
           if (subType === 'mobile') setStyleSectionMobileBg(url);
           else setStyleSectionDesktopBg(url);
         }
         toast.success("File uploaded successfully");
+      } else {
+        toast.error(response.data.message || 'Failed to upload file');
       }
     } catch (error) {
-      toast.error("Failed to upload file");
+      toast.error(error.response?.data?.message || 'Failed to upload file');
     } finally {
       setLoading(false);
     }
@@ -187,11 +193,12 @@ const Images = ({ token }) => {
       {/* Hero Carousel */}
       <div className="mb-6 border rounded-lg overflow-hidden shadow-sm">
         <button onClick={() => setActiveAccordion(activeAccordion === 'hero' ? null : 'hero')} className={`w-full flex justify-between items-center p-4 transition-colors font-semibold text-lg ${activeAccordion === 'hero' ? 'bg-blue-50 text-blue-700' : 'bg-gray-50'}`}>
-          <span>Hero Carousel (Desktop & Mobile Banners)</span>
+          <span>Hero Carousel (Images & GIFs)</span>
           <span>{activeAccordion === 'hero' ? '−' : '+'}</span>
         </button>
         {activeAccordion === 'hero' && (
           <div className="p-6 bg-white space-y-8">
+            <p className="text-sm text-gray-600">Upload JPG, PNG, WebP or animated GIF banners in any dimensions. Each slide fills the available width and adjusts its height to show the full image without cropping. Add a mobile version if you want different artwork on phones; otherwise the desktop version is used.</p>
             {slides.map((slide, index) => (
               <div key={index} className="border p-4 rounded-md relative bg-gray-50 shadow-inner">
                 <button onClick={() => setSlides(slides.filter((_, i) => i !== index))} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">X</button>
@@ -200,29 +207,29 @@ const Images = ({ token }) => {
                   <div className="space-y-3">
                     <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Desktop Version (Wide)</p>
                     <div className="flex items-center gap-4">
-                      <div className="w-40 h-20 bg-gray-200 rounded border overflow-hidden">
-                        {slide.desktop ? <img src={slide.desktop} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">1920x1080</div>}
+                      <div className="w-40 shrink-0 bg-gray-200 rounded border overflow-hidden">
+                        {slide.desktop ? <img src={slide.desktop} alt={`Desktop preview for slide ${index + 1}`} className="block w-full h-auto" /> : <div className="h-20 flex items-center justify-center text-gray-400 text-xs">Image or GIF</div>}
                       </div>
                       <label className="cursor-pointer bg-white border px-3 py-1 rounded text-xs shadow-sm hover:bg-gray-50 transition">
-                        Upload Desktop
-                        <input type="file" className="hidden" onChange={(e) => handleFileUpload('hero', index, e.target.files[0], 'desktop')} />
+                        Upload Desktop Image / GIF
+                        <input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('hero', index, file, 'desktop'); }} />
                       </label>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-1">Note: Use exactly 1920x1080px (16:9) — this banner fills the full browser width at up to 85% of the screen height.</p>
+                    <p className="text-[10px] text-gray-500 mt-1">Any aspect ratio is supported. A wide image works well on desktop; GIF animation is preserved.</p>
                   </div>
                   {/* Mobile Upload */}
                   <div className="space-y-3">
                     <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Version (Portrait)</p>
                     <div className="flex items-center gap-4">
-                      <div className="w-20 h-24 bg-gray-200 rounded border overflow-hidden">
-                        {slide.mobile ? <img src={slide.mobile} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">1080x1920</div>}
+                      <div className="w-20 shrink-0 bg-gray-200 rounded border overflow-hidden">
+                        {slide.mobile ? <img src={slide.mobile} alt={`Mobile preview for slide ${index + 1}`} className="block w-full h-auto" /> : <div className="h-24 flex items-center justify-center text-gray-400 text-[10px] text-center">Image or GIF</div>}
                       </div>
                       <label className="cursor-pointer bg-blue-50 border border-blue-200 text-blue-600 px-3 py-1 rounded text-xs shadow-sm hover:bg-blue-100 transition">
-                        Upload Mobile
-                        <input type="file" className="hidden" onChange={(e) => handleFileUpload('hero', index, e.target.files[0], 'mobile')} />
+                        Upload Mobile Image / GIF
+                        <input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('hero', index, file, 'mobile'); }} />
                       </label>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-1">Note: Use exactly 1080x1920px (9:16) — this banner fills the full mobile screen edge to edge.</p>
+                    <p className="text-[10px] text-gray-500 mt-1">Optional. Use any image or GIF dimensions; the carousel follows its original proportions on mobile too.</p>
                   </div>
                   {/* Link */}
                   <div className="md:col-span-2 border-t pt-4">
@@ -447,20 +454,20 @@ const Images = ({ token }) => {
           <div className="p-6 bg-white space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
-                <p className="font-bold text-gray-600 uppercase text-xs">Desktop Full Screen (Wide)</p>
-                <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden border-4 border-white shadow-xl">
-                  {poseSection.desktop ? <img src={poseSection.desktop} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">Desktop Image</div>}
+                <p className="font-bold text-gray-600 uppercase text-xs">Desktop Image / GIF</p>
+                <div className="w-full bg-gray-100 rounded-lg overflow-hidden border-4 border-white shadow-xl">
+                  {poseSection.desktop ? <img src={poseSection.desktop} alt="Desktop pose preview" className="block w-full h-auto" /> : <div className="w-full aspect-video flex items-center justify-center text-gray-400">Desktop Image / GIF</div>}
                 </div>
-                <label className="block text-center cursor-pointer bg-white border border-gray-300 py-3 rounded-md text-sm font-bold shadow-sm hover:bg-gray-50 transition">Upload Desktop Image<input type="file" className="hidden" onChange={(e) => handleFileUpload('pose', null, e.target.files[0], 'desktop')} /></label>
-                <p className="text-xs text-gray-500 text-center mt-1">Note: Use exactly 1920x1080px (16:9) — this banner fills the full browser width at up to 85% of the screen height.</p>
+                <label className="block text-center cursor-pointer bg-white border border-gray-300 py-3 rounded-md text-sm font-bold shadow-sm hover:bg-gray-50 transition">Upload Desktop Image / GIF<input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('pose', null, file, 'desktop'); }} /></label>
+                <p className="text-xs text-gray-500 text-center mt-1">JPG, PNG, WebP or animated GIF. The section fits the full image at its original proportions; no fixed dimensions are required.</p>
               </div>
               <div className="space-y-4">
-                <p className="font-bold text-red-600 uppercase text-xs">Mobile Full Screen (Portrait)</p>
-                <div className="w-full aspect-[3/4] max-w-[250px] mx-auto bg-gray-100 rounded-lg overflow-hidden border-4 border-white shadow-xl">
-                  {poseSection.mobile ? <img src={poseSection.mobile} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">Mobile Image</div>}
+                <p className="font-bold text-red-600 uppercase text-xs">Mobile Image / GIF</p>
+                <div className="w-full max-w-[250px] mx-auto bg-gray-100 rounded-lg overflow-hidden border-4 border-white shadow-xl">
+                  {poseSection.mobile ? <img src={poseSection.mobile} alt="Mobile pose preview" className="block w-full h-auto" /> : <div className="w-full aspect-[3/4] flex items-center justify-center text-gray-400">Mobile Image / GIF</div>}
                 </div>
-                <label className="block text-center cursor-pointer bg-red-50 text-red-600 border border-red-200 py-3 rounded-md text-sm font-bold shadow-sm hover:bg-red-50 transition">Upload Mobile Image<input type="file" className="hidden" onChange={(e) => handleFileUpload('pose', null, e.target.files[0], 'mobile')} /></label>
-                <p className="text-xs text-gray-500 text-center mt-1">Note: Use exactly 1080x1920px (9:16) — this banner fills the full mobile screen edge to edge.</p>
+                <label className="block text-center cursor-pointer bg-red-50 text-red-600 border border-red-200 py-3 rounded-md text-sm font-bold shadow-sm hover:bg-red-50 transition">Upload Mobile Image / GIF<input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('pose', null, file, 'mobile'); }} /></label>
+                <p className="text-xs text-gray-500 text-center mt-1">The full image or GIF scales to the phone width without cropping. Leave empty to use the desktop version.</p>
               </div>
             </div>
             <div className="border-t pt-6">
@@ -485,28 +492,28 @@ const Images = ({ token }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border p-4 rounded-md bg-gray-50 shadow-inner">
               <div className="space-y-3">
                 <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Section Background — Desktop</p>
-                <div className="w-full aspect-[3/1] bg-gray-200 rounded border overflow-hidden">
-                  {styleSectionDesktopBg ? <img src={styleSectionDesktopBg} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image (uses gradient)</div>}
+                <div className="w-full bg-gray-200 rounded border overflow-hidden">
+                  {styleSectionDesktopBg ? <img src={styleSectionDesktopBg} alt="Desktop style background preview" className="block w-full h-auto" /> : <div className="w-full aspect-[3/1] flex items-center justify-center text-gray-400 text-xs">No image (uses gradient)</div>}
                 </div>
                 <label className="cursor-pointer bg-white border px-3 py-1 rounded text-xs shadow-sm hover:bg-gray-50 transition inline-block">
-                  Upload Desktop Background
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload('styleSectionBg', null, e.target.files[0], 'desktop')} />
+                  Upload Desktop Background / GIF
+                  <input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('styleSectionBg', null, file, 'desktop'); }} />
                 </label>
-                <p className="text-[10px] text-gray-500">Note: Use around 1920x640px (3:1) — wide banner behind the pills. Leave empty to keep the default black/pink gradient.</p>
+                <p className="text-[10px] text-gray-500">JPG, PNG, WebP or animated GIF, with no fixed dimensions. The full image keeps its proportions, with extra space when the pills need it.</p>
                 {styleSectionDesktopBg && (
                   <button onClick={() => setStyleSectionDesktopBg('')} className="text-[10px] text-red-500 underline">Remove</button>
                 )}
               </div>
               <div className="space-y-3">
                 <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Section Background — Mobile</p>
-                <div className="w-full aspect-[3/4] max-w-[160px] bg-gray-200 rounded border overflow-hidden">
-                  {styleSectionMobileBg ? <img src={styleSectionMobileBg} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image (uses gradient)</div>}
+                <div className="w-full max-w-[160px] bg-gray-200 rounded border overflow-hidden">
+                  {styleSectionMobileBg ? <img src={styleSectionMobileBg} alt="Mobile style background preview" className="block w-full h-auto" /> : <div className="w-full aspect-[3/4] flex items-center justify-center text-gray-400 text-xs">No image (uses gradient)</div>}
                 </div>
                 <label className="cursor-pointer bg-blue-50 border border-blue-200 text-blue-600 px-3 py-1 rounded text-xs shadow-sm hover:bg-blue-100 transition inline-block">
-                  Upload Mobile Background
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload('styleSectionBg', null, e.target.files[0], 'mobile')} />
+                  Upload Mobile Background / GIF
+                  <input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('styleSectionBg', null, file, 'mobile'); }} />
                 </label>
-                <p className="text-[10px] text-gray-500">Note: Use around 750x1000px (3:4) — portrait crop behind the pills on phones. Leave empty to keep the default black/pink gradient.</p>
+                <p className="text-[10px] text-gray-500">The full image or GIF scales to the phone width. Leave empty to use the desktop version; remove both backgrounds to use the default gradient.</p>
                 {styleSectionMobileBg && (
                   <button onClick={() => setStyleSectionMobileBg('')} className="text-[10px] text-red-500 underline">Remove</button>
                 )}

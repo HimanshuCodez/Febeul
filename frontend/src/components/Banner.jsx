@@ -77,12 +77,13 @@ const StylesSection = () => {
     : (desktopBackground || mobileBackground);
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-black via-pink-300 to-black text-white text-center">
+    <section aria-label="Style categories" className="relative grid grid-cols-1 overflow-hidden bg-gradient-to-b from-black via-pink-300 to-black text-white text-center">
       {backgroundImage && (
-        <img src={backgroundImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={backgroundImage} alt="" className="col-start-1 row-start-1 self-center block w-full h-auto" />
       )}
 
-      <div className="relative z-10 py-16 px-4">
+      {/* The shared grid row fits both the full artwork and the pills without cropping either. */}
+      <div className="relative col-start-1 row-start-1 self-center min-w-0 z-10 py-16 px-4">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-wide mb-10">
           SUITABLE FOR DIFFERENT STYLES
         </h2>
