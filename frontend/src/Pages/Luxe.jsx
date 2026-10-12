@@ -7,6 +7,7 @@ import { FaCrown, FaCheckCircle, FaStar, FaShieldAlt } from "react-icons/fa";
 import ProductCard from "../components/ProductCard";
 import Loader from "../components/Loader";
 import { toast } from "react-hot-toast";
+import { resolveLuxeAppearance, luxeAppearanceStyle, luxeFontUrl } from '../../../shared/luxeAppearance.js';
 
 const defaultFeatures = [
   { img: "/bus.png", title: "PRIORITY DELIVERY", desc: "Fast-track shipping on every order" },
@@ -39,6 +40,18 @@ export default function FebeulLuxe() {
   const [pageContent, setPageContent] = useState({});
   const pageText = (section, key, fallback) => typeof pageContent[section]?.[key] === 'string' ? pageContent[section][key] : fallback;
   const features = Array.isArray(pageContent.features) ? pageContent.features : defaultFeatures;
+  const appearance = resolveLuxeAppearance(pageContent.appearance);
+  const appearanceStyle = luxeAppearanceStyle(appearance);
+  const fontUrl = luxeFontUrl(appearance);
+
+  useEffect(() => {
+    if (!fontUrl) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = fontUrl;
+    document.head.appendChild(link);
+    return () => link.remove();
+  }, [fontUrl]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -268,7 +281,7 @@ export default function FebeulLuxe() {
           address: "Febeul Luxe Digital Membership",
         },
         theme: {
-          color: "#b87a7b",
+          color: appearance.buttonBackgroundColor,
         },
       };
 
@@ -283,14 +296,11 @@ export default function FebeulLuxe() {
 
   if (isAuthenticated && user?.isLuxeMember) {
     return (
-      <section className="w-full bg-[#fdf5f5] py-12 px-6 min-h-screen">
-        <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,400&family=Raleway:wght@200;300;400;700&display=swap');
-        `}</style>
+      <section aria-label="Luxe page" style={appearanceStyle} className="w-full bg-[var(--luxe-background-color)] text-[var(--luxe-text-color)] [font-family:var(--luxe-body-font)] py-12 px-6 min-h-screen">
         {loadingProducts && <Loader />}
         <div className="text-center mb-10 flex flex-col items-center gap-4">
-          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs">{pageText('member', 'eyebrow', 'Member Exclusive')}</p>
-          <h1 className="max-w-full break-words text-5xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">{pageText('member', 'title', 'LUXE PRIVE SALE')}</h1>
+          <p className="[font-family:var(--luxe-body-font)] tracking-[0.5em] text-[var(--luxe-text-color)] uppercase text-xs">{pageText('member', 'eyebrow', 'Member Exclusive')}</p>
+          <h1 className="max-w-full break-words text-5xl [font-family:var(--luxe-heading-font)] font-bold text-[var(--luxe-heading-color)] italic">{pageText('member', 'title', 'LUXE PRIVE SALE')}</h1>
         </div>
 
         {luxeProducts.length > 0 ? (
@@ -301,8 +311,8 @@ export default function FebeulLuxe() {
           </div>
         ) : !loadingProducts && (
           <div className="text-center py-20">
-            <h2 className="text-2xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] mb-2 italic">{pageText('member', 'emptyTitle', 'New Arrivals Coming Soon')}</h2>
-            <p className="whitespace-pre-line text-[#c98a8b] font-['Raleway'] text-sm">{pageText('member', 'emptyDescription', 'Check back later for your exclusive Luxe Prive collection.')}</p>
+            <h2 className="text-2xl [font-family:var(--luxe-heading-font)] font-bold text-[var(--luxe-heading-color)] mb-2 italic">{pageText('member', 'emptyTitle', 'New Arrivals Coming Soon')}</h2>
+            <p className="whitespace-pre-line text-[var(--luxe-text-color)] [font-family:var(--luxe-body-font)] text-sm">{pageText('member', 'emptyDescription', 'Check back later for your exclusive Luxe Prive collection.')}</p>
           </div>
         )}
       </section>
@@ -310,16 +320,13 @@ export default function FebeulLuxe() {
   }
 
   return (
-    <section className="w-full bg-[#fdf5f5] py-12 px-6 min-h-screen">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,400&family=Raleway:wght@200;300;400;700&display=swap');
-      `}</style>
+    <section aria-label="Luxe page" style={appearanceStyle} className="w-full bg-[var(--luxe-background-color)] text-[var(--luxe-text-color)] [font-family:var(--luxe-body-font)] py-12 px-6 min-h-screen">
       
       <div className="text-center mb-12 flex flex-col items-center gap-4">
         
         <div className="max-w-full space-y-1 break-words">
-          <h1 className="text-5xl md:text-6xl font-['Cormorant_Garamond'] font-bold text-[#b87a7b] italic">{pageText('hero', 'title', 'Luxe Membership')}</h1>
-          <p className="font-['Raleway'] tracking-[0.5em] text-[#c98a8b] uppercase text-xs font-light">{pageText('hero', 'subtitle', 'Experience The Elite')}</p>
+          <h1 className="text-5xl md:text-6xl [font-family:var(--luxe-heading-font)] font-bold text-[var(--luxe-heading-color)] italic">{pageText('hero', 'title', 'Luxe Membership')}</h1>
+          <p className="[font-family:var(--luxe-body-font)] tracking-[0.5em] text-[var(--luxe-text-color)] uppercase text-xs font-light">{pageText('hero', 'subtitle', 'Experience The Elite')}</p>
         </div>
       </div>
 
@@ -332,19 +339,19 @@ export default function FebeulLuxe() {
             exit={{ opacity: 0, y: -20 }}
             className="max-w-4xl mx-auto rounded-2xl overflow-hidden mb-12 shadow-sm"
           >
-            <div className="bg-[#b87a7b] text-white py-4 px-8 relative flex items-center justify-between">
+            <div className="bg-[var(--luxe-banner-background-color)] text-[var(--luxe-banner-text-color)] py-4 px-8 relative flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <FaCrown className="text-2xl text-yellow-300" />
                 <div>
-                  <p className="font-['Raleway'] font-bold text-sm tracking-widest uppercase">{pageText('promo', 'title', 'Join Febeul Luxe Today')}</p>
-                  <p className="whitespace-pre-line text-xs font-light opacity-90 font-['Raleway']">{pageText('promo', 'description', 'Unlock exclusive sales and premium benefits instantly.')}</p>
+                  <p className="[font-family:var(--luxe-body-font)] font-bold text-sm tracking-widest uppercase">{pageText('promo', 'title', 'Join Febeul Luxe Today')}</p>
+                  <p className="whitespace-pre-line text-xs font-light opacity-90 [font-family:var(--luxe-body-font)]">{pageText('promo', 'description', 'Unlock exclusive sales and premium benefits instantly.')}</p>
                 </div>
               </div>
               <button 
                 type="button"
                 aria-label="Dismiss Luxe promotion"
                 onClick={() => setShowPromo(false)}
-                className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                className="text-[var(--luxe-banner-text-color)] hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
               >
                 ×
               </button>
@@ -368,59 +375,59 @@ export default function FebeulLuxe() {
             <div className="h-40 flex items-center justify-center mb-4">
               <img src={feature.img} alt={feature.title} className="h-28 w-28 sm:h-36 sm:w-36 object-contain hover:scale-110 transition-transform duration-500" />
             </div>
-            <h3 className="max-w-full font-['Raleway'] font-bold text-xs tracking-[0.2em] text-[#b87a7b] uppercase mb-2">{feature.title}</h3>
-            <p className="max-w-full whitespace-pre-line text-[10px] text-[#c98a8b] font-['Raleway'] uppercase tracking-wider">{feature.desc}</p>
+            <h3 className="max-w-full [font-family:var(--luxe-body-font)] font-bold text-xs tracking-[0.2em] text-[var(--luxe-heading-color)] uppercase mb-2">{feature.title}</h3>
+            <p className="max-w-full whitespace-pre-line text-[10px] text-[var(--luxe-text-color)] [font-family:var(--luxe-body-font)] uppercase tracking-wider">{feature.desc}</p>
           </Motion.div>
         ))}
       </div>
       )}
 
       {/* Bottom Card */}
-      <div className="max-w-md mx-auto bg-white rounded-3xl shadow-[0_20px_50px_rgba(249,174,175,0.2)] border border-[#f9aeaf]/20 px-8 py-10 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#f9aeaf] via-[#e07f82] to-[#f9aeaf]" />
+      <div className="max-w-md mx-auto bg-[var(--luxe-card-background-color)] rounded-3xl shadow-[0_20px_50px_var(--luxe-border-faint)] border border-[var(--luxe-border-faint)] px-8 py-10 text-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[var(--luxe-border-color)] via-[var(--luxe-accent-color)] to-[var(--luxe-border-color)]" />
         
         <div className="mb-6">
-            <span className="font-['Raleway'] tracking-widest text-[#c98a8b] uppercase text-[10px] font-bold">{pageText('offer', 'label', 'Limited Time Offer')}</span>
+            <span className="[font-family:var(--luxe-body-font)] tracking-widest text-[var(--luxe-text-color)] uppercase text-[10px] font-bold">{pageText('offer', 'label', 'Limited Time Offer')}</span>
         </div>
 
         <div className="flex items-center justify-center gap-4 mb-2">
-          <span className="text-[#c98a8b] line-through text-xl font-light">₹{siteSettings.membershipPriceOriginal}</span>
+          <span className="text-[var(--luxe-text-color)] line-through text-xl font-light">₹{siteSettings.membershipPriceOriginal}</span>
           <div className="flex flex-col items-start leading-none">
-            <span className="text-[#b87a7b] font-['Cormorant_Garamond'] font-bold text-5xl">
+            <span className="text-[var(--luxe-heading-color)] [font-family:var(--luxe-heading-font)] font-bold text-5xl">
               ₹{Math.max(0, (siteSettings.membershipPrice || 129) - (appliedCoupon?.discountAmount || 0)).toFixed(0)}
             </span>
-            <span className="text-[10px] text-[#c98a8b] font-['Raleway'] font-bold uppercase tracking-tighter mt-1">{pageText('offer', 'period', 'Per Month')}</span>
+            <span className="text-[10px] text-[var(--luxe-text-color)] [font-family:var(--luxe-body-font)] font-bold uppercase tracking-tighter mt-1">{pageText('offer', 'period', 'Per Month')}</span>
           </div>
         </div>
 
         {appliedCoupon && (
-          <p className="text-[10px] text-[#e07f82] font-['Raleway'] font-bold uppercase tracking-wider mb-4">
+          <p className="text-[10px] text-[var(--luxe-accent-color)] [font-family:var(--luxe-body-font)] font-bold uppercase tracking-wider mb-4">
             {pageText('coupon', 'label', 'Coupon')} "{appliedCoupon.code}" {pageText('coupon', 'appliedLabel', 'applied')} · -₹{appliedCoupon.discountAmount.toFixed(0)}
           </p>
         )}
 
         {!appliedCoupon && membershipCoupons.length > 0 && (
           <section aria-label="Luxe membership coupons" className="mb-4 mt-6 text-left">
-            <h2 className="mb-3 font-['Raleway'] text-xs font-bold text-[#b87a7b]">Membership offers</h2>
+            <h2 className="mb-3 [font-family:var(--luxe-body-font)] text-xs font-bold text-[var(--luxe-heading-color)]">Membership offers</h2>
             <div className="space-y-2">
               {membershipCoupons.map(coupon => (
-                <div key={coupon._id || coupon.code} className="rounded-xl border border-dashed border-[#b87a7b]/40 bg-[#fdf5f5] p-3">
+                <div key={coupon._id || coupon.code} className="rounded-xl border border-dashed border-[var(--luxe-heading-border)] bg-[var(--luxe-background-color)] p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="min-w-0 break-all font-['Raleway'] text-xs font-bold tracking-wide text-[#b87a7b]">{coupon.code}</span>
+                    <span className="min-w-0 break-all [font-family:var(--luxe-body-font)] text-xs font-bold tracking-wide text-[var(--luxe-heading-color)]">{coupon.code}</span>
                     <button
                       type="button"
                       aria-label={`Use coupon ${coupon.code}`}
                       disabled={couponLoading || isProcessing}
                       onClick={() => { setCouponCode(coupon.code); couponInput.current?.focus({ preventScroll: true }); }}
-                      className="shrink-0 rounded-lg border border-[#b87a7b]/30 bg-white px-3 py-2 font-['Raleway'] text-[10px] font-bold text-[#b87a7b] transition-colors hover:bg-[#b87a7b] hover:text-white disabled:opacity-50 focus-visible:outline-[#b87a7b]"
+                      className="shrink-0 rounded-lg border border-[var(--luxe-button-border)] bg-[var(--luxe-card-background-color)] px-3 py-2 [font-family:var(--luxe-body-font)] text-[10px] font-bold text-[var(--luxe-heading-color)] transition-colors hover:bg-[var(--luxe-button-background-color)] hover:text-[var(--luxe-button-text-color)] disabled:opacity-50 focus-visible:outline-[var(--luxe-heading-color)]"
                     >
                       Use code
                     </button>
                   </div>
-                  <p className="mt-1 font-['Raleway'] text-xs font-semibold text-[#b87a7b]">
+                  <p className="mt-1 [font-family:var(--luxe-body-font)] text-xs font-semibold text-[var(--luxe-heading-color)]">
                     {coupon.discountType === 'percentage' ? `${coupon.discountValue}% off membership` : `₹${Number(coupon.discountValue).toLocaleString('en-IN')} off membership`}
                   </p>
-                  {coupon.description && <p className="mt-1 break-words font-['Raleway'] text-[11px] leading-relaxed text-[#9b6869]">{coupon.description}</p>}
+                  {coupon.description && <p className="mt-1 break-words [font-family:var(--luxe-body-font)] text-[11px] leading-relaxed text-[var(--luxe-description-color)]">{coupon.description}</p>}
                 </div>
               ))}
             </div>
@@ -438,27 +445,27 @@ export default function FebeulLuxe() {
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
                 placeholder={pageText('coupon', 'placeholder', 'Have a coupon?')}
                 aria-label={pageText('coupon', 'placeholder', 'Have a coupon?') || 'Coupon code'}
-                className="min-w-0 flex-1 px-4 py-2.5 border border-[#f9aeaf]/40 rounded-xl text-xs font-['Raleway'] font-bold uppercase tracking-wider text-[#b87a7b] placeholder:text-[#c98a8b]/70 placeholder:normal-case placeholder:font-medium focus:outline-none focus:border-[#b87a7b] transition-all"
+                className="min-w-0 flex-1 bg-[var(--luxe-card-background-color)] px-4 py-2.5 border border-[var(--luxe-border-soft)] rounded-xl text-xs [font-family:var(--luxe-body-font)] font-bold uppercase tracking-wider text-[var(--luxe-heading-color)] placeholder:text-[var(--luxe-placeholder)] placeholder:normal-case placeholder:font-medium focus:outline-none focus:border-[var(--luxe-heading-color)] transition-all"
               />
               <button
                 type="button"
                 onClick={handleApplyCoupon}
                 disabled={couponLoading || !couponCode.trim()}
-                className="px-5 py-2.5 bg-[#b87a7b] hover:bg-[#a66b6c] text-white rounded-xl text-xs font-['Raleway'] font-bold uppercase tracking-wider transition-all disabled:bg-gray-200 disabled:text-gray-400 shrink-0"
+                className="px-5 py-2.5 bg-[var(--luxe-button-background-color)] hover:bg-[var(--luxe-button-hover-color)] text-[var(--luxe-button-text-color)] rounded-xl text-xs [font-family:var(--luxe-body-font)] font-bold uppercase tracking-wider transition-all disabled:bg-gray-200 disabled:text-gray-400 shrink-0"
               >
                 {couponLoading ? pageText('coupon', 'loadingLabel', '...') : pageText('coupon', 'applyLabel', 'Apply')}
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-between bg-[#fdf5f5] border border-[#f9aeaf]/40 rounded-xl px-4 py-2.5">
+            <div className="flex items-center justify-between bg-[var(--luxe-background-color)] border border-[var(--luxe-border-soft)] rounded-xl px-4 py-2.5">
               <div className="flex items-center gap-2">
-                <FaCheckCircle className="text-[#e07f82] text-xs shrink-0" />
-                <span className="text-xs font-['Raleway'] font-bold text-[#b87a7b] uppercase tracking-wider">{appliedCoupon.code} {pageText('coupon', 'appliedLabel', 'applied')}</span>
+                <FaCheckCircle className="text-[var(--luxe-accent-color)] text-xs shrink-0" />
+                <span className="text-xs [font-family:var(--luxe-body-font)] font-bold text-[var(--luxe-heading-color)] uppercase tracking-wider">{appliedCoupon.code} {pageText('coupon', 'appliedLabel', 'applied')}</span>
               </div>
               <button
                 type="button"
                 onClick={handleRemoveCoupon}
-                className="text-[#c98a8b] hover:text-[#b87a7b] text-[10px] font-['Raleway'] font-bold uppercase tracking-wider"
+                className="text-[var(--luxe-text-color)] hover:text-[var(--luxe-heading-color)] text-[10px] [font-family:var(--luxe-body-font)] font-bold uppercase tracking-wider"
               >
                 {pageText('coupon', 'removeLabel', 'Remove')}
               </button>
@@ -469,24 +476,24 @@ export default function FebeulLuxe() {
         <button
           onClick={handlePayment}
           disabled={isProcessing}
-          className="w-full bg-[#b87a7b] hover:bg-[#a66b6c] transition-all text-white font-['Raleway'] font-bold tracking-widest py-4 rounded-2xl shadow-lg disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed uppercase text-sm"
+          className="w-full bg-[var(--luxe-button-background-color)] hover:bg-[var(--luxe-button-hover-color)] transition-all text-[var(--luxe-button-text-color)] [font-family:var(--luxe-body-font)] font-bold tracking-widest py-4 rounded-2xl shadow-lg disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed uppercase text-sm"
         >
           {isProcessing ? pageText('offer', 'processingLabel', 'Processing...') : (isAuthenticated ? pageText('offer', 'joinLabel', 'Become a Member') : pageText('offer', 'loginLabel', 'Login to Join'))}
         </button>
 
         <div className="mt-8 pt-8 border-t border-gray-50 flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-center gap-4">
-                <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
-                    <FaCheckCircle className="text-[#e07f82]" /> {pageText('offer', 'securityLabel', 'Secure SSL')}
+                <div className="flex items-center gap-1.5 text-[9px] text-[var(--luxe-text-color)] font-bold uppercase">
+                    <FaCheckCircle className="text-[var(--luxe-accent-color)]" /> {pageText('offer', 'securityLabel', 'Secure SSL')}
                 </div>
-                <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
-                    <FaShieldAlt className="text-[#e07f82]" /> {pageText('offer', 'paymentLabel', 'Safe Payment')}
+                <div className="flex items-center gap-1.5 text-[9px] text-[var(--luxe-text-color)] font-bold uppercase">
+                    <FaShieldAlt className="text-[var(--luxe-accent-color)]" /> {pageText('offer', 'paymentLabel', 'Safe Payment')}
                 </div>
-                <div className="flex items-center gap-1.5 text-[9px] text-[#c98a8b] font-bold uppercase">
-                    <FaStar className="text-[#e07f82]" /> {pageText('offer', 'perksLabel', 'VIP Perks')}
+                <div className="flex items-center gap-1.5 text-[9px] text-[var(--luxe-text-color)] font-bold uppercase">
+                    <FaStar className="text-[var(--luxe-accent-color)]" /> {pageText('offer', 'perksLabel', 'VIP Perks')}
                 </div>
             </div>
-            <p className="whitespace-pre-line text-[9px] text-[#c98a8b] opacity-60 leading-relaxed italic">
+            <p className="whitespace-pre-line text-[9px] text-[var(--luxe-text-color)] opacity-60 leading-relaxed italic">
                 {pageText('offer', 'terms', 'Membership benefits active for 30 days from purchase. Auto-renewal not active.')}
             </p>
         </div>

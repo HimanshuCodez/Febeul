@@ -1,4 +1,7 @@
+import { DEFAULT_LUXE_APPEARANCE, validateLuxeAppearance } from '../../shared/luxeAppearance.js';
+
 export const DEFAULT_LUXE_PAGE_CONTENT = {
+    appearance: { ...DEFAULT_LUXE_APPEARANCE },
     hero: { title: 'Luxe Membership', subtitle: 'Experience The Elite' },
     promo: { enabled: true, title: 'Join Febeul Luxe Today', description: 'Unlock exclusive sales and premium benefits instantly.' },
     features: [
@@ -35,7 +38,7 @@ export const validateLuxePageContent = (content) => {
     if (!content || typeof content !== 'object' || Array.isArray(content)) {
         throw new Error('Luxe page content must be an object.');
     }
-    const result = {};
+    const result = { appearance: validateLuxeAppearance(content.appearance) };
     for (const section of ['hero', 'promo', 'offer', 'coupon', 'member']) {
         const supplied = content[section] ?? {};
         if (typeof supplied !== 'object' || Array.isArray(supplied)) {

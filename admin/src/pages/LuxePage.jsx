@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { ArrowDown, ArrowUp, Crown, ImagePlus, Plus, RefreshCcw, Save, Trash2, Upload } from 'lucide-react';
+import { DEFAULT_LUXE_APPEARANCE, LUXE_FONT_GROUPS, LUXE_COLOR_FIELDS, resolveLuxeAppearance, luxeAppearanceStyle, luxeFontUrl } from '../../../shared/luxeAppearance.js';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const storefrontUrl = import.meta.env.VITE_FRONTEND_URL || (import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:5173` : 'https://febeul.com');
@@ -44,6 +45,17 @@ const LuxePage = ({ token }) => {
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
   const [dirty, setDirty] = useState(false);
+  const appearance = { ...DEFAULT_LUXE_APPEARANCE, ...content?.appearance };
+  const fontUrl = luxeFontUrl(appearance);
+
+  useEffect(() => {
+    if (!fontUrl) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = fontUrl;
+    document.head.appendChild(link);
+    return () => link.remove();
+  }, [fontUrl]);
 
   const loadContent = useCallback(async (signal) => {
     setLoading(true);
@@ -51,7 +63,7 @@ const LuxePage = ({ token }) => {
     try {
       const { data } = await axios.get(`${backendUrl}/api/cms/luxePage`, { signal });
       if (!data.success || !Array.isArray(data.content?.features)) throw new Error('Could not load Luxe page content.');
-      setContent(data.content);
+      setContent({ ...data.content, appearance: resolveLuxeAppearance(data.content.appearance) });
       setDirty(false);
     } catch (error) {
       if (!axios.isCancel(error)) setLoadError(error.response?.data?.message || error.message);
@@ -161,12 +173,57 @@ const LuxePage = ({ token }) => {
         <div>
           <div className="mb-2 flex items-center gap-2 text-pink-600"><Crown size={20} /><span className="text-xs font-bold uppercase tracking-widest">Luxe membership</span></div>
           <h1 className="text-2xl font-bold text-gray-900">Luxe Page</h1>
-          <p className="mt-1 text-sm text-gray-500">Edit the images and text customers see on the Luxe page.</p>
+          <p className="mt-1 text-sm text-gray-500">Edit the images, text, fonts and colours customers see on the Luxe page.</p>
         </div>
         <button type="submit" disabled={saving || !!uploadingId || !dirty} className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"><Save size={17} />{saving ? 'Saving...' : 'Save Luxe page'}</button>
       </div>
 
       <fieldset disabled={saving || !!uploadingId} className="min-w-0 space-y-5">
+        <details open className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <summary className="cursor-pointer text-base font-semibold text-gray-900">Fonts & colours</summary>
+          <p className="mt-2 text-xs text-gray-500">Applies to the membership signup and active member pages. Preview your changes below, then save to publish.</p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {[['headingFont', 'Heading font'], ['bodyFont', 'Body and button font']].map(([key, label]) => (
+              <label key={key} className="text-xs font-semibold text-gray-600">{label}
+                <select value={appearance[key]} onChange={event => updateText('appearance', key, event.target.value)} className={inputClass}>
+                  {Object.entries(LUXE_FONT_GROUPS).map(([group, fonts]) => (
+                    <optgroup key={group} label={group}>{fonts.map(font => <option key={font} value={font}>{font}</option>)}</optgroup>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {LUXE_COLOR_FIELDS.map(([key, label, fallback]) => (
+              <div key={key}>
+                <label htmlFor={`luxe-${key}-hex`} className="text-xs font-semibold text-gray-600">{label}</label>
+                <div className="mt-1 flex items-center gap-2">
+                  <input type="color" aria-label={`${label} picker`} value={/^#[\da-f]{6}$/i.test(appearance[key]) ? appearance[key] : fallback} onChange={event => updateText('appearance', key, event.target.value)} className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-gray-200 bg-white p-1" />
+                  <input id={`luxe-${key}-hex`} required pattern="#[0-9a-fA-F]{6}" maxLength={7} value={appearance[key]} onChange={event => updateText('appearance', key, event.target.value)} className="w-full min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-gray-600">Live preview</p>
+            <button type="button" onClick={() => { setContent(current => ({ ...current, appearance: { ...DEFAULT_LUXE_APPEARANCE } })); setDirty(true); }} className="text-xs font-semibold text-pink-600 underline underline-offset-2">Reset fonts & colours</button>
+          </div>
+          <section aria-label="Luxe appearance preview" style={luxeAppearanceStyle(appearance)} className="mt-3 rounded-xl bg-[var(--luxe-background-color)] p-5 text-center text-[var(--luxe-text-color)] [font-family:var(--luxe-body-font)] sm:p-8">
+            <h2 className="break-words text-3xl font-bold italic text-[var(--luxe-heading-color)] [font-family:var(--luxe-heading-font)]">{content.hero?.title}</h2>
+            <p className="mt-2 text-xs">{content.hero?.subtitle}</p>
+            {content.promo?.enabled !== false && <div className="mt-5 rounded-lg bg-[var(--luxe-banner-background-color)] p-3 text-sm text-[var(--luxe-banner-text-color)]">{content.promo?.title}</div>}
+            <div className="mx-auto mt-5 max-w-sm overflow-hidden rounded-xl border border-[var(--luxe-border-soft)] bg-[var(--luxe-card-background-color)] text-sm">
+              <div className="h-1 bg-gradient-to-r from-[var(--luxe-border-color)] via-[var(--luxe-accent-color)] to-[var(--luxe-border-color)]" />
+              <div className="space-y-4 p-5">
+                <p>{content.offer?.label}</p>
+                <Crown className="mx-auto text-[var(--luxe-accent-color)]" size={22} />
+                <div className="rounded-lg border border-[var(--luxe-border-soft)] p-2 text-left text-xs">{content.coupon?.placeholder}</div>
+                <button type="button" className="w-full rounded-lg bg-[var(--luxe-button-background-color)] px-3 py-3 font-bold text-[var(--luxe-button-text-color)] [font-family:var(--luxe-body-font)] hover:bg-[var(--luxe-button-hover-color)]">{content.offer?.joinLabel}</button>
+                <p className="text-xs">{content.offer?.terms}</p>
+              </div>
+            </div>
+          </section>
+        </details>
         {textSection('hero')}
         {textSection('promo')}
         <details open className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
