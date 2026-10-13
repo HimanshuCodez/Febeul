@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
-import { Tag, Ticket, X, CheckCircle2, Sparkles, ChevronDown, ChevronUp, Info } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Tag, X, CheckCircle2, ChevronDown, Info } from 'lucide-react';
 import { isCouponExpired } from '../../../shared/couponValidity.js';
 
 const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon }) => {
@@ -101,158 +100,50 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
     };
 
     return (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-pink-50 rounded-lg">
-                    <Ticket className="w-5 h-5 text-pink-500" />
-                </div>
-                <h3 className="font-bold text-gray-800 tracking-tight">Coupons & Offers</h3>
-            </div>
-
-            <AnimatePresence mode='wait'>
-                {!appliedCode ? (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="relative"
-                    >
-                        <div className="flex gap-2">
-                            <div className="relative flex-1 group">
-                                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-pink-500 transition-colors" />
-                                <input
-                                    type="text"
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all text-sm font-medium uppercase placeholder:normal-case"
-                                    placeholder="Enter coupon code..."
-                                    value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                    disabled={loading}
-                                />
-                            </div>
-                            <button
-                                onClick={() => handleApplyCoupon()}
-                                disabled={loading || !couponCode}
-                                className="px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-lg shadow-gray-900/10 active:scale-95"
-                            >
-                                {loading ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : 'APPLY'}
-                            </button>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center justify-between"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white">
-                                <CheckCircle2 size={18} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Coupon Applied</p>
-                                <p className="text-sm font-bold text-gray-800">{appliedCode}</p>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={handleRemoveCoupon}
-                            className="p-2 hover:bg-green-100 rounded-lg text-green-600 transition-colors"
-                        >
-                            <X size={18} />
-                        </button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {offers.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-dashed border-gray-100">
-                    <button 
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="flex items-center justify-between w-full group"
-                    >
-                        <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Available Offers</span>
-                            <span className="bg-pink-100 text-pink-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{offers.length}</span>
-                        </div>
-                        {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400 group-hover:text-pink-500 transition-colors" />}
-                    </button>
-
-                    <AnimatePresence>
-                        {isExpanded && (
-                            <motion.div 
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden"
-                            >
-                                <div className="grid gap-3 mt-4">
-                                    {offers.map((offer) => {
-                                        const isAlreadyAppliedToItem = items.some(item => item.appliedCoupon?.toUpperCase() === offer.code.toUpperCase());
-                                        const paymentMethodLower = (selectedPayment || '').toLowerCase();
-                                        const isEligible = ((offer.offerType === 'prepaid' && (paymentMethodLower === 'card' || paymentMethodLower === 'razorpay' || paymentMethodLower === 'stripe')) || 
-                                                         (offer.offerType === 'cod' && paymentMethodLower === 'cod')) && !isAlreadyAppliedToItem;
-                                        
-                                        return (
-                                            <div 
-                                                key={offer._id}
-                                                className={`group relative overflow-hidden rounded-xl border p-3 transition-all ${
-                                                    isEligible 
-                                                    ? 'border-gray-200 hover:border-pink-200 bg-white' 
-                                                    : 'border-gray-100 bg-gray-50/50 grayscale'
-                                                }`}
-                                            >
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="font-bold text-sm tracking-tight text-gray-800">{offer.code}</span>
-                                                        {offer.offerType !== 'none' && (
-                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter ${
-                                                                offer.offerType === 'prepaid' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'
-                                                            }`}>
-                                                                {offer.offerType} Only
-                                                            </span>
-                                                        )}
-                                                        {isAlreadyAppliedToItem && (
-                                                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter bg-green-50 text-green-600">
-                                                                Applied to Item
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {isEligible && !appliedCode && (
-                                                        <button 
-                                                            onClick={() => handleApplyCoupon(offer.code)}
-                                                            className="text-xs font-bold text-pink-500 hover:text-pink-600 transition-colors"
-                                                        >
-                                                            APPLY
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <p className="text-[11px] text-gray-500 leading-tight pr-8">{offer.description || 'Save more on your order with this exclusive coupon.'}</p>
-                                                {!isEligible && (
-                                                    <div className="mt-2 flex items-center gap-1 text-[9px] text-gray-400 font-medium">
-                                                        <Info size={10} />
-                                                        <span>
-                                                            {isAlreadyAppliedToItem 
-                                                                ? 'Already applied to an item in cart' 
-                                                                : `Switch to ${offer.offerType === 'prepaid' ? 'Online Payment' : 'COD'} to use this`}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                
-                                                {/* Fancy "Ticket" Cuts */}
-                                                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-4 bg-white border border-gray-200 rounded-full" />
-                                                <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-4 bg-white border border-gray-200 rounded-full" />
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+        <section aria-labelledby="checkout-coupons-heading" className="min-w-0 rounded-2xl border border-stone-200/80 bg-white p-5 sm:p-6">
+            <h2 id="checkout-coupons-heading" className="mb-5 flex items-center gap-3 font-sans text-base font-semibold text-stone-900"><Tag size={19} strokeWidth={1.6} className="shrink-0 text-rose-700" aria-hidden="true" />Coupons & Offers</h2>
+            {!appliedCode ? (
+                <form onSubmit={event => { event.preventDefault(); if (!loading) handleApplyCoupon(); }}>
+                    <label htmlFor="checkout-coupon-code" className="sr-only">Coupon code</label>
+                    <div className="flex flex-wrap gap-2">
+                        <input id="checkout-coupon-code" autoComplete="off" type="text" placeholder="Enter coupon code..." value={couponCode} onChange={event => setCouponCode(event.target.value.toUpperCase())} disabled={loading} className="min-h-12 min-w-0 flex-1 basis-32 rounded-lg border border-stone-200 px-3 py-3 text-base uppercase outline-none placeholder:normal-case focus:border-rose-500 focus:ring-2 focus:ring-rose-100 sm:text-sm" />
+                        <button type="submit" disabled={loading || !couponCode.trim()} className="min-h-12 rounded-lg bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-40">{loading ? 'Applying…' : 'Apply'}</button>
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-stone-500">{items.some(item => item.appliedCoupon) ? 'Your product coupons are already included in the total.' : 'Have a code? Add it here before placing your order.'}</p>
+                </form>
+            ) : (
+                <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                    <CheckCircle2 size={20} className="shrink-0 text-emerald-700" aria-hidden="true" />
+                    <div className="min-w-0 flex-1"><p className="text-xs text-emerald-700">Coupon applied</p><p className="break-words text-sm font-semibold text-stone-900">{appliedCode}</p></div>
+                    <button type="button" aria-label="Remove coupon" onClick={handleRemoveCoupon} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-emerald-700 hover:bg-emerald-100"><X size={18} aria-hidden="true" /></button>
                 </div>
             )}
-        </div>
+            {offers.length > 0 && (
+                <div className="mt-4 border-t border-stone-100 pt-2">
+                    <button type="button" aria-expanded={isExpanded} aria-controls="checkout-available-offers" onClick={() => setIsExpanded(!isExpanded)} className="flex min-h-11 w-full items-center justify-between gap-3 rounded text-sm font-medium text-stone-600 hover:text-rose-700">
+                        <span>Available offers <span className="ml-1 text-xs text-stone-400">({offers.length})</span></span>
+                        <ChevronDown size={16} aria-hidden="true" className={'shrink-0 transition-transform ' + (isExpanded ? 'rotate-180' : '')} />
+                    </button>
+                    {isExpanded && <div id="checkout-available-offers" className="mt-3 space-y-3">
+                        {offers.map(offer => {
+                            const isAlreadyAppliedToItem = items.some(item => item.appliedCoupon?.toUpperCase() === offer.code.toUpperCase());
+                            const paymentMethod = (selectedPayment || '').toLowerCase();
+                            const isEligible = ((offer.offerType === 'prepaid' && ['card', 'razorpay', 'stripe'].includes(paymentMethod)) || (offer.offerType === 'cod' && paymentMethod === 'cod')) && !isAlreadyAppliedToItem;
+                            return (
+                                <div key={offer._id} className="rounded-xl border border-stone-200 p-4">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="min-w-0"><p className="break-words text-sm font-semibold text-stone-900">{offer.code}</p><p className="mt-1 text-[11px] text-stone-500">{offer.offerType === 'prepaid' ? 'Online payments' : 'Cash on delivery'}</p></div>
+                                        {isEligible && !appliedCode && <button type="button" disabled={loading} aria-label={'Apply coupon ' + offer.code} onClick={() => handleApplyCoupon(offer.code)} className="min-h-11 rounded-lg px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-40">Apply</button>}
+                                    </div>
+                                    <p className="mt-2 break-words text-xs leading-5 text-stone-600">{offer.description || 'Save on your order with this coupon.'}</p>
+                                    {!isEligible && <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-stone-500"><Info size={13} className="mt-1 shrink-0" aria-hidden="true" /><span>{isAlreadyAppliedToItem ? 'Already applied to an item in your cart.' : 'Select ' + (offer.offerType === 'prepaid' ? 'online payment' : 'cash on delivery') + ' to use this offer.'}</span></p>}
+                                </div>
+                            );
+                        })}
+                    </div>}
+                </div>
+            )}
+        </section>
     );
 };
 

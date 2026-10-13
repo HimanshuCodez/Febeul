@@ -143,7 +143,7 @@ test('cart and checkout complete with analytics unavailable; withdrawal before c
   await flush(page);
   await page.goto(`${shop}/Checkout`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Use this address' }).click();
-  await page.getByText('Upi / Net Banking / Card', { exact: true }).click();
+  await page.getByRole('radio', { name: /UPI \/ Net Banking \/ Card/ }).check();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByRole('button', { name: 'Place Order', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.paymentOpened)).toBe(true);
