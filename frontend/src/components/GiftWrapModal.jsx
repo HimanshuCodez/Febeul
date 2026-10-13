@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
-import { Gift, Loader2, X } from 'lucide-react';
 import useAuthStore from '../store/authStore';
-
+import { useEffect, useRef, useState } from 'react';
+import { motion as Motion } from 'framer-motion';
+import axios from 'axios';
+import { FaTimes, FaCheck } from 'react-icons/fa';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
@@ -13,7 +13,8 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const { user } = useAuthStore();
-  const isComplimentary = user?.isLuxeMember && user?.giftWrapsLeft > 0;
+  const isLuxeMember = user?.isLuxeMember || false;
+  const giftWrapsLeft = user?.giftWrapsLeft || 0;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -27,67 +28,154 @@ const GiftWrapModal = ({ isOpen, onClose, onSelect }) => {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return;
     let cancelled = false;
-    setLoading(true);
-    setLoadError(false);
-    setSelectedWrap(null);
-    const fetchWraps = async () => {
-      try {
-        const response = await axios.get(backendUrl + '/api/giftwrap/list');
-        if (!response.data.success) throw new Error('Could not load gift wraps');
-        if (!cancelled) setGiftWraps(response.data.data || []);
-      } catch {
-        if (!cancelled) setLoadError(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    fetchWraps();
+    if (isOpen) {
+      const fetchGiftWraps = async () => {
+        setLoading(true);
+        setLoadError(false);
+        setSelectedWrap(null);
+        try {
+          const response = await axios.get(`${backendUrl}/api/giftwrap/list`);
+          if (response.data.success) {
+            if (!cancelled) setGiftWraps(response.data.data || []);
+          } else {
+            if (!cancelled) setLoadError(true);
+          }
+        } catch (error) {
+          console.error("Error fetching gift wraps:", error);
+          if (!cancelled) setLoadError(true);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      };
+      fetchGiftWraps();
+    }
     return () => { cancelled = true; };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSelect = () => {
-    if (!selectedWrap) return;
-    onSelect({ ...selectedWrap, price: isComplimentary ? 0 : selectedWrap.price, message: giftMessage });
-    onClose();
+  const getDisplayedPrice = (wrap) => {
+    if (isLuxeMember && giftWrapsLeft > 0) {
+      return "FREE";
+    }
+    return `₹${wrap.price}`;
+  };
+
+  const getCalculatedPrice = (wrap) => {
+    if (isLuxeMember && giftWrapsLeft > 0) {
+      return 0;
+    }
+    return wrap.price;
+  };
+
+  const handleSelect = async () => {
+    if (selectedWrap) {
+      const finalPrice = getCalculatedPrice(selectedWrap);
+      onSelect({ ...selectedWrap, price: finalPrice, message: giftMessage });
+      onClose();
+    }
   };
 
   return (
-    <dialog ref={dialogRef} aria-labelledby="gift-wrap-title" onCancel={event => { event.preventDefault(); onClose(); }} className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl border border-stone-200 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-stone-950/40 backdrop:backdrop-blur-sm [&_button:focus-visible]:outline-none [&_button:focus-visible]:ring-2 [&_button:focus-visible]:ring-rose-500 [&_button:focus-visible]:ring-offset-2">
-      <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-stone-100 bg-white px-5 py-5 sm:px-6">
-        <div>
-          <h2 id="gift-wrap-title" className="flex items-center gap-2 font-sans text-base font-semibold"><Gift size={19} strokeWidth={1.5} className="text-rose-700" aria-hidden="true" />Choose Gift Wrap</h2>
-          <p className="mt-2 text-xs leading-5 text-stone-500">{isComplimentary ? 'Included with your Luxe membership. ' + user.giftWrapsLeft + ' free wraps remaining.' : 'A thoughtful finishing touch for your order.'}</p>
+    <dialog ref={dialogRef} aria-labelledby="gift-wrap-title" onCancel={event => { event.preventDefault(); onClose(); }} className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 open:flex open:items-center open:justify-center">
+      <Motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90dvh] overflow-y-auto"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 id="gift-wrap-title" className="text-2xl font-bold text-gray-800">Choose Gift Wrap</h2>
+            {isLuxeMember && (
+              <p className="text-sm text-pink-500 font-medium">
+                {giftWrapsLeft > 0
+                  ? `Luxe Member: ${giftWrapsLeft} free wraps remaining`
+                  : "Luxe Member: Free wraps exhausted for this month"}
+              </p>
+            )}
+          </div>
+          <button aria-label="Close gift wrap" onClick={onClose} className="text-gray-500 hover:text-gray-800">
+            <FaTimes size={24} />
+          </button>
         </div>
-        <button type="button" aria-label="Close gift wrap" onClick={onClose} className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-stone-500 hover:bg-stone-50"><X size={19} aria-hidden="true" /></button>
-      </div>
-      <div className="space-y-5 p-5 sm:p-6">
-        {loading ? <p role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-stone-500"><Loader2 size={17} aria-hidden="true" className="motion-safe:animate-spin" />Loading gift wraps…</p> : loadError ? <p role="alert" className="rounded-lg bg-amber-50 p-4 text-sm text-amber-800">Gift wraps couldn’t be loaded. Close this window and try again.</p> : giftWraps.length === 0 ? <p className="py-6 text-center text-sm text-stone-500">No gift wraps are available right now.</p> : (
-          <fieldset className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <legend className="sr-only">Choose your gift wrap</legend>
-            {giftWraps.map(wrap => (
-              <label key={wrap._id} className={'cursor-pointer overflow-hidden rounded-xl border transition-colors ' + (selectedWrap?._id === wrap._id ? 'border-rose-400 bg-rose-50/50' : 'border-stone-200 hover:border-rose-200')}>
-                {wrap.image && <img src={wrap.image} alt="" className="aspect-[4/3] w-full object-cover" />}
-                <span className="flex items-start gap-2 p-3"><input type="radio" name="giftWrap" checked={selectedWrap?._id === wrap._id} onChange={() => setSelectedWrap(wrap)} className="mt-0.5 h-4 w-4 shrink-0 accent-rose-700" /><span className="min-w-0"><span className="block break-words text-xs font-semibold leading-5">{wrap.name}</span><span className="mt-1 block text-xs text-stone-600">{isComplimentary ? 'Free' : '₹' + Number(wrap.price).toFixed(2)}</span></span></span>
-              </label>
-            ))}
-          </fieldset>
-        )}
-        <div>
-          <label htmlFor="gift-message" className="mb-2 block text-xs font-medium text-stone-700">Gift message <span className="font-normal text-stone-400">(optional)</span></label>
-          <textarea id="gift-message" rows={3} placeholder="A little note for someone special…" value={giftMessage} onChange={event => setGiftMessage(event.target.value)} maxLength={200} className="w-full resize-y rounded-lg border border-stone-200 px-3 py-3 text-base outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100 sm:text-sm" />
-          <p className="mt-1 text-right text-xs text-stone-500">{giftMessage.length}/200</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto p-2">
+          {loading ? (
+            <div className="col-span-full text-center p-8">
+              <p>Loading wraps...</p>
+            </div>
+          ) : loadError ? (
+            <p role="alert" className="col-span-full p-4 text-sm text-red-600">Gift wraps couldn’t be loaded. Close this window and try again.</p>
+          ) : giftWraps.length === 0 ? (
+            <p className="col-span-full p-4 text-sm text-gray-500">No gift wraps are available right now.</p>
+          ) : (
+            giftWraps.map((wrap) => (
+              <div
+                key={wrap._id}
+                role="radio"
+                aria-label={`${wrap.name} ${getDisplayedPrice(wrap)}`}
+                aria-checked={selectedWrap?._id === wrap._id}
+                tabIndex={0}
+                onKeyDown={event => {
+                  if (['Enter', ' '].includes(event.key)) { event.preventDefault(); setSelectedWrap(wrap); }
+                }}
+                onClick={() => setSelectedWrap(wrap)}
+                className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                  selectedWrap?._id === wrap._id ? 'border-pink-500' : 'border-gray-200 hover:border-pink-300'
+                }`}
+              >
+                  <div className="relative">
+                    <img src={wrap.image} alt={wrap.name} className="w-full h-40 object-cover" />
+                    {selectedWrap?._id === wrap._id && (
+                      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white">
+                          <FaCheck />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 text-center">
+                    <p className="font-semibold text-gray-700">{wrap.name}</p>
+                    <p className="text-pink-500 font-bold">{getDisplayedPrice(wrap)}</p>
+                  </div>
+              </div>
+            ))
+          )}
         </div>
-      </div>
-      <div className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-stone-100 bg-white px-5 py-4 sm:px-6">
-        <button type="button" onClick={onClose} className="min-h-12 rounded-lg border border-stone-200 px-4 py-3 text-sm font-medium text-stone-600 hover:bg-stone-50">No, thanks</button>
-        <button type="button" onClick={handleSelect} disabled={!selectedWrap || loading || loadError} className="min-h-12 rounded-lg bg-stone-900 px-5 py-3 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-40">Select Wrap</button>
-      </div>
+        <div className="mt-4">
+          <label htmlFor="gift-message" className="block text-sm font-medium text-gray-700 mb-1">
+            Gift Message (Optional)
+          </label>
+          <textarea
+            id="gift-message"
+            rows="3"
+            className="w-full p-2 border rounded-md focus:ring-pink-500 focus:border-pink-500"
+            placeholder="Enter your personalized gift message here..."
+            value={giftMessage}
+            onChange={(e) => setGiftMessage(e.target.value)}
+            maxLength={200}
+          ></textarea>
+          <p className="text-right text-xs text-gray-500">{giftMessage.length}/200</p>
+        </div>
+        <div className="mt-6 flex justify-end gap-4">
+            <button
+                onClick={onClose}
+                className="px-6 py-2 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300"
+            >
+                No, thanks
+            </button>
+            <button
+                onClick={handleSelect}
+                disabled={!selectedWrap || loading || loadError}
+                className="px-6 py-2 rounded-lg text-white bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300"
+            >
+                Select Wrap
+            </button>
+        </div>
+      </Motion.div>
     </dialog>
   );
 };
+
 
 export default GiftWrapModal;

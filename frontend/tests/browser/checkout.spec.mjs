@@ -72,17 +72,17 @@ test('responsive checkout keeps totals correct through gift wrapping, COD, failu
   await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled();
   await cod(page).check();
   await expect(summary(page).getByText('COD Charges').locator('..')).toContainText('₹50.00');
-  await page.getByRole('button', { name: 'Add gift wrap', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Gift Wrap?', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Choose Gift Wrap' });
   await expect(dialog.getByRole('button', { name: 'Select Wrap' })).toBeDisabled();
   await dialog.getByRole('radio', { name: /Rose gift box/ }).check();
-  await dialog.getByLabel('Gift message').fill('With love');
+  await dialog.getByLabel(/Gift Message/).fill('With love');
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await dialog.getByRole('button', { name: 'Select Wrap' }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByLabel('Order total')).toHaveText('₹983.00');
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Ready to place your order' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Place Order', exact: true })).toBeVisible();
   state.orderError = true;
   await page.getByRole('button', { name: 'Place Order', exact: true }).click();
   await expect(page.getByText('Please try your order again.')).toBeVisible();
@@ -104,7 +104,7 @@ test('online lifetime offer, coupon removal and entry, and Razorpay verification
   await page.getByRole('button', { name: 'Remove coupon', exact: true }).click();
   await expect(page.getByLabel('Order total')).toHaveText('₹898.00');
   await page.getByRole('textbox', { name: 'Coupon code', exact: true }).fill('online50');
-  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await page.getByRole('button', { name: /^apply$/i }).click();
   await expect(page.getByLabel('Order total')).toHaveText('₹848.00');
   await cod(page).check();
   await expect(page.getByRole('button', { name: 'Remove coupon' })).toHaveCount(0);
@@ -127,7 +127,7 @@ test('online lifetime offer, coupon removal and entry, and Razorpay verification
   expect(state.errors).toEqual([]);
 });
 
-test('labelled address form saves and edits details including weekend preferences', async ({ page }, testInfo) => {
+test('address form saves and edits details including weekend preferences', async ({ page }, testInfo) => {
   const state = await fixture(page, { noAddress: true });
   await page.setViewportSize({ width: 320, height: 1000 });
   await page.getByLabel('Full name', { exact: true }).fill('New shopper');
@@ -137,8 +137,8 @@ test('labelled address form saves and edits details including weekend preference
   await page.getByLabel('Pincode', { exact: true }).fill('110001');
   await expect(page.getByLabel('City', { exact: true })).toHaveValue('Delhi');
   await expect(page.getByLabel('State', { exact: true })).toHaveValue('Delhi');
-  await page.getByRole('button', { name: 'Weekend deliveries' }).click();
-  await page.getByRole('checkbox', { name: 'Sundays', exact: true }).uncheck();
+  await page.getByRole('button', { name: /Weekend Deliveries/ }).click();
+  await page.getByRole('button', { name: 'NO', exact: true }).nth(1).click();
   expect(await page.getByRole('main').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.outputPath('checkout-address-form-320.png'), fullPage: true });
@@ -172,19 +172,19 @@ test('changing to a COD-blocked address requires an available payment method', a
 
 test('Luxe gift wrapping is displayed as free and the dialog restores keyboard focus', async ({ page }) => {
   const state = await fixture(page, { member: true, giftWrap: true });
-  await expect(summary(page).getByText('Gift Wrap', { exact: true }).locator('..')).toContainText('Free');
+  await expect(summary(page).getByText('Gift Wrap:', { exact: true }).locator('../..')).toContainText('Free');
   await page.getByRole('button', { name: 'Remove gift wrap', exact: true }).click();
-  await expect(summary(page).getByText('Gift Wrap', { exact: true })).toHaveCount(0);
-  const addWrap = page.getByRole('button', { name: 'Add gift wrap', exact: true });
+  await expect(summary(page).getByText('Gift Wrap:', { exact: true })).toHaveCount(0);
+  const addWrap = page.getByRole('button', { name: 'Add Gift Wrap?', exact: true });
   await addWrap.click();
   const dialog = page.getByRole('dialog', { name: 'Choose Gift Wrap' });
   await expect(dialog).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0); await expect(addWrap).toBeFocused();
   await addWrap.click();
-  await dialog.getByRole('radio', { name: /Rose gift box Free/ }).check();
+  await dialog.getByRole('radio', { name: /Rose gift box FREE/ }).check();
   await dialog.getByRole('button', { name: 'Select Wrap' }).click();
-  await expect(summary(page).getByText('Gift Wrap', { exact: true }).locator('..')).toContainText('Free');
+  await expect(summary(page).getByText('Gift Wrap:', { exact: true }).locator('../..')).toContainText('Free');
   await expect(page.getByLabel('Order total')).toHaveText('₹898.00');
   expect(state.errors).toEqual([]);
 });

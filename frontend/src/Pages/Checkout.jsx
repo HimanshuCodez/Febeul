@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { isCouponExpired } from '../../../shared/couponValidity.js';
-import { motion as Motion, AnimatePresence, MotionConfig } from 'framer-motion';
-import { FaShieldAlt } from 'react-icons/fa';
-import { ArrowLeft, ArrowRight, Banknote, Check, ChevronDown, CreditCard, Gift, Loader2, LockKeyhole, MapPin, Pencil, Plus, ShoppingBag, Tag, X } from 'lucide-react';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
+import {
+  FaMapMarkerAlt,
+  FaMoneyBillWave,
+  FaCreditCard,
+  FaShoppingBag,
+  FaCheck,
+  FaChevronRight,
+  FaEdit,
+  FaTimes,
+  FaSearch,
+  FaChevronDown,
+  FaShieldAlt
+} from 'react-icons/fa';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+import Loader from '../components/Loader';
 import GiftWrapModal from '../components/GiftWrapModal';
 import CouponCodeInput from '../components/CouponCodeInput';
 
@@ -40,24 +52,6 @@ const countries = [
 ];
 
 const ORDER_SUCCESS_REDIRECT_DELAY_MS = 1600;
-
-const CheckoutField = ({ label, optional = false, className = '', children }) => (
-  <label className={'block min-w-0 ' + className}>
-    <span className="mb-2 block text-xs font-medium text-stone-700">{label}{optional && <span className="font-normal text-stone-400"> (optional)</span>}</span>
-    {children}
-  </label>
-);
-
-const AddressDetails = ({ address }) => (
-  <span className="block min-w-0 flex-1 text-sm leading-6 text-stone-600">
-    <span className="mb-1 flex flex-wrap items-center gap-2"><span className="break-words font-semibold text-stone-900">{address.name}</span><span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-stone-500 ring-1 ring-stone-200">{address.addressType || 'Home'}</span></span>
-    <span className="block break-words">{[address.address, address.locality].filter(Boolean).join(', ')}</span>
-    {address.landmark && <span className="block break-words text-xs text-stone-500">Near {address.landmark}</span>}
-    <span className="block break-words">{address.city}, {address.state} {address.zip}</span>
-    <span className="block break-words">{address.country}</span>
-    <span className="mt-2 block break-words text-xs">Phone: {address.phone}{address.alternatePhone ? ', ' + address.alternatePhone : ''}</span>
-  </span>
-);
 
 // Flipkart-style full-screen success tick — deliberately shows nothing
 // beyond the checkmark itself before handing off to the order detail page.
@@ -181,6 +175,26 @@ export default function CheckoutPage() {
   const [isWeekendAccordionOpen, setIsWeekendAccordionOpen] = useState(false);
   const [isPincodeLoading, setPincodeLoading] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
+
+  // Searchable Country States
+  const [countrySearch, setCountrySearch] = useState("");
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const countryDropdownRef = React.useRef(null);
+
+  const filteredCountries = countries.filter(c =>
+      c.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+      const handleClickOutside = (event) => {
+          if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target)) {
+              setIsCountryDropdownOpen(false);
+          }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Fetch City/State from Pincode in Checkout
   useEffect(() => {
@@ -364,6 +378,12 @@ export default function CheckoutPage() {
     return !!(pinInfo && pinInfo.blockCod);
   };
 
+  const handleCountrySelect = (c) => {
+    setAddressCountry(c);
+    setCountrySearch("");
+    setIsCountryDropdownOpen(false);
+  };
+
   const clearAddressForm = () => {
     setAddressName('');
     setAddressLine('');
@@ -409,14 +429,14 @@ export default function CheckoutPage() {
     }
 
     const addressData = {
-        name: addressName, 
-        address: addressLine, 
+        name: addressName,
+        address: addressLine,
         locality: addressLocality,
         landmark: addressLandmark,
-        city: addressCity, 
-        zip: addressZip, 
+        city: addressCity,
+        zip: addressZip,
         state: addressState,
-        country: addressCountry, 
+        country: addressCountry,
         phone: addressPhone,
         alternatePhone: addressAlternatePhone,
         addressType: addressType,
@@ -428,12 +448,12 @@ export default function CheckoutPage() {
     try {
         let response;
         if (editingAddressId) {
-            response = await axios.post(`${backendUrl}/api/user/update-address`, 
+            response = await axios.post(`${backendUrl}/api/user/update-address`,
                 { userId: user._id, addressId: editingAddressId, address: addressData },
                 { headers: { token } }
             );
         } else {
-            response = await axios.post(`${backendUrl}/api/user/add-address`, 
+            response = await axios.post(`${backendUrl}/api/user/add-address`,
                 { userId: user._id, address: addressData },
                 { headers: { token } }
             );
@@ -481,18 +501,18 @@ export default function CheckoutPage() {
     });
 
     const isLuxeMember = user?.isLuxeMember && (user?.giftWrapsLeft > 0);
-    
+
     let shippingCharge = 0;
     if (selectedPayment !== 'cod' && !user?.isLuxeMember && (subtotal - totalProductDiscount) < (siteSettings.shippingThreshold || 499)) {
         shippingCharge = siteSettings.defaultShippingCharge || 50.00;
     }
 
     const codCharge = selectedPayment === 'cod' ? (siteSettings.codCharge || 50.00) : 0;
-    
+
     const giftWrapPrice = selectedGiftWrap ? (isLuxeMember ? 0 : selectedGiftWrap.price) : 0;
-    
+
     const total = parseFloat((subtotal - totalProductDiscount + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
-    
+
     const selectedAddr = user?.addresses?.[selectedAddress];
 
     const addresses = user?.addresses || [];
@@ -573,7 +593,7 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (isPlacingOrder) return;
-    if (!selectedAddr || !selectedPayment || cartItems.length === 0) {
+    if (!selectedAddr || !selectedPayment || cartItems.length === 0 || cartLoadError) {
       toast.error('Please confirm your delivery address and payment method.');
       return;
     }
@@ -641,7 +661,7 @@ export default function CheckoutPage() {
         couponDiscount: couponDiscount,
         currency: 'INR',
       };
-      
+
       const orderResponse = await axios.post(`${backendUrl}/api/order/razorpay`, orderPayload, { headers: { token } });
 
       if (!orderResponse.data.success) {
@@ -709,258 +729,730 @@ export default function CheckoutPage() {
     }
   };
 
-  const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  const canUseAddress = Boolean(selectedAddr) && isAddressServiceable(selectedAddr);
-  const canReview = Boolean(selectedPayment) && !(selectedPayment === 'cod' && codBlockedForSelectedAddress);
-  const panelStyle = 'min-w-0 rounded-2xl border border-stone-200/80 bg-white p-5 sm:p-6';
-  const primaryButton = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-40';
-  const inputStyle = 'min-h-12 w-full min-w-0 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-base text-stone-900 outline-none transition-colors focus:border-rose-500 focus:ring-2 focus:ring-rose-100 sm:text-sm';
-  const changeButton = 'inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded px-1 text-xs font-semibold text-rose-700 hover:text-rose-900';
+  if (loading) return <Loader />;
 
-  if (loading) return (
-    <main className="min-h-[65vh] bg-[#fcf9f7] px-4 py-12 sm:px-6" aria-busy="true">
-      <div className="mx-auto max-w-6xl">
-        <p role="status" className="mb-8 flex items-center gap-3 text-sm text-stone-600"><Loader2 size={18} aria-hidden="true" className="motion-safe:animate-spin" />Preparing your checkout…</p>
-        <div aria-hidden="true" className="grid gap-6 motion-safe:animate-pulse lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="h-80 rounded-2xl border border-stone-200 bg-white" />
-          <div className="h-96 rounded-2xl border border-stone-200 bg-white" />
-        </div>
+  if (cartLoadError || cartItems.length === 0) return (
+    <main className="min-h-screen bg-[#f9aeaf] py-8 px-4">
+      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Checkout</h1>
+        <h2 className="text-xl font-bold text-gray-800">{cartLoadError ? 'We couldn’t load your checkout' : 'Your cart is empty'}</h2>
+        <p className="mt-3 text-sm text-gray-600">{cartLoadError ? 'Please refresh to try again. Your order has not been placed.' : 'Add items to your cart before continuing.'}</p>
+        {cartLoadError ? <button type="button" onClick={() => window.location.reload()} className="mt-6 bg-[#e8767a] text-white rounded-lg py-3 px-6">Retry checkout</button> : <Link to="/" className="inline-block mt-6 bg-[#e8767a] text-white rounded-lg py-3 px-6">Continue Shopping</Link>}
       </div>
     </main>
   );
 
   return (
-    <MotionConfig reducedMotion="user">
-      <main className="min-h-[70vh] bg-[#fcf9f7] text-stone-900 [&_button:focus-visible]:outline-none [&_button:focus-visible]:ring-2 [&_button:focus-visible]:ring-rose-500 [&_button:focus-visible]:ring-offset-2 [&_a:focus-visible]:outline-none [&_a:focus-visible]:ring-2 [&_a:focus-visible]:ring-rose-500 [&_a:focus-visible]:ring-offset-2">
-        <AnimatePresence>
-          {placedOrderId ? <OrderPlacedOverlay key="order-placed" /> : isVerifyingPayment ? <VerifyingPaymentOverlay key="verifying-payment" /> : null}
-        </AnimatePresence>
-        <GiftWrapModal isOpen={isGiftWrapModalOpen} onClose={() => setIsGiftWrapModalOpen(false)} onSelect={handleSelectGiftWrap} />
-        <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 sm:pb-20 sm:pt-10 lg:px-8">
-          <Link to="/cart" className="mb-7 inline-flex min-h-11 items-center gap-2 rounded text-sm font-medium text-stone-600 transition-colors hover:text-rose-700">
-            <ArrowLeft size={16} aria-hidden="true" /> Back to cart
-          </Link>
-          <header className="mb-7 sm:mb-9">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-700">Almost yours</p>
-            <h1 className="text-3xl font-medium tracking-tight sm:text-4xl lg:text-5xl">Checkout</h1>
-            <p className="mt-3 text-sm leading-relaxed text-stone-600">A few final details, then your favourites are on their way.</p>
-          </header>
+    <main className="min-h-screen bg-[#f9aeaf] py-8 px-4">
+      <AnimatePresence>
+        {placedOrderId ? (
+          <OrderPlacedOverlay key="order-placed" />
+        ) : isVerifyingPayment ? (
+          <VerifyingPaymentOverlay key="verifying-payment" />
+        ) : null}
+      </AnimatePresence>
+      <GiftWrapModal
+        isOpen={isGiftWrapModalOpen}
+        onClose={() => setIsGiftWrapModalOpen(false)}
+        onSelect={handleSelectGiftWrap}
+      />
+      <div className="max-w-6xl mx-auto">
+        <Motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-lg shadow-md p-6 mb-6"
+        >
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Checkout</h1>
+          <div className="flex items-center mt-4 text-[11px] sm:text-sm overflow-x-auto">
+            <span className={`flex items-center shrink-0 ${step >= 1 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
+              <span className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 shrink-0 ${step >= 1 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
+                {step > 1 ? <FaCheck size={12} /> : '1'}
+              </span>
+              Address
+            </span>
+            <FaChevronRight className="mx-1.5 sm:mx-4 text-gray-400 shrink-0" size={12} />
+            <span className={`flex items-center shrink-0 ${step >= 2 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
+              <span className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 shrink-0 ${step >= 2 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
+                {step > 2 ? <FaCheck size={12} /> : '2'}
+              </span>
+              Payment
+            </span>
+            <FaChevronRight className="mx-1.5 sm:mx-4 text-gray-400 shrink-0" size={12} />
+            <span className={`flex items-center shrink-0 ${step >= 3 ? 'text-[#e8767a]' : 'text-gray-400'}`}>
+              <span className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 shrink-0 ${step >= 3 ? 'bg-[#e8767a] text-white' : 'bg-gray-200'}`}>
+                3
+              </span>
+              Review
+            </span>
+          </div>
+        </Motion.div>
 
-          {cartLoadError || cartItems.length === 0 ? (
-            <div className={panelStyle + ' py-16 text-center sm:py-20'}>
-              <ShoppingBag size={32} aria-hidden="true" className="mx-auto mb-5 text-rose-700" />
-              <h2 className="text-2xl font-medium">{cartLoadError ? 'We couldn’t load your checkout' : 'Your cart is empty'}</h2>
-              <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-stone-600">{cartLoadError ? 'Please refresh to try again. Your order has not been placed.' : 'Add something you love before continuing to checkout.'}</p>
-              {cartLoadError
-                ? <button type="button" className={primaryButton + ' mt-6'} onClick={() => window.location.reload()}>Retry checkout</button>
-                : <Link to="/" className={primaryButton + ' mt-6'}>Continue Shopping <ArrowRight size={16} aria-hidden="true" /></Link>}
-            </div>
-          ) : (
-            <>
-              <nav aria-label="Checkout progress" className="mb-7 max-w-xl sm:mb-8">
-                <ol className="flex items-center">
-                  {['Address', 'Payment', 'Review'].map((label, index) => (
-                    <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={'flex items-center ' + (index < 2 ? 'flex-1' : '')}>
-                      {index + 1 < step ? (
-                        <button type="button" onClick={() => setStep(index + 1)} className="flex min-h-11 items-center gap-2 rounded text-xs font-medium text-stone-800 sm:gap-3 sm:text-sm">
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-stone-900 text-white sm:h-8 sm:w-8"><Check size={14} aria-hidden="true" /></span>
-                          {label}<span className="sr-only">, completed; change {label.toLowerCase()}</span>
-                        </button>
-                      ) : (
-                        <span className={'flex min-h-11 items-center gap-2 text-xs font-medium sm:gap-3 sm:text-sm ' + (step === index + 1 ? 'text-stone-900' : 'text-stone-500')}>
-                          <span className={'flex h-7 w-7 items-center justify-center rounded-full border sm:h-8 sm:w-8 ' + (step === index + 1 ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-stone-200 bg-white')}>{index + 1}</span>
-                          {label}
-                        </span>
-                      )}
-                      {index < 2 && <span aria-hidden="true" className={'mx-2 h-px flex-1 sm:mx-4 ' + (step > index + 1 ? 'bg-stone-400' : 'bg-stone-200')} />}
-                    </li>
-                  ))}
-                </ol>
-              </nav>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Motion.div
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+              }}
+              initial="hidden"
+              animate="visible"
+              className="bg-white rounded-lg shadow-md p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                  <FaMapMarkerAlt className="mr-2 text-[#e8767a]" />
+                  Delivery Address
+                </h2>
+                {step > 1 && (
+                  <button
+                    aria-label="Change delivery address"
+                    onClick={() => setStep(1)}
+                    className="text-[#e8767a] hover:text-[#d5666a] flex items-center text-sm"
+                  >
+                    <FaEdit className="mr-1" /> Change
+                  </button>
+                )}
+              </div>
 
-              <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
-                <div className="min-w-0 space-y-5">
-                  <section aria-labelledby="delivery-heading" className={panelStyle}>
-                    <div className="mb-5 flex items-center justify-between gap-3">
-                      <h2 id="delivery-heading" className="flex items-center gap-3 font-sans text-base font-semibold">
-                        <MapPin size={19} strokeWidth={1.6} className="shrink-0 text-rose-700" aria-hidden="true" />Delivery Address
-                      </h2>
-                      {step > 1 && <button type="button" aria-label="Change delivery address" onClick={() => setStep(1)} className={changeButton}><Pencil size={13} aria-hidden="true" />Change</button>}
-                    </div>
-                    {step === 1 ? (showAddressForm ? (
-                      <form onSubmit={handleAddAddress} className="space-y-5">
-                        <div className="flex items-center justify-between gap-3 border-t border-stone-100 pt-4">
-                          <h3 className="font-sans text-sm font-semibold">{editingAddressId ? 'Update Address' : 'Add a new address'}</h3>
-                          {addresses.length > 0 && <button type="button" onClick={() => { setShowAddressForm(false); clearAddressForm(); }} className={changeButton}>Cancel</button>}
+              {step === 1 ? (
+                showAddressForm ? (
+                    <form onSubmit={handleAddAddress} className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className='font-semibold text-lg'>{editingAddressId ? 'Update Address' : 'Add a new address'}</h3>
+                            <button
+                                type="button"
+                                onClick={() => { setShowAddressForm(false); clearAddressForm(); }}
+                                className="text-gray-500 hover:text-gray-700 flex items-center text-sm"
+                            >
+                                <FaTimes className="mr-1" /> Back
+                            </button>
                         </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <CheckoutField label="Full name"><input autoComplete="shipping name" placeholder="Full Name" value={addressName} onChange={e => setAddressName(e.target.value)} className={inputStyle} required /></CheckoutField>
-                          <CheckoutField label="Phone number"><input type="tel" autoComplete="shipping tel" inputMode="tel" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className={inputStyle} required pattern="[0-9]{10}" title="Phone number must be 10 digits." /></CheckoutField>
-                          <CheckoutField label="House number & building" className="sm:col-span-2"><input autoComplete="shipping address-line1" placeholder="House No., Building Name" value={addressLine} onChange={e => setAddressLine(e.target.value)} className={inputStyle} required /></CheckoutField>
-                          <CheckoutField label="Area & street" className="sm:col-span-2"><input autoComplete="shipping address-line2" placeholder="Road name, Area, Colony" value={addressLocality} onChange={e => setAddressLocality(e.target.value)} className={inputStyle} required /></CheckoutField>
-                          <CheckoutField label="Landmark" optional><input placeholder="Nearby Landmark (Optional)" value={addressLandmark} onChange={e => setAddressLandmark(e.target.value)} className={inputStyle} /></CheckoutField>
-                          <CheckoutField label="Alternate phone" optional><input type="tel" inputMode="tel" placeholder="Alt. Phone" value={addressAlternatePhone} onChange={e => setAddressAlternatePhone(e.target.value)} className={inputStyle} pattern="[0-9]{10}" title="Phone number must be 10 digits." /></CheckoutField>
-                          <CheckoutField label="Pincode"><input inputMode="numeric" autoComplete="shipping postal-code" placeholder="ZIP Code" value={addressZip} onChange={e => setAddressZip(e.target.value)} className={inputStyle} required pattern="[0-9]{6}" title="Pincode must be 6 digits." /></CheckoutField>
-                          <CheckoutField label="Country"><select autoComplete="shipping country-name" value={addressCountry} onChange={e => setAddressCountry(e.target.value)} className={inputStyle}>{countries.map(country => <option key={country}>{country}</option>)}</select></CheckoutField>
-                          <CheckoutField label="State"><input autoComplete="shipping address-level1" placeholder="State" value={addressState} onChange={e => { setAddressState(e.target.value); setAddressCity(''); }} className={inputStyle} required /></CheckoutField>
-                          <CheckoutField label="City"><input autoComplete="shipping address-level2" placeholder="City" value={addressCity} onChange={e => setAddressCity(e.target.value)} className={inputStyle} required /></CheckoutField>
-                        </div>
-                        {isPincodeLoading && <p role="status" className="flex items-center gap-2 text-xs text-stone-600"><Loader2 size={14} aria-hidden="true" className="motion-safe:animate-spin" />Looking up your city and state…</p>}
-                        <fieldset>
-                          <legend className="mb-3 text-sm font-medium">Address type</legend>
-                          <div className="flex flex-wrap gap-3">
-                            {['Home', 'Business', 'Other'].map(type => (
-                              <label key={type} className={'flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm ' + (addressType === type ? 'border-rose-200 bg-rose-50/70' : 'border-stone-200')}>
-                                <input type="radio" name="addressType" value={type} checked={addressType === type} onChange={e => setAddressType(e.target.value)} className="h-4 w-4 accent-rose-700" />{type}
-                              </label>
-                            ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <input type="text" aria-label="Full name" placeholder="Full Name" value={addressName} onChange={e => setAddressName(e.target.value)} className="w-full p-2 border rounded" required />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input type="tel" aria-label="Phone number" placeholder="Phone Number" value={addressPhone} onChange={e => setAddressPhone(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{10}" title="Phone number must be 10 digits." />
+                            <input type="tel" aria-label="Alternate phone" placeholder="Alt. Phone" value={addressAlternatePhone} onChange={e => setAddressAlternatePhone(e.target.value)} className="w-full p-2 border rounded" pattern="[0-9]{10}" title="Phone number must be 10 digits." />
                           </div>
-                        </fieldset>
-                        <div className="rounded-xl border border-stone-200">
-                          <button type="button" aria-expanded={isWeekendAccordionOpen} aria-controls="weekend-options" onClick={() => setIsWeekendAccordionOpen(!isWeekendAccordionOpen)} className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium">
-                            Weekend deliveries <ChevronDown size={16} aria-hidden="true" className={'shrink-0 transition-transform ' + (isWeekendAccordionOpen ? 'rotate-180' : '')} />
-                          </button>
-                          {isWeekendAccordionOpen && <div id="weekend-options" className="border-t border-stone-100 px-4 py-3">
-                            <p className="mb-2 text-xs leading-5 text-stone-500">Choose the days you can receive deliveries.</p>
-                            <div className="flex flex-wrap gap-x-6">
-                              <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={saturdayDelivery} onChange={e => setSaturdayDelivery(e.target.checked)} className="h-4 w-4 accent-rose-700" />Saturdays</label>
-                              <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={sundayDelivery} onChange={e => setSundayDelivery(e.target.checked)} className="h-4 w-4 accent-rose-700" />Sundays</label>
-                            </div>
-                          </div>}
                         </div>
-                        <button type="submit" disabled={isSavingAddress || isPincodeLoading} className={primaryButton + ' w-full'}>{isSavingAddress ? 'Saving address…' : editingAddressId ? 'Update Address' : 'Save Address'}<ArrowRight size={16} aria-hidden="true" /></button>
-                      </form>
-                    ) : (
-                      <div className="space-y-3">
-                        <fieldset className="space-y-3">
-                          <legend className="sr-only">Choose a delivery address</legend>
-                          {addresses.map((addr, index) => {
-                            const available = isAddressServiceable(addr);
-                            return (
-                              <div key={addr._id} className={'rounded-xl border p-4 transition-colors ' + (!available ? 'border-stone-200 bg-stone-50' : selectedAddress === index ? 'border-rose-300 bg-rose-50/50' : 'border-stone-200')}>
-                                <label className={'flex items-start gap-3 ' + (available ? 'cursor-pointer' : 'cursor-not-allowed')}>
-                                  <input type="radio" name="deliveryAddress" checked={selectedAddress === index} disabled={!available} onChange={() => setSelectedAddress(index)} aria-label={'Deliver to ' + addr.name + ', ' + addr.address} className="mt-1 h-4 w-4 shrink-0 accent-rose-700" />
-                                  <AddressDetails address={addr} />
-                                </label>
-                                <div className="ml-7 mt-2 flex flex-wrap items-center justify-between gap-2">
-                                  <p className={'text-xs ' + (available ? 'text-stone-500' : 'text-amber-800')}>{available ? (selectedAddress === index ? 'Selected for delivery' : '') : 'Delivery is not available at this address.'}</p>
-                                  <button type="button" aria-label={'Edit address for ' + addr.name} onClick={() => handleEditAddress(addr)} className={changeButton}><Pencil size={13} aria-hidden="true" />Edit</button>
+                        <input type="text" aria-label="House number & building" placeholder="House No., Building Name" value={addressLine} onChange={e => setAddressLine(e.target.value)} className="w-full p-2 border rounded" required />
+                        <input type="text" aria-label="Area & street" placeholder="Road name, Area, Colony" value={addressLocality} onChange={e => setAddressLocality(e.target.value)} className="w-full p-2 border rounded" required />
+                        <input type="text" aria-label="Landmark" placeholder="Nearby Landmark (Optional)" value={addressLandmark} onChange={e => setAddressLandmark(e.target.value)} className="w-full p-2 border rounded" />
+
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                            <input type="text" aria-label="Pincode" placeholder="ZIP Code" value={addressZip} onChange={e => setAddressZip(e.target.value)} className="w-full p-2 border rounded" required pattern="[0-9]{6}" title="ZIP Code must be 6 digits." />
+
+                            {/* Searchable Country Dropdown */}
+                            <div className="relative" ref={countryDropdownRef}>
+                                <div
+                                    className="w-full p-2 border rounded flex items-center justify-between cursor-pointer bg-white"
+                                    onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                                >
+                                    <span className="truncate">{addressCountry || "Select Country"}</span>
+                                    <FaChevronDown size={14} className={`transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''} text-gray-400`} />
                                 </div>
-                              </div>
-                            );
-                          })}
-                        </fieldset>
-                        <button type="button" onClick={() => { clearAddressForm(); setShowAddressForm(true); }} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-stone-300 px-4 py-3 text-sm font-medium text-stone-600 hover:border-rose-400 hover:text-rose-700"><Plus size={16} aria-hidden="true" />Add a new address</button>
-                        <button type="button" disabled={!canUseAddress} onClick={() => setStep(2)} className={primaryButton + ' w-full'}>Use this address<ArrowRight size={16} aria-hidden="true" /></button>
-                      </div>
-                    )) : selectedAddr && <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-4"><AddressDetails address={selectedAddr} /></div>}
-                  </section>
 
-                  <section aria-labelledby="payment-heading" className={panelStyle}>
-                    <div className="flex items-center justify-between gap-3">
-                      <h2 id="payment-heading" className="flex items-center gap-3 font-sans text-base font-semibold"><CreditCard size={19} strokeWidth={1.6} className="shrink-0 text-rose-700" aria-hidden="true" />Payment Method</h2>
-                      {step > 2 && <button type="button" aria-label="Change payment method" onClick={() => setStep(2)} className={changeButton}><Pencil size={13} aria-hidden="true" />Change</button>}
-                    </div>
-                    {step === 1 ? <p className="mt-3 text-sm leading-6 text-stone-500">Confirm your delivery address to see payment options.</p> : step === 2 ? (
-                      <div className="mt-5 space-y-4">
-                        {bestPrepaidOffer && <div className="flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-3 text-xs leading-5 text-emerald-800"><Tag size={16} className="mt-0.5 shrink-0" aria-hidden="true" /><p>Save {formatDiscount(bestPrepaidOffer)} with <span className="font-semibold">{bestPrepaidOffer.code}</span> on eligible online orders. We’ll check the offer when you select online payment.</p></div>}
-                        <fieldset className="space-y-3">
-                          <legend className="sr-only">Choose a payment method</legend>
-                          <label className={'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ' + (selectedPayment === 'card' ? 'border-rose-300 bg-rose-50/50' : 'border-stone-200 hover:border-rose-200')}>
-                            <input type="radio" name="paymentMethod" value="card" checked={selectedPayment === 'card'} onChange={() => setSelectedPayment('card')} className="mt-1 h-4 w-4 shrink-0 accent-rose-700" />
-                            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">UPI / Net Banking / Card</span><span className="mt-1 block text-xs leading-5 text-stone-500">Choose your preferred option with Razorpay.</span></span>
-                            <CreditCard size={19} strokeWidth={1.5} className="mt-0.5 shrink-0 text-stone-500" aria-hidden="true" />
-                          </label>
-                          <label className={'flex items-start gap-3 rounded-xl border p-4 transition-colors ' + (codBlockedForSelectedAddress ? 'cursor-not-allowed border-stone-200 bg-stone-50 text-stone-400' : selectedPayment === 'cod' ? 'cursor-pointer border-rose-300 bg-rose-50/50' : 'cursor-pointer border-stone-200 hover:border-rose-200')}>
-                            <input type="radio" name="paymentMethod" value="cod" checked={selectedPayment === 'cod'} disabled={codBlockedForSelectedAddress} onChange={() => setSelectedPayment('cod')} className="mt-1 h-4 w-4 shrink-0 accent-rose-700" />
-                            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Cash on Delivery</span><span className="mt-1 block text-xs leading-5 text-stone-500">{codBlockedForSelectedAddress ? 'Not available for this delivery address.' : 'Pay when your order arrives. COD charges are shown in your summary.'}</span></span>
-                            <Banknote size={19} strokeWidth={1.5} className="mt-0.5 shrink-0 text-stone-500" aria-hidden="true" />
-                          </label>
-                        </fieldset>
-                        <button type="button" disabled={!canReview} onClick={() => setStep(3)} className={primaryButton + ' w-full'}>Continue<ArrowRight size={16} aria-hidden="true" /></button>
-                      </div>
-                    ) : (
-                      <div className="mt-5 flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50/70 p-4">
-                        {selectedPayment === 'card' ? <CreditCard size={20} className="shrink-0 text-stone-500" aria-hidden="true" /> : <Banknote size={20} className="shrink-0 text-stone-500" aria-hidden="true" />}
-                        <div><p className="text-sm font-semibold">{selectedPayment === 'card' ? 'UPI / Net Banking / Card' : selectedPayment === 'cod' ? 'Cash on Delivery' : 'Choose a payment method'}</p><p className="mt-1 text-xs text-stone-500">{selectedPayment === 'card' ? 'Continue to Razorpay after placing your order.' : selectedPayment === 'cod' ? 'Payment collected on delivery.' : 'Return to payment to continue.'}</p></div>
-                      </div>
-                    )}
-                  </section>
+                                {isCountryDropdownOpen && (
+                                    <div className="absolute bottom-full mb-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-xl z-[60] overflow-hidden flex flex-col max-h-60">
+                                        <div className="p-2 border-b bg-gray-50 flex items-center gap-2">
+                                            <FaSearch size={12} className="text-gray-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search country..."
+                                                className="bg-transparent border-none outline-none text-sm w-full"
+                                                value={countrySearch}
+                                                onChange={(e) => setCountrySearch(e.target.value)}
+                                                autoFocus
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                        <div className="overflow-y-auto flex-1">
+                                            {filteredCountries.length > 0 ? (
+                                                filteredCountries.map((c) => (
+                                                    <div
+                                                        key={c}
+                                                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-pink-50 transition-colors ${addressCountry === c ? 'bg-pink-100 text-pink-700 font-medium' : ''}`}
+                                                        onClick={() => handleCountrySelect(c)}
+                                                    >
+                                                        {c}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="px-3 py-2 text-sm text-gray-500">No country found</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
-                  <CouponCodeInput items={cartItemsForCoupon} onCouponApply={handleCouponApply} selectedPayment={selectedPayment} appliedCoupon={appliedCoupon} />
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                            {/* State Input */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    aria-label="State" placeholder="State"
+                                    value={addressState}
+                                    onChange={e => { setAddressState(e.target.value); setAddressCity(''); }}
+                                    required
+                                    className="w-full p-2 border rounded"
+                                />
+                            </div>
 
-                  <section aria-labelledby="gift-heading" className="rounded-2xl border border-rose-100 bg-rose-50/60 p-5 sm:p-6">
-                    <div className="flex items-start gap-3">
-                      <Gift size={20} strokeWidth={1.5} className="mt-0.5 shrink-0 text-rose-700" aria-hidden="true" />
-                      <div className="min-w-0 flex-1">
-                        <h2 id="gift-heading" className="font-sans text-sm font-semibold">{selectedGiftWrap ? 'The finishing touch' : 'Make it a gift'}</h2>
-                        <p className="mt-1 break-words text-xs leading-5 text-stone-600">{selectedGiftWrap ? selectedGiftWrap.name : 'Add a gift wrap and a personal message to your order.'}</p>
-                        {selectedGiftWrap?.message && <p className="mt-2 break-words text-xs italic leading-5 text-stone-600">“{selectedGiftWrap.message}”</p>}
-                        {selectedGiftWrap && <p className="mt-2 text-xs font-semibold text-rose-800">{giftWrapPrice === 0 ? 'Complimentary' : '₹' + giftWrapPrice.toFixed(2)}</p>}
+                            {/* City Input */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    aria-label="City" placeholder="City"
+                                    value={addressCity}
+                                    onChange={e => setAddressCity(e.target.value)}
+                                    required
+                                    className="w-full p-2 border rounded"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Address Type</label>
+                            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-4">
+                                {['Home', 'Business', 'Other'].map((type) => (
+                                    <label key={type} className="flex items-center cursor-pointer min-w-0">
+                                        <input
+                                            type="radio"
+                                            name="addressType"
+                                            value={type}
+                                            checked={addressType === type}
+                                            onChange={e => setAddressType(e.target.value)}
+                                            className="sr-only"
+                                        />
+                                        <div className={`w-full sm:w-auto text-center px-2 sm:px-4 py-2 rounded-full border text-xs sm:text-sm truncate transition-colors ${
+                                            addressType === type
+                                                ? 'bg-[#e8767a] border-[#e8767a] text-white'
+                                                : 'bg-white border-gray-300 text-gray-700 hover:border-[#e8767a]'
+                                        }`}>
+                                            {type === 'Home' ? 'House/Apartment' : type}
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-4 border rounded-lg overflow-hidden">
+                            <button
+                                type="button"
+                                onClick={() => setIsWeekendAccordionOpen(!isWeekendAccordionOpen)}
+                                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+                            >
+                                <div className="text-left">
+                                    <label className="block text-sm font-bold text-gray-700">Weekend Deliveries</label>
+                                    <p className="text-[10px] text-gray-500">Can you receive deliveries at this address on weekends?</p>
+                                </div>
+                                <FaChevronDown size={14} className={`text-gray-400 transition-transform ${isWeekendAccordionOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isWeekendAccordionOpen && (
+                                <div className="p-3 bg-white border-t space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                        <div className="flex items-center justify-between gap-2 p-2.5 border rounded-lg bg-gray-50/50">
+                                            <span className="text-xs font-medium text-gray-700 shrink-0">Saturdays</span>
+                                            <div className="flex bg-white rounded-md border p-1 shadow-sm shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSaturdayDelivery(true)}
+                                                    className={`px-2.5 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${saturdayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    YES
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSaturdayDelivery(false)}
+                                                    className={`px-2.5 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${!saturdayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    NO
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between gap-2 p-2.5 border rounded-lg bg-gray-50/50">
+                                            <span className="text-xs font-medium text-gray-700 shrink-0">Sundays</span>
+                                            <div className="flex bg-white rounded-md border p-1 shadow-sm shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSundayDelivery(true)}
+                                                    className={`px-2.5 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${sundayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    YES
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSundayDelivery(false)}
+                                                    className={`px-2.5 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${!sundayDelivery ? 'bg-[#e8767a] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    NO
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <button type="submit" disabled={isSavingAddress || isPincodeLoading} className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4 disabled:cursor-not-allowed disabled:opacity-50">{isSavingAddress ? 'Saving address…' : editingAddressId ? 'Update Address' : 'Save Address'}</button>
+                    </form>
+                ) : (
+                <div className="space-y-3">
+                  {addresses.map((addr, idx) => (
+                    <Motion.div
+                      key={addr._id}
+                      role="radio"
+                      aria-label={`Deliver to ${addr.name}, ${addr.address}`}
+                      aria-checked={selectedAddress === idx}
+                      aria-disabled={!isAddressServiceable(addr)}
+                      tabIndex={isAddressServiceable(addr) ? 0 : -1}
+                      onKeyDown={event => {
+                        if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) {
+                          event.preventDefault();
+                          event.currentTarget.click();
+                        }
+                      }}
+                      variants={{hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 }}}
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => {
+                        if (!isAddressServiceable(addr)) {
+                          toast.error('This pincode is not currently serviceable.');
+                          return;
+                        }
+                        setSelectedAddress(idx);
+                      }}
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedAddress === idx
+                          ? 'border-[#e8767a] bg-[#fff5f5]'
+                          : 'border-gray-200 hover:border-[#f9aeaf]'
+                      }`}
+                    >
+                       <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <p className="font-bold text-gray-800 break-words">{addr.name}</p>
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full uppercase font-bold border shrink-0">
+                                {addr.addressType === 'Home' ? 'House/Apartment' : addr.addressType}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 text-sm break-words">{addr.address}, {addr.locality}</p>
+                          {addr.landmark && <p className="text-gray-500 text-xs italic break-words">Landmark: {addr.landmark}</p>}
+                          <p className="text-gray-600 text-sm break-words">{addr.zip}, {addr.city}</p>
+                          <p className="text-gray-600 text-sm break-words">{addr.state}, {addr.country}</p>
+                          <p className="text-gray-600 text-sm mt-1 break-words">Phone: {addr.phone}{addr.alternatePhone ? `, ${addr.alternatePhone}` : ''}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                            {selectedAddress === idx && (
+                            <Motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-6 h-6 bg-[#e8767a] rounded-full flex items-center justify-center"
+                            >
+                                <FaCheck className="text-white text-xs" />
+                            </Motion.div>
+                            )}
+                            <button
+                                aria-label={`Edit address for ${addr.name}`}
+                                onClick={(e) => { e.stopPropagation(); handleEditAddress(addr); }}
+                                className="text-[#e8767a] hover:text-[#d5666a] text-xs font-semibold underline"
+                            >
+                                Edit
+                            </button>
+                        </div>
                       </div>
-                      {selectedGiftWrap ? <button type="button" aria-label="Remove gift wrap" onClick={() => setSelectedGiftWrap(null)} className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-stone-500 hover:bg-white hover:text-rose-700"><X size={17} aria-hidden="true" /></button> : null}
-                    </div>
-                    <button type="button" onClick={() => setIsGiftWrapModalOpen(true)} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 py-2 text-xs font-semibold text-rose-800 hover:bg-rose-50"><Plus size={14} aria-hidden="true" />{selectedGiftWrap ? 'Change gift wrap' : 'Add gift wrap'}</button>
-                  </section>
+                    </Motion.div>
+                  ))}
+                  <button onClick={() => { clearAddressForm(); setShowAddressForm(true); }} className="text-blue-600 mt-2">Add a new address</button>
+                  <Motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={!selectedAddr || !isAddressServiceable(selectedAddr)}
+                    onClick={() => {
+                      if (!isAddressServiceable(addresses[selectedAddress])) {
+                        toast.error('This pincode is not currently serviceable.');
+                        return;
+                      }
+                      setStep(2);
+                    }}
+                    className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3 px-6 rounded-lg transition-colors mt-4"
+                  >
+                    Use this address
+                  </Motion.button>
+                </div>
+                )
+              ) : (
+                addresses.length > 0 &&
+                <Motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="border-2 border-[#e8767a] bg-[#fff5f5] rounded-lg p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="font-bold text-gray-800 break-words">{addresses[selectedAddress].name}</p>
+                    <span className="px-2 py-0.5 bg-white text-[#e8767a] text-[10px] rounded-full uppercase font-bold border border-[#e8767a] shrink-0">
+                        {addresses[selectedAddress].addressType === 'Home' ? 'House/Apartment' : addresses[selectedAddress].addressType}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 text-sm break-words">{addresses[selectedAddress].address}, {addresses[selectedAddress].locality}</p>
+                  {addresses[selectedAddress].landmark && <p className="text-gray-500 text-xs italic break-words">Landmark: {addresses[selectedAddress].landmark}</p>}
+                  <p className="text-gray-600 text-sm break-words">{addresses[selectedAddress].zip}, {addresses[selectedAddress].city}</p>
+                  <p className="text-gray-600 text-sm break-words">{addresses[selectedAddress].state}, {addresses[selectedAddress].country}</p>
+                  <p className="text-gray-600 text-sm mt-1 break-words">Phone: {addresses[selectedAddress].phone}{addresses[selectedAddress].alternatePhone ? `, ${addresses[selectedAddress].alternatePhone}` : ''}</p>
+                </Motion.div>
+              )}
+            </Motion.div>
 
-                  {step === 3 && <section aria-labelledby="review-heading" className={panelStyle}>
-                    <h2 id="review-heading" className="flex items-center gap-3 font-sans text-base font-semibold"><Check size={19} className="shrink-0 text-emerald-700" aria-hidden="true" />Ready to place your order</h2>
-                    <p className="mt-3 text-sm leading-6 text-stone-600">Review your items, delivery address and total. {selectedPayment === 'card' ? 'You’ll choose your UPI, card or bank details in Razorpay.' : 'Your selected address will be used for delivery.'}</p>
-                    <Link to="/cart" className="mt-3 inline-flex min-h-11 items-center gap-2 rounded text-sm font-medium text-rose-700"><Pencil size={14} aria-hidden="true" />Edit items in cart</Link>
-                  </section>}
+            {step >= 2 && (
+              <Motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="bg-white rounded-lg shadow-md p-6"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                    <FaCreditCard className="mr-2 text-[#e8767a]" />
+                    Payment Method
+                  </h2>
+                  {step > 2 && (
+                    <button
+                      aria-label="Change payment method"
+                      onClick={() => setStep(2)}
+                      className="text-[#e8767a] hover:text-[#d5666a] flex items-center text-sm"
+                    >
+                      <FaEdit className="mr-1" /> Change
+                    </button>
+                  )}
                 </div>
 
-                <aside aria-labelledby="order-summary-heading" className="min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_8px_30px_-16px_rgba(62,37,29,0.15)] lg:sticky lg:top-40">
-                  <div className="flex items-center justify-between gap-3 border-b border-stone-100 px-5 py-5 sm:px-6">
-                    <h2 id="order-summary-heading" className="font-sans text-base font-semibold">Order Summary</h2>
-                    <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs text-stone-600">{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
-                  </div>
-                  <div className="max-h-80 space-y-5 overflow-y-auto border-b border-stone-100 p-5 sm:p-6" tabIndex={0} role="region" aria-label="Items in your order">
-                    {cartItems.map(item => {
-                      const variation = item.variations?.find(v => v.color === item.color);
-                      const price = item.price ?? variation?.sizes?.find(s => s.size === item.size)?.price ?? 0;
-                      const image = item.image || variation?.images?.[0] || item.variations?.[0]?.images?.[0];
-                      return (
-                        <div key={item._id + item.size + item.color} className="flex items-start gap-3">
-                          {image ? <img src={image} alt={item.name} className="h-20 w-16 shrink-0 rounded-lg bg-stone-50 object-cover object-top" /> : <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-lg bg-stone-50 text-stone-400"><ShoppingBag size={22} aria-hidden="true" /></div>}
-                          <div className="min-w-0 flex-1">
-                            <Link to={'/product/' + item._id} className="break-words rounded text-sm font-medium leading-5 hover:text-rose-700">{item.name}</Link>
-                            <p className="mt-1 break-words text-xs leading-5 text-stone-500">{item.color} / {item.size} · Qty: {item.quantity}</p>
-                            <p className="mt-1 text-sm font-semibold tabular-nums">₹{(price * item.quantity).toFixed(2)}</p>
-                            {item.appliedCoupon && <p className="mt-1 break-words text-[11px] leading-4 text-emerald-700">{item.appliedCoupon} · Save ₹{(item.discountAmount || 0).toFixed(2)}</p>}
-                            {item.couponMessage && <p className="mt-1 text-xs leading-5 text-amber-800">{item.couponMessage}</p>}
+                {step === 2 ? (
+                  <div className="space-y-3">
+                    {bestPrepaidOffer && (
+                      <Motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="relative overflow-hidden rounded-lg p-3 flex items-center gap-3 text-white shadow-lg"
+                        style={{ background: 'linear-gradient(120deg, #f97316, #ec4899, #a855f7, #f97316)', backgroundSize: '300% 100%' }}
+                      >
+                        <Motion.div
+                          className="absolute inset-0"
+                          style={{ background: 'inherit', backgroundSize: 'inherit' }}
+                          animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                          transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+                        />
+                        <Motion.span
+                          className="relative text-2xl"
+                          animate={{ rotate: [0, 15, -15, 0] }}
+                          transition={{ duration: 1.6, repeat: Infinity }}
+                        >
+                          ⚡
+                        </Motion.span>
+                        <div className="relative">
+                          <p className="font-black text-sm leading-tight">Pay Online & Save {formatDiscount(bestPrepaidOffer)}!</p>
+                          <p className="text-[11px] opacity-90 leading-tight">Applied instantly with UPI / Card / Net Banking</p>
+                        </div>
+                      </Motion.div>
+                    )}
+
+                    <Motion.div
+                      whileHover={{ scale: 1.02 }}
+                      role="radio"
+                      aria-label="UPI / Net Banking / Card"
+                      aria-checked={selectedPayment === 'card'}
+                      tabIndex={0}
+                      onKeyDown={event => {
+                        if (['Enter', ' '].includes(event.key)) { event.preventDefault(); setSelectedPayment('card'); }
+                      }}
+                      onClick={() => setSelectedPayment('card')}
+                      className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedPayment === 'card'
+                          ? 'border-[#e8767a] bg-[#fff5f5]'
+                          : bestPrepaidOffer ? 'border-orange-300 hover:border-[#f9aeaf]' : 'border-gray-200 hover:border-[#f9aeaf]'
+                      }`}
+                    >
+                      {bestPrepaidOffer && selectedPayment !== 'card' && (
+                        <Motion.span
+                          animate={{ scale: [1, 1.12, 1] }}
+                          transition={{ duration: 1.2, repeat: Infinity }}
+                          className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-[10px] font-black px-2 py-1 rounded-full shadow-lg"
+                        >
+                          SAVE {formatDiscount(bestPrepaidOffer)}
+                        </Motion.span>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
+                          <div>
+                            <p className="font-bold text-gray-800">Upi / Net Banking / Card</p>
+                            <p className="text-sm text-gray-600">Pay with your via payment gateway</p>
                           </div>
                         </div>
-                      );
-                    })}
+                        {selectedPayment === 'card' && (
+                          <Motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="w-6 h-6 bg-[#e8767a] rounded-full flex items-center justify-center"
+                          >
+                            <FaCheck className="text-white text-xs" />
+                          </Motion.div>
+                        )}
+                      </div>
+                    </Motion.div>
+
+                    <Motion.div
+                      whileHover={!codBlockedForSelectedAddress ? { scale: 1.02 } : {}}
+                      role="radio"
+                      aria-label="Cash on Delivery"
+                      aria-checked={selectedPayment === 'cod'}
+                      aria-disabled={codBlockedForSelectedAddress}
+                      tabIndex={codBlockedForSelectedAddress ? -1 : 0}
+                      onKeyDown={event => {
+                        if (!codBlockedForSelectedAddress && ['Enter', ' '].includes(event.key)) { event.preventDefault(); setSelectedPayment('cod'); }
+                      }}
+                      onClick={() => {
+                        if (codBlockedForSelectedAddress) {
+                          toast.error('Cash on Delivery is not available in your area.');
+                          return;
+                        }
+                        setSelectedPayment('cod');
+                      }}
+                      className={`border-2 rounded-lg p-4 transition-all ${
+                        codBlockedForSelectedAddress
+                          ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                          : selectedPayment === 'cod'
+                            ? 'border-[#e8767a] bg-[#fff5f5] cursor-pointer'
+                            : 'border-gray-200 hover:border-[#f9aeaf] cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FaMoneyBillWave className={`text-2xl mr-3 ${codBlockedForSelectedAddress ? 'text-gray-400' : 'text-[#e8767a]'}`} />
+                          <div>
+                            <p className="font-bold text-gray-800">Cash on Delivery</p>
+                            <p className="text-sm text-gray-600">
+                              {codBlockedForSelectedAddress ? 'COD not available in your area' : 'Pay with cash when you receive'}
+                            </p>
+                            {bestPrepaidOffer && !codBlockedForSelectedAddress && (
+                              <Motion.p
+                                animate={{ opacity: [0.6, 1, 0.6] }}
+                                transition={{ duration: 1.8, repeat: Infinity }}
+                                className="text-[10px] text-orange-500 font-bold mt-1"
+                              >
+                                😬 You're missing {formatDiscount(bestPrepaidOffer)} off by choosing COD
+                              </Motion.p>
+                            )}
+                          </div>
+                        </div>
+                        {selectedPayment === 'cod' && !codBlockedForSelectedAddress && (
+                          <Motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="w-6 h-6 bg-[#e8767a] rounded-full flex items-center justify-center"
+                          >
+                            <FaCheck className="text-white text-xs" />
+                          </Motion.div>
+                        )}
+                      </div>
+                    </Motion.div>
+
+                    <Motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => selectedPayment && setStep(3)}
+                      disabled={!selectedPayment || (selectedPayment === 'cod' && codBlockedForSelectedAddress)}
+                      className={`w-full font-bold py-3 px-6 rounded-lg transition-colors mt-4 ${
+                        selectedPayment
+                          ? 'bg-[#e8767a] hover:bg-[#d5666a] text-white'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      Continue
+                    </Motion.button>
                   </div>
-                  <div className="p-5 sm:p-6">
-                    <div className="space-y-4 text-sm tabular-nums">
-                      <div className="flex flex-wrap justify-between gap-2 text-stone-600"><span>Subtotal</span><span className="font-medium text-stone-900">₹{subtotal.toFixed(2)}</span></div>
-                      {(totalProductDiscount + couponDiscount) > 0 && <div className="flex flex-wrap justify-between gap-2 text-emerald-700"><span>Coupon Discount</span><span className="font-medium">− ₹{(totalProductDiscount + couponDiscount).toFixed(2)}</span></div>}
-                      <div className="flex flex-wrap justify-between gap-2 text-stone-600"><span>Shipping</span><span className={shippingCharge > 0 ? 'font-medium text-stone-900' : 'font-medium text-emerald-700'}>{shippingCharge > 0 ? '₹' + shippingCharge.toFixed(2) : 'Free'}</span></div>
-                      {codCharge > 0 && <div className="flex flex-wrap justify-between gap-2 text-stone-600"><span>COD Charges</span><span className="font-medium text-stone-900">₹{codCharge.toFixed(2)}</span></div>}
-                      {selectedGiftWrap && <div className="flex flex-wrap justify-between gap-2 text-stone-600"><span>Gift Wrap</span><span className="font-medium text-stone-900">{giftWrapPrice === 0 ? 'Free' : '₹' + giftWrapPrice.toFixed(2)}</span></div>}
-                      <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-stone-200 pt-5"><span className="text-base font-semibold">Total</span><span aria-label="Order total" className="text-2xl font-semibold tracking-tight">₹{total.toFixed(2)}</span></div>
+                ) : (
+                  <Motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="border-2 border-[#e8767a] bg-[#fff5f5] rounded-lg p-4 flex items-center"
+                  >
+                    {selectedPayment === 'card' ? (
+                      <>
+                        <FaCreditCard className="text-2xl text-[#e8767a] mr-3" />
+                        <div>
+                          <p className="font-bold text-gray-800">Upi / Net Banking / Card</p>
+                          <p className="text-sm text-gray-600">Payment Gateway</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <FaMoneyBillWave className="text-2xl text-[#e8767a] mr-3" />
+                        <div>
+                          <p className="font-bold text-gray-800">Cash on Delivery</p>
+                          <p className="text-sm text-gray-600">Pay on delivery</p>
+                        </div>
+                      </>
+                    )}
+                  </Motion.div>
+                )}
+              </Motion.div>
+            )}
+          </div>
+
+          <div className="lg:col-span-1">
+            <Motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white rounded-lg shadow-md p-6 sticky top-8"
+              role="complementary"
+              aria-label="Order Summary"
+            >
+              <h2 className="text-xl font-bold text-gray-800 flex items-center mb-4">
+                <FaShoppingBag className="mr-2 text-[#e8767a]" />
+                Order Summary
+              </h2>
+
+              <div className="space-y-3 mb-4">
+                {cartItems.map(item => {
+                  const selectedVariation = item.variations?.find(v => v.color === item.color);
+                  const selectedSizePrice = selectedVariation?.sizes?.find(s => s.size === item.size)?.price;
+
+                  const actualPrice = item.price || selectedSizePrice || 0; // Use 0 as fallback if price is still not found
+                  const actualImage = selectedVariation?.images?.[0] || item.variations?.[0]?.images?.[0]; // Fallback to first variation's first image
+
+                  return (
+                    <div key={item._id + item.size + item.color} className="flex items-start justify-between gap-2 text-sm">
+                        <div className="flex items-start flex-1 min-w-0">
+                        <img src={actualImage} className="w-10 h-10 object-cover mr-2 rounded shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-gray-800 font-medium break-words">
+                              <Link to={`/product/${item._id}`} className="hover:underline">
+                                {item.name}
+                              </Link>
+                            </p>
+                            <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
+                        </div>
+                        </div>
+                        <p className="font-bold text-gray-800 shrink-0 whitespace-nowrap">₹{(actualPrice * item.quantity).toFixed(2)}</p>
                     </div>
-                    <p className="mt-1 text-right text-xs text-stone-500">Including taxes</p>
-                    {(totalProductDiscount + couponDiscount) > 0 && <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-emerald-700"><Check size={15} className="mt-0.5 shrink-0" aria-hidden="true" />You’re saving ₹{(totalProductDiscount + couponDiscount).toFixed(2)} with coupons</p>}
-                    {step === 3 ? <>
-                      <button type="button" onClick={handlePlaceOrder} disabled={isPlacingOrder || !canUseAddress || !canReview || total <= 0} className={primaryButton + ' mt-6 min-h-14 w-full'}>
-                        {isPlacingOrder ? <><Loader2 size={16} className="motion-safe:animate-spin" aria-hidden="true" />Placing Order...</> : <>Place Order<ArrowRight size={17} aria-hidden="true" /></>}
-                      </button>
-                      <p className="mt-3 text-center text-xs leading-5 text-stone-500">{selectedPayment === 'card' ? 'Your payment opens in Razorpay.' : 'Pay when your order arrives.'}</p>
-                    </> : <p className="mt-5 rounded-lg bg-stone-50 px-3 py-3 text-xs leading-5 text-stone-600">{step === 1 ? 'Confirm your address, then choose a payment method to place your order.' : 'Continue to review your order. Delivery charges reflect your selected payment method.'}</p>}
-                  </div>
-                  <div className="flex items-start gap-3 border-t border-stone-100 bg-stone-50/80 px-5 py-4 sm:px-6">
-                    <LockKeyhole size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-stone-500" aria-hidden="true" /><p className="text-xs leading-5 text-stone-600">Online payments are processed through Razorpay.</p>
-                  </div>
-                </aside>
+                  )
+                })}
               </div>
-            </>
-          )}
+
+              {/* Coupon Application */}
+              <div className="mb-4">
+                <CouponCodeInput
+                  items={cartItemsForCoupon}
+                  onCouponApply={handleCouponApply}
+                  selectedPayment={selectedPayment}
+                  appliedCoupon={appliedCoupon}
+                />
+              </div>
+
+
+              <div className="border-t pt-4 mt-6 space-y-2 text-sm">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                {(totalProductDiscount + couponDiscount) > 0 && (
+                    <div className="flex justify-between text-green-600 font-semibold">
+                        <span>Coupon Discount</span>
+                        <span>- ₹{(totalProductDiscount + couponDiscount).toFixed(2)}</span>
+                    </div>
+                )}
+                <div className="flex justify-between text-gray-600">
+                  <span>Shipping</span>
+                  {shippingCharge > 0 ? (
+                    <span>₹{shippingCharge.toFixed(2)}</span>
+                  ) : (
+                    <span>FREE</span>
+                  )}
+                </div>
+                {codCharge > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>COD Charges</span>
+                    <span>₹{codCharge.toFixed(2)}</span>
+                  </div>
+                )}
+                {selectedGiftWrap && (
+                  <div className="flex justify-between items-start gap-2 text-gray-600">
+                    <div className="min-w-0">
+                      <span>Gift Wrap:</span>
+                      <p className="text-xs break-words">{selectedGiftWrap.name}</p>
+                      {selectedGiftWrap.message && (
+                        <p className="text-xs italic text-gray-500 break-words">"{selectedGiftWrap.message}"</p>
+                      )}
+                    </div>
+                    <div className='flex items-center gap-2 shrink-0'>
+                    <span>{giftWrapPrice === 0 ? 'Free' : `₹${giftWrapPrice.toFixed(2)}`}</span>
+                    <button aria-label="Remove gift wrap" onClick={() => setSelectedGiftWrap(null)} className="text-red-500 hover:text-red-700 text-xs">
+                        <FaTimes/>
+                    </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* <div className="flex justify-between text-gray-600">
+                  <span>Taxable Value</span>
+                  <span>₹{taxableValue.toFixed(2)}</span>
+                </div> */}
+                {/* {isDelhi ? (
+                  <>
+                    <div className="flex justify-between text-gray-500 text-xs">
+                      <span>CGST (2.5%)</span>
+                      <span>₹{cgst.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-500 text-xs">
+                      <span>SGST (2.5%)</span>
+                      <span>₹{sgst.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between text-gray-500 text-xs">
+                    <span>IGST (5%)</span>
+                    <span>₹{igst.toFixed(2)}</span>
+                  </div>
+                )} */}
+
+                <div className="border-t pt-2 flex justify-between text-lg font-bold text-gray-800">
+                  <span>Total(including taxes)</span>
+                  <span aria-label="Order total" className="text-[#e8767a]">₹{total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {!selectedGiftWrap && (
+                 <Motion.button
+                 onClick={() => setIsGiftWrapModalOpen(true)}
+                 whileHover={{ scale: 1.05 }}
+                 className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors mt-4 text-sm"
+               >
+                 Add Gift Wrap?
+               </Motion.button>
+              )}
+
+              {step === 3 && (
+                <Motion.button
+                  onClick={handlePlaceOrder}
+                  disabled={isPlacingOrder || !selectedAddr || !selectedPayment || (selectedPayment === 'cod' && codBlockedForSelectedAddress) || !isAddressServiceable(selectedAddr) || total <= 0}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={!isPlacingOrder && total > 0 ? { scale: 1.05 } : {}}
+                  whileTap={!isPlacingOrder && total > 0 ? { scale: 0.95 } : {}}
+                  className={`w-full font-bold py-3 px-6 rounded-lg transition-colors mt-6 ${
+                    isPlacingOrder || total <= 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#e8767a] hover:bg-[#d5666a] text-white'
+                  }`}
+                >
+                  {isPlacingOrder ? 'Placing Order...' : 'Place Order'}
+                </Motion.button>
+              )}
+            </Motion.div>
+          </div>
         </div>
-      </main>
-    </MotionConfig>
+      </div>
+    </main>
   );
 }
