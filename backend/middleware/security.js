@@ -18,7 +18,8 @@ export function rejectUnsafeInput(req, res, next) {
     next();
 }
 
-export const allowedOrigins = () => (process.env.CORS_ORIGINS || 'https://febeul.com,https://www.febeul.com').split(',').map(s => s.trim()).filter(Boolean);
+// Production storefront and admin origins. An explicit environment value replaces these defaults.
+export const allowedOrigins = () => (process.env.CORS_ORIGINS || 'https://febeul.com,https://www.febeul.com,https://febeul.vercel.app').split(',').map(s => s.trim()).filter(Boolean);
 export function installSecurity(app) {
     if (process.env.NODE_ENV === 'production' && Buffer.byteLength(process.env.JWT_SECRET || '') < 32) throw new Error('JWT_SECRET must contain at least 32 random bytes in production.');
     if (!/^\d{1,2}$/.test(String(process.env.TRUST_PROXY_HOPS || 0))) throw new Error('Invalid TRUST_PROXY_HOPS.');
