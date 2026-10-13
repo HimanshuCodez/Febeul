@@ -1,3 +1,5 @@
+import { isCouponExpired } from './couponValidity.js';
+
 export const DEFAULT_HOME_GIFT_OFFER = Object.freeze({
   enabled: false,
   badgeLabel: 'COUPON',
@@ -59,7 +61,7 @@ export function validateHomeGiftOffer(input) {
 
 // A home-page promotion is public. Never advertise private or Luxe-only codes here.
 export function isPublicGiftCoupon(coupon, now = Date.now()) {
-  return Boolean(coupon && coupon.isActive && new Date(coupon.expiryDate).getTime() > now &&
+  return Boolean(coupon && coupon.isActive && !isCouponExpired(coupon, now) &&
     (!coupon.userType || coupon.userType === 'normal') && !coupon.specificUsers?.length &&
     (!coupon.usageLimit || (coupon.usageCount || 0) < coupon.usageLimit));
 }

@@ -1,3 +1,5 @@
+import { adminTokenFor } from './helpers/auth.js';
+import { userToken } from '../utils/authTokens.js';
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
@@ -17,7 +19,7 @@ process.env.JWT_SECRET = 'isolated-admin-search-test';
 process.env.ADMIN_EMAIL = 'admin@search.test';
 process.env.ADMIN_PASSWORD = 'local-only';
 let database, server, base, user, restrictedStaff, couponStaff, noDashboardStaff, order, product;
-const token = value => jwt.sign(String(value), process.env.JWT_SECRET);
+const token = value => adminTokenFor(value);
 const adminToken = () => token(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD);
 const request = async (q, auth = adminToken(), endpoint = '') => {
   const response = await fetch(`${base}${endpoint}?${q}`, { headers: auth ? { token: auth } : {} });

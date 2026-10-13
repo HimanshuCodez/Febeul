@@ -122,7 +122,7 @@ const requestExchange = async (req, res) => {
         res.json({ success: true, message: 'Exchange request submitted.', ticketId: exchange.ticketId });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -139,7 +139,7 @@ const getMyExchange = async (req, res) => {
         res.json({ success: true, exchange: sanitizeExchangeForCustomer(exchange, settings) });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -166,7 +166,7 @@ const cancelExchangeRequest = async (req, res) => {
         res.json({ success: true, message: 'Exchange request cancelled.' });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -198,7 +198,7 @@ const listExchanges = async (req, res) => {
         res.json({ success: true, exchanges: rows, counts });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -210,7 +210,7 @@ const getExchange = async (req, res) => {
         res.json({ success: true, exchange, view: buildAdminExchangeView(exchange) });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -268,7 +268,7 @@ const verifyExchange = async (req, res) => {
         res.json({ success: false, message: 'Invalid decision.' });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -322,7 +322,7 @@ const schedulePickup = async (req, res) => {
         return respondWithExchange(res, exchange, 'Pickup scheduled.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -352,7 +352,7 @@ const markReceived = async (req, res) => {
         return respondWithExchange(res, exchange, 'Marked as received. Quality check is now pending.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -407,7 +407,7 @@ const submitQC = async (req, res) => {
         return respondWithExchange(res, exchange, `Quality check recorded as ${result}.`);
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -447,7 +447,7 @@ const redirectToRefund = async (req, res) => {
         return respondWithExchange(res, exchange, 'Order moved to Refund Requests.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -515,7 +515,7 @@ const dispatchReplacement = async (req, res) => {
         return respondWithExchange(res, exchange, 'Replacement dispatched.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 

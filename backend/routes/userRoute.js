@@ -1,3 +1,4 @@
+import { authInput, authRateLimit } from '../middleware/security.js';
 import express from 'express';
 import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, addBankAccount, removeBankAccount, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, sendAdminOTP, adminOtpLogin } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
@@ -9,12 +10,12 @@ const userRouter = express.Router();
 userRouter.get('/pincode-check/:zip', pincodeProxy)
 
 // Auth Routes
-userRouter.post('/register', registerUser)
-userRouter.post('/login', loginUser)
-userRouter.post('/google-login', googleLogin)
-userRouter.post('/admin', adminLogin)
-userRouter.post('/admin-send-otp', sendAdminOTP)
-userRouter.post('/admin-otp-login', adminOtpLogin)
+userRouter.post('/register', authInput, authRateLimit, registerUser)
+userRouter.post('/login', authInput, authRateLimit, loginUser)
+userRouter.post('/google-login', authInput, authRateLimit, googleLogin)
+userRouter.post('/admin', authInput, authRateLimit, adminLogin)
+userRouter.post('/admin-send-otp', authInput, authRateLimit, sendAdminOTP)
+userRouter.post('/admin-otp-login', authInput, authRateLimit, adminOtpLogin)
 
 // Protected Routes
 userRouter.get('/profile', authUser, getProfile)
@@ -25,9 +26,9 @@ userRouter.post('/bank-account/remove', authUser, removeBankAccount)
 userRouter.get('/allusers', adminAuth, getAllUsers)
 
 // Password Reset Routes
-userRouter.post('/forgot-password', forgotPassword);
-userRouter.post('/verify-password-otp', verifyPasswordOtp);
-userRouter.post('/reset-password', resetPassword);
+userRouter.post('/forgot-password', authInput, authRateLimit, forgotPassword);
+userRouter.post('/verify-password-otp', authInput, authRateLimit, verifyPasswordOtp);
+userRouter.post('/reset-password', authInput, authRateLimit, resetPassword);
 
 // Wishlist Routes
 userRouter.get('/wishlist', authUser, getWishlist);

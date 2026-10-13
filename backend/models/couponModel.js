@@ -10,7 +10,8 @@ const couponSchema = new mongoose.Schema({
     usageLimit: { type: Number, default: null }, // Overall usage limit
     usageCount: { type: Number, default: 0 }, // How many times it has been used
     usageLimitPerUser: { type: Number, default: 1 }, // How many times a single user can use it
-    expiryDate: { type: Date, required: true },
+    isLifetime: { type: Boolean, default: false },
+    expiryDate: { type: Date, default: null, required: function () { return !this.isLifetime; } },
     isActive: { type: Boolean, default: true },
     userType: { type: String, enum: ['normal', 'luxe', 'membership'], default: 'normal' }, // For specific user groups; 'membership' = redeemable only when purchasing the Luxe Membership itself (no isLuxeMember requirement)
     offerType: { type: String, enum: ['none', 'prepaid', 'cod'], default: 'none' }, // For prepaid or COD offers

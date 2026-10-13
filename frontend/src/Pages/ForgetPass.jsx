@@ -287,8 +287,8 @@ const ForgotPassword = () => {
                     {...register("password", {
                       required: "Password is required",
                       minLength: {
-                        value: 8,
-                        message: "Minimum 8 characters",
+                        value: 10,
+                        message: "Minimum 10 characters",
                       },
                     })}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#f9aeaf] focus:border-transparent outline-none transition-all"

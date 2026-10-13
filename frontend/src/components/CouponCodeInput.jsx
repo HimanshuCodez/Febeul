@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { Tag, Ticket, X, CheckCircle2, Sparkles, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isCouponExpired } from '../../../shared/couponValidity.js';
 
 const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon }) => {
     const [couponCode, setCouponCode] = useState('');
@@ -33,7 +34,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                 if (response.data.success) {
                     const filteredOffers = response.data.coupons.filter(c =>
                         c.isActive &&
-                        new Date(c.expiryDate) > new Date() &&
+                        !isCouponExpired(c) &&
                         (c.offerType === 'prepaid' || c.offerType === 'cod') // Only show payment-specific coupons
                     );
                     setOffers(filteredOffers);

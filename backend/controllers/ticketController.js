@@ -411,7 +411,7 @@ export const getTicketById = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Ticket not found' });
         }
         // Security check for users
-        if (!req.body.isAdmin && ticket.user._id.toString() !== req.userId) {
+        if (ticket.user._id.toString() !== req.userId) {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
         res.json({ success: true, ticket });

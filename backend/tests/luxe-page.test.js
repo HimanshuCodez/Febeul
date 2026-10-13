@@ -1,3 +1,5 @@
+import { adminTokenFor } from './helpers/auth.js';
+import { userToken } from '../utils/authTokens.js';
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
@@ -14,7 +16,7 @@ process.env.JWT_SECRET = 'local-luxe-page-test';
 process.env.ADMIN_EMAIL = 'admin@luxe.test';
 process.env.ADMIN_PASSWORD = 'local-test';
 let database, server, base;
-const token = () => jwt.sign(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD, process.env.JWT_SECRET);
+const token = () => adminTokenFor(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD);
 before(async () => {
   database = await MongoMemoryServer.create();
   await mongoose.connect(database.getUri(), { dbName: 'luxe-page-test' });

@@ -150,7 +150,8 @@ const updateReviewStatus = async (req, res) => {
 // Get all reviews by a specific user
 const getUserReviews = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const userId = req.userId;
+        if (req.params.userId !== userId) return res.status(403).json({ success: false, message: 'Access denied.' });
 
         const reviews = await reviewModel.find({ userId })
                                         .populate('productId', 'name image') // Populate product details

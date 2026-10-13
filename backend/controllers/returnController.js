@@ -79,7 +79,7 @@ const listReturns = async (req, res) => {
         res.json({ success: true, returns: rows, counts, settings });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -95,7 +95,7 @@ const getReturn = async (req, res) => {
         res.json({ success: true, order, view: buildAdminReturnView(order, settings) });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -130,7 +130,7 @@ const markPickedUp = async (req, res) => {
         await respondWithOrder(res, order, 'Pickup date recorded. The return clock starts from this date.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -170,7 +170,7 @@ const markReceived = async (req, res) => {
         await respondWithOrder(res, order, 'Marked as received. Quality check is now pending.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -208,7 +208,7 @@ const markLateReceived = async (req, res) => {
         await respondWithOrder(res, order, 'Recorded as late received. The earlier record is preserved in history.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -256,7 +256,7 @@ const submitQualityCheck = async (req, res) => {
         await respondWithOrder(res, order, `Quality check recorded as ${result}.`);
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -288,7 +288,7 @@ const markRefundInitiated = async (req, res) => {
         await respondWithOrder(res, order, 'Refund marked as initiated.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -349,7 +349,7 @@ const recordRefundSettlement = async (req, res) => {
         });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -379,7 +379,7 @@ const openInvestigation = async (req, res) => {
         await respondWithOrder(res, order, 'Investigation opened.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -406,7 +406,7 @@ const addFollowup = async (req, res) => {
         await respondWithOrder(res, order, 'Follow-up recorded.');
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -450,7 +450,7 @@ const updateClaim = async (req, res) => {
         await respondWithOrder(res, order, `Claim marked as ${claimStatus}.`);
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -501,7 +501,7 @@ const setManualStatus = async (req, res) => {
         await respondWithOrder(res, order, `Status set to ${INTERNAL_STATUS_LABELS[status] || status}.`);
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 

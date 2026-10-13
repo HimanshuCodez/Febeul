@@ -1,16 +1,45 @@
 import couponModel from '../models/couponModel.js';
 import userModel from '../models/userModel.js';
+import { isCouponExpired } from '../../shared/couponValidity.js';
+
+const validCouponWindow = () => ({ $or: [
+    { isLifetime: true },
+    { isLifetime: { $ne: true }, expiryDate: { $gt: new Date() } },
+] });
+
+function resolveValidity(body, existing = {}) {
+    if (body.isLifetime !== undefined && typeof body.isLifetime !== 'boolean') {
+        throw new Error('Lifetime validity must be true or false.');
+    }
+    const isLifetime = body.isLifetime ?? existing.isLifetime ?? false;
+    if (isLifetime) return { isLifetime: true, expiryDate: null };
+    const value = body.expiryDate !== undefined ? body.expiryDate : existing.expiryDate;
+    if (!value || (typeof value !== 'string' && !(value instanceof Date))) {
+        throw new Error('Choose an expiry date or enable lifetime validity.');
+    }
+    // A calendar date includes that entire day in UTC.
+    const dateOnly = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const expiryDate = new Date(dateOnly ? `${value}T23:59:59.999Z` : value);
+    if (!Number.isFinite(expiryDate.getTime()) || (dateOnly && expiryDate.toISOString().slice(0, 10) !== value)) {
+        throw new Error('Enter a valid expiry date.');
+    }
+    return { isLifetime: false, expiryDate };
+}
 
 // Admin: Add a new coupon
 export const addCoupon = async (req, res) => {
     try {
 
-        const { code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs, specificUsers } = req.body;
+        const { code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, isActive, userType, offerType, applicableSKUs, specificUsers } = req.body;
 
 
-        if (!code || !discountType || !discountValue || !expiryDate) {
+        if (!code || !discountType || !discountValue) {
             return res.status(400).json({ success: false, message: 'Required fields are missing.' });
         }
+
+        let validity;
+        try { validity = resolveValidity(req.body); }
+        catch (error) { return res.status(400).json({ success: false, message: error.message }); }
 
         const existingCoupon = await couponModel.findOne({ code });
         if (existingCoupon) {
@@ -26,7 +55,7 @@ export const addCoupon = async (req, res) => {
             minQuantity: minQuantity || 0,
             usageLimit,
             usageLimitPerUser,
-            expiryDate,
+            ...validity,
             isActive,
             userType,
             offerType: offerType || 'none',
@@ -86,12 +115,18 @@ export const removeCoupon = async (req, res) => {
 export const updateCoupon = async (req, res) => {
     try {
 
-        const { id, code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, expiryDate, isActive, userType, offerType, applicableSKUs, specificUsers } = req.body;
+        const { id, code, description, discountType, discountValue, minOrderAmount, minQuantity, usageLimit, usageLimitPerUser, isActive, userType, offerType, applicableSKUs, specificUsers } = req.body;
 
    
         if (!id) {
             return res.status(400).json({ success: false, message: 'Coupon ID is required.' });
         }
+
+        const existingCoupon = await couponModel.findById(id);
+        if (!existingCoupon) return res.status(404).json({ success: false, message: 'Coupon not found.' });
+        let validity;
+        try { validity = resolveValidity(req.body, existingCoupon); }
+        catch (error) { return res.status(400).json({ success: false, message: error.message }); }
 
         const updateData = {
             code,
@@ -102,7 +137,7 @@ export const updateCoupon = async (req, res) => {
             minQuantity,
             usageLimit,
             usageLimitPerUser,
-            expiryDate,
+            ...validity,
             isActive,
             userType,
             offerType,
@@ -116,7 +151,8 @@ export const updateCoupon = async (req, res) => {
         // Remove undefined fields
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
-        const updatedCoupon = await couponModel.findByIdAndUpdate(id, updateData, { new: true });
+        existingCoupon.set(updateData);
+        const updatedCoupon = await existingCoupon.save();
 
         if (!updatedCoupon) {
             return res.status(404).json({ success: false, message: 'Coupon not found.' });
@@ -220,7 +256,7 @@ export const getAllCouponUsage = async (req, res) => {
 export const applyCoupon = async (req, res) => {
     try {
         const { code, items, paymentMethod } = req.body; // Expecting items from cart
-        const userId = req.body.userId;
+        const userId = req.userId;
 
         if (!code) {
             return res.status(400).json({ success: false, message: 'Coupon code is required.' });
@@ -235,7 +271,7 @@ export const applyCoupon = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Invalid or inactive coupon code.' });
         }
 
-        if (new Date(coupon.expiryDate) < new Date()) {
+        if (isCouponExpired(coupon)) {
             return res.status(400).json({ success: false, message: 'Coupon has expired.' });
         }
 
@@ -346,7 +382,7 @@ export const getActiveCoupons = async (req, res) => {
 
         const coupons = await couponModel.find({ 
             isActive: true,
-            expiryDate: { $gt: new Date() },
+            ...validCouponWindow(),
             // Membership purchase offers are requested only by the Luxe signup page.
             userType: req.query.purpose === 'membership' ? 'membership' : { $ne: 'membership' },
         }).sort({ createdAt: -1 });
@@ -376,7 +412,7 @@ export const getActiveCoupons = async (req, res) => {
             return true;
         });
 
-        res.json({ success: true, coupons: filteredCoupons });
+        res.json({ success: true, coupons: filteredCoupons.map(({ _doc, ...rest }) => { const c = { ...(_doc || rest) }; delete c.specificUsers; delete c.usersWhoUsed; delete c.creator; return c; }) });
     } catch (error) {
         console.error('Error fetching active coupons:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch active coupons.' });
@@ -386,7 +422,8 @@ export const getActiveCoupons = async (req, res) => {
 // User: Apply a coupon to a single product
 export const applyProductCoupon = async (req, res) => {
     try {
-        const { code, productItem, userId } = req.body;
+        const { code, productItem } = req.body;
+        const userId = req.userId;
 
         if (!code) {
             return res.status(400).json({ success: false, message: 'Coupon code is required.' });
@@ -401,7 +438,7 @@ export const applyProductCoupon = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Invalid or inactive coupon code.' });
         }
 
-        if (new Date(coupon.expiryDate) < new Date()) {
+        if (isCouponExpired(coupon)) {
             return res.status(400).json({ success: false, message: 'Coupon has expired.' });
         }
 
@@ -443,7 +480,10 @@ export const applyProductCoupon = async (req, res) => {
             }
         }
 
-        let applicablePrice = productItem.price;
+        if (!Number.isFinite(productItem.price) || productItem.price < 0 || !Number.isSafeInteger(productItem.quantity) || productItem.quantity < 1 || productItem.quantity > 99) {
+            return res.status(400).json({ success: false, message: 'Invalid product price or quantity.' });
+        }
+        const applicablePrice = productItem.price * productItem.quantity;
 
         if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
             if (!coupon.applicableSKUs.includes(productItem.sku)) {
@@ -466,7 +506,7 @@ export const applyProductCoupon = async (req, res) => {
             discountAmount = coupon.discountValue;
         }
         
-        discountAmount = Math.min(discountAmount, applicablePrice);
+        discountAmount = Math.round(Math.min(discountAmount, applicablePrice) * 100) / 100;
 
         res.json({
             success: true,
@@ -488,7 +528,7 @@ export const getPublicActiveCoupons = async (req, res) => {
     try {
         const coupons = await couponModel.find({ 
             isActive: true,
-            expiryDate: { $gt: new Date() },
+            $and: [validCouponWindow()],
             userType: req.query.purpose === 'membership' ? 'membership' : { $ne: 'membership' },
             $or: [
                 { specificUsers: { $exists: false } },
@@ -497,7 +537,7 @@ export const getPublicActiveCoupons = async (req, res) => {
         }).sort({ createdAt: -1 });
 
         const availableCoupons = coupons.filter(coupon => !coupon.usageLimit || coupon.usageCount < coupon.usageLimit);
-        res.json({ success: true, coupons: availableCoupons });
+        res.json({ success: true, coupons: availableCoupons.map(({ _doc, ...rest }) => { const c = { ...(_doc || rest) }; delete c.specificUsers; delete c.usersWhoUsed; delete c.creator; return c; }) });
     } catch (error) {
         console.error('Error fetching public coupons:', error);
         res.status(500).json({ success: false, message: 'Error fetching coupons.' });

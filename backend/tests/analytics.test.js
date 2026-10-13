@@ -1,3 +1,5 @@
+import { adminTokenFor } from './helpers/auth.js';
+import { userToken } from '../utils/authTokens.js';
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID, createHmac } from 'node:crypto';
@@ -22,8 +24,8 @@ Object.assign(process.env, { ANALYTICS_ENABLED: 'true', JWT_SECRET: 'analytics-l
 let database, server, base, user;
 const context = () => ({ visitorId: randomUUID(), sessionId: randomUUID(), consentVersion: '2026-10-v1', path: '/checkout' });
 const event = (ctx, name = 'page_view', extra = {}) => ({ ...ctx, eventId: randomUUID(), name, timestamp: new Date(), expiresAt: new Date(Date.now() + 86400000), ...extra });
-const auth = () => jwt.sign({ id: String(user._id) }, process.env.JWT_SECRET);
-const admin = () => jwt.sign(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD, process.env.JWT_SECRET);
+const auth = () => userToken(user);
+const admin = () => adminTokenFor(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD);
 const request = async (path, body, token) => {
   const response = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { token } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
   return { status: response.status, body: response.status === 204 ? null : await response.json() };
@@ -68,9 +70,9 @@ test('report access requires existing admin authorization or explicit User Track
   assert.equal((await request('/api/analytics/reports/summary', null, auth())).status, 401);
   const deniedStaff = await userModel.create({ email: 'denied@example.test', role: 'staff', permissions: ['/orders'] });
   const allowedStaff = await userModel.create({ email: 'allowed@example.test', role: 'staff', permissions: ['/user-tracking'] });
-  assert.equal((await request('/api/analytics/reports/summary', null, jwt.sign(String(deniedStaff._id), process.env.JWT_SECRET))).status, 403);
-  assert.equal((await request('/api/analytics/reports/journeys', null, jwt.sign(String(allowedStaff._id), process.env.JWT_SECRET))).status, 200);
-  assert.equal((await request('/api/analytics/reports/journeys', null, jwt.sign(process.env.STAFF_EMAIL + process.env.STAFF_PASSWORD, process.env.JWT_SECRET))).status, 403);
+  assert.equal((await request('/api/analytics/reports/summary', null, adminTokenFor(deniedStaff._id))).status, 403);
+  assert.equal((await request('/api/analytics/reports/journeys', null, adminTokenFor(allowedStaff._id))).status, 200);
+  assert.equal((await request('/api/analytics/reports/journeys', null, adminTokenFor(process.env.STAFF_EMAIL + process.env.STAFF_PASSWORD))).status, 403);
   assert.equal((await request('/api/analytics/reports/summary', null, admin())).status, 200);
   assert.equal((await request('/api/analytics/reports/summary?from=2026-02-30', null, admin())).status, 400);
 });
@@ -228,7 +230,7 @@ test('identity-bearing journey filters retain admin authorization and reject inv
   const path = '/api/analytics/reports/journeys?event=add_to_cart';
   assert.equal((await request(path)).status, 401); assert.equal((await request(path, null, auth())).status, 401);
   const staff = await userModel.create({ email: 'report-staff@example.test', role: 'staff', permissions: ['/orders'] });
-  const staffToken = jwt.sign(String(staff._id), process.env.JWT_SECRET);
+  const staffToken = adminTokenFor(staff._id);
   assert.equal((await request(path, null, staffToken)).status, 403);
   await userModel.updateOne({ _id: staff._id }, { $set: { permissions: ['/user-tracking'] } });
   assert.equal((await request(path, null, staffToken)).body.rows[0].accounts[0].email, user.email);
@@ -250,10 +252,10 @@ test('real cart routes keep add/update/remove behavior while analytics is unavai
 });
 
 test('actual Razorpay callback preserves payment/membership and remains successful when analytics writes fail', async () => {
-  const order = await createOrder({ payment: false });
+  const order = await createOrder({ payment: false, paymentDetails: { razorpay_order_id: 'order_local' } });
   const gatewayOrder = 'order_local', paymentId = 'pay_local';
   nock('https://api.razorpay.com').get(`/v1/orders/${gatewayOrder}`).twice().reply(200, { id: gatewayOrder, receipt: String(order._id), status: 'paid', amount_paid: 19900, currency: 'INR' });
-  nock('https://api.razorpay.com').get(`/v1/payments/${paymentId}`).twice().reply(200, { acquirer_data: {} });
+  nock('https://api.razorpay.com').get(`/v1/payments/${paymentId}`).reply(200, { id: paymentId, order_id: gatewayOrder, status: 'captured', amount: 19900, currency: 'INR', acquirer_data: {} });
   nock('https://api.resend.com').post('/emails').twice().reply(200, { id: 'local-email' });
   const payload = { userId: String(user._id), razorpay_order_id: gatewayOrder, razorpay_payment_id: paymentId, razorpay_signature: createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(`${gatewayOrder}|${paymentId}`).digest('hex') };
   const ctx = context();
@@ -262,7 +264,7 @@ test('actual Razorpay callback preserves payment/membership and remains successf
   for (let i = 0; i < 50 && !await AnalyticsEvent.exists({ name: 'purchase' }); i++) await new Promise(resolve => setTimeout(resolve, 20));
   assert.equal(await AnalyticsEvent.countDocuments({ name: 'purchase' }), 1);
   const original = AnalyticsPayment.updateOne; AnalyticsPayment.updateOne = () => Promise.reject(new Error('Simulated outage'));
-  try { assert.deepEqual(await send(), { success: true, message: 'Payment Successful' }); await new Promise(resolve => setTimeout(resolve, 30)); }
+  try { assert.deepEqual(await send(), { success: true, message: 'Payment already verified.' }); await new Promise(resolve => setTimeout(resolve, 30)); }
   finally { AnalyticsPayment.updateOne = original; }
   assert.equal((await orderModel.findById(order._id)).payment, true); assert.equal((await userModel.findById(user._id)).isLuxeMember, true);
   assert.equal(await AnalyticsEvent.countDocuments({ name: 'purchase' }), 1);
@@ -279,14 +281,15 @@ test('existing Razorpay order creation keeps server pricing and creates no prema
 
 test('existing Stripe callback only attributes gateway-confirmed paid sessions', async () => {
   const retrieve = Sessions.prototype.retrieve;
-  Sessions.prototype.retrieve = async id => ({ id, payment_status: id === 'cs_paid' ? 'paid' : 'unpaid', amount_total: 19900, currency: 'inr', payment_intent: 'pi_local' });
+  Sessions.prototype.retrieve = async id => ({ id, client_reference_id: String((await orderModel.findOne({ 'paymentDetails.stripeSessionId': id }))._id), payment_status: id === 'cs_paid' ? 'paid' : 'unpaid', amount_total: 19900, currency: 'inr', payment_intent: 'pi_local' });
   try {
   nock('https://api.resend.com').post('/emails').twice().reply(200, { id: 'local-email' });
   for (const paid of [false, true]) {
     const sessionId = `cs_${paid ? 'paid' : 'unpaid'}`;
     const order = await createOrder({ payment: false, paymentMethod: 'Stripe', paymentDetails: { stripeSessionId: sessionId } });
     const response = await fetch(`${base}/api/order/verifyStripe`, { method: 'POST', headers: { 'Content-Type': 'application/json', token: auth(), 'x-analytics-context': JSON.stringify(context()) }, body: JSON.stringify({ orderId: String(order._id), success: 'true', userId: String(user._id) }) });
-    assert.deepEqual(await response.json(), { success: true });
+    assert.equal((await response.json()).success, paid);
+    assert.equal((await orderModel.findById(order._id)).payment, paid);
     await new Promise(resolve => setTimeout(resolve, 40));
     assert.equal(await AnalyticsEvent.countDocuments({ name: 'purchase' }), paid ? 1 : 0);
   }

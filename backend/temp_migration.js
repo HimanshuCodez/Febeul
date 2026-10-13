@@ -1,11 +1,11 @@
 import axios from 'axios';
-import jwt from 'jsonwebtoken';
+import { envToken, envAccounts } from './utils/authTokens.js';
+import 'dotenv/config';
 
 // --- Configuration ---
 const API_URL = 'http://localhost:4000/api/policy';
-const ADMIN_EMAIL = "admin@example.com";
-const ADMIN_PASSWORD = "adminpassword";
-const JWT_SECRET = "averysecretkeyadesignforthisproject";
+const account = envAccounts().find(a => a.role === 'admin');
+if (!account || !process.env.JWT_SECRET) throw new Error('Configure admin credentials and JWT_SECRET before migration.');
 
 // --- Data extracted from frontend components ---
 
@@ -237,8 +237,7 @@ const policies = [
 ];
 
 // Generate the token
-const payload = ADMIN_EMAIL + ADMIN_PASSWORD;
-const token = jwt.sign(payload, JWT_SECRET);
+const token = envToken(account);
 
 const config = {
     headers: {

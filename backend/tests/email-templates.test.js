@@ -1,3 +1,5 @@
+import { adminTokenFor } from './helpers/auth.js';
+import { userToken } from '../utils/authTokens.js';
 import { after, before, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
@@ -23,7 +25,7 @@ const { default: emailTemplateRouter } = await import('../routes/emailTemplateRo
 const { sendTemplateEmail } = await import('../utils/sendTemplateEmail.js');
 const types = EMAIL_TEMPLATE_OPTIONS.map(option => option.id);
 const sample = type => type === 'order-confirmation' ? buildSampleOrder() : buildSampleEmailData();
-const token = value => jwt.sign(String(value), process.env.JWT_SECRET);
+const token = value => adminTokenFor(value);
 const adminToken = () => token(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD);
 let database, server, base, editor, restricted;
 

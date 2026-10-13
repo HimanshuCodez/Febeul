@@ -1,3 +1,5 @@
+import { adminTokenFor } from './helpers/auth.js';
+import { userToken } from '../utils/authTokens.js';
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
@@ -16,7 +18,7 @@ process.env.JWT_SECRET = 'local-gift-offer-tests';
 process.env.ADMIN_EMAIL = 'admin@gift.test';
 process.env.ADMIN_PASSWORD = 'local-only';
 let database, server, base, editor, restricted, customer, coupon;
-const token = value => jwt.sign(String(value), process.env.JWT_SECRET);
+const token = value => adminTokenFor(value);
 const adminToken = () => token(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD);
 const content = () => ({ ...DEFAULT_HOME_GIFT_OFFER, enabled: true, couponCode: 'WELCOME20' });
 async function request(path, { auth, body } = {}) {
@@ -104,4 +106,16 @@ test('disabled drafts remain editable and other CMS responses retain their forma
   assert.equal(other.status, 201);
   assert.deepEqual(other.data.content, { heading: 'Unchanged' });
   assert.deepEqual((await request('/existingTestContent')).data.content, { heading: 'Unchanged' });
+});
+
+test('public lifetime coupons can be promoted without bypassing privacy or usage limits', async () => {
+  await couponModel.findByIdAndUpdate(coupon._id, {
+    isActive: true, isLifetime: true, expiryDate: null, userType: 'normal', specificUsers: [], usageLimit: null, usageCount: 0,
+  });
+  assert.equal((await save(content())).status, 201);
+  assert.equal((await request('/homeGiftOffer')).data.content.enabled, true);
+  for (const restriction of [{ specificUsers: ['private@example.test'] }, { usageLimit: 1, usageCount: 1 }]) {
+    await couponModel.findByIdAndUpdate(coupon._id, { specificUsers: [], usageLimit: null, usageCount: 0, ...restriction });
+    assert.equal((await request('/homeGiftOffer')).data.content.enabled, false);
+  }
 });

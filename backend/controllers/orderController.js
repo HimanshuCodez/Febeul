@@ -1,3 +1,7 @@
+import { validateItems, couponDiscountFor, ownsOrder, stripePaymentMatches, razorpayPaymentMatches } from '../utils/checkoutSecurity.js';
+import { applyItemCoupons } from '../utils/itemCoupons.js';
+import { safeEqual } from '../utils/authTokens.js';
+import { allowedOrigins } from '../middleware/security.js';
 import mongoose from 'mongoose';
 import { afterPaymentResponse } from '../analytics/service.js';
 import orderModel from "../models/orderModel.js";
@@ -86,8 +90,8 @@ const decreaseStock = async (items) => {
 
 // Helper function to calculate all pricing components
 const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData, providedCouponDiscount = 0, userState = 'Delhi', couponCode) => {
+    validateItems(items, paymentMethod);
     let productAmount = 0;
-    let totalItemDiscount = 0;
 
     // Fetch dynamic site settings
     const cmsModel = (await import('../models/cmsModel.js')).default;
@@ -115,7 +119,7 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
         }
 
         const product = await productModel.findById(item.productId);
-        if (!product) {
+        if (!product || product.isActive === false) {
             throw new Error(`Product not found for ID: ${item.productId}`);
         }
         
@@ -130,7 +134,7 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
 
         const itemPrice = sizeData.price;
         productAmount += itemPrice * item.quantity;
-        totalItemDiscount += (item.discountAmount || 0);
+
 
         return { 
             productId: item.productId,
@@ -142,15 +146,25 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
             color: item.color,
             sku: product.variations.find(v => v.color === item.color)?.sku || '',
             hsn: product.hsn || '',
-            discountAmount: item.discountAmount || 0,
+            discountAmount: 0,
             appliedCoupon: item.appliedCoupon || null
         };
     }));
 
-    let giftWrapPrice = giftWrapData ? parseFloat(giftWrapData.price || 0) : 0;
+    let giftWrapPrice = 0;
+    if (giftWrapData) {
+        if (typeof giftWrapData._id !== 'string' || !/^[a-f\d]{24}$/i.test(giftWrapData._id)) throw new Error('Invalid gift wrap.');
+        const wrap = await giftWrapModel.findById(giftWrapData._id);
+        if (!wrap || !Number.isFinite(wrap.price) || wrap.price < 0) throw new Error('Invalid gift wrap.');
+        giftWrapPrice = wrap.price;
+        // Store only authoritative gift-wrap properties.
+        for (const key of Object.keys(giftWrapData)) delete giftWrapData[key];
+        Object.assign(giftWrapData, { _id: String(wrap._id), name: wrap.name, image: wrap.image, price: wrap.price });
+    }
 
     const user = await userModel.findById(userId); 
-    const isLuxeMember = user?.isLuxeMember || false;
+    const isLuxeMember = !!(user?.isLuxeMember && new Date(user.luxeMembershipExpires) > new Date());
+    if (!user || user.isBlocked) throw new Error('Invalid customer.');
     const giftWrapsLeft = user?.giftWrapsLeft || 0;
 
     let shippingCharge = 0;
@@ -164,71 +178,17 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
         giftWrapPrice = 0; 
     }
 
-    // Calculate coupon discount securely on the backend
+    if (giftWrapData) giftWrapData.price = giftWrapPrice;
     let couponDiscount = 0;
     let couponOfferType = 'none';
-
+    // Recalculate product coupons from current prices and eligibility; ignore submitted discounts.
+    const { totalDiscount: totalItemDiscount, codes: itemCodes } = await applyItemCoupons(processedItems, user, paymentMethod);
     if (couponCode) {
+        if (typeof couponCode !== 'string' || couponCode.length > 100) throw new Error('Invalid coupon code.');
         const coupon = await couponModel.findOne({ code: couponCode.toUpperCase() });
-        if (!coupon || !coupon.isActive || new Date(coupon.expiryDate) <= new Date()) {
-            throw new Error('The coupon code provided is invalid or has expired.');
-        }
-
-        // Validate Payment Method Restriction
-        if (coupon.offerType === 'prepaid' && paymentMethod === 'COD') {
-            throw new Error('This coupon is only valid for prepaid orders.');
-        }
-        if (coupon.offerType === 'cod' && paymentMethod !== 'COD') {
-            throw new Error('This coupon is only valid for Cash on Delivery orders.');
-        }
-
-        // Validate Audience Restrictions
-        const isMembershipPurchase = processedItems.every(item => item.sku === 'LUXE-MEMBERSHIP');
-
-        if (coupon.userType === 'luxe' && !isLuxeMember) {
-            throw new Error('This coupon is reserved for Luxe Members only.');
-        }
-        if (coupon.userType === 'membership' && !isMembershipPurchase) {
-            throw new Error('This coupon is only valid for the Luxe Membership purchase.');
-        }
-        if (coupon.specificUsers && coupon.specificUsers.length > 0) {
-            const isAuthorized = coupon.specificUsers.includes(user?.email) || coupon.specificUsers.includes(userId);
-            if (!isAuthorized) {
-                throw new Error('This coupon is only available for selected customers.');
-            }
-        }
-
-        couponOfferType = coupon.offerType || 'none';
-        let applicableTotal = 0;
-        let currentQuantity = 0;
-        const cartTotal = processedItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-
-        if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
-            const applicableItems = processedItems.filter(item => coupon.applicableSKUs.includes(item.sku));
-            if (applicableItems.length === 0) {
-                throw new Error('This coupon is not applicable to any items in your cart.');
-            }
-            applicableTotal = applicableItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-            currentQuantity = applicableItems.reduce((total, item) => total + item.quantity, 0);
-        } else {
-            applicableTotal = cartTotal;
-            currentQuantity = processedItems.reduce((total, item) => total + item.quantity, 0);
-        }
-
-        // Verify conditions
-        if (applicableTotal < coupon.minOrderAmount) {
-            throw new Error(`A minimum of ₹${coupon.minOrderAmount} worth of applicable items is required for this coupon.`);
-        }
-        if (coupon.minQuantity && currentQuantity < coupon.minQuantity) {
-            throw new Error(`A minimum of ${coupon.minQuantity} applicable items is required for this coupon.`);
-        }
-
-        if (coupon.discountType === 'percentage') {
-            couponDiscount = (applicableTotal * coupon.discountValue) / 100;
-        } else {
-            couponDiscount = coupon.discountValue;
-        }
-        couponDiscount = Math.min(couponDiscount, applicableTotal);
+        // A product coupon repeated as the order code must not be deducted twice.
+        if (!itemCodes.includes(couponCode.toUpperCase())) couponDiscount = couponDiscountFor(coupon, processedItems, user, paymentMethod);
+        couponOfferType = coupon?.offerType || 'none';
     }
 
     const discountedProductAmount = productAmount - totalItemDiscount;
@@ -262,11 +222,17 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
     const totalCombinedDiscount = totalItemDiscount + couponDiscount;
     const orderTotal = (productAmount - totalCombinedDiscount) + shippingCharge + codCharge + giftWrapPrice;
 
-    if (orderTotal <= 0) {
+    if (!Number.isFinite(orderTotal) || orderTotal <= 0 || orderTotal > 1000000) {
         throw new Error('Order amount must be greater than ₹0.');
     }
 
     return { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, isDelhi, couponOfferType, couponDiscount };
+};
+
+const recordMembershipCoupon = async (order, userId) => {
+    for (const code of new Set([order.couponCode, ...order.items.map(i => i.appliedCoupon)].filter(Boolean).map(c => c.toUpperCase()))) {
+        await couponModel.updateOne({ code }, { $inc: { usageCount: 1 }, $push: { usersWhoUsed: { userId: new mongoose.Types.ObjectId(userId) } } });
+    }
 };
 
 // Placing orders using COD Method
@@ -274,7 +240,8 @@ const placeOrder = async (req,res) => {
     
     try {
         
-        const { userId, items, address, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
+        const { items, address, giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
+        const userId = req.userId;
 
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'COD', giftWrapData, couponDiscount, address.state, couponCode);
 
@@ -375,8 +342,8 @@ const placeOrder = async (req,res) => {
 
 
     } catch (error) {
-        console.log(error)
-        res.json({success:false,message:error.message})
+        console.error('Order request failed', { name: error?.name, code: error?.code })
+        res.json({success:false,message:"Unable to process order. Check your items and payment details."})
     }
 
 }
@@ -385,10 +352,12 @@ const placeOrder = async (req,res) => {
 const placeOrderStripe = async (req,res) => {
     try {
         
-        const { userId, items, address, currency, giftWrap: giftWrapData, couponDiscount, couponCode } = req.body;
-        const { origin } = req.headers;
+        const { items, address, currency, giftWrap: giftWrapData, couponDiscount, couponCode } = req.body;
+        const userId = req.userId;
+        const origin = process.env.STOREFRONT_URL || allowedOrigins()[0];
+        if (!origin || !/^https:\/\//.test(origin)) throw new Error('Checkout origin is not configured.');
 
-        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount, address.state, couponCode);
+        const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'Stripe', giftWrapData, couponDiscount, address.state, couponCode);
 
         const invoiceNumber = await getNextInvoiceNumber();
         const orderItemId = await generateOrderItemId();
@@ -411,7 +380,7 @@ const placeOrderStripe = async (req,res) => {
             isLuxeMemberAtTimeOfOrder: isLuxeMember, // Store this for later verification
             couponCode: finalCouponCode,
             couponOfferType,
-            couponDiscount,
+            couponDiscount: totalCombinedDiscount,
             invoiceNumber,
             taxableValue,
             cgstAmount,
@@ -422,50 +391,14 @@ const placeOrderStripe = async (req,res) => {
         const newOrder = new orderModel(orderData)
         await newOrder.save()
 
-        const line_items = processedItems.map((item) => ({
-            price_data: {
-                currency:currency,
-                product_data: {
-                    name:item.name
-                },
-                unit_amount: Math.round(item.price * 100)
-            },
-            quantity: item.quantity
-        }));
-
-        // Add shipping charge to line_items if applicable
-        if (shippingCharge > 0) {
-            line_items.push({
-                price_data: {
-                    currency:currency,
-                    product_data: {
-                        name:'Shipping Charge'
-                    },
-                    unit_amount: Math.round(shippingCharge * 100)
-                },
-                quantity: 1
-            });
-        }
-
-        // Add gift wrap charge to line_items if applicable
-        if (giftWrapData && giftWrapData.price > 0) {
-            line_items.push({
-                price_data: {
-                    currency: currency,
-                    product_data: {
-                        name: 'Gift Wrap'
-                    },
-                    unit_amount: Math.round(giftWrapData.price * 100)
-                },
-                quantity: 1
-            });
-        }
+        const line_items = [{ price_data: { currency: 'inr', product_data: { name: `Febeul order ${orderItemId}` }, unit_amount: Math.round(orderTotal * 100) }, quantity: 1 }];
 
         const session = await stripe.checkout.sessions.create({
             success_url: `${origin}/verify?success=true&orderId=${newOrder._id}`,
             cancel_url:  `${origin}/verify?success=false&orderId=${newOrder._id}`,
             line_items,
             mode: 'payment',
+            client_reference_id: String(newOrder._id),
         })
 
         // Record the session id now, while we have it for free from the create
@@ -476,47 +409,30 @@ const placeOrderStripe = async (req,res) => {
 
         res.json({success:true,session_url:session.url});
     } catch (error) {
-        console.log(error)
-        res.json({success:false,message:error.message})
+        console.error('Order request failed', { name: error?.name, code: error?.code })
+        res.json({success:false,message:"Unable to process order. Check your items and payment details."})
     }
 }
 
 // Verify Stripe 
 const verifyStripe = async (req,res) => {
 
-    const { orderId, success, userId } = req.body
+    const { orderId, success } = req.body
+        const userId = req.userId;
 
     try {
+        const order = await orderModel.findById(orderId).populate('userId');
+        if (!ownsOrder(order, userId) || order.paymentMethod !== 'Stripe') return res.status(404).json({ success: false, message: 'Order not found.' });
         if (success === "true") {
-            // Retrieve the order to get full details before updating
-            const order = await orderModel.findById(orderId).populate('userId');
-            if (!order) {
-                return res.json({ success: false, message: "Order not found" });
-            }
-
-            // Capture the payment_intent behind this session so a future
-            // refund (cancelOrder, admin refund approval) has something to
-            // refund against — without this, a paid Stripe order has no
-            // recorded reference to it at all beyond the Stripe dashboard.
-            let stripePaymentIntentId;
-            let analyticsStripeProof;
-            try {
-                const sessionId = order.paymentDetails?.stripeSessionId;
-                if (sessionId) {
-                    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
-                    analyticsStripeProof = { gateway: 'stripe', id: checkoutSession.id, payment_status: checkoutSession.payment_status, amount_total: checkoutSession.amount_total, currency: checkoutSession.currency };
-                    stripePaymentIntentId = checkoutSession.payment_intent || undefined;
-                }
-            } catch (stripeLookupError) {
-                console.log("Could not retrieve Stripe session/payment_intent:", stripeLookupError.message);
-            }
-
-            // Update order with payment success and confirmed status
-            await orderModel.findByIdAndUpdate(orderId, {
-                payment: true,
-                orderStatus: 'Confirmed',
-                ...(stripePaymentIntentId ? { 'paymentDetails.stripePaymentIntentId': stripePaymentIntentId } : {})
+            if (order.payment) return res.json({ success: true, message: 'Payment already verified.' });
+            if (order.orderStatus === 'Cancelled' || !order.paymentDetails?.stripeSessionId) return res.status(400).json({ success: false, message: 'Order cannot be confirmed.' });
+            const checkoutSession = await stripe.checkout.sessions.retrieve(order.paymentDetails.stripeSessionId);
+            if (!stripePaymentMatches(order, checkoutSession)) return res.status(400).json({ success: false, message: 'Payment has not been confirmed.' });
+            const analyticsStripeProof = { gateway: 'stripe', id: checkoutSession.id, payment_status: checkoutSession.payment_status, amount_total: checkoutSession.amount_total, currency: checkoutSession.currency };
+            const claimed = await orderModel.findOneAndUpdate({ _id: orderId, userId, payment: false, isCancelled: { $ne: true }, orderStatus: { $ne: 'Cancelled' } }, {
+                $set: { payment: true, orderStatus: 'Confirmed', 'paymentDetails.stripePaymentIntentId': checkoutSession.payment_intent },
             });
+            if (!claimed) return res.json({ success: true, message: 'Payment already verified.' });
             // Re-fetch the updated order for further processing
             const updatedOrder = await orderModel.findById(orderId).populate('userId');
             afterPaymentResponse(req, res, updatedOrder, analyticsStripeProof, !order.payment);
@@ -525,6 +441,7 @@ const verifyStripe = async (req,res) => {
             const isLuxeOrder = updatedOrder.items.some(item => item.name === "Febeul Luxe Membership");
 
             if (isLuxeOrder) {
+                await recordMembershipCoupon(updatedOrder, userId);
                 const expiryDate = new Date();
                 expiryDate.setMonth(expiryDate.getMonth() + 1);
                 await userModel.findByIdAndUpdate(userId, {
@@ -609,13 +526,13 @@ const verifyStripe = async (req,res) => {
             }
 
         } else {
-            await orderModel.findByIdAndDelete(orderId)
+            // A browser cancellation is not proof that payment failed. Retain the record for reconciliation.
             res.json({success:false})
         }
         
     } catch (error) {
-        console.log(error)
-        res.json({success:false,message:error.message})
+        console.error('Order request failed', { name: error?.name, code: error?.code })
+        res.json({success:false,message:"Unable to process order. Check your items and payment details."})
     }
 
 }
@@ -624,7 +541,8 @@ const verifyStripe = async (req,res) => {
 const placeOrderRazorpay = async (req,res) => {
     try {
         
-        const { userId, items, address, currency = "INR", giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
+        const { items, address, currency = "INR", giftWrap: giftWrapData, couponCode, couponDiscount } = req.body;
+        const userId = req.userId;
 
         const { productAmount, shippingCharge, codCharge, orderTotal, processedItems, isLuxeMember, totalCombinedDiscount, taxableValue, cgstAmount, sgstAmount, igstAmount, couponOfferType } = await calculateOrderPricing(userId, items, 'Razorpay', giftWrapData, couponDiscount, address.state, couponCode);
 
@@ -662,29 +580,27 @@ const placeOrderRazorpay = async (req,res) => {
 
         const options = {
             amount: Math.round(orderTotal * 100), // Use calculated orderTotal
-            currency: currency.toUpperCase(),
+            currency: 'INR',
             receipt : newOrder._id.toString()
         }
 
-        await razorpayInstance.orders.create(options, (error,order)=>{
-            if (error) {
-                console.log(error)
-                return res.json({success:false, message: error})
-            }
-            res.json({success:true,order})
-        })
+        const gatewayOrder = await razorpayInstance.orders.create(options);
+        await orderModel.updateOne({ _id: newOrder._id }, { $set: { paymentDetails: { razorpay_order_id: gatewayOrder.id } } });
+        res.json({ success: true, order: gatewayOrder });
 
     } catch (error) {
-        console.log(error)
-        res.json({success:false,message:error.message})
+        console.error('Order request failed', { name: error?.name, code: error?.code })
+        res.json({success:false,message:"Unable to process order. Check your items and payment details."})
     }
 }
 
 const verifyRazorpay = async (req,res) => {
     try {
         
-        const { userId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
+        const userId = req.userId;
 
+        if (![razorpay_order_id, razorpay_payment_id, razorpay_signature].every(v => typeof v === 'string' && v.length > 0 && v.length < 200)) return res.status(400).json({ success: false, message: 'Invalid payment proof.' });
         const body = razorpay_order_id + "|" + razorpay_payment_id;
 
         const expectedSignature = crypto
@@ -692,28 +608,22 @@ const verifyRazorpay = async (req,res) => {
             .update(body.toString())
             .digest('hex');
 
-        if (expectedSignature === razorpay_signature) {
+        if (safeEqual(expectedSignature, razorpay_signature)) {
             const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
             if (orderInfo.status === 'paid') {
-                // Bank RRN (acquirer_data.rrn) is how customers reconcile the payment
-                // with their bank/UPI app statement; not returned by the orders API,
-                // so it needs a separate payment fetch.
-                let bankRRN;
-                try {
-                    const paymentInfo = await razorpayInstance.payments.fetch(razorpay_payment_id);
-                    bankRRN = paymentInfo.acquirer_data?.rrn;
-                } catch (fetchErr) {
-                    console.error("Error fetching Razorpay payment for RRN:", fetchErr);
-                }
+                const pendingOrder = await orderModel.findById(orderInfo.receipt);
+                if (!ownsOrder(pendingOrder, userId) || pendingOrder.paymentMethod !== 'Razorpay') return res.status(404).json({ success: false, message: 'Order not found.' });
+                if (pendingOrder.payment) return res.json({ success: true, message: 'Payment already verified.' });
+                if (pendingOrder.orderStatus === 'Cancelled') return res.status(400).json({ success: false, message: 'Order cannot be confirmed.' });
+                const paymentInfo = await razorpayInstance.payments.fetch(razorpay_payment_id);
+                if (!razorpayPaymentMatches(pendingOrder, orderInfo, paymentInfo)) return res.status(400).json({ success: false, message: 'Payment verification failed.' });
+                const bankRRN = paymentInfo.acquirer_data?.rrn;
+                const analyticsPreviousOrder = await orderModel.findOneAndUpdate({ _id: pendingOrder._id, userId, payment: false, isCancelled: { $ne: true }, orderStatus: { $ne: 'Cancelled' } }, { $set: {
+                    payment: true, paymentDetails: { razorpay_order_id, razorpay_payment_id }, razorpayPaymentId: razorpay_payment_id,
+                    ...(bankRRN ? { bankRRN } : {}), orderStatus: 'Confirmed',
+                } });
+                if (!analyticsPreviousOrder) return res.json({ success: true, message: 'Payment already verified.' });
 
-                const analyticsPreviousOrder = await orderModel.findByIdAndUpdate(orderInfo.receipt, {
-                    payment: true,
-                    paymentDetails: { razorpay_order_id, razorpay_payment_id, razorpay_signature },
-                    razorpayPaymentId: razorpay_payment_id, // Store Razorpay Payment ID
-                    ...(bankRRN ? { bankRRN } : {}),
-                    orderStatus: 'Confirmed' // Update status to Confirmed after successful payment
-                });
-                
                 const order = await orderModel.findById(orderInfo.receipt).populate('userId');
                 afterPaymentResponse(req, res, order, { gateway: 'razorpay', status: orderInfo.status, receipt: orderInfo.receipt, amount_paid: orderInfo.amount_paid, currency: orderInfo.currency }, !analyticsPreviousOrder?.payment);
 
@@ -721,6 +631,7 @@ const verifyRazorpay = async (req,res) => {
                 const isLuxeOrder = order.items.some(item => item.name === "Febeul Luxe Membership");
 
                 if (isLuxeOrder) {
+                    await recordMembershipCoupon(order, userId);
                     const expiryDate = new Date();
                     expiryDate.setMonth(expiryDate.getMonth() + 1);
                     await userModel.findByIdAndUpdate(userId, {
@@ -810,8 +721,8 @@ const verifyRazorpay = async (req,res) => {
         }
 
     } catch (error) {
-        console.log(error)
-        res.json({success:false,message:error.message})
+        console.error('Order request failed', { name: error?.name, code: error?.code })
+        res.json({success:false,message:"Unable to process order. Check your items and payment details."})
     }
 }
 
@@ -842,8 +753,8 @@ const allOrders = async (req,res) => {
         res.json({success:true,orders})
 
     } catch (error) {
-        console.log(error)
-        res.json({success:false,message:error.message})
+        console.error('Order request failed', { name: error?.name, code: error?.code })
+        res.json({success:false,message:"Unable to process order. Check your items and payment details."})
     }
 
 }
@@ -873,8 +784,8 @@ const userOrders = async (req,res) => {
         res.json({ success: true, orders: sanitizeOrdersForCustomer(orders, settings) })
 
     } catch (error) {
-        console.log(error)
-        res.json({success:false,message:error.message})
+        console.error('Order request failed', { name: error?.name, code: error?.code })
+        res.json({success:false,message:"Unable to process order. Check your items and payment details."})
     }
 }
 
@@ -888,8 +799,8 @@ const updateStatus = async (req,res) => {
         res.json({success:true,message:'Status Updated'})
 
     } catch (error) {
-        console.log(error)
-        res.json({success:false,message:error.message})
+        console.error('Order request failed', { name: error?.name, code: error?.code })
+        res.json({success:false,message:"Unable to process order. Check your items and payment details."})
     }
 }
 
@@ -902,7 +813,7 @@ const generateInvoice = async (req, res) => {
     try {
         const { orderId } = req.params;
         // Populate userId for email and items.productId for product details (especially price)
-        const order = await orderModel.findById(orderId).populate('userId', 'email isLuxeMember');
+        const order = await orderModel.findOne({ _id: orderId, userId: req.userId }).populate('userId', 'email isLuxeMember');
 
         if (!order) {
             return res.json({ success: false, message: 'Order not found.' });
@@ -931,7 +842,7 @@ const generateInvoice = async (req, res) => {
 
 const getOrderById = async (req, res) => {
     try {
-        const order = await orderModel.findById(req.params.id).populate('userId', 'name email'); // Populate userId
+        const order = await orderModel.findOne({ _id: req.params.id, userId: req.userId }).populate('userId', 'name email'); // Populate userId
         if (!order) {
             return res.json({ success: false, message: 'Order not found' });
         }
@@ -969,7 +880,7 @@ const getOrderById = async (req, res) => {
             trackingData: trackingData ? { tracking_data: trackingData } : null
         });
     } catch (error) {
-        console.log(error);
+        console.error('Order request failed', { name: error?.name, code: error?.code });
         res.json({ success: false, message: 'Error fetching order' });
     }
 };
@@ -995,6 +906,13 @@ const cancelOrder = async (req, res) => {
         if (nonCancellableStatuses.includes(order.orderStatus)) {
             return res.json({ success: false, message: `Order cannot be cancelled in '${order.orderStatus}' status.` });
         }
+
+        if (order.items.some(item => item.name === 'Febeul Luxe Membership') && order.payment) {
+            return res.status(400).json({ success: false, message: 'Contact support to cancel a paid membership.' });
+        }
+        // Claim cancellation before side effects; concurrent/replayed calls must not restore stock twice.
+        const claimed = await orderModel.findOneAndUpdate({ _id: order._id, userId, isCancelled: { $ne: true }, payment: order.payment, orderStatus: order.orderStatus }, { $set: { isCancelled: true } });
+        if (!claimed) return res.status(409).json({ success: false, message: 'Order changed or cancellation is already in progress.' });
 
         // Best-effort: also cancel the shipment on Shiprocket's side so the
         // courier doesn't attempt pickup/delivery for an order we've cancelled.
@@ -1053,8 +971,8 @@ const cancelOrder = async (req, res) => {
             order.refundDetails.status = order.payment ? 'pending' : 'none';
         }
 
-        // Restore stock
-        for (const item of order.items) {
+        // Unpaid gateway orders never reduced stock and must never increase it on cancellation.
+        for (const item of (order.payment || order.paymentMethod === 'COD' ? order.items : [])) {
             if (item.name === "Febeul Luxe Membership") continue;
             const product = await productModel.findById(item.productId);
             if (product) {
@@ -1079,8 +997,8 @@ const cancelOrder = async (req, res) => {
         res.json({ success: true, message: order.orderStatus === 'Refunded' ? "Order cancelled and refund initiated." : "Order cancelled successfully" });
 
     } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
+        console.error('Order request failed', { name: error?.name, code: error?.code });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 

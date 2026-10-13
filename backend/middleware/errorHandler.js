@@ -1,15 +1,7 @@
 import multer from 'multer';
-
-const errorHandler = (err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    return res.status(400).json({ success: false, message: `Multer error: ${err.message}` });
-  } else if (err) {
-    if (err.message === "Invalid file type.") {
-        return res.status(400).json({ success: false, message: "Invalid file: Only JPEG, PNG, WEBP, JPG images and MP4, WEBM, OGG, MOV videos are allowed." });
-    }
-    return res.status(500).json({ success: false, message: `Unknown error: ${err.message}` });
-  }
-  next();
-};
-
-export default errorHandler;
+export default function errorHandler(err, req, res, next) {
+    if (res.headersSent) return next(err);
+    const tooLarge = err.type === 'entity.too.large' || err.code === 'LIMIT_FILE_SIZE';
+    const badInput = err instanceof multer.MulterError || err.type === 'entity.parse.failed' || err.message === 'Invalid file type.' || err.name === 'ValidationError' || err.name === 'CastError';
+    return res.status(tooLarge ? 413 : badInput ? 400 : 500).json({ success: false, message: tooLarge ? 'Upload or request is too large.' : badInput ? 'Invalid request or file.' : 'Unable to complete request.' });
+}

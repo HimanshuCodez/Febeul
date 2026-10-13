@@ -3,6 +3,7 @@ import userModel from '../models/userModel.js';
 import orderModel from '../models/orderModel.js';
 import couponModel from '../models/couponModel.js';
 import productModel from '../models/productModel.js';
+import { isCouponExpired } from '../../shared/couponValidity.js';
 
 const LIMIT = 6;
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -34,8 +35,8 @@ export async function searchAdminRecords(query, { role, permissions = [] }) {
     {
       type: 'Coupons', permission: '/coupons', model: couponModel,
       filter: { $or: [{ code: regex }, { description: regex }, ...idMatch] },
-      fields: 'code description isActive expiryDate',
-      format: row => ({ title: short(row.code), subtitle: !row.isActive ? 'Inactive coupon' : new Date(row.expiryDate) < new Date() ? 'Expired coupon' : short(row.description || 'Active coupon'), href: link('/coupons', row.code) }),
+      fields: 'code description isActive expiryDate isLifetime',
+      format: row => ({ title: short(row.code), subtitle: !row.isActive ? 'Inactive coupon' : isCouponExpired(row) ? 'Expired coupon' : short(row.description || (row.isLifetime ? 'Lifetime coupon' : 'Active coupon')), href: link('/coupons', row.code) }),
     },
     {
       type: 'Products', permission: '/list', model: productModel,

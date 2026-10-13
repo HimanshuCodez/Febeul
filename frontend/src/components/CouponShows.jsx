@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import RedeemPopup from './RedeemApply';
 import useAuthStore from '../store/authStore';
 import { toast } from 'react-hot-toast';
+import { isCouponExpired } from '../../../shared/couponValidity.js';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -113,7 +114,7 @@ const CouponShows = ({ productSKUs = [], onRedeem = () => {}, onRemove = () => {
     coupon.isActive &&
     (coupon.userType !== 'luxe' || isLuxeMember) &&
     (isSignedIn || !coupon.specificUsers?.length) &&
-    new Date(coupon.expiryDate) > new Date() && // Exclude expired coupons
+    !isCouponExpired(coupon) &&
     (coupon.offerType === 'none' || !coupon.offerType) && // Filter out cod and prepaid
     (coupon.applicableSKUs.length === 0 ||
     productSKUs.some(sku => skuMatches(coupon.applicableSKUs, sku)))

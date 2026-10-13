@@ -1,5 +1,5 @@
 import express from 'express'
-import cors from 'cors'
+import { installSecurity, rejectUnsafeInput } from './middleware/security.js'
 import 'dotenv/config'
 import connectDB from './config/mongodb.js'
 import connectCloudinary from './config/cloudinary.js'
@@ -32,9 +32,10 @@ connectCloudinary()
 
 // middlewares
 // Isolated parser keeps the analytics limit from changing existing API limits.
-app.use('/api/analytics', cors(), analyticsRouter)
-app.use(express.json())
-app.use(cors())
+installSecurity(app)
+app.use('/api/analytics', analyticsRouter)
+app.use(express.json({ limit: '100kb' }))
+app.use(rejectUnsafeInput)
 
 // api endpoints
 app.use('/api/user',userRouter)

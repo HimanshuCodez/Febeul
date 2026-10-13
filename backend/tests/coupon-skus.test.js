@@ -1,3 +1,5 @@
+import { adminTokenFor } from './helpers/auth.js';
+import { userToken } from '../utils/authTokens.js';
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
@@ -7,13 +9,15 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import couponRouter from '../routes/couponRoute.js';
 import couponModel from '../models/couponModel.js';
 import userModel from '../models/userModel.js';
+import { couponDiscountFor } from '../utils/checkoutSecurity.js';
+import { isCouponExpired } from '../../shared/couponValidity.js';
 
 // Disposable local database only; never load dotenv or the production server.
 process.env.JWT_SECRET = 'local-coupon-sku-tests';
 process.env.ADMIN_EMAIL = 'admin@coupon.test';
 process.env.ADMIN_PASSWORD = 'local-only';
 let database, server, base, customer, customerToken, coupon;
-const adminToken = () => jwt.sign(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD, process.env.JWT_SECRET);
+const adminToken = () => adminTokenFor(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD);
 async function request(path, body, token = customerToken) {
   const response = await fetch(base + path, { method: 'POST', headers: { 'Content-Type': 'application/json', token }, body: JSON.stringify(body) });
   return { status: response.status, data: await response.json() };
@@ -22,7 +26,7 @@ before(async () => {
   database = await MongoMemoryServer.create();
   await mongoose.connect(database.getUri(), { dbName: 'coupon-sku-tests' });
   customer = await userModel.create({ email: 'shopper@coupon.test' });
-  customerToken = jwt.sign({ id: String(customer._id) }, process.env.JWT_SECRET);
+  customerToken = userToken(customer);
   const app = express();
   app.use(express.json()); app.use('/api/coupon', couponRouter);
   server = app.listen(0, '127.0.0.1');
@@ -107,5 +111,86 @@ test('membership purchase coupons are listed only for the membership page', asyn
     assert.equal(product.status, 400);
     const cart = await request('/apply', { code: 'JOIN30', items: [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }], userId: String(customer._id) });
     assert.equal(cart.status, 400);
+  });
+});
+
+test('lifetime validity is explicit, editable, and enforced consistently', async t => {
+  const fields = { discountType: 'percentage', discountValue: 10, usageLimitPerUser: 1 };
+  let lifetime;
+  await t.test('create without an expiry, persist it, and expose it in eligible lists', async () => {
+    const result = await request('/add', { ...fields, code: 'FOREVER10', isLifetime: true, expiryDate: '2000-01-01' }, adminToken());
+    assert.equal(result.status, 200);
+    lifetime = result.data.coupon;
+    assert.equal(lifetime.isLifetime, true);
+    assert.equal(lifetime.expiryDate, null);
+    const stored = await couponModel.findById(lifetime._id);
+    assert.equal(stored.isLifetime, true);
+    assert.equal(stored.expiryDate, null);
+    for (const path of ['/active', '/all']) {
+      const response = await fetch(base + path, { headers: { token: customerToken } });
+      const data = await response.json();
+      assert.ok(data.coupons.some(c => c.code === 'FOREVER10'));
+    }
+  });
+  await t.test('redeem through cart, product, and authoritative checkout pricing', async () => {
+    const items = [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }];
+    const cart = await request('/apply', { code: 'FOREVER10', items });
+    assert.equal(cart.status, 200); assert.equal(cart.data.discountAmount, 50);
+    const product = await request('/apply-product-coupon', { code: 'FOREVER10', productItem: items[0] });
+    assert.equal(product.status, 200); assert.equal(product.data.discountAmount, 50);
+    assert.equal(couponDiscountFor(lifetime, items, customer, 'Razorpay'), 50);
+    assert.equal(isCouponExpired(lifetime, new Date('2199-01-01')), false);
+  });
+  await t.test('lifetime does not bypass status, usage, audience, SKU, or minimum restrictions', async () => {
+    const items = [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }];
+    for (const restriction of [
+      { isActive: false }, { usageLimit: 1, usageCount: 1 },
+      { usersWhoUsed: [{ userId: customer._id }], usageLimitPerUser: 1 },
+      { userType: 'luxe' }, { userType: 'membership' },
+      { specificUsers: ['another@example.test'] }, { applicableSKUs: ['OTHER'] },
+      { minOrderAmount: 1000 }, { minQuantity: 2 }, { offerType: 'cod' },
+    ]) assert.throws(() => couponDiscountFor({ ...lifetime, ...restriction }, items, customer, 'Razorpay'));
+    await couponModel.findByIdAndUpdate(lifetime._id, { usageLimit: 1, usageCount: 1 });
+    assert.equal((await request('/apply', { code: 'FOREVER10', items })).status, 400);
+    const list = await (await fetch(base + '/active')).json();
+    assert.ok(!list.coupons.some(c => c.code === 'FOREVER10'));
+    await couponModel.findByIdAndUpdate(lifetime._id, { usageLimit: null, usageCount: 0 });
+  });
+  await t.test('partial edits preserve lifetime; converting to dated requires a valid date', async () => {
+    const partial = await request('/update', { id: lifetime._id, description: 'Still no expiry' }, adminToken());
+    assert.equal(partial.data.coupon.isLifetime, true);
+    assert.equal(partial.data.coupon.expiryDate, null);
+    for (const expiryDate of [undefined, null, '', 'bad-date', '2099-02-30']) {
+      const invalid = await request('/update', { id: lifetime._id, isLifetime: false, expiryDate }, adminToken());
+      assert.equal(invalid.status, 400);
+      assert.equal((await couponModel.findById(lifetime._id)).isLifetime, true);
+    }
+    const dated = await request('/update', { id: lifetime._id, isLifetime: false, expiryDate: '2099-12-31' }, adminToken());
+    assert.equal(dated.data.coupon.isLifetime, false);
+    assert.equal(dated.data.coupon.expiryDate, '2099-12-31T23:59:59.999Z');
+    const forever = await request('/update', { id: lifetime._id, isLifetime: true }, adminToken());
+    assert.equal(forever.data.coupon.expiryDate, null);
+  });
+  await t.test('missing expiry and malformed lifetime flags fail closed', async () => {
+    for (const extra of [{}, { expiryDate: null }, { expiryDate: 'invalid' }, { isLifetime: 'true' }, { isLifetime: null }]) {
+      const result = await request('/add', { ...fields, code: 'INVALIDWINDOW', ...extra }, adminToken());
+      assert.equal(result.status, 400);
+    }
+    for (const expiryDate of [null, undefined, 'invalid', '2000-01-01']) {
+      assert.equal(isCouponExpired({ expiryDate }), true);
+      assert.throws(() => couponDiscountFor({ ...lifetime, isLifetime: false, expiryDate }, [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }], customer, 'Razorpay'));
+    }
+  });
+  await t.test('legacy dated coupons still expire and lifetime membership offers remain isolated', async () => {
+    const legacy = await request('/add', { ...fields, code: 'OLDWINDOW', expiryDate: '2000-01-01' }, adminToken());
+    assert.equal(legacy.data.coupon.isLifetime, false);
+    assert.equal((await request('/apply', { code: 'OLDWINDOW', items: [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }] })).status, 400);
+    await request('/add', { ...fields, code: 'LIFETIMEJOIN', isLifetime: true, userType: 'membership' }, adminToken());
+    for (const path of ['/active', '/all']) {
+      const regular = await (await fetch(base + path, { headers: { token: customerToken } })).json();
+      assert.ok(!regular.coupons.some(c => ['LIFETIMEJOIN', 'OLDWINDOW'].includes(c.code)));
+      const membership = await (await fetch(base + path + '?purpose=membership', { headers: { token: customerToken } })).json();
+      assert.ok(membership.coupons.some(c => c.code === 'LIFETIMEJOIN'));
+    }
   });
 });

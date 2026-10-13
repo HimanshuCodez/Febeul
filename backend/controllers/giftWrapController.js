@@ -5,7 +5,7 @@ import fs from 'fs';
 // List all gift wraps
 const listGiftWraps = async (req, res) => {
     try {
-        const giftWraps = await giftWrapModel.find({});
+        const giftWraps = await giftWrapModel.find({}).select("-usersWhoUsed -creator");
         res.json({ success: true, data: giftWraps });
     } catch (error) {
         console.log(error);

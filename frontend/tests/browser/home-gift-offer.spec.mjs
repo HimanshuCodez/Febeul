@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { DEFAULT_HOME_GIFT_OFFER } from '../../../shared/homeGiftOffer.js';
 
 const shop = 'http://127.0.0.1:5177', admin = 'http://127.0.0.1:5178';
-const coupon = { _id: '507f1f77bcf86cd799439033', code: 'WELCOME20', isActive: true, userType: 'normal', specificUsers: [], expiryDate: '2099-01-01', usageLimit: 100, usageCount: 0, discountType: 'percentage', discountValue: 20, applicableSKUs: [] };
+const coupon = { _id: '507f1f77bcf86cd799439033', code: 'WELCOME20', isActive: true, userType: 'normal', specificUsers: [], isLifetime: true, expiryDate: null, usageLimit: 100, usageCount: 0, discountType: 'percentage', discountValue: 20, applicableSKUs: [] };
 
 async function fixture(page, { signedIn = false, consentEnabled = false, role = 'admin', permissions = [], enabled = true } = {}) {
   const state = { content: { ...DEFAULT_HOME_GIFT_OFFER, enabled, couponCode: 'WELCOME20', badgeOffer: '20%', badgeCaption: 'OFF' }, coupons: [coupon], failLoad: false, failSave: false, calls: [], errors: [] };

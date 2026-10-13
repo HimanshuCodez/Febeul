@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useEffect, useRef, useState, Suspense, lazy } from 'react'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
@@ -61,6 +62,16 @@ const App = () => {
   const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail')?localStorage.getItem('userEmail'):'');
   const [permissions, setPermissions] = useState(JSON.parse(localStorage.getItem('permissions') || '[]'));
 
+  useEffect(() => {
+    const id = axios.interceptors.response.use(response => response, error => {
+      if (error.response?.status === 401 && error.config?.headers?.token) {
+        setToken(''); setRole(''); setPermissions([]); setUserEmail('');
+      }
+      return Promise.reject(error);
+    });
+    return () => axios.interceptors.response.eject(id);
+  }, []);
+
   const location = useLocation();
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [isPageRefreshing, setIsPageRefreshing] = useState(false);
@@ -107,7 +118,7 @@ const App = () => {
           <hr />
           <div className='flex w-full'>
             <Sidebar role={role} permissions={permissions} onNavigate={handleSidebarNavigate} />
-            <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/tickets', '/orders', '/reviews', '/user-tracking'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname === '/home-gift-offer' && isAllowed('/cms')) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
+            <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/tickets', '/orders', '/reviews', '/user-tracking', '/coupons'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname === '/home-gift-offer' && isAllowed('/cms')) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
               ? 'min-w-0 flex-1 px-3 py-5 sm:px-6 lg:px-8 lg:py-8 text-gray-600 text-base'
               : 'w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'}>
               <Suspense fallback={<PageFallback />}>

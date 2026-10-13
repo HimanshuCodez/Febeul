@@ -1,3 +1,4 @@
+import axios from 'axios';
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Razorpay from "razorpay";
@@ -75,20 +76,31 @@ const processPrepaidRefund = async (orderId, razorpayPaymentId, refundAmount) =>
         if (!razorpayPaymentId) {
             throw new Error("Razorpay Payment ID is missing for prepaid refund.");
         }
-        if (refundAmount <= 0) {
-            return { success: true, message: "No amount to refund via Razorpay.", refundId: null };
-        }
-
-        const refundResponse = await razorpayInstance.payments.refund(razorpayPaymentId, {
+        if (!Number.isFinite(refundAmount) || refundAmount < 0) throw new Error('Invalid refund amount.');
+        if (refundAmount === 0) return { success: true, message: 'No refund due.', refundId: null };
+        const order = await orderModel.findOneAndUpdate({
+            _id: orderId, payment: true, paymentMethod: 'Razorpay', orderTotal: { $gte: refundAmount },
+            $and: [
+                { $or: [{ razorpayPaymentId }, { 'paymentDetails.razorpay_payment_id': razorpayPaymentId }] },
+                { $or: [{ refundRequestAmount: { $exists: false } }, { refundRequestAmount: refundAmount }] },
+            ],
+        }, { $set: { refundRequestAmount: refundAmount } }, { new: true });
+        if (!order) throw new Error('Refund does not match a paid order or an existing refund request.');
+        // This SDK version filters custom headers, so use the documented HTTP API for idempotency.
+        const { data: refundResponse } = await axios.post(`https://api.razorpay.com/v1/payments/${encodeURIComponent(razorpayPaymentId)}/refund`, {
             amount: Math.round(refundAmount * 100),
             speed: 'normal',
             notes: {
                 order_id: orderId.toString(),
                 reason: "Customer requested refund"
             }
+        }, {
+            auth: { username: process.env.RAZORPAY_KEY_ID, password: process.env.RAZORPAY_KEY_SECRET },
+            headers: { 'X-Refund-Idempotency': `febeul-refund-${orderId}` }, timeout: 10000, maxRedirects: 0,
         });
 
         if (refundResponse.status === 'processed' || refundResponse.status === 'pending') {
+            if (order.items.some(item => item.name === 'Febeul Luxe Membership')) await userModel.updateOne({ _id: order.userId }, { $set: { isLuxeMember: false, giftWrapsLeft: 0, luxeMembershipExpires: null } });
             return { success: true, message: "Prepaid refund initiated successfully.", refundId: refundResponse.id };
         } else {
             return { success: false, message: `Razorpay refund failed with status: ${refundResponse.status}.`, refundId: refundResponse.id };
@@ -133,6 +145,7 @@ const approveRefund = async (req, res) => {
 
         let refundAmount = manualRefundAmount !== undefined ? parseFloat(manualRefundAmount) : await calculateRefundAmount(order, returnReason || order.refundDetails.reason, order.shiprocketStatus || 'UNKNOWN');
 
+        if (!Number.isFinite(refundAmount) || refundAmount < 0 || refundAmount > order.orderTotal) return res.status(400).json({ success: false, message: 'Invalid refund amount.' });
         let refundResult = { success: false };
 
         if (order.paymentMethod === 'Razorpay') {
@@ -225,7 +238,7 @@ const approveRefund = async (req, res) => {
         }
         res.json({ success: false, message: refundResult.message });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -248,7 +261,7 @@ const rejectRefund = async (req, res) => {
         await order.save();
         res.json({ success: true, message: "Refund request rejected." });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -315,7 +328,7 @@ const requestRefund = async (req, res) => {
 
         res.json({ success: true, message: "Request submitted successfully." });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -418,7 +431,7 @@ const cancelReturnRequest = async (req, res) => {
         await order.save();
         res.json({ success: true, message: "Your request has been cancelled." });
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 

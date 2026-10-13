@@ -11,6 +11,11 @@ const userSchema = new mongoose.Schema({
     giftWrapsLeft: { type: Number, default: 0 },
     otp: { type: String },
     otp_expiry: { type: Date },
+    otpPurpose: String,
+    otpAttempts: Number,
+    registrationNonce: String,
+    registrationExpires: Date,
+    tokenVersion: { type: Number, default: 0 },
     cartData: [{
         product: { type: mongoose.Schema.Types.ObjectId, ref: 'product' },
         size: { type: String, },
@@ -60,6 +65,11 @@ const userSchema = new mongoose.Schema({
     activeAt: { type: Date, default: null },
     lastAppealAt: { type: Date, default: null }
 }, { minimize: false, timestamps: true })
+
+userSchema.set('toJSON', { transform(_doc, result) {
+    for (const key of ['password', 'otp', 'otp_expiry', 'otpPurpose', 'otpAttempts', 'registrationNonce', 'registrationExpires', 'tokenVersion']) delete result[key];
+    return result;
+} });
 
 const userModel = mongoose.models.user || mongoose.model('user',userSchema);
 

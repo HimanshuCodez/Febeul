@@ -1,3 +1,4 @@
+import { safeEqual } from '../utils/authTokens.js';
 import mongoose from 'mongoose';
 import orderModel from '../models/orderModel.js';
 import exchangeModel from '../models/exchangeModel.js';
@@ -114,12 +115,12 @@ export const handleWebhook = async (req, res) => {
     // Shiprocket signs webhooks with a shared secret header rather than a
     // cryptographic signature; this is what their platform supports.
     const shiprocketToken = req.headers['x-api-key'];
-    if (!shiprocketToken || shiprocketToken !== process.env.SHIPROCKET_WEBHOOK_SECRET) {
+    if (!process.env.SHIPROCKET_WEBHOOK_SECRET || !safeEqual(shiprocketToken, process.env.SHIPROCKET_WEBHOOK_SECRET)) {
         console.warn('Unauthorized Shiprocket Webhook Access: Invalid or missing token');
         return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    console.log('Shiprocket Webhook Payload:', req.body);
+
 
     const { order_id, shipment_id, current_status } = req.body;
     const awb = req.body.awb;

@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import axios from "axios";
@@ -1068,7 +1069,7 @@ const ProductDetailPage = () => {
                 </h2>
                 <div
                   className="product-description text-sm text-black leading-relaxed font-medium"
-                  dangerouslySetInnerHTML={{ __html: product.description }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description, { USE_PROFILES: { html: true } }) }}
                 />
               </div>
             </div>

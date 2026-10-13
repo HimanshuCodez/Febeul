@@ -10,13 +10,14 @@ import { getPublicGiftOffer, validateGiftOfferForSave } from '../utils/homeGiftO
 // @access  Public
 const getCmsContent = async (req, res) => {
     try {
+        if (['orderConfirmationEmail', 'returnRequestEmail', 'refundProcessedEmail', 'luxeExpiredEmail'].includes(req.params.name)) return res.status(404).json({ success: false, message: 'Content not found' });
         const content = await cmsModel.findOne({ name: req.params.name });
         if (req.params.name === 'homeGiftOffer') {
             res.set('Cache-Control', 'no-store');
             return res.json({ success: true, content: await getPublicGiftOffer(content?.content) });
         }
         if (content) {
-            res.json({ success: true, content: content.content, creator: content.creator });
+            res.json({ success: true, content: content.content });
         } else if (req.params.name === 'socialSettings') {
             res.json({ success: true, content: DEFAULT_SOCIAL_SETTINGS });
         } else if (req.params.name === 'luxePage') {
@@ -35,26 +36,28 @@ const getCmsContent = async (req, res) => {
 const updateCmsContent = async (req, res) => {
     try {
         const { name, content } = req.body;
+        if (typeof name !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]{0,79}$/.test(name)) return res.status(400).json({ success: false, message: 'Invalid content name.' });
+        if (['orderConfirmationEmail', 'returnRequestEmail', 'refundProcessedEmail', 'luxeExpiredEmail'].includes(name)) return res.status(403).json({ success: false, message: 'Use the email template endpoint.' });
         let savedContent = content;
         if (name === 'homeGiftOffer') {
             try {
                 savedContent = await validateGiftOfferForSave(content);
             } catch (error) {
-                return res.status(400).json({ success: false, message: error.message });
+                return res.status(400).json({ success: false, message: "Unable to complete request." });
             }
         }
         if (name === 'socialSettings') {
             try {
                 savedContent = validateSocialSettings(content);
             } catch (error) {
-                return res.status(400).json({ success: false, message: error.message });
+                return res.status(400).json({ success: false, message: "Unable to complete request." });
             }
         }
         if (name === 'luxePage') {
             try {
                 savedContent = validateLuxePageContent(content);
             } catch (error) {
-                return res.status(400).json({ success: false, message: error.message });
+                return res.status(400).json({ success: false, message: "Unable to complete request." });
             }
         }
 
@@ -78,7 +81,7 @@ const updateCmsContent = async (req, res) => {
 
         res.status(201).json({ success: true, content: updatedContent.content });
     } catch (error) {
-        res.status(400).json({ success: false, message: 'Error updating CMS content', error });
+        res.status(400).json({ success: false, message: 'Error updating CMS content' });
     }
 };
 
@@ -95,7 +98,7 @@ const uploadCmsImage = async (req, res) => {
         res.json({ success: true, imageUrl: result.secure_url });
     } catch (error) {
         console.log(error);
-        res.status(500).json({ success: false, message: 'Error uploading image', error });
+        res.status(500).json({ success: false, message: 'Error uploading image' });
     }
 };
 

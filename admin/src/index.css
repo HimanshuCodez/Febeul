@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 *{
-    font-family: Outfit;
+    font-family: 'Outfit', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 select,input,textarea{

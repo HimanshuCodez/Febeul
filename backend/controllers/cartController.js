@@ -1,9 +1,11 @@
 import userModel from "../models/userModel.js"
+import { applyItemCoupons } from '../utils/itemCoupons.js';
 
 // add products to user cart
 const addToCart = async (req,res) => {
     try {
-        const { itemId, size, color, appliedCoupon, discountAmount } = req.body
+        const { itemId, size, color, appliedCoupon } = req.body
+        if (appliedCoupon != null && (typeof appliedCoupon !== 'string' || appliedCoupon.length > 100)) return res.status(400).json({ success: false, message: 'Invalid coupon code.' });
         const user = await userModel.findById(req.userId)
 
         if (!user) {
@@ -22,20 +24,22 @@ const addToCart = async (req,res) => {
         const cartItemIndex = user.cartData.findIndex(item => item && item.product && item.product.toString() === itemId && item.size === size && item.color === color);
 
         if (cartItemIndex > -1) {
+            if (user.cartData[cartItemIndex].quantity >= 99) return res.status(400).json({ success: false, message: 'Quantity limit reached.' });
             user.cartData[cartItemIndex].quantity += 1;
             // Optionally update coupon if a new one is provided
             if (appliedCoupon) {
                 user.cartData[cartItemIndex].appliedCoupon = appliedCoupon;
-                user.cartData[cartItemIndex].discountAmount = discountAmount || 0;
+                user.cartData[cartItemIndex].discountAmount = 0;
             }
         } else {
+            if (user.cartData.length >= 100) return res.status(400).json({ success: false, message: 'Cart limit reached.' });
             user.cartData.push({ 
                 product: itemId, 
                 size, 
                 color, 
                 quantity: 1,
                 appliedCoupon: appliedCoupon || null,
-                discountAmount: discountAmount || 0
+                discountAmount: 0
             });
         }
 
@@ -43,7 +47,7 @@ const addToCart = async (req,res) => {
         res.json({ success: true, message: "Added To Cart" })
     } catch (error) {
         console.log(error)
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: "Unable to complete request." })
     }
 }
 
@@ -51,6 +55,7 @@ const addToCart = async (req,res) => {
 const updateCart = async (req,res) => {
     try {
         const { itemId, size, quantity, color } = req.body
+        if (!Number.isSafeInteger(quantity) || quantity < 0 || quantity > 99) return res.status(400).json({ success: false, message: 'Invalid quantity.' });
         const user = await userModel.findById(req.userId)
 
         if (!user) {
@@ -82,7 +87,7 @@ const updateCart = async (req,res) => {
         res.json({ success: true, message: "Cart Updated" })
     } catch (error) {
         console.log(error)
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: "Unable to complete request." })
     }
 }
 
@@ -133,7 +138,7 @@ const addGiftWrapToCart = async (req, res) => {
         res.json({ success: true, message: "Gift Wrap Added To Cart" });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -151,7 +156,7 @@ const removeGiftWrapFromCart = async (req, res) => {
         res.json({ success: true, message: "Gift Wrap Removed From Cart" });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -197,14 +202,16 @@ const getUserCart = async (req,res) => {
                     color: item.color,
                     price: price, // Add the correct price
                     mrp: mrp,   // Add the correct mrp
+                    sku: variation?.sku || '',
                     _id: item.product._id,
                     appliedCoupon: item.appliedCoupon,
-                    discountAmount: item.discountAmount
+                    discountAmount: 0
                 };
             }
             return null;
         }).filter(item => item !== null);
 
+        await applyItemCoupons(cartItems, user, undefined, { strict: false });
         res.json({ success: true, cartItems: cartItems, giftWrap: user.giftWrap });
 
     } catch (error) {

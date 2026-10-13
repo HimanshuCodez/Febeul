@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isCouponExpired } from '../../../shared/couponValidity.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaMapMarkerAlt, 
@@ -302,7 +303,7 @@ export default function CheckoutPage() {
       try {
         const response = await axios.get(`${backendUrl}/api/coupon/all`, { headers: { token } });
         if (response.data.success) {
-          setActiveOffers(response.data.coupons.filter(c => c.isActive && new Date(c.expiryDate) > new Date()));
+          setActiveOffers(response.data.coupons.filter(c => c.isActive && !isCouponExpired(c)));
         }
       } catch (error) {
         console.error("Failed to fetch active offers", error);

@@ -1,4 +1,5 @@
-import jwt from 'jsonwebtoken';
+import userModel from '../models/userModel.js';
+import { verifyToken, envAccountForToken } from '../utils/authTokens.js';
 
 const getRequiredPermission = (fullPath) => {
     if (fullPath === '/api/admin/search') return '/';
@@ -49,97 +50,35 @@ const getRequiredPermission = (fullPath) => {
 };
 
 const adminAuth = async (req, res, next) => {
-    const { token } = req.headers;
-    if (!token) {
-        return res.status(401).json({ success: false, message: 'Not authorized. Login again.' });
-    }
     try {
-        const token_decode = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // 1. Check Primary Admin (ENV)
-        const adminEmailEnv = process.env.ADMIN_EMAIL;
-        const adminPassEnv = process.env.ADMIN_PASSWORD;
-        if (token_decode === (adminEmailEnv + adminPassEnv)) {
-            req.role = 'admin';
-            req.userEmail = adminEmailEnv;
-            req.userName = 'Primary Admin';
-            return next();
+        const claims = verifyToken(req.headers.token, 'admin');
+        if (claims.source === 'env') {
+            const account = envAccountForToken(claims);
+            if (!account) throw new Error('Invalid account');
+            req.role = account.role;
+            req.userEmail = account.email;
+            req.userName = account.role === 'admin' ? 'Primary Admin' : 'Staff';
+            req.permissions = (process.env.STAFF_PERMISSIONS || '').split(',').map(p => p.trim()).filter(Boolean);
+        } else {
+            if (typeof claims.id !== 'string' || !/^[a-f\d]{24}$/i.test(claims.id)) throw new Error('Invalid identity');
+            const user = await userModel.findById(claims.id);
+            if (!user || user.isBlocked || !['admin', 'staff'].includes(user.role) || (user.tokenVersion || 0) !== claims.version) throw new Error('Invalid account');
+            req.role = user.role;
+            req.userEmail = user.email;
+            req.userName = user.name;
+            req.permissions = user.permissions || [];
         }
-
-        // 2. Check Staff Members (ENV)
-        const staffEmails = process.env.STAFF_EMAILS ? process.env.STAFF_EMAILS.split(',') : [];
-        const staffPasswords = process.env.STAFF_PASSWORDS ? process.env.STAFF_PASSWORDS.split(',') : [];
-        let isStaffEnv = false;
-        for (let i = 0; i < staffEmails.length; i++) {
-            if (token_decode === (staffEmails[i] + staffPasswords[i])) {
-                isStaffEnv = true;
-                req.userEmail = staffEmails[i];
-                req.userName = 'Staff Member (ENV)';
-                break;
+        const fullPath = (req.baseUrl + req.path).toLowerCase().replace(/\/$/, '');
+        if (req.role === 'staff') {
+            const permission = getRequiredPermission(fullPath);
+            if (fullPath.includes('/update-permissions') || fullPath.startsWith('/api/reset') || !permission || !req.permissions.includes(permission)) {
+                return res.status(403).json({ success: false, message: 'Access denied.' });
             }
         }
-        // Legacy single staff check
-        if (!isStaffEnv && token_decode === (process.env.STAFF_EMAIL + process.env.STAFF_PASSWORD)) {
-            isStaffEnv = true;
-            req.userEmail = process.env.STAFF_EMAIL;
-            req.userName = 'Staff (Legacy ENV)';
-        }
-
-        if (isStaffEnv) {
-            req.role = 'staff';
-            // ENV Staff typically have limited access, let's allow them except dashboard/sensitive stuff
-            // but for simplicity, if they are ENV staff, they might not have a dashboard.
-            if (req.baseUrl.includes('/api/admin')) {
-                return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
-            }
-            return next();
-        }
-
-        // 3. Check Database for Staff/Admin
-        try {
-            const userModel = (await import('../models/userModel.js')).default;
-            const user = await userModel.findById(token_decode);
-            if (user && (user.role === 'staff' || user.role === 'admin')) {
-                req.role = user.role;
-                req.userEmail = user.email;
-                req.userName = user.name;
-                req.permissions = user.permissions || [];
-                
-                if (user.role === 'staff') {
-                    const fullPath = (req.baseUrl + req.path).replace(/\/$/, "");
-                    
-                    // Strictly restrict permission updates to Admin only, 
-                    // or staff with explicit '/allusers' permission if that's desired.
-                    // Usually management of staff is Admin only.
-                    if (fullPath.includes('/update-permissions')) {
-                         return res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
-                    }
-
-                    const permissionNeeded = getRequiredPermission(fullPath);
-                    
-                    // If we have a defined permission for this route, check it
-                    if (permissionNeeded) {
-                        if (!req.permissions.includes(permissionNeeded)) {
-                            return res.status(403).json({ success: false, message: `Access denied. Permission for '${permissionNeeded}' required.` });
-                        }
-                    } else if (req.baseUrl.includes('/api/admin')) {
-                        // Fallback for any other /api/admin route not explicitly mapped
-                        return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
-                    }
-                }
-                
-                return next();
-            }
-        } catch (dbError) {
-            // Probably not a valid ObjectId (it was a credentials string from ENV login), ignore
-        }
-
-        return res.status(401).json({ success: false, message: 'Invalid Token. Not authorized.' });
-
-    } catch (error) {
-        console.log(error);
-        res.status(401).json({ success: false, message: 'Error in authentication.' });
+        res.set('Cache-Control', 'no-store');
+        return next();
+    } catch {
+        return res.status(401).json({ success: false, message: 'Not authorized. Please log in again.' });
     }
 };
-
 export default adminAuth;

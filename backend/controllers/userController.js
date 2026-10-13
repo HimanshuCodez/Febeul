@@ -1,6 +1,7 @@
 import validator from "validator";
 import bcrypt from "bcrypt";
-import jwt from 'jsonwebtoken';
+import { userToken, envToken, envAccounts, safeEqual, verifyToken } from '../utils/authTokens.js';
+import { issueOtp, checkOtp } from '../utils/otp.js';
 import axios from 'axios';
 import userModel from "../models/userModel.js";
 import { Resend } from 'resend';
@@ -17,13 +18,11 @@ const __dirnameController = dirname(__filenameController);
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const createToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET)
-}
+const createToken = userToken;
 
 const constructWelcomeEmailHtml = (user, templateHtml) => {
     let populatedHtml = templateHtml;
-    populatedHtml = populatedHtml.replace('{{userName}}', user.name || user.email);
+    populatedHtml = populatedHtml.replace('{{userName}}', validator.escape(user.name || user.email || 'Customer'));
     populatedHtml = populatedHtml.replace('{{currentYear}}', new Date().getFullYear());
     // Add any other placeholders if needed, e.g., login link
     return populatedHtml;
@@ -33,23 +32,24 @@ const constructWelcomeEmailHtml = (user, templateHtml) => {
 const loginUser = async (req, res) => {
     try {
         const { email: identifier, password } = req.body;
+        if (typeof identifier !== 'string' || !identifier || typeof password !== 'string' || !password || Buffer.byteLength(password) > 72) return res.status(400).json({ success: false, message: 'Invalid credentials.' });
 
         const user = await userModel.findOne({
             $or: [{ email: identifier }, { mobile: identifier }]
         });
 
         if (!user) {
-            return res.json({ success: false, message: "User doesn't exist" })
+            return res.json({ success: false, message: 'Invalid credentials' })
         }
 
-        if (!user.password) {
+        if (user.isBlocked || !user.password) {
             return res.json({ success: false, message: "Please login with OTP or another method." });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (isMatch) {
-            const token = createToken(user._id);
+            const token = createToken(user);
             const userResponse = await userModel.findById(user._id).select("-password");
             res.json({ success: true, token, user: userResponse });
         }
@@ -59,49 +59,33 @@ const loginUser = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: "Unable to complete request." })
     }
 }
 
 // Route for user register
 const registerUser = async (req, res) => {
     try {
-        const { name, email, password, mobile } = req.body;
-
-        if (!validator.isEmail(email)) {
-            return res.json({ success: false, message: "Please enter a valid email" });
+        const { name, email, password, mobile, registrationToken } = req.body;
+        if (typeof email !== 'string' || !validator.isEmail(email) || typeof password !== 'string' || password.length < 10 || Buffer.byteLength(password) > 72 || typeof name !== 'string' || !name.trim()) {
+            return res.status(400).json({ success: false, message: 'Enter a valid email, name and password (10 or more characters, at most 72 bytes).' });
         }
-        if (password.length < 6) {
-            return res.json({ success: false, message: "Password must be at least 6 characters" });
+        let proof;
+        try { proof = verifyToken(registrationToken, 'registration'); } catch {
+            return res.status(400).json({ success: false, message: 'Verify your email before registering.' });
         }
-
-        let user = await userModel.findOne({ email });
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        if (user) {
-            // Check if it's a temporary user (from OTP process) or a fully registered user
-            if (user.otp && user.otp_expiry) { // This is a temporary user
-                user.name = name;
-                user.password = hashedPassword;
-                user.mobile = mobile;
-                user.otp = undefined; // Clear OTP stuff
-                user.otp_expiry = undefined;
-            } else { // User exists and is not a temporary OTP user, meaning they are fully registered
-                return res.json({ success: false, message: "User already exists with this email. Please log in." });
-            }
-        } else { // User does not exist at all, create a new one
-             user = new userModel({
-                name,
-                email,
-                mobile,
-                password: hashedPassword
-            });
-        }
-        
-        const savedUser = await user.save(); // Save the updated or new user
-        const token = createToken(savedUser._id);
+        if (proof.email !== email) return res.status(400).json({ success: false, message: 'Email verification does not match.' });
+        const hashedPassword = await bcrypt.hash(password, 12);
+        // Only a verified temporary signup record can be finalized, exactly once.
+        const savedUser = await userModel.findOneAndUpdate({
+            _id: proof.id, email, name: 'Temporary OTP User', role: 'user',
+            registrationNonce: proof.nonce, registrationExpires: { $gt: new Date() },
+        }, {
+            $set: { name: name.trim(), password: hashedPassword, ...(mobile ? { mobile } : {}) },
+            $unset: { registrationNonce: 1, registrationExpires: 1, otp: 1, otp_expiry: 1, otpPurpose: 1, otpAttempts: 1 },
+        }, { new: true, runValidators: true });
+        if (!savedUser) return res.status(400).json({ success: false, message: 'Registration verification expired or account already registered.' });
+        const token = createToken(savedUser);
         const userResponse = await userModel.findById(savedUser._id).select("-password");
         
         // Send Welcome Email
@@ -120,7 +104,7 @@ const registerUser = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 }
 
@@ -132,17 +116,14 @@ const forgotPassword = async (req, res) => {
         const user = await userModel.findOne({ email });
 
         if (!user) {
-            return res.json({ success: false, message: "User with this email does not exist." });
+            return res.json({ success: true, message: "If eligible, a code has been sent to your email." });
         }
 
         if (isAdminReset && (user.role !== 'admin' && user.role !== 'staff')) {
             return res.json({ success: false, message: "This email has no admin role." });
         }
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        user.otp = otp;
-        user.otp_expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
-        await user.save();
+        const otp = await issueOtp(user, 'password-reset');
 
         // IMPORTANT: For reliable email delivery, you must replace 'onboarding@resend.dev'
         // with an email address from a domain you have verified in your Resend account.
@@ -158,9 +139,9 @@ const forgotPassword = async (req, res) => {
             return res.json({ success: false, message: "Failed to send OTP email." });
         }
 
-        console.log({ data }); // Log the Resend response for debugging
 
-        res.json({ success: true, message: "OTP sent to your email address." });
+
+        res.json({ success: true, message: "If eligible, a code has been sent to your email." });
 
     } catch (error) {
         console.log(error);
@@ -178,7 +159,7 @@ const verifyPasswordOtp = async (req, res) => {
             return res.json({ success: false, message: "User not found." });
         }
 
-        if (user.otp !== otp || new Date() > user.otp_expiry) {
+        if (!(await checkOtp(user, otp, 'password-reset'))) {
             return res.json({ success: false, message: "Invalid or expired OTP." });
         }
 
@@ -201,19 +182,14 @@ const resetPassword = async (req, res) => {
             return res.json({ success: false, message: "User not found." });
         }
 
-        if (user.otp !== otp || new Date() > user.otp_expiry) {
+        if (typeof newPassword !== 'string' || newPassword.length < 10 || Buffer.byteLength(newPassword) > 72) {
+            return res.status(400).json({ success: false, message: 'Password must have at least 10 characters and at most 72 bytes.' });
+        }
+        if (!(await checkOtp(user, otp, 'password-reset', true))) {
             return res.json({ success: false, message: "Invalid or expired OTP. Please try again." });
         }
         
-        if (newPassword.length < 6) {
-            return res.json({ success: false, message: "Password must be at least 6 characters" })
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        user.otp = undefined;
-        user.otp_expiry = undefined;
-        await user.save();
+        await userModel.updateOne({ _id: user._id }, { $set: { password: await bcrypt.hash(newPassword, 12) }, $inc: { tokenVersion: 1 } });
 
         res.json({ success: true, message: "Password has been reset successfully." });
 
@@ -236,6 +212,7 @@ const googleLogin = async (req, res) => {
             audience: process.env.GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
+        if (!payload.email_verified || !process.env.GOOGLE_CLIENT_ID) throw new Error('Unverified identity');
         const googleId = payload['sub'];
         const email = payload['email'];
         const name = payload['name'];
@@ -261,7 +238,8 @@ const googleLogin = async (req, res) => {
             }
         }
 
-        const token = createToken(user._id);
+        if (user.isBlocked) return res.status(403).json({ success: false, message: 'Account is blocked.' });
+        const token = createToken(user);
         const userResponse = await userModel.findById(user._id).select("-password");
         res.json({ success: true, token, user: userResponse });
 
@@ -274,88 +252,19 @@ const googleLogin = async (req, res) => {
 // Route for admin login
 const adminLogin = async (req, res) => {
     try {
-        const { email: rawEmail, password: rawPassword } = req.body
-        const email = rawEmail.trim().toLowerCase();
-        const password = rawPassword.trim();
-
-        const cleanEnv = (val) => {
-            if (!val) return '';
-            // 1. Remove that weird '│' and anything after it
-            let cleaned = val.split('│')[0];
-            // 2. Trim whitespace
-            cleaned = cleaned.trim();
-            // 3. Remove surrounding quotes
-            cleaned = cleaned.replace(/^["'](.+)["']$/, '$1');
-            // 4. Final trim
-            return cleaned.trim();
-        };
-
-        // Check for primary admin
-        const adminEmail = cleanEnv(process.env.ADMIN_EMAIL).toLowerCase();
-        const adminPass = cleanEnv(process.env.ADMIN_PASSWORD);
-
-        if (email === adminEmail && password === adminPass) {
-            const token = jwt.sign(email + password, process.env.JWT_SECRET);
-            return res.json({ success: true, token, role: 'admin', email })
+        const { email, password } = req.body;
+        if (typeof email !== 'string' || !email || typeof password !== 'string' || !password || Buffer.byteLength(password) > 72) return res.status(400).json({ success: false, message: 'Invalid credentials' });
+        const account = envAccounts().find(a => a.email === email && safeEqual(a.password, password));
+        if (account) return res.json({ success: true, token: envToken(account), role: account.role, email: account.email, permissions: account.role === 'staff' ? (process.env.STAFF_PERMISSIONS || '').split(',').filter(Boolean) : [] });
+        const user = await userModel.findOne({ email });
+        if (user && !user.isBlocked && ['admin', 'staff'].includes(user.role) && user.password && await bcrypt.compare(password, user.password)) {
+            return res.json({ success: true, token: userToken(user, 'admin'), role: user.role, permissions: user.permissions, email: user.email });
         }
-
-        // Check for staff members (supporting multiple)
-        const staffEmails = process.env.STAFF_EMAILS ? process.env.STAFF_EMAILS.split(',').map(e => cleanEnv(e).toLowerCase()) : [];
-        const staffPasswords = process.env.STAFF_PASSWORDS ? process.env.STAFF_PASSWORDS.split(',').map(p => cleanEnv(p)) : [];
-
-       
-        
-        if (staffEmails.length !== staffPasswords.length) {
-            console.log("WARNING: Your STAFF_EMAILS and STAFF_PASSWORDS lists have different lengths!");
-        }
-
-        const staffIndex = staffEmails.indexOf(email);
-        if (staffIndex !== -1) {
-            const configuredPass = staffPasswords[staffIndex] ? staffPasswords[staffIndex].trim() : '';
-            console.log(`Match found at index ${staffIndex}.`);
-            console.log(`Input Password: '${password}' (len: ${password.length})`);
-            console.log(`Configured Password: '${configuredPass}' (len: ${configuredPass.length})`);
-            
-            if (configuredPass === password) {
-                const token = jwt.sign(email + password, process.env.JWT_SECRET);
-                return res.json({ success: true, token, role: 'staff', email })
-            } else {
-                console.log("Result: Password mismatch!");
-            }
-        }
-
-        // Check for legacy single staff config (singular)
-        const legacyStaffEmail = cleanEnv(process.env.STAFF_EMAIL).toLowerCase();
-        const legacyStaffPass = cleanEnv(process.env.STAFF_PASSWORD);
-
-        if (email && email === legacyStaffEmail && password === legacyStaffPass) {
-            const token = jwt.sign(email + password, process.env.JWT_SECRET);
-            return res.json({ success: true, token, role: 'staff', email })
-        }
-
-        // Check Database for Staff/Admin
-        const dbUser = await userModel.findOne({ email });
-        if (dbUser && (dbUser.role === 'staff' || dbUser.role === 'admin')) {
-            if (!dbUser.password) {
-                 return res.json({ success: false, message: "User has no password set. Please reset password first." });
-            }
-            const isMatch = await bcrypt.compare(password, dbUser.password);
-            if (isMatch) {
-                const token = jwt.sign(dbUser._id.toString(), process.env.JWT_SECRET);
-                return res.json({ success: true, token, role: dbUser.role, permissions: dbUser.permissions, email: dbUser.email })
-            }
-        }
-
-        console.log("Login failed: No match found in config.");
-        console.log("------------------------");
-        res.json({ success: false, message: "Invalid credentials" })
-
-    } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message })
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    } catch {
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
-}
-
+};
 
 // get user profile
 const getProfile = async (req,res) => {
@@ -391,7 +300,7 @@ const getProfile = async (req,res) => {
 // Add address for user
 const addAddress = async (req, res) => {
     try {
-        const user = await userModel.findById(req.body.userId);
+        const user = await userModel.findById(req.userId);
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
@@ -400,6 +309,7 @@ const addAddress = async (req, res) => {
             user.cartData = [];
         }
 
+        if (user.addresses.length >= 20) return res.status(400).json({ success: false, message: 'Address limit reached.' });
         user.addresses.push(req.body.address);
         await user.save();
         res.json({ success: true, message: "Address added" });
@@ -412,7 +322,8 @@ const addAddress = async (req, res) => {
 // Update address for user
 const updateAddress = async (req, res) => {
     try {
-        const { userId, addressId, address } = req.body;
+        const { addressId, address } = req.body;
+        const userId = req.userId;
         const user = await userModel.findById(userId);
         if (!user) {
             return res.json({ success: false, message: "User not found" });
@@ -495,6 +406,7 @@ const removeBankAccount = async (req, res) => {
 // Proxy Pincode API with Fallback and Retry Logic
 const pincodeProxy = async (req, res) => {
     const { zip } = req.params;
+    if (!/^\d{6}$/.test(zip)) return res.status(400).json({ success: false, message: 'Invalid pincode.' });
     
     // Attempt 1: Try postalpincode.in (High Detail)
     try {
@@ -530,7 +442,7 @@ const pincodeProxy = async (req, res) => {
 // Get all users
 const getAllUsers = async (req, res) => {
     try {
-        const users = await userModel.find({});
+        const users = await userModel.find({}).select("-password -otp -otp_expiry -otpPurpose -otpAttempts -registrationNonce -registrationExpires -tokenVersion -bankAccount");
         res.json({ success: true, users });
     } catch (error) {
         console.log(error);
@@ -643,6 +555,8 @@ const updateStaffPermissions = async (req, res) => {
             return res.json({ success: false, message: "User not found" });
         }
 
+        if (req.role !== 'admin' || !['user', 'staff', 'admin'].includes(role) || !Array.isArray(permissions) || permissions.some(p => typeof p !== 'string')) return res.status(403).json({ success: false, message: 'Invalid permission update.' });
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
         user.role = role;
         user.permissions = permissions;
         await user.save();
@@ -665,6 +579,7 @@ const toggleBlockUser = async (req, res) => {
             return res.json({ success: false, message: "User not found" });
         }
 
+        if (req.role !== 'admin' && user.role !== 'user') return res.status(403).json({ success: false, message: 'Access denied.' });
         user.isBlocked = !user.isBlocked;
         if (user.isBlocked) {
             user.blockedAt = new Date();
@@ -685,83 +600,32 @@ const toggleBlockUser = async (req, res) => {
 // Send OTP for Admin Login
 const sendAdminOTP = async (req, res) => {
     try {
-        const { email: rawEmail } = req.body;
-        const email = rawEmail.trim().toLowerCase();
-
-        const cleanEnv = (val) => {
-            if (!val) return '';
-            let cleaned = val.split('│')[0];
-            cleaned = cleaned.trim();
-            cleaned = cleaned.replace(/^["'](.+)["']$/, '$1');
-            return cleaned.trim();
-        };
-
-        const adminEmailEnv = cleanEnv(process.env.ADMIN_EMAIL).toLowerCase();
-        const staffEmailsEnv = process.env.STAFF_EMAILS ? process.env.STAFF_EMAILS.split(',').map(e => cleanEnv(e).toLowerCase()) : [];
-        const legacyStaffEmailEnv = cleanEnv(process.env.STAFF_EMAIL).toLowerCase();
-
-        const isEnvAdmin = (email === adminEmailEnv || staffEmailsEnv.includes(email) || email === legacyStaffEmailEnv);
-
-        let user = await userModel.findOne({ email });
-
-        if (!isEnvAdmin && (!user || (user.role !== 'admin' && user.role !== 'staff'))) {
-            return res.json({ success: false, message: "This email has no admin role." });
-        }
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        
+        const { email } = req.body;
+        if (typeof email !== 'string' || !validator.isEmail(email)) return res.status(400).json({ success: false, message: 'Invalid email.' });
+        // Privileged OTP login is available only to explicitly provisioned database accounts.
+        // Environment administrators use the password login; public signup never provisions roles.
+        const user = await userModel.findOne({ email, role: { $in: ['admin', 'staff'] }, isBlocked: { $ne: true } });
         if (user) {
-            user.otp = otp;
-            user.otp_expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
-            await user.save();
-        } else if (isEnvAdmin) {
-            // Create a temporary or permanent user for the ENV admin to store OTP
-            user = new userModel({
-                email,
-                name: email === adminEmailEnv ? 'Primary Admin' : 'Staff Member',
-                role: email === adminEmailEnv ? 'admin' : 'staff',
-                otp,
-                otp_expiry: new Date(Date.now() + 5 * 60 * 1000)
-            });
-            await user.save();
+            const otp = await issueOtp(user, 'admin-login');
+            await sendEmail(email, 'Your Admin Login OTP', `<p>Your admin login OTP is <strong>${otp}</strong>. It expires in 5 minutes.</p>`);
         }
-
-        await sendEmail(email, 'Your Admin Login OTP', `<p>Your OTP for admin login is: <strong>${otp}</strong>. It is valid for 5 minutes.</p>`);
-
-        res.json({ success: true, message: "OTP sent to your email." });
-
-    } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: true, message: 'If eligible, a code has been sent to your email.' });
+    } catch {
+        res.status(500).json({ success: false, message: 'Unable to send code.' });
     }
-}
-
-// Verify Admin OTP Login
+};
 const adminOtpLogin = async (req, res) => {
     try {
         const { email, otp } = req.body;
-        const user = await userModel.findOne({ email: email.toLowerCase() });
-
-        if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
-            return res.json({ success: false, message: "This email has no admin role." });
+        const user = typeof email === 'string' ? await userModel.findOne({ email }) : null;
+        if (!user || user.isBlocked || !['admin', 'staff'].includes(user.role) || !(await checkOtp(user, otp, 'admin-login', true))) {
+            return res.status(401).json({ success: false, message: 'Invalid or expired code.' });
         }
-
-        if (user.otp !== otp || new Date() > user.otp_expiry) {
-            return res.json({ success: false, message: "Invalid or expired OTP." });
-        }
-
-        user.otp = undefined;
-        user.otp_expiry = undefined;
-        await user.save();
-
-        const token = jwt.sign(user._id.toString(), process.env.JWT_SECRET);
-        res.json({ success: true, token, role: user.role, permissions: user.permissions, email: user.email });
-
-    } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: true, token: userToken(user, 'admin'), role: user.role, permissions: user.permissions, email: user.email });
+    } catch {
+        res.status(401).json({ success: false, message: 'Invalid or expired code.' });
     }
-}
+};
 
 
 export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, addBankAccount, removeBankAccount, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions, toggleBlockUser, sendAdminOTP, adminOtpLogin }

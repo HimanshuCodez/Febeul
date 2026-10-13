@@ -20,7 +20,7 @@ async function fixture(page, { signedIn = false, member = false, unavailable = f
         state.requests.push({ path: url.pathname, purpose: url.searchParams.get('purpose'), token: request.headers().token });
         if (unavailable) return route.fulfill({ status: 503, json: { success: false } });
         return route.fulfill({ json: { success: true, coupons: [
-          offer('JOIN30'), offer('JOIN10PERCENT', { discountType: 'percentage', discountValue: 10 }),
+          offer('JOIN30', { isLifetime: true, expiryDate: null }), offer('JOIN10PERCENT', { discountType: 'percentage', discountValue: 10 }),
           offer('SHOPPING', { userType: 'normal' }), offer('LUXESHOPPING', { userType: 'luxe' }),
           offer('EXPIRED', { expiryDate: '2000-01-01' }), offer('INACTIVE', { isActive: false }),
         ] } });

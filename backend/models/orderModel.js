@@ -7,6 +7,7 @@ const orderSchema = new mongoose.Schema({
         productId: { type: mongoose.Schema.Types.ObjectId, ref: 'product', required: true },
         quantity: { type: Number, required: true },
         size: { type: String },
+        color: { type: String },
         sku: { type: String }, // Adding sku field
         hsn: { type: String }, // HSN code snapshot from the product at order time
         name: { type: String, required: true}, // Adding name for easier access without populating
@@ -19,6 +20,7 @@ const orderSchema = new mongoose.Schema({
     productAmount: { type: Number, default: 0 }, // Sum of product prices only
     shippingCharge: { type: Number, default: 0 },
     codCharge: { type: Number, default: 0 },
+    refundRequestAmount: { type: Number },
     razorpayPaymentId: { type: String }, // For prepaid refunds
     bankRRN: { type: String }, // Bank Reference (RRN) from Razorpay's acquirer_data, for UPI/netbanking reconciliation
     address: { type: Object, required: true },

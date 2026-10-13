@@ -1,3 +1,4 @@
+const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/productModel.js"
 
@@ -86,7 +87,7 @@ const addProduct = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 }
 
@@ -94,6 +95,7 @@ const addProduct = async (req, res) => {
 const listProducts = async (req, res) => {
     try {
         const { category, type, fabric, search, isLuxePrive, includeInactive } = req.query; // Extract query parameters
+        if ([category, type, fabric, search].some(v => v !== undefined && (typeof v !== 'string' || v.length > 100))) return res.status(400).json({ success: false, message: 'Invalid search.' });
         let filter = {};
 
         if (includeInactive !== 'true') {
@@ -107,18 +109,18 @@ const listProducts = async (req, res) => {
         
         if (type) {
             // Match exactly, treating hyphens and spaces as interchangeable
-            const pattern = `^${type.replace(/[- ]/g, '[- ]')}$`;
+            const pattern = `^${escapeRegex(type).replace(/[- ]/g, '[- ]')}$`;
             filter.type = { $regex: new RegExp(pattern, 'i') };
         }
 
         if (fabric) {
             // Match exactly, treating hyphens and spaces as interchangeable
-            const pattern = `^${fabric.replace(/[- ]/g, '[- ]')}$`;
+            const pattern = `^${escapeRegex(fabric).replace(/[- ]/g, '[- ]')}$`;
             filter.fabric = { $regex: new RegExp(pattern, 'i') };
         }
 
         if (search) {
-            const searchRegex = { $regex: search, $options: 'i' };
+            const searchRegex = { $regex: escapeRegex(search), $options: 'i' };
             filter.$or = [
                 { name: searchRegex },
                 { description: searchRegex },
@@ -131,7 +133,7 @@ const listProducts = async (req, res) => {
                 { neck: searchRegex },
                 { materialComposition: searchRegex },
                 { genericName: searchRegex },
-                { keywords: { $in: [new RegExp(search, "i")] } }
+                { keywords: { $in: [new RegExp(escapeRegex(search), "i")] } }
             ];
         }
         // Add isLuxePrive filter
@@ -141,12 +143,12 @@ const listProducts = async (req, res) => {
             filter.isLuxePrive = false;
         }
 
-        const products = await productModel.find(filter); // Apply filters
+        const products = await productModel.find(filter).maxTimeMS(3000); // Apply filters
         res.json({success:true,products})
 
     } catch (error) {
         console.log(error)
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: "Unable to complete request." })
     }
 }
 
@@ -168,7 +170,7 @@ const toggleProductActive = async (req, res) => {
         });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 }
 
@@ -181,7 +183,7 @@ const removeProduct = async (req, res) => {
 
     } catch (error) {
         console.log(error)
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: "Unable to complete request." })
     }
 }
 
@@ -195,7 +197,7 @@ const singleProduct = async (req, res) => {
 
     } catch (error) {
         console.log(error)
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: "Unable to complete request." })
     }
 }
 
@@ -296,7 +298,7 @@ const updateProduct = async (req, res) => {
         res.json({ success: true, message: "Product updated" });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 };
 
@@ -320,7 +322,7 @@ const getSimilarProducts = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 }
 
@@ -335,7 +337,7 @@ const getMenuFilters = async (req,res) => {
         res.json({success:true,data:{categories,types,fabrics,sizes,colors}})
     } catch (error) {
         console.log(error)
-        res.json({success:false,message:error.message})
+        res.json({success:false,message: "Unable to complete request."})
     }
 }
 
@@ -346,7 +348,7 @@ const listBestsellers = async (req, res) => {
         res.json({ success: true, products });
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ success: false, message: "Unable to complete request." });
     }
 }
 

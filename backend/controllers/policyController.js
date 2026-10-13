@@ -51,7 +51,7 @@ const createOrUpdatePolicy = async (req, res) => {
 
         res.status(201).json(policy);
     } catch (error) {
-        res.status(400).json({ message: 'Error updating policy', error });
+        res.status(400).json({ message: 'Error updating policy' });
     }
 };
 
@@ -68,7 +68,7 @@ const deletePolicy = async (req, res) => {
             res.status(404).json({ success: false, message: 'Policy not found' });
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error', error });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 

@@ -1,3 +1,5 @@
+import { adminTokenFor } from './helpers/auth.js';
+import { userToken } from '../utils/authTokens.js';
 import { after, before, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, unlink } from 'node:fs/promises';
@@ -32,7 +34,7 @@ before(async () => {
 after(async () => {
     if (server) await new Promise(resolve => server.close(resolve));
     uploader?.mock.restore();
-    for (const path of files) await unlink(path);
+    for (const path of files) await unlink(path).catch(error => { if (error.code !== 'ENOENT') throw error; });
 });
 
 const upload = async (mimeType, auth = true) => {
@@ -40,7 +42,7 @@ const upload = async (mimeType, auth = true) => {
     body.append('image', new Blob([gif], { type: mimeType }), `hero-gif-test-${process.pid}-${Date.now()}.gif`);
     const response = await fetch(base, {
         method: 'POST', body,
-        headers: auth ? { token: jwt.sign(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD, process.env.JWT_SECRET) } : {},
+        headers: auth ? { token: adminTokenFor(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD) } : {},
     });
     return { status: response.status, data: await response.json() };
 };

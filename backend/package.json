@@ -11,25 +11,29 @@
     "test:admin-search": "node --test tests/admin-search.test.js",
     "test:analytics": "node --test tests/analytics.test.js",
     "start": "node server.js",
-    "server": "nodemon server.js"
+    "server": "node --watch server.js",
+    "test": "node --test tests/*.test.js",
+    "test:security": "node --test tests/security.test.js"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "axios": "^1.13.2",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "cloudinary": "^2.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.7.1",
+    "file-type": "^22.1.1",
     "google-auth-library": "^10.5.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.3",
     "msg91-v5": "^1.1.0",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^7.0.12",
-    "nodemon": "^3.1.10",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.1.0",
     "pdfkit": "^0.17.2",
     "razorpay": "^2.9.4",
     "resend": "^6.5.2",
@@ -39,5 +43,8 @@
   "devDependencies": {
     "mongodb-memory-server": "^11.3.0",
     "nock": "^14.0.17"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

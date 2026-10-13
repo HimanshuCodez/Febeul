@@ -1,9 +1,10 @@
+import DOMPurify from 'dompurify';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from '../components/SafeRichText';
+import 'react-quill-new/dist/quill.snow.css';
 import Loading from '../components/Loading';
 import { CSVLink } from 'react-csv';
 import { Download } from 'lucide-react';
@@ -379,7 +380,7 @@ const NewUserMail = ({ token }) => {
                     <div className="border rounded-xl overflow-hidden shadow-inner bg-gray-100 min-h-[600px] flex items-start justify-center p-4">
                         <div 
                             className="bg-white w-full max-w-[600px] shadow-2xl rounded-lg overflow-hidden"
-                            dangerouslySetInnerHTML={{ __html: emailPreviewHtml }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailPreviewHtml, { USE_PROFILES: { html: true } }) }}
                         />
                     </div>
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-700">
@@ -446,7 +447,7 @@ const NewUserMail = ({ token }) => {
                                 <div className="border rounded-xl overflow-hidden shadow-inner bg-gray-100 p-4">
                                     <div
                                         className="bg-white w-full shadow-lg rounded-lg overflow-hidden"
-                                        dangerouslySetInnerHTML={{ __html: selectedRecord.htmlContent }}
+                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedRecord.htmlContent, { USE_PROFILES: { html: true } }) }}
                                     />
                                 </div>
                             </div>

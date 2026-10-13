@@ -15,9 +15,9 @@ const product = {
 };
 const offer = (code, skus = [], extra = {}) => ({ _id: code, code, applicableSKUs: skus, isActive: true, expiryDate: '2099-12-31', discountType: 'percentage', discountValue: 20, minOrderAmount: 0, minQuantity: 0, offerType: 'none', userType: 'normal', specificUsers: [], ...extra });
 
-async function mockShop(page, { signedIn = true } = {}) {
+async function mockShop(page, { signedIn = true, description = product.description } = {}) {
   const state = { calls: [], errors: [], delayed: [], delayCode: null };
-  const coupons = [offer('ROSE20', ['STYLE-ROSE']), offer('BLACK20', ['STYLE-BLACK']), offer('ANY20'), offer('LUXE20', [], { userType: 'luxe' })];
+  const coupons = [offer('ROSE20', ['STYLE-ROSE'], { isLifetime: true, expiryDate: null }), offer('BLACK20', ['STYLE-BLACK']), offer('ANY20'), offer('LUXE20', [], { userType: 'luxe' })];
   await page.emulateMedia({ reducedMotion: 'reduce' });
   if (signedIn) await page.addInitScript(() => localStorage.setItem('token', 'local-test-token'));
   page.on('pageerror', error => state.errors.push(error.message));
@@ -29,7 +29,7 @@ async function mockShop(page, { signedIn = true } = {}) {
       state.calls.push({ path: url.pathname, body, token: req.headers().token });
       if (url.pathname === '/api/analytics/config') return route.fulfill({ json: { success: true, enabled: false } });
       if (url.pathname === '/api/user/profile') return route.fulfill({ json: { success: true, user: { _id: userId, name: 'Local shopper', email: 'shopper@example.test', addresses: [], isLuxeMember: false } } });
-      if (url.pathname === '/api/product/single') return route.fulfill({ json: { success: true, product: { ...product, _id: body.productId, name: body.productId === productId ? product.name : 'Second product' } } });
+      if (url.pathname === '/api/product/single') return route.fulfill({ json: { success: true, product: { ...product, description, _id: body.productId, name: body.productId === productId ? product.name : 'Second product' } } });
       if (['/api/coupon/active', '/api/coupon/all'].includes(url.pathname)) return route.fulfill({ json: { success: true, coupons } });
       if (url.pathname === '/api/coupon/apply-product-coupon') {
         const coupon = coupons.find(c => c.code === body.code);
@@ -155,5 +155,16 @@ test('URL coupons validate the actual variation; product navigation clears prior
   await expect(price(page)).toHaveText('\u20b9500');
   await expect(page.getByTitle('Remove Coupon')).toHaveCount(0);
   expect(state.calls.filter(c => c.path === '/api/coupon/apply-product-coupon')).toHaveLength(2);
+  expect(state.errors).toEqual([]);
+});
+
+
+test('product HTML preserves formatting while removing scripts and executable attributes', async ({ page }) => {
+  const state = await mockShop(page, { description: '<p><strong>Safe description</strong></p><img src="missing" onerror="window.securityXss = true"><script>window.securityXss = true</script><a href="javascript:window.securityXss=true">Unsafe link</a><svg onload="window.securityXss=true"></svg>' });
+  await openProduct(page);
+  const description = page.locator('.product-description');
+  await expect(description.locator('strong')).toHaveText('Safe description');
+  await expect(description.locator('script, svg, [onerror], [onload], [href^="javascript:"]')).toHaveCount(0);
+  expect(await page.evaluate(() => window.securityXss)).toBeUndefined();
   expect(state.errors).toEqual([]);
 });

@@ -80,7 +80,7 @@ const AuthPage = () => {
             return;
           }
 
-          const response = await axios.post('https://febeul.onrender.com/api/otp/verify-email-login-otp', { email: email, otp: otp });
+          const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/verify-email-login-otp`, { email: email, otp: otp });
 
           if (response.data.success) {
             const { token } = response.data;
@@ -108,7 +108,7 @@ const AuthPage = () => {
             return;
           }
 
-          const verifyResponse = await axios.post('https://febeul.onrender.com/api/otp/verify-email-otp', {
+          const verifyResponse = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/verify-email-otp`, {
             email: email,
             otp: otp
           });
@@ -119,7 +119,8 @@ const AuthPage = () => {
               name: signupFormData.name,
               email: email,
               mobile: signupFormData.mobile,
-              password: signupFormData.password
+              password: signupFormData.password,
+              registrationToken: verifyResponse.data.registrationToken
             });
             toast.success("Signed up successfully!"); 
           } else {
@@ -144,7 +145,7 @@ const AuthPage = () => {
     const email = identifierRaw.toLowerCase();
 
     try {
-      const url = 'https://febeul.onrender.com/api/otp/send-email-otp';
+      const url = `${import.meta.env.VITE_BACKEND_URL}/api/otp/send-email-otp`;
       const payload = { email, purpose: 'login' };
       const response = await axios.post(url, payload);
 
@@ -174,7 +175,7 @@ const AuthPage = () => {
   const sendSignupOtp = async () => {
     const email = getValues("email").toLowerCase();
     try {
-      const response = await axios.post('https://febeul.onrender.com/api/otp/send-email-otp', { email, purpose: 'signup' });
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/send-email-otp`, { email, purpose: 'signup' });
       if (response.data.success) {
         toast.success(`OTP sent to ${email}`);
         setStep(2);
@@ -332,8 +333,8 @@ const AuthPage = () => {
                     {...register("password", {
                       required: "Password is required",
                       minLength: {
-                        value: 8,
-                        message: "Password must be at least 8 characters",
+                        value: 10,
+                        message: "Password must be at least 10 characters",
                       },
                     })}
                     className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#f9aeaf] focus:border-transparent outline-none transition-all"

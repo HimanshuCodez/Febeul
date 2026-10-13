@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { isCouponExpired } from '../../../shared/couponValidity.js';
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -66,7 +67,7 @@ export default function FebeulLuxe() {
     }).then(({ data }) => {
       if (controller.signal.aborted || !data.success) return;
       setMembershipCoupons((data.coupons || []).filter(coupon =>
-        coupon.userType === 'membership' && coupon.isActive && new Date(coupon.expiryDate) > new Date()
+        coupon.userType === 'membership' && coupon.isActive && !isCouponExpired(coupon)
       ));
     }).catch(error => {
       if (!axios.isCancel(error)) console.error('Error fetching membership coupons:', error);
