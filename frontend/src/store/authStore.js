@@ -248,10 +248,10 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  googleLogin: async (credential) => {
+  googleLogin: async (credential, turnstileToken) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/google-login`, { credential });
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/google-login`, { credential, turnstileToken });
       if (response.data.success) {
         const { token, user } = response.data;
         localStorage.setItem('token', token);
@@ -278,12 +278,14 @@ const useAuthStore = create((set, get) => ({
         get().fetchCartCount();
         get().fetchWishlistCount();
         get().fetchUnreadTicketsCount();
+        return true;
       } else {
         set({ error: response.data.message, loading: false });
       }
     } catch (error) {
       set({ error: error.response?.data?.message || 'Registration failed', loading: false });
     }
+    return false;
   },
 
   forgotPassword: async (email) => {

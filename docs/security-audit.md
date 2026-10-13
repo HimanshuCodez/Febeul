@@ -38,6 +38,29 @@ Audit date: 13 October 2026. Scope: the local Express API, customer storefront, 
 6. Verify signup, password reset, customer/admin login, staff restrictions, a test payment/refund, uploads and CSP on the actual deployment. Tests here used disposable local MongoDB, intercepted gateway/email calls and local browser fixtures; they did not send real money or customer emails.
 7. Enable hosting/WAF rate limits and DDoS protection, MFA for hosting/database/payment/admin-email accounts, least-privilege database credentials, restricted database network access, encrypted backups and tested recovery. Check these in the respective provider consoles; they cannot be established by application source changes.
 
+## Cloudflare Turnstile on customer authentication
+
+`AuthPage.jsx` uses a Cloudflare Turnstile widget for password login, Google login, sending/resending email OTPs, and verifying signup/login OTPs. The backend calls Cloudflare Siteverify before authentication and requires a successful result for action `auth` and an explicitly allowed hostname. Final registration still requires the signed, single-use email verification proof; it does not reuse the CAPTCHA token consumed by OTP verification. This change does not add CAPTCHA to admin login or the separate password-reset page.
+
+To activate it:
+
+1. In the [Cloudflare dashboard, create a Turnstile widget](https://developers.cloudflare.com/turnstile/get-started/widget-management/dashboard/) in **Managed** mode. Add `febeul.com` and `www.febeul.com` as allowed hostnames (no scheme or path).
+2. Deploy the updated backend **with both Turnstile keys unset**, then deploy the updated storefront. The new frontend requires the backend's `/api/user/auth-config` endpoint, and its Vercel CSP permits Cloudflare's script and challenge frame. Deploying the frontend first would temporarily block sign-in because that configuration endpoint would be missing.
+3. Set these environment variables together on the **Render backend service**, then **Save and deploy**:
+
+   ```dotenv
+   TURNSTILE_SITE_KEY=<site key from Cloudflare>
+   TURNSTILE_SECRET_KEY=<secret key from Cloudflare>
+   TURNSTILE_ALLOWED_HOSTNAMES=febeul.com,www.febeul.com
+   ```
+
+   The site key is public and is fetched from the backend. The secret stays on Render; never put it in a `VITE_` variable, source code, browser storage, or a public response. No new frontend environment variable is needed. If customer authentication is also served from another hostname, add that exact hostname both to the Cloudflare widget and to `TURNSTILE_ALLOWED_HOSTNAMES`. For local development, use a separate test widget/configuration with the matching development hostname.
+4. Reload `/auth` and check password login, Google login, signup and email OTP login on the deployed customer domain. Existing open tabs may need a reload after activation. Verify that direct requests to protected routes without a token are rejected. The local tests mock provider responses; they cannot confirm your production widget, keys, domain settings or hosting headers.
+
+With both keys absent, CAPTCHA is **inactive** and current authentication remains available for rollout. A partial configuration blocks protected authentication. Once enabled, invalid/expired/reused tokens, an unexpected action/hostname, or a provider failure block the request. The page clears consumed tokens and offers retries for loading, expiry and network errors. Cloudflare tokens expire after five minutes and are single use. [Cloudflare server validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/).
+
+Integration checks: from `backend`, run `node --test tests/turnstile.test.js tests/security.test.js tests/cors.test.js`; from `frontend`, run `npx playwright test --config playwright.auth.config.mjs`. The browser checks use local provider fixtures and send no customer emails.
+
 ## Dependency status
 
 The initial registry audit reported 23 backend, 28 storefront and 31 admin dependency findings, including two critical findings in the backend dependency tree. Safe updates and targeted migrations updated the lockfiles, removed backend nodemon in favor of Node's watch mode, upgraded bcrypt/Multer/Nodemailer, replaced the old rich-text wrapper, and upgraded the admin router/build tool. The selector-parser override addresses its published advisory without a Tailwind major migration.

@@ -6,7 +6,8 @@ import { toast, Toaster } from 'react-hot-toast';
 import axios from 'axios';
 import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
+import TurnstileChallenge from '../components/TurnstileChallenge';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,6 +17,13 @@ const AuthPage = () => {
   const [timer, setTimer] = useState(60);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [signupFormData, setSignupFormData] = useState(null);
+  const [authConfig, setAuthConfig] = useState(null);
+  const [configError, setConfigError] = useState(false);
+  const [configRetry, setConfigRetry] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [captchaVersion, setCaptchaVersion] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const requestInFlight = useRef(false);
   const { login, register: signup, isAuthenticated, error, loading, clearError, setToken, googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +41,47 @@ const AuthPage = () => {
   } = useForm();
 
   const password = watch("password");
+  const busy = loading || submitting;
+  const canAuthenticate = Boolean(authConfig) && !configError && !busy && (!authConfig.enabled || Boolean(turnstileToken));
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setAuthConfig(null);
+    setConfigError(false);
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/auth-config`, { signal: controller.signal, timeout: 15000 }).then(({ data }) => {
+      if (!data.success || typeof data.turnstile?.enabled !== 'boolean' || (data.turnstile.enabled && !data.turnstile.siteKey)) throw new Error('Invalid verification configuration');
+      setAuthConfig(data.turnstile);
+    }).catch(() => { if (!controller.signal.aborted) setConfigError(true); });
+    return () => controller.abort();
+  }, [configRetry]);
+
+  const withVerification = async (request) => {
+    if (requestInFlight.current) return;
+    if (!canAuthenticate) {
+      toast.error('Please complete the security verification first.');
+      return;
+    }
+    requestInFlight.current = true;
+    setSubmitting(true);
+    const token = authConfig.enabled ? turnstileToken : undefined;
+    setTurnstileToken('');
+    try {
+      await request(token);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to continue. Please try again.');
+    } finally {
+      // Cloudflare tokens are single use, even if login, email delivery, or a network call fails.
+      setTurnstileToken('');
+      setCaptchaVersion(value => value + 1);
+      setSubmitting(false);
+      requestInFlight.current = false;
+    }
+  };
+
+  const goBack = () => {
+    setTurnstileToken('');
+    setStep(1);
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -69,7 +118,7 @@ const AuthPage = () => {
     if (isLogin) {
       if (step === 1) { // Password login
         const email = data.identifier.toLowerCase();
-        await login({ email, password: data.password });
+        await withVerification(turnstileToken => login({ email, password: data.password, turnstileToken }));
       } else { // step === 2, OTP login
         try {
           const email = getValues('identifier').toLowerCase();
@@ -80,16 +129,18 @@ const AuthPage = () => {
             return;
           }
 
-          const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/verify-email-login-otp`, { email: email, otp: otp });
+          await withVerification(async turnstileToken => {
+            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/verify-email-login-otp`, { email, otp, turnstileToken });
 
-          if (response.data.success) {
-            const { token } = response.data;
-            setToken(token);
-            toast.success("Logged in successfully!");
-            navigate(redirectTo, { replace: true });
-          } else {
-            toast.error(response.data.message);
-          }
+            if (response.data.success) {
+              const { token } = response.data;
+              setToken(token);
+              toast.success("Logged in successfully!");
+              navigate(redirectTo, { replace: true });
+            } else {
+              toast.error(response.data.message);
+            }
+          });
         } catch (error) {
           toast.error(error.response?.data?.message || 'Failed to verify OTP');
         }
@@ -108,24 +159,27 @@ const AuthPage = () => {
             return;
           }
 
-          const verifyResponse = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/verify-email-otp`, {
-            email: email,
-            otp: otp
-          });
-
-          if (verifyResponse.data.success) {
-            toast.success('Email verified successfully!');
-            await signup({
-              name: signupFormData.name,
+          await withVerification(async turnstileToken => {
+            const verifyResponse = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/verify-email-otp`, {
               email: email,
-              mobile: signupFormData.mobile,
-              password: signupFormData.password,
-              registrationToken: verifyResponse.data.registrationToken
+              otp: otp,
+              turnstileToken,
             });
-            toast.success("Signed up successfully!"); 
-          } else {
-            toast.error(verifyResponse.data.message || 'Invalid OTP.');
-          }
+
+            if (verifyResponse.data.success) {
+              toast.success('Email verified successfully!');
+              const registered = await signup({
+                name: signupFormData.name,
+                email: email,
+                mobile: signupFormData.mobile,
+                password: signupFormData.password,
+                registrationToken: verifyResponse.data.registrationToken
+              });
+              if (registered) toast.success("Signed up successfully!");
+            } else {
+              toast.error(verifyResponse.data.message || 'Invalid OTP.');
+            }
+          });
         } catch (err) {
           toast.error(err.response?.data?.message || 'Failed to verify OTP.');
         }
@@ -146,17 +200,19 @@ const AuthPage = () => {
 
     try {
       const url = `${import.meta.env.VITE_BACKEND_URL}/api/otp/send-email-otp`;
-      const payload = { email, purpose: 'login' };
-      const response = await axios.post(url, payload);
+      await withVerification(async turnstileToken => {
+        const payload = { email, purpose: 'login', turnstileToken };
+        const response = await axios.post(url, payload);
 
-      if (response.data.success) {
-        toast.success(`OTP sent to ${email}`);
-        setStep(2);
-        setIsTimerActive(true);
-        setTimer(60);
-      } else {
-        toast.error(response.data.message);
-      }
+        if (response.data.success) {
+          toast.success(`OTP sent to ${email}`);
+          setStep(2);
+          setIsTimerActive(true);
+          setTimer(60);
+        } else {
+          toast.error(response.data.message);
+        }
+      });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to send OTP');
     }
@@ -175,24 +231,20 @@ const AuthPage = () => {
   const sendSignupOtp = async () => {
     const email = getValues("email").toLowerCase();
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/send-email-otp`, { email, purpose: 'signup' });
-      if (response.data.success) {
-        toast.success(`OTP sent to ${email}`);
-        setStep(2);
-        setIsTimerActive(true);
-        setTimer(60);
-      } else {
-        toast.error(response.data.message);
-      }
+      await withVerification(async turnstileToken => {
+        const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/send-email-otp`, { email, purpose: 'signup', turnstileToken });
+        if (response.data.success) {
+          toast.success(`OTP sent to ${email}`);
+          setStep(2);
+          setIsTimerActive(true);
+          setTimer(60);
+        } else {
+          toast.error(response.data.message);
+        }
+      });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to send OTP');
     }
-  };
-
-  const handleSendSignupOtp = async () => {
-    const result = await trigger(["name", "email", "mobile", "password", "confirmPassword"]);
-    if (!result) return;
-    await sendSignupOtp();
   };
 
   const handleResendSignupOtp = async () => {
@@ -200,6 +252,11 @@ const AuthPage = () => {
   };
 
   const toggleForm = () => {
+    if (requestInFlight.current) return;
+    setTurnstileToken('');
+    setSignupFormData(null);
+    setIsTimerActive(false);
+    setTimer(60);
     setIsLogin(!isLogin);
     setStep(1);
     reset(); 
@@ -234,9 +291,9 @@ const AuthPage = () => {
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-4 md:p-6">
+      <div className="relative min-h-screen flex items-center justify-center overflow-clip bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-4 md:p-6">
         {[...Array(8)].map((_, i) => (
-          <motion.div
+          <Motion.div
             key={i}
             className="absolute text-[#f47b7d]/20 text-4xl select-none pointer-events-none"
             initial={{ y: "100vh", x: Math.random() * 100 + "vw" }}
@@ -254,16 +311,16 @@ const AuthPage = () => {
             }}
           >
             💖
-          </motion.div>
+          </Motion.div>
         ))}
 
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="w-full max-w-md backdrop-blur-lg bg-white/70 rounded-[2rem] shadow-2xl p-6 md:p-8 border border-white/40"
         >
-          <motion.h2
+          <Motion.h2
             key={isLogin ? "login" : "signup"}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -271,12 +328,12 @@ const AuthPage = () => {
             className="text-2xl md:text-3xl font-bold text-center mb-6 text-[#f47b7d]"
           >
             {isLogin ? "Welcome Back! 💖" : "Create Account"}
-          </motion.h2>
+          </Motion.h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <AnimatePresence mode="wait">
             {!isLogin && step === 1 && (
-              <motion.div 
+              <Motion.div
                 key="signup-step-1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -371,11 +428,11 @@ const AuthPage = () => {
                 <p className="text-xs text-gray-500 text-center">
                   By joining, you agree to our <Link to="/TermsConditions" className="text-[#f47b7d] hover:underline">Terms</Link> & <Link to="/DataPrivacy" className="text-[#f47b7d] hover:underline">Privacy</Link>
                 </p>
-              </motion.div>
+              </Motion.div>
             )}
 
             {!isLogin && step === 2 && (
-              <motion.div 
+              <Motion.div
                 key="signup-step-2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -408,7 +465,7 @@ const AuthPage = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={handleResendSignupOtp}
+                      onClick={handleResendSignupOtp} disabled={!canAuthenticate}
                       className="text-sm text-[#f47b7d] font-semibold hover:underline"
                     >
                       Resend OTP
@@ -418,16 +475,16 @@ const AuthPage = () => {
 
                 <button 
                   type="button" 
-                  onClick={() => setStep(1)}
+                  onClick={goBack} disabled={busy}
                   className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-[#f47b7d] transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" /> Change Email / Go Back
                 </button>
-              </motion.div>
+              </Motion.div>
             )}
 
             {isLogin && step === 1 && (
-              <motion.div 
+              <Motion.div
                 key="login-step-1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -470,18 +527,18 @@ const AuthPage = () => {
                 </div>
                 
                 <div className="flex justify-between items-center px-1">
-                  <button type="button" onClick={handleSendLoginOtp} className="text-xs text-[#f47b7d] font-medium hover:underline">
+                  <button type="button" onClick={handleSendLoginOtp} disabled={!canAuthenticate} className="text-xs text-[#f47b7d] font-medium hover:underline">
                     Login with OTP
                   </button>
                   <Link to="/forgot-password" title="Forget Password" className="text-xs text-gray-500 hover:text-[#f47b7d] hover:underline">
                     Forgot Password?
                   </Link>
                 </div>
-              </motion.div>
+              </Motion.div>
             )}
 
             {isLogin && step === 2 && (
-              <motion.div 
+              <Motion.div
                 key="login-step-2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -514,7 +571,7 @@ const AuthPage = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={handleResendLoginOtp}
+                      onClick={handleResendLoginOtp} disabled={!canAuthenticate}
                       className="text-sm text-[#f47b7d] font-semibold hover:underline"
                     >
                       Resend OTP
@@ -524,29 +581,38 @@ const AuthPage = () => {
 
                 <button 
                   type="button" 
-                  onClick={() => setStep(1)}
+                  onClick={goBack} disabled={busy}
                   className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-[#f47b7d] transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" /> Back to Password Login
                 </button>
-              </motion.div>
+              </Motion.div>
             )}
             </AnimatePresence>
 
-            <motion.button
+            {configError ? (
+              <div role="alert" className="rounded-xl border border-pink-100 bg-white/70 p-3 text-center text-xs text-gray-600">
+                <p>Sign-in verification is unavailable. Please try again.</p>
+                <button type="button" onClick={() => setConfigRetry(value => value + 1)} className="mt-2 min-h-10 font-semibold text-[#d85d60] underline">Retry security check</button>
+              </div>
+            ) : !authConfig ? <p role="status" className="text-center text-xs text-gray-500">Preparing secure sign-in…</p> : authConfig.enabled ? (
+              <TurnstileChallenge key={`${isLogin}-${step}-${captchaVersion}`} siteKey={authConfig.siteKey} onToken={setTurnstileToken} />
+            ) : null}
+
+            <Motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={loading}
+              disabled={!canAuthenticate}
               className="w-full py-3.5 bg-[#f47b7d] text-white font-bold rounded-xl shadow-lg shadow-[#f47b7d]/20 hover:bg-[#f68a8b] transition-all disabled:bg-gray-400 disabled:shadow-none mt-6"
             >
-              {loading ? (
+              {busy ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Processing...
                 </span>
               ) : isLogin ? (step === 1 ? "Login" : "Verify & Login") : (step === 1 ? "Continue" : "Verify & Create Account")}
-            </motion.button>
+            </Motion.button>
           </form>
 
           <div className="my-6 flex items-center gap-4">
@@ -555,10 +621,10 @@ const AuthPage = () => {
             <div className="flex-grow border-t border-gray-200"></div>
           </div>
           
-          <div className="flex justify-center">
+          <div className="flex justify-center" inert={!canAuthenticate} aria-disabled={!canAuthenticate}>
             <GoogleLogin
               onSuccess={credentialResponse => {
-                googleLogin(credentialResponse.credential);
+                withVerification(turnstileToken => googleLogin(credentialResponse.credential, turnstileToken));
               }}
               onError={() => {
                 toast.error('Google Login Failed');
@@ -572,11 +638,11 @@ const AuthPage = () => {
 
           <div className="text-center mt-8 text-sm text-gray-600">
             {isLogin ? "New to Febeul?" : "Already have an account?"}{" "}
-            <button onClick={toggleForm} className="text-[#f47b7d] font-bold hover:underline transition-all">
+            <button onClick={toggleForm} disabled={busy} className="text-[#f47b7d] font-bold hover:underline transition-all">
               {isLogin ? "Create Account" : "Login Now"}
             </button>
           </div>
-        </motion.div>
+        </Motion.div>
       </div>
     </>
   );

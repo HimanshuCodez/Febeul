@@ -1,4 +1,5 @@
 import { authInput, authRateLimit } from '../middleware/security.js';
+import { getAuthConfig, requireTurnstile } from '../middleware/turnstile.js';
 import express from 'express';
 import { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, addBankAccount, removeBankAccount, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, sendAdminOTP, adminOtpLogin } from '../controllers/userController.js';
 import authUser from '../middleware/auth.js';
@@ -10,9 +11,11 @@ const userRouter = express.Router();
 userRouter.get('/pincode-check/:zip', pincodeProxy)
 
 // Auth Routes
+userRouter.get('/auth-config', getAuthConfig)
+// Registration requires the single-use proof issued by the protected email verification route.
 userRouter.post('/register', authInput, authRateLimit, registerUser)
-userRouter.post('/login', authInput, authRateLimit, loginUser)
-userRouter.post('/google-login', authInput, authRateLimit, googleLogin)
+userRouter.post('/login', authInput, requireTurnstile, authRateLimit, loginUser)
+userRouter.post('/google-login', authInput, requireTurnstile, authRateLimit, googleLogin)
 userRouter.post('/admin', authInput, authRateLimit, adminLogin)
 userRouter.post('/admin-send-otp', authInput, authRateLimit, sendAdminOTP)
 userRouter.post('/admin-otp-login', authInput, authRateLimit, adminOtpLogin)
