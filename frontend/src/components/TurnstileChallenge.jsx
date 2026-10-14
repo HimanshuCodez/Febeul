@@ -91,7 +91,9 @@ export default function TurnstileChallenge({ siteKey, onToken }) {
 
   return (
     <div className="space-y-2" role="group" aria-label="Security verification">
-      <div ref={containerRef} className="flex w-full justify-center" />
+      <div className="flex w-full justify-center">
+        <div ref={containerRef} className="w-full text-center [&>div]:mx-auto [&>iframe]:mx-auto" />
+      </div>
       {status === 'loading' && <p role="status" className="text-center text-xs text-gray-500">Loading security verification…</p>}
       {['error', 'expired'].includes(status) && (
         <div role="alert" className="rounded-lg border border-pink-100 bg-white/70 p-3 text-center text-xs text-gray-600">

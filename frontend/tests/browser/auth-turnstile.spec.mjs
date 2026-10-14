@@ -12,7 +12,8 @@ const turnstileScript = `
       button.type = 'button';
       button.textContent = 'Complete security verification';
       button.style.cssText = 'background:#fafafa;border:1px solid #ddd;border-radius:4px;font:13px sans-serif;padding:10px;flex-shrink:0';
-      button.style.width = options.size === 'compact' ? '150px' : '300px';
+      button.style.width = options.size === 'compact' ? '150px' : '100%';
+      button.style.minWidth = options.size === 'compact' ? '150px' : '300px';
       button.style.height = options.size === 'compact' ? '140px' : '65px';
       button.onclick = () => { options.callback('test-token-' + id); button.textContent = 'Verified'; };
       container.appendChild(button);
@@ -203,6 +204,23 @@ test('configuration and script failures show a working retry without allowing au
 test('mobile resizing and form changes discard old widgets and tokens without duplicating the script', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const state = await mockAuth(page);
+  for (const width of [1280, 390, 375, 360]) {
+    await page.setViewportSize({ width, height: 844 });
+    const widget = page.getByRole('button', { name: 'Complete security verification', exact: true });
+    await expect(widget).toBeVisible();
+    // Wait for the form's entrance animation before comparing horizontal alignment.
+    await expect.poll(async () => {
+      const box = await widget.boundingBox();
+      const field = await page.getByPlaceholder('Email Address').boundingBox();
+      return Math.abs(box.x - field.x);
+    }).toBeLessThan(1);
+    const box = await widget.boundingBox();
+    const field = await page.getByPlaceholder('Email Address').boundingBox();
+    expect(Math.abs(box.width - field.width)).toBeLessThan(1);
+    expect(box.height).toBe(65);
+    expect(await page.evaluate(() => window.testWidgets.at(-1).options.size)).toBe('flexible');
+  }
+  await page.screenshot({ path: 'test-results/auth-turnstile/mobile-horizontal.png', fullPage: true });
   await solve(page);
   await page.setViewportSize({ width: 320, height: 750 });
   await expect(submit(page)).toBeDisabled();

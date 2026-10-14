@@ -291,7 +291,7 @@ const AuthPage = () => {
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
-      <div className="relative min-h-screen flex items-center justify-center overflow-clip bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-4 md:p-6">
+      <div className="relative min-h-screen flex items-center justify-center overflow-clip bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-3 sm:p-4 md:p-6">
         {[...Array(8)].map((_, i) => (
           <Motion.div
             key={i}
@@ -318,7 +318,7 @@ const AuthPage = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-md backdrop-blur-lg bg-white/70 rounded-[2rem] shadow-2xl p-6 md:p-8 border border-white/40"
+          className="w-full max-w-md backdrop-blur-lg bg-white/70 rounded-[2rem] shadow-2xl p-4 sm:p-6 md:p-8 border border-white/40"
         >
           <Motion.h2
             key={isLogin ? "login" : "signup"}
