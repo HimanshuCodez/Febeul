@@ -139,6 +139,7 @@ export const syncOrderTracking = async (order, { force = false, staleMs = TRACKI
         }
 
         order.shiprocket.lastTrackedAt = new Date();
+        order.$where = { isCancelled: { $ne: true } };
         await order.save();
     } catch (error) {
         console.error(`Error syncing Shiprocket tracking for order ${order._id}:`, error.message);

@@ -764,7 +764,11 @@ export default function OrderDetailPage() {
 
     window.addEventListener('focus', refreshOnFocus);
     document.addEventListener('visibilitychange', refreshOnFocus);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') fetchOrderDetails({ silent: true });
+    }, 30000);
     return () => {
+      window.clearInterval(interval);
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
@@ -854,6 +858,7 @@ export default function OrderDetailPage() {
   const isLuxeOrder = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
 
   const getDisplayStatus = () => {
+    if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails?.requestType === 'cancellation') return 'Cancelled';
     const shiprocketStatus = (order.shiprocketStatus || '').toUpperCase();
     if (isLuxeOrder && order.payment) return 'Delivered';
     if (order.deliveredAt || shiprocketStatus === 'DELIVERED') return 'Delivered';
@@ -915,6 +920,7 @@ export default function OrderDetailPage() {
   // The customer can back out of their own return/refund request any time
   // before the Shiprocket courier actually collects the item.
   const canCancelReturnRequest = ['pending', 'initiated', 'processing'].includes(order.refundDetails?.status)
+    && !order.isCancelled && order.refundDetails?.requestType !== 'cancellation'
     && !['picked_up', 'in_transit', 'delivered_to_warehouse'].includes(order.refundDetails?.pickup?.status);
 
   // Use pricing details from the order object
@@ -1196,7 +1202,7 @@ export default function OrderDetailPage() {
               transition={{ delay: 0.5 }}
               className="text-2xl sm:text-3xl font-black text-slate-800 mt-5 tracking-tight"
             >
-              {isLuxeOrder ? 'Luxe Membership Active' : 'Order Details'}
+              {isLuxeOrder ? displayStatus === 'Cancelled' ? 'Luxe Membership Cancelled' : 'Luxe Membership Active' : 'Order Details'}
             </motion.h1>
 
             <motion.p
@@ -1205,7 +1211,7 @@ export default function OrderDetailPage() {
               transition={{ delay: 0.6 }}
               className="text-slate-500 text-sm mt-1.5"
             >
-              {isLuxeOrder ? 'Thank you for joining the elite.' : 'Here are the details for your order.'}
+              {isLuxeOrder && displayStatus !== 'Cancelled' ? 'Thank you for joining the elite.' : 'Here are the details for your order.'}
             </motion.p>
 
             <motion.div
@@ -1395,10 +1401,12 @@ export default function OrderDetailPage() {
                     <div className="flex-1 pt-1.5">
                         <p className="font-bold text-red-500 text-sm sm:text-base uppercase tracking-wider">Cancelled</p>
                         <p className="text-xs sm:text-sm text-slate-500 mt-1">The order has been cancelled.</p>
-                        {order.refundDetails?.status !== 'none' && (
+                        {(order.cancellation?.reason || order.refundDetails?.reason) && <p className="mt-2 text-sm text-slate-600">Reason: {order.cancellation?.reason || order.refundDetails.reason}</p>}
+                        {order.refundDetails?.id && <p className="mt-2 break-all text-xs text-slate-600">Refund reference: {order.refundDetails.id}</p>}
+                        {order.payment && <p className="mt-2 text-sm text-slate-600">Refund amount: ₹{Number(order.refundDetails?.amount || order.orderTotal).toFixed(2)}. {order.refundDetails?.status === 'completed' ? 'Processed by the payment provider.' : ['initiated', 'processing'].includes(order.refundDetails?.status) ? 'Your refund is processing with the payment provider.' : 'Your refund is pending. You do not need to cancel the order again.'}</p>}
+                        {order.refundDetails?.status && order.refundDetails.status !== 'none' && (
                             <div className="mt-3 bg-red-50/50 p-3 rounded-2xl border border-red-100">
                                 <p className="text-xs font-bold text-red-800">Refund Status: {order.refundDetails.status.toUpperCase()}</p>
-                                {order.refundDetails.reason && <p className="text-[11px] text-red-600 mt-1 italic">Reason: {order.refundDetails.reason}</p>}
                                 {order.refundDetails.status === 'rejected' && order.refundDetails.rejectionReason && (
                                     <p className="text-[11px] text-red-800 mt-1 font-bold">Rejection Reason: {order.refundDetails.rejectionReason}</p>
                                 )}

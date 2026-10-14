@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { processPrepaidRefund } from '../utils/paymentRefunds.js';
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Razorpay from "razorpay";
@@ -70,50 +71,6 @@ const calculateRefundAmount = async (order, returnReason, currentShiprocketStatu
     return Math.max(0, refund);
 };
 
-// --- 3. Razorpay Prepaid Refund Function ---
-const processPrepaidRefund = async (orderId, razorpayPaymentId, refundAmount) => {
-    try {
-        if (!razorpayPaymentId) {
-            throw new Error("Razorpay Payment ID is missing for prepaid refund.");
-        }
-        if (!Number.isFinite(refundAmount) || refundAmount < 0) throw new Error('Invalid refund amount.');
-        if (refundAmount === 0) return { success: true, message: 'No refund due.', refundId: null };
-        const order = await orderModel.findOneAndUpdate({
-            _id: orderId, payment: true, paymentMethod: 'Razorpay', orderTotal: { $gte: refundAmount },
-            $and: [
-                { $or: [{ razorpayPaymentId }, { 'paymentDetails.razorpay_payment_id': razorpayPaymentId }] },
-                { $or: [{ refundRequestAmount: { $exists: false } }, { refundRequestAmount: refundAmount }] },
-            ],
-        }, { $set: { refundRequestAmount: refundAmount } }, { new: true });
-        if (!order) throw new Error('Refund does not match a paid order or an existing refund request.');
-        // This SDK version filters custom headers, so use the documented HTTP API for idempotency.
-        const { data: refundResponse } = await axios.post(`https://api.razorpay.com/v1/payments/${encodeURIComponent(razorpayPaymentId)}/refund`, {
-            amount: Math.round(refundAmount * 100),
-            speed: 'normal',
-            notes: {
-                order_id: orderId.toString(),
-                reason: "Customer requested refund"
-            }
-        }, {
-            auth: { username: process.env.RAZORPAY_KEY_ID, password: process.env.RAZORPAY_KEY_SECRET },
-            headers: { 'X-Refund-Idempotency': `febeul-refund-${orderId}` }, timeout: 10000, maxRedirects: 0,
-        });
-
-        if (refundResponse.status === 'processed' || refundResponse.status === 'pending') {
-            if (order.items.some(item => item.name === 'Febeul Luxe Membership')) await userModel.updateOne({ _id: order.userId }, { $set: { isLuxeMember: false, giftWrapsLeft: 0, luxeMembershipExpires: null } });
-            return { success: true, message: "Prepaid refund initiated successfully.", refundId: refundResponse.id };
-        } else {
-            return { success: false, message: `Razorpay refund failed with status: ${refundResponse.status}.`, refundId: refundResponse.id };
-        }
-    } catch (error) {
-        // The Razorpay Node SDK throws errors shaped like
-        // { statusCode, error: { description, code, ... } } rather than a
-        // standard Error with a top-level .message, so error.message is
-        // undefined here — surface the actual gateway description instead.
-        const description = error?.error?.description || error?.description || error.message || "Unknown Razorpay error";
-        throw new Error(`Failed to process prepaid refund: ${description}`);
-    }
-};
 
 // --- 4. COD Refund Handler ---
 const processCodRefund = async (orderId, refundAmount, customerPayoutDetails) => {
@@ -142,6 +99,7 @@ const approveRefund = async (req, res) => {
         if (order.refundDetails.status === 'completed') {
             return res.json({ success: false, message: "Refund has already been completed." });
         }
+        if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails.requestType === 'cancellation') return res.status(409).json({ success: false, message: 'Use the cancellation refund retry action. Cancellation refunds must match the full paid amount.' });
 
         let refundAmount = manualRefundAmount !== undefined ? parseFloat(manualRefundAmount) : await calculateRefundAmount(order, returnReason || order.refundDetails.reason, order.shiprocketStatus || 'UNKNOWN');
 
@@ -249,6 +207,7 @@ const rejectRefund = async (req, res) => {
         if (!rejectionReason) return res.json({ success: false, message: "Rejection reason is required." });
         const order = await orderModel.findById(orderId);
         if (!order) return res.json({ success: false, message: "Order not found." });
+        if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails?.requestType === 'cancellation') return res.status(409).json({ success: false, message: 'A cancelled order refund cannot be rejected or removed.' });
 
         order.refundDetails.status = 'rejected';
         order.refundDetails.rejectionReason = rejectionReason;
@@ -275,6 +234,7 @@ const requestRefund = async (req, res) => {
         const order = await orderModel.findById(orderId);
         if (!order) return res.json({ success: false, message: "Order not found." });
         if (order.userId.toString() !== userId) return res.json({ success: false, message: "Unauthorized." });
+        if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails?.requestType === 'cancellation') return res.status(409).json({ success: false, message: 'Cancellation and refund history cannot be replaced or withdrawn.' });
 
         const isDelivered = order.orderStatus === 'Delivered';
         if (isDelivered) {
@@ -388,6 +348,7 @@ const cancelReturnRequest = async (req, res) => {
         const order = await orderModel.findById(orderId);
         if (!order) return res.json({ success: false, message: "Order not found." });
         if (order.userId.toString() !== userId) return res.json({ success: false, message: "Unauthorized." });
+        if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails?.requestType === 'cancellation') return res.status(409).json({ success: false, message: 'Cancellation and refund history cannot be replaced or withdrawn.' });
 
         const cancellableRequestStatuses = ['pending', 'initiated', 'processing'];
         const cancellablePickupStatuses = ['none', 'scheduled', 'failed'];

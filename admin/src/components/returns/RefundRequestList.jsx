@@ -19,10 +19,11 @@ import {
   Download,
   Wallet
 } from 'lucide-react';
-import { categoryLabel, categoryOf, isPrepaid } from '../../utils/requestCategory';
+import CancellationHistory from './CancellationHistory';
+import { categoryLabel, categoryOf, isPrepaid, isCancellation, refundStatus, refundAmount } from '../../utils/requestCategory';
 
 const getPendingAge = (request, now) => {
-  if (!['pending', 'initiated', 'processing'].includes(request.refundDetails?.status)) return null;
+  if (!['pending', 'initiated', 'processing'].includes(refundStatus(request))) return null;
 
   const requestedAt = request.refundDetails?.requestedAt;
   const requestedTime = requestedAt ? new Date(requestedAt).getTime() : NaN;
@@ -83,7 +84,7 @@ const RefundRequestList = ({
       return;
     }
     
-    const maxRefundable = selectedRequest.refundDetails?.amount || selectedRequest.orderTotal || 0;
+    const maxRefundable = refundAmount(selectedRequest);
     if (isPartial && amount > maxRefundable) {
       toast.error(`Partial refund amount cannot exceed the total refundable amount of ${currency}${maxRefundable}`);
       return;
@@ -113,6 +114,20 @@ const RefundRequestList = ({
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleCancellationRetry = async orderId => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/refund/cancellation/retry`, { orderId, ...(refundStatus(selectedRequest) === 'completed' ? { checkStatus: true } : {}) }, { headers: { token } });
+      if (!data.success) throw new Error(data.message);
+      if (['pending', 'failed'].includes(data.refundStatus)) toast.warning(data.message);
+      else toast.success(data.message);
+      await onRefresh();
+      setSelectedTicket(null);
+    } catch (error) { toast.error(error.response?.data?.message || error.message || 'Unable to retry refund.'); }
+    finally { setIsUpdating(false); }
   };
 
   const handleRejectRefund = async (orderId) => {
@@ -165,7 +180,7 @@ const RefundRequestList = ({
         req._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.userId?.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || req.refundDetails?.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || refundStatus(req) === filterStatus;
 
     const reqTime = new Date(req.refundDetails?.requestedAt || req.date).getTime();
     const matchesStart = !startDate || reqTime >= new Date(startDate).setHours(0, 0, 0, 0);
@@ -221,8 +236,8 @@ const RefundRequestList = ({
     razorpayPaymentId: req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id || '',
     requestType: categoryLabel(req),
     reason: req.refundDetails?.reason || '',
-    amount: req.refundDetails?.amount || req.orderTotal || 0,
-    status: req.refundDetails?.status,
+    amount: refundAmount(req),
+    status: refundStatus(req),
     daysPending: showPendingAge ? getPendingAge(req, now)?.days ?? '' : '',
     rejectionReason: req.refundDetails?.rejectionReason || '',
   })), [filteredRequests, showPendingAge, now]);
@@ -262,7 +277,7 @@ const RefundRequestList = ({
             />
           </div>
           <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto">
-            {['all', 'pending', 'completed', 'rejected'].map((status) => (
+            {['all', 'pending', 'processing', 'completed', 'failed', 'rejected', 'none'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
@@ -272,7 +287,7 @@ const RefundRequestList = ({
                     : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                {status}
+                {status === 'none' ? 'No refund due' : status}
               </button>
             ))}
             <div className={`flex items-center gap-2 rounded-xl px-3 py-2 border transition-colors shrink-0 ${(startDate || endDate) ? 'bg-pink-50 border-pink-300' : 'bg-white border-gray-200'}`}>
@@ -345,7 +360,7 @@ const RefundRequestList = ({
                       {req.userId?.name || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-gray-900">
-                      {currency}{(req.refundDetails?.amount || req.orderTotal || 0).toFixed(2)}
+                      {currency}{(refundAmount(req)).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
@@ -371,8 +386,8 @@ const RefundRequestList = ({
                       })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
-                        {getStatusIcon(req.refundDetails?.status)}
-                        <span className="text-xs font-bold text-gray-700 capitalize">{getStatusLabel(req.refundDetails?.status)}</span>
+                        {getStatusIcon(refundStatus(req))}
+                        <span className="text-xs font-bold text-gray-700 capitalize">{getStatusLabel(refundStatus(req))}</span>
                     </td>
                     {showPendingAge && (
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -471,7 +486,7 @@ const RefundRequestList = ({
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><DollarSign size={12} /> Settlement Amount</h4>
                 <div className="bg-gray-900 text-white p-6 rounded-3xl">
                     <div className="flex justify-between items-end">
-                        <div><p className="text-[10px] font-black uppercase opacity-50">Refundable Amount</p><p className="text-3xl font-black">{currency}{(selectedRequest.refundDetails?.amount || selectedRequest.orderTotal || 0).toFixed(2)}</p></div>
+                        <div><p className="text-[10px] font-black uppercase opacity-50">Refundable Amount</p><p className="text-3xl font-black">{currency}{(refundAmount(selectedRequest)).toFixed(2)}</p></div>
                         <span className="text-[10px] bg-emerald-500 text-white px-2 py-1 rounded-lg font-black uppercase">{selectedRequest.paymentMethod}</span>
                     </div>
                     {selectedRequest.refundDetails?.id && (
@@ -482,8 +497,8 @@ const RefundRequestList = ({
 
             </div>
 
-            <div className="p-8 border-t border-gray-100 bg-gray-50 flex flex-col gap-4">
-                {selectedRequest.refundDetails?.status === 'pending' && (
+            <div className="max-h-[55vh] overflow-y-auto p-8 border-t border-gray-100 bg-gray-50 flex flex-col gap-4">
+                {!isCancellation(selectedRequest) && refundStatus(selectedRequest) === 'pending' && (
                     <div className="flex flex-col gap-4 p-4 bg-white rounded-3xl border border-gray-200 shadow-sm">
                         {!showRejectForm ? (
                           <div className="space-y-4">
@@ -522,7 +537,7 @@ const RefundRequestList = ({
                                 <label className="text-[10px] font-black text-gray-400 uppercase">Refund Amount ({currency})</label>
                                 <input 
                                   type="number" 
-                                  placeholder={`Max: ${currency}${(selectedRequest.refundDetails?.amount || selectedRequest.orderTotal || 0).toFixed(2)}`} 
+                                  placeholder={`Max: ${currency}${(refundAmount(selectedRequest)).toFixed(2)}`}
                                   value={customRefundAmount} 
                                   onChange={(e) => setCustomRefundAmount(e.target.value)} 
                                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/10" 
@@ -568,13 +583,13 @@ const RefundRequestList = ({
                         )}
                     </div>
                 )}
-                {selectedRequest.refundDetails?.status === 'none' ? (
+                {isCancellation(selectedRequest) ? <CancellationHistory order={selectedRequest} busy={isUpdating} onRetry={() => handleCancellationRetry(selectedRequest._id)} /> : refundStatus(selectedRequest) === 'none' ? (
                     <div className="p-4 bg-gray-100 rounded-2xl text-center text-xs font-bold text-gray-500 uppercase tracking-widest">
                         No refund due — no payment was collected for this order (COD).
                     </div>
                 ) : (
                     <div className="flex gap-2">
-                        <button disabled={isUpdating || selectedRequest.refundDetails?.status === 'completed'} onClick={() => updateRefundSubStatus(selectedRequest._id, 'completed')} className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 disabled:opacity-50">Mark Completed (Manual)</button>
+                        <button disabled={isUpdating || refundStatus(selectedRequest) === 'completed'} onClick={() => updateRefundSubStatus(selectedRequest._id, 'completed')} className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 disabled:opacity-50">Mark Completed (Manual)</button>
                         <button onClick={() => updateRefundSubStatus(selectedRequest._id, 'failed')} className="px-6 bg-gray-900 text-white rounded-2xl hover:bg-black"><XCircle size={20} /></button>
                     </div>
                 )}

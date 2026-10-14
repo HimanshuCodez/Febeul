@@ -57,6 +57,14 @@ const orderSchema = new mongoose.Schema({
         images: { type: [String], default: [] }, // Added images for refund request
         requestedAt: { type: Date },
         processedAt: { type: Date },
+        gatewayStatus: { type: String },
+        lastError: { type: String }, // Admin-only provider/retry diagnostics.
+        autoProcess: { type: Boolean, default: false },
+        attempts: { type: Number, default: 0 },
+        lastAttemptAt: { type: Date },
+        nextRetryAt: { type: Date },
+        processingUntil: { type: Date },
+        attemptToken: { type: String },
         customerPayoutDetails: { // For COD refunds and Return requests
             type: { type: String, enum: ['upi', 'bank'] },
             upiId: { type: String },
@@ -151,6 +159,15 @@ const orderSchema = new mongoose.Schema({
     // To prevent double refunds or conflicting operations
     isRefundable: { type: Boolean, default: true },
     isCancelled: { type: Boolean, default: false },
+    cancellation: {
+        requestedBy: { type: String, enum: ['customer', 'admin'] },
+        requestedByName: { type: String },
+        requestedAt: { type: Date },
+        reason: { type: String },
+        stockRestoredAt: { type: Date },
+        stockError: { type: String },
+        shipmentError: { type: String },
+    },
     giftWrap: {
         name: { type: String },
         image: { type: String },
@@ -175,5 +192,6 @@ const orderSchema = new mongoose.Schema({
     }
 })
 
+orderSchema.index({ 'refundDetails.autoProcess': 1, 'refundDetails.nextRetryAt': 1 });
 const orderModel = mongoose.models.order || mongoose.model('order',orderSchema)
 export default orderModel;

@@ -4,6 +4,7 @@ import { requestRefund } from '../controllers/refundController.js'; // Import ne
 import { handleWebhook } from '../controllers/shiprocketWebhookController.js';
 import adminAuth  from '../middleware/adminAuth.js'
 import authUser from '../middleware/auth.js'
+import { cancelAdminOrder } from '../controllers/cancellationController.js';
 
 const orderRouter = express.Router()
 
@@ -12,6 +13,7 @@ orderRouter.get('/get-key', getRazorpayKey)
 // Admin Features
 orderRouter.post('/list',adminAuth,allOrders)
 orderRouter.post('/status',adminAuth,updateStatus)
+orderRouter.post('/admin-cancel', adminAuth, cancelAdminOrder)
 
 // Payment Features
 orderRouter.post('/place',authUser,placeOrder)

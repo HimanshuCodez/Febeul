@@ -1,5 +1,6 @@
 import { validateItems, couponDiscountFor, ownsOrder, stripePaymentMatches, razorpayPaymentMatches } from '../utils/checkoutSecurity.js';
 import { applyItemCoupons } from '../utils/itemCoupons.js';
+import { cancelCustomerOrder as cancelOrder, cancelAdminOrder } from './cancellationController.js';
 import { safeEqual } from '../utils/authTokens.js';
 import { allowedOrigins } from '../middleware/security.js';
 import mongoose from 'mongoose';
@@ -8,7 +9,7 @@ import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from 'stripe'
 import razorpay from 'razorpay'
-import { createAndAssignShipment, cancelShiprocketOrder } from '../utils/shiprocket.js';
+import { createAndAssignShipment } from '../utils/shiprocket.js';
 import { syncOrderTracking, syncOrdersTracking } from '../utils/orderTrackingSync.js';
 import { syncReturnTracking, syncReturnsTracking } from '../utils/returnTrackingSync.js';
 import { getReturnSettings, sanitizeOrderForCustomer, sanitizeOrdersForCustomer } from '../utils/returnStatus.js';
@@ -740,7 +741,7 @@ const allOrders = async (req,res) => {
 
     try {
 
-        const orders = await orderModel.find(PLACED_ORDER_FILTER)
+        const orders = await orderModel.find({ $or: [PLACED_ORDER_FILTER, { isCancelled: true }, { orderStatus: 'Cancelled' }] })
             .populate('userId', 'name email isLuxeMember') // Populate user name, email and luxe status
             .populate('items.productId', 'name variations'); // Populate product name and variations
 
@@ -794,8 +795,10 @@ const updateStatus = async (req,res) => {
     try {
         
         const { orderId, orderStatus } = req.body
-
-        await orderModel.findByIdAndUpdate(orderId, { orderStatus })
+        if (!mongoose.isValidObjectId(orderId) || !orderModel.schema.path('orderStatus').enumValues.includes(orderStatus)) return res.status(400).json({ success: false, message: 'Invalid order or status.' });
+        if (orderStatus === 'Cancelled') return cancelAdminOrder(req, res);
+        const order = await orderModel.findOneAndUpdate({ _id: orderId, isCancelled: { $ne: true }, 'refundDetails.requestType': { $ne: 'cancellation' }, orderStatus: { $ne: 'Cancelled' } }, { orderStatus }, { runValidators: true });
+        if (!order) return res.status(409).json({ success: false, message: 'Cancelled orders cannot be reopened or marked refunded manually.' });
         res.json({success:true,message:'Status Updated'})
 
     } catch (error) {
@@ -885,121 +888,5 @@ const getOrderById = async (req, res) => {
     }
 };
 
-import { calculateRefundAmount, processPrepaidRefund, processCodRefund } from './refundController.js';
-
-const cancelOrder = async (req, res) => {
-    try {
-        const { orderId, reason, bankDetails } = req.body;
-        const userId = req.userId;
-
-        const order = await orderModel.findById(orderId);
-
-        if (!order) {
-            return res.json({ success: false, message: "Order not found" });
-        }
-
-        if (order.userId.toString() !== userId) {
-            return res.json({ success: false, message: "Not authorized to cancel this order" });
-        }
-
-        const nonCancellableStatuses = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
-        if (nonCancellableStatuses.includes(order.orderStatus)) {
-            return res.json({ success: false, message: `Order cannot be cancelled in '${order.orderStatus}' status.` });
-        }
-
-        if (order.items.some(item => item.name === 'Febeul Luxe Membership') && order.payment) {
-            return res.status(400).json({ success: false, message: 'Contact support to cancel a paid membership.' });
-        }
-        // Claim cancellation before side effects; concurrent/replayed calls must not restore stock twice.
-        const claimed = await orderModel.findOneAndUpdate({ _id: order._id, userId, isCancelled: { $ne: true }, payment: order.payment, orderStatus: order.orderStatus }, { $set: { isCancelled: true } });
-        if (!claimed) return res.status(409).json({ success: false, message: 'Order changed or cancellation is already in progress.' });
-
-        // Best-effort: also cancel the shipment on Shiprocket's side so the
-        // courier doesn't attempt pickup/delivery for an order we've cancelled.
-        // Non-blocking — cancellation proceeds locally even if this fails.
-        if (order.shiprocket?.srOrderId) {
-            try {
-                await cancelShiprocketOrder([order.shiprocket.srOrderId]);
-            } catch (shiprocketError) {
-                console.log("Error cancelling Shiprocket order during customer cancellation:", shiprocketError.message);
-            }
-        }
-
-        const refundAmount = order.orderTotal || 0;
-        order.refundDetails.amount = refundAmount;
-
-        // 1. Process Refund for Prepaid Orders
-        if (order.paymentMethod === 'Razorpay' && order.payment) {
-            const paymentId = order.razorpayPaymentId || order.paymentDetails?.razorpay_payment_id;
-            if (paymentId) {
-                try {
-                    // Cancellation refunds the complete paid order value.
-                    const refundResult = await processPrepaidRefund(orderId, paymentId, refundAmount);
-
-                    if (refundResult.success) {
-                        order.refundDetails.status = 'completed';
-                        order.refundDetails.id = refundResult.refundId;
-                        order.refundDetails.processedAt = new Date();
-                        order.orderStatus = 'Refunded';
-                    } else {
-                        // If automatic refund fails, keep an admin-visible pending log.
-                        order.refundDetails.status = 'pending';
-                        order.orderStatus = 'Cancelled';
-                    }
-                } catch (refundError) {
-                    console.log("Razorpay refund failed during cancellation:", refundError.message);
-                    order.refundDetails.status = 'pending';
-                    order.orderStatus = 'Cancelled';
-                }
-            } else {
-                order.refundDetails.status = 'pending';
-                order.orderStatus = 'Cancelled';
-            }
-        } else if (order.paymentMethod === 'COD') {
-            order.orderStatus = 'Cancelled';
-            order.refundDetails.status = 'none';
-        } else {
-            // Any other prepaid method with no automated refund integration
-            // (currently: Stripe — not wired into checkout yet, but the model
-            // allows it). `order.payment` tells us whether money was actually
-            // collected; COD never reaches this branch, so this can't be
-            // confused with "never paid." Previously this always left
-            // refundDetails.status at its 'none' default even when money had
-            // been collected, which made the admin Refund Requests page show
-            // "No refund due" for an order that genuinely owed a refund.
-            order.orderStatus = 'Cancelled';
-            order.refundDetails.status = order.payment ? 'pending' : 'none';
-        }
-
-        // Unpaid gateway orders never reduced stock and must never increase it on cancellation.
-        for (const item of (order.payment || order.paymentMethod === 'COD' ? order.items : [])) {
-            if (item.name === "Febeul Luxe Membership") continue;
-            const product = await productModel.findById(item.productId);
-            if (product) {
-                const variation = product.variations.find(v => v.color === item.color);
-                if (variation) {
-                    const sizeData = variation.sizes.find(s => s.size === item.size);
-                    if (sizeData) {
-                        sizeData.stock += item.quantity;
-                    }
-                }
-                await product.save();
-            }
-        }
-
-        order.isCancelled = true;
-        order.refundDetails.reason = reason || 'Customer requested cancellation';
-        order.refundDetails.requestType = 'cancellation';
-        order.refundDetails.requestedAt = new Date();
-
-        await order.save();
-
-        res.json({ success: true, message: order.orderStatus === 'Refunded' ? "Order cancelled and refund initiated." : "Order cancelled successfully" });
-
-    } catch (error) {
-        console.error('Order request failed', { name: error?.name, code: error?.code });
-        res.json({ success: false, message: "Unable to complete request." });
-    }
-};
 
 export {verifyRazorpay, verifyStripe ,placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getRazorpayKey, generateInvoice, getOrderById, cancelOrder}

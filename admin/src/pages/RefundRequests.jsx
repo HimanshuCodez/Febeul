@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import RefundRequestList from '../components/returns/RefundRequestList';
-import { categoryOf } from '../utils/requestCategory';
+import { categoryOf, isCancellation } from '../utils/requestCategory';
 
 const RefundRequests = ({ token }) => {
   const [allOrders, setAllOrders] = useState([]);
@@ -12,7 +12,7 @@ const RefundRequests = ({ token }) => {
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await axios.post(`${backendUrl}/api/order/list`, {}, { headers: { token } });
+      const { data } = await axios.post(`${backendUrl}/api/refund/list`, {}, { headers: { token } });
       if (data.success) {
         setAllOrders(data.orders || []);
       } else {
@@ -27,17 +27,17 @@ const RefundRequests = ({ token }) => {
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
-  // All return categories are managed on Return Requests; this queue is money-only.
+  // Include paid and unpaid cancellations so every cancellation has a visible history.
   const requests = useMemo(() => allOrders.filter((order) =>
-    categoryOf(order) === null && (
+    isCancellation(order) || (categoryOf(order) === null && (
       (order.refundDetails?.status && order.refundDetails.status !== 'none') ||
       ['Refund Initiated', 'Refunded'].includes(order.orderStatus)
-    )
+    ))
   ).sort((a, b) => new Date(b.refundDetails?.requestedAt || b.date) - new Date(a.refundDetails?.requestedAt || a.date)), [allOrders]);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen font-sans">
-      <RefundRequestList token={token} requests={requests} allOrders={allOrders} loading={loading} onRefresh={fetchRequests} showPendingAge />
+      <RefundRequestList token={token} requests={requests} allOrders={allOrders} loading={loading} onRefresh={fetchRequests} showPendingAge description="Cancellation history, automatic refunds, and refund requests" />
     </div>
   );
 };

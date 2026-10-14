@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import OrderCancellationDialog from '../components/OrderCancellationDialog';
 import axios from 'axios'
 import { backendUrl, currency } from '../App'
 import { toast } from 'react-toastify'
@@ -17,6 +18,39 @@ const Orders = ({ token }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [activeTab, setActiveTab] = useState('orders');
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancellationError, setCancellationError] = useState('');
+  const cancellationInFlight = useRef(false);
+  const closeCancellation = useCallback(() => {
+    if (cancellationInFlight.current) return;
+    setCancellingOrder(null);
+    setCancellationError('');
+  }, []);
+  const canCancel = order => !order.isCancelled && ['Order Placed', 'Processing', 'Confirmed'].includes(order.orderStatus)
+    && !order.shippedAt && !order.deliveredAt && !order.shiprocket?.awb
+    && ['NEW', 'UNKNOWN'].includes(order.shiprocketStatus || 'NEW')
+    && (!order.refundDetails?.status || order.refundDetails.status === 'none');
+  const cancelSelectedOrder = async reason => {
+    if (cancellationInFlight.current || !cancellingOrder) return;
+    cancellationInFlight.current = true;
+    setIsCancelling(true);
+    setCancellationError('');
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/order/admin-cancel`, { orderId: cancellingOrder._id, reason }, { headers: { token } });
+      if (!data.success) throw new Error(data.message || 'Cancellation failed.');
+      if (['pending', 'failed'].includes(data.refundStatus)) toast.warning(data.message);
+      else toast.success(data.message);
+      setOrders(previous => previous.map(order => order._id === cancellingOrder._id ? { ...order, isCancelled: true, orderStatus: 'Cancelled', refundDetails: { ...order.refundDetails, status: data.refundStatus, requestType: 'cancellation' } } : order));
+      setCancellingOrder(null);
+      await fetchAllOrders();
+    } catch (error) {
+      setCancellationError(error.response?.data?.message || error.message || 'Unable to cancel. Refresh the order before retrying.');
+    } finally {
+      cancellationInFlight.current = false;
+      setIsCancelling(false);
+    }
+  };
 
   // Search & Filter States
   const [pincodeSearch, setPincodeSearch] = useState('');
@@ -248,7 +282,7 @@ const Orders = ({ token }) => {
                 <p><span className="font-bold text-[#65526f]">Refund status:</span> <span className="font-bold text-[#342a3c] uppercase text-[10px] bg-white px-2 py-0.5 rounded shadow-sm border">{order.refundDetails.status}</span></p>
               )}
               {order.refundDetails?.amount > 0 && (
-                <p><span className="font-bold text-[#65526f]">Refunded Amount:</span> <span className="font-semibold text-red-700">{currency}{order.refundDetails.amount.toFixed(2)}</span></p>
+                <p><span className="font-bold text-[#65526f]">Refund Amount:</span> <span className="font-semibold text-red-700">{currency}{order.refundDetails.amount.toFixed(2)}</span></p>
               )}
               {order.refundDetails?.requestedAt && (
                 <p><span className="font-bold text-[#65526f]">Claimed Date:</span> <span className="font-medium text-[#756480]">{formatDate(order.refundDetails.requestedAt)}</span></p>
@@ -269,7 +303,7 @@ const Orders = ({ token }) => {
     </div>
   );
 
-  const fetchAllOrders = async () => {
+  const fetchAllOrders = useCallback(async () => {
     if (!token) {
       return null;
     }
@@ -284,21 +318,7 @@ const Orders = ({ token }) => {
     } catch (error) {
       toast.error(error.message)
     }
-  }
-
-  const statusHandler = async ( event, orderId ) => {
-    try {
-      const response = await axios.post(backendUrl + '/api/order/status' , {orderId, status:event.target.value}, { headers: {token}})
-      if (response.data.success) {
-        await fetchAllOrders()
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      console.log(error)
-      toast.error("Failed to update status");
-    }
-  }
+  }, [token])
 
   const downloadInvoice = async (orderId) => {
     try {
@@ -324,7 +344,7 @@ const Orders = ({ token }) => {
 
   useEffect(() => {
     fetchAllOrders();
-  }, [token])
+  }, [fetchAllOrders])
 
   // Shipping happens in the Shiprocket panel, in another tab. Re-pull the list
   // when this tab is focused again so an order that was just shipped there
@@ -342,7 +362,7 @@ const Orders = ({ token }) => {
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
-  }, [token])
+  }, [token, fetchAllOrders])
 
   // Process & Group Analytics Data Dynamically
   const analytics = useMemo(() => {
@@ -977,6 +997,7 @@ const Orders = ({ token }) => {
                             </td>
                             <td className='px-4 py-3 align-top'>
                               <div className='flex items-center justify-end gap-1.5'>
+                                {canCancel(order) && <button type="button" onClick={() => { setCancellationError(''); setCancellingOrder(order); }} aria-label={`Cancel order ${order.orderItemId || order._id}`} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Cancel</button>}
                                 <button
                                   onClick={() => downloadInvoice(order._id)}
                                   className='p-1.5 rounded-lg bg-white hover:bg-pink-50 text-[#8b7b93] hover:text-[#a85070] border border-[#eae5ed] transition-colors'
@@ -1050,6 +1071,7 @@ const Orders = ({ token }) => {
                       </div>
 
                       <div className='flex items-center gap-2 mt-3 pt-3 border-t border-[#eee9f0]'>
+                        {canCancel(order) && <button type="button" onClick={() => { setCancellationError(''); setCancellingOrder(order); }} aria-label={`Cancel order ${order.orderItemId || order._id}`} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">Cancel</button>}
                         <button
                           onClick={() => downloadInvoice(order._id)}
                           className='flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#faf8fb] hover:bg-pink-50 text-[#756480] hover:text-[#a85070] border border-[#eae5ed] text-xs font-semibold transition-colors'
@@ -1787,6 +1809,7 @@ const Orders = ({ token }) => {
           </div>
         </div>
       )}
+      {cancellingOrder && <OrderCancellationDialog order={cancellingOrder} busy={isCancelling} error={cancellationError} onClose={closeCancellation} onConfirm={cancelSelectedOrder} />}
     </div>
   )
 }

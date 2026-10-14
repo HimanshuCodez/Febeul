@@ -23,11 +23,12 @@ import resetRouter from './routes/resetRoute.js';
 import emailTemplateRouter from './routes/emailTemplateRoute.js';
 import errorHandler from './middleware/errorHandler.js'
 import analyticsRouter from './analytics/routes.js'
+import { startCancellationRefundWorker } from './utils/cancellationRefunds.js';
 
 // App Config
 const app = express()
 const port = process.env.PORT || 4000
-connectDB()
+connectDB().then(() => startCancellationRefundWorker())
 connectCloudinary()
 
 // middlewares

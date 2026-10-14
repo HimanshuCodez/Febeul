@@ -3,6 +3,8 @@ import { requestRefund, approveRefund, rejectRefund, cancelReturnRequest, getRaz
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 import upload from '../middleware/multer.js';
+import { retryCancellationRefund } from '../controllers/cancellationController.js';
+import { allOrders } from '../controllers/orderController.js';
 
 const refundRouter = express.Router();
 
@@ -11,8 +13,10 @@ refundRouter.post('/request', auth, upload.array('images', 4), requestRefund);
 refundRouter.post('/cancel-request', auth, cancelReturnRequest);
 
 // Admin Approval/Rejection Routes
+refundRouter.post('/list', adminAuth, allOrders);
 refundRouter.post('/approve', adminAuth, approveRefund);
 refundRouter.post('/reject', adminAuth, rejectRefund);
+refundRouter.post('/cancellation/retry', adminAuth, retryCancellationRefund);
 
 // Razorpay account activity (read-only) — reuses the '/api/refund' →
 // 'refund-requests' permission mapping in middleware/adminAuth.js, so no new

@@ -6,14 +6,18 @@
 // than re-deriving shipped/delivered from scratch here, so this can't drift
 // from what actually happened.
 export const REQUEST_CATEGORIES = [
-  { key: 'cancellation', label: 'Cancellation Return', hint: 'Not shipped yet — cancelled by the customer' },
+  { key: 'cancellation', label: 'Cancellation', hint: 'Cancelled before dispatch by the customer or admin' },
   { key: 'courier_return', label: 'Courier Return', hint: 'Shipped, but the courier returned it undelivered (RTO)' },
   { key: 'return', label: 'Customer Return', hint: 'Delivered, then the customer requested a return' },
 ];
 
+export const isCancellation = row => Boolean(row?.isCancelled || row?.orderStatus === 'Cancelled' || row?.refundDetails?.requestType === 'cancellation');
+export const refundStatus = row => isCancellation(row) && row?.payment && (!row.refundDetails?.status || row.refundDetails.status === 'none') ? 'pending' : row?.refundDetails?.status || 'none';
+export const refundAmount = row => isCancellation(row) ? (row.payment ? row.refundRequestAmount ?? (row.refundDetails?.amount || row.orderTotal || 0) : 0) : row?.refundDetails?.amount ?? row?.orderTotal ?? 0;
+
 export const categoryOf = (row) => {
   const type = row?.refundDetails?.requestType;
-  if (type === 'cancellation') return 'cancellation';
+  if (isCancellation(row)) return 'cancellation';
   if (type === 'return') return 'return';
   // COD RTOs never go through refundController (nothing was paid to refund),
   // so they never get tagged 'courier_return' — orderStatus is the only

@@ -280,7 +280,10 @@ export const sanitizeOrderForCustomer = (orderDoc, settings = RETURN_SETTINGS_DE
     if (!order?.refundDetails) return order;
 
     const returnStatus = buildCustomerReturnStatus(order, settings);
-    const { returnTracking, pickup, ...safeRefundDetails } = order.refundDetails;
+    const { returnTracking, pickup, lastError, autoProcess, attempts, lastAttemptAt, nextRetryAt, processingUntil, attemptToken, ...safeRefundDetails } = order.refundDetails;
+    if (order.cancellation) {
+        order.cancellation = { requestedBy: order.cancellation.requestedBy, requestedAt: order.cancellation.requestedAt, reason: order.cancellation.reason };
+    }
 
     // The reverse-pickup sub-document is mostly customer-safe, but not all of
     // it: failureReason carries a raw courier API error, and the rest are our

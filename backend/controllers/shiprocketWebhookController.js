@@ -188,6 +188,7 @@ export const handleWebhook = async (req, res) => {
         };
 
         let statusChanged = false;
+        if (!matchedPickup && order.isCancelled) return res.json({ success: true, message: 'Cancelled order retained.' });
 
         if (matchedPickup) {
             // --- Reverse pickup (return) tracking update ---
@@ -268,6 +269,7 @@ export const handleWebhook = async (req, res) => {
 
         // Tracking history is always worth persisting, even if the mapped
         // status didn't change, so the timeline UI has every scan event.
+        if (!matchedPickup) order.$where = { isCancelled: { $ne: true } };
         await order.save();
         console.log(`Order ${order._id} ${matchedPickup ? 'pickup ' : ''}tracking updated (statusChanged=${statusChanged}) for Shiprocket status: ${current_status}`);
 

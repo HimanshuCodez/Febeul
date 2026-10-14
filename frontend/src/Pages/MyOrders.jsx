@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { ShoppingBag, ArrowRight, Package, Crown, X, CreditCard, Search, Filter } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-moti
 const backendUrl = import.meta.env.VITE_BACKEND_URL; // Assume backendUrl is accessible
 
 const getOrderDisplayStatus = (order) => {
+  if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails?.requestType === 'cancellation') return 'Cancelled';
   const shiprocketStatus = (order.shiprocketStatus || "").toUpperCase();
   const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
 
@@ -230,8 +231,8 @@ const MyOrders = () => {
   const { token, isAuthenticated } = useAuthStore();
   const navigate = useNavigate(); // Import useNavigate for navigation
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  const fetchOrders = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const response = await axios.post(`${backendUrl}/api/order/userorders`, {}, { headers: { token } });
       if (response.data.success) {
@@ -264,18 +265,27 @@ const MyOrders = () => {
         setOrders(processedOrders.sort((a, b) => new Date(b.date) - new Date(a.date)));
       }
     } catch (error) {
-      toast.error("Failed to fetch orders.");
+      if (!silent) toast.error("Failed to fetch orders.");
       console.error(error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (isAuthenticated && token) {
       fetchOrders();
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, fetchOrders]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) return;
+    const refresh = () => { if (document.visibilityState === 'visible') fetchOrders({ silent: true }); };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    const interval = window.setInterval(refresh, 30000);
+    return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); window.clearInterval(interval); };
+  }, [isAuthenticated, token, fetchOrders]);
 
   const availableYears = useMemo(() => {
     const years = new Set(orders.map((o) => new Date(o.date).getFullYear()));
@@ -416,7 +426,12 @@ const MyOrders = () => {
               // label (order.returnStatus) covering both the parcel and the
               // money — using it here keeps this card and the detail page's
               // timeline from ever disagreeing.
-              const refundSubLabel = order.returnStatus
+              const refundSubLabel = displayStatus === 'Cancelled'
+                ? (!order.payment ? 'No payment collected. No refund due.'
+                  : refundStatus === 'completed' ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed`
+                  : refundStatus === 'processing' ? 'Refund processing with the payment provider.'
+                  : 'Refund pending. We are following up on your payment.')
+                : order.returnStatus
                 ? (order.returnStatus.stage === 'refund_completed'
                     ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed`
                     : `Return: ${order.returnStatus.label}`)

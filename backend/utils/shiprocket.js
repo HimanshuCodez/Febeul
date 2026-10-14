@@ -13,14 +13,15 @@ export const shiprocketLogin = async () => {
       {
         email: process.env.SHIPROCKET_EMAIL,
         password: process.env.SHIPROCKET_PASSWORD,
-      }
+      },
+      { timeout: 10000 }
     );
     shiprocketToken = res.data.token;
     // Token is valid for ~10 days, this is a simple in-memory cache
     // A more robust solution would use Redis or a similar store
     setTimeout(() => {
         shiprocketToken = null;
-    }, 9 * 24 * 60 * 60 * 1000); // Reset after 9 days
+    }, 9 * 24 * 60 * 60 * 1000).unref(); // Reset after 9 days without keeping a stopped server alive.
     return shiprocketToken;
   } catch (error) {
     console.error("Error logging in to Shiprocket:", error.response ? error.response.data : error.message);
@@ -236,7 +237,7 @@ export const cancelShiprocketOrder = async (shiprocketOrderIds) => {
         const response = await axios.post(
             "https://apiv2.shiprocket.in/v1/external/orders/cancel",
             { ids },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }
         );
         return response.data;
     } catch (error) {
