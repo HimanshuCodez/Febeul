@@ -360,6 +360,7 @@ const BlackBanner = () => {
                 loop
                 playsInline
                 controls
+                controlsList="nodownload"
                 onLoadedData={(e) => { e.currentTarget.play().catch(() => {}); }}
               />
             )}
