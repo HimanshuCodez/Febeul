@@ -8,6 +8,7 @@ import 'react-quill-new/dist/quill.snow.css';
 import Loading from '../components/Loading';
 import EditableSelect from '../components/EditableSelect';
 import { DEFAULT_TAXONOMY, fetchTaxonomy, saveTaxonomy } from '../utils/taxonomy';
+import { PRODUCT_IMAGE_ACCEPT, PRODUCT_UPLOAD_HINT, validateProductImageUploads } from '../../../shared/productUploads.js';
 import {
   PackageSearch,
   Palette,
@@ -243,9 +244,11 @@ const Update = ({ token }) => {
     }
 
     const handleImageChange = (index, event) => {
-        const newVariations = [...variations];
-        newVariations[index].images.push(...Array.from(event.target.files));
-        setVariations(newVariations);
+        const files = Array.from(event.target.files || []);
+        event.target.value = '';
+        const error = validateProductImageUploads([...variations.flatMap(variation => variation.images).filter(image => typeof image !== 'string'), ...files]);
+        if (error) { toast.error(error); return; }
+        setVariations(previous => previous.map((variation, i) => i === index ? { ...variation, images: [...variation.images, ...files] } : variation));
     }
 
     const addVariation = () => {
@@ -278,6 +281,9 @@ const Update = ({ token }) => {
 
     const onSubmitHandler = async (e) => {
         e.preventDefault();
+        if (loading) return;
+        const imageError = validateProductImageUploads(variations.flatMap(variation => variation.images).filter(image => typeof image !== 'string'));
+        if (imageError) { toast.error(imageError); return; }
         setLoading(true);
         setUploadProgress(0);
 
@@ -393,7 +399,7 @@ const Update = ({ token }) => {
                 setLoading(false);
             }
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.response?.data?.message || error.message || 'Unable to update product. Please try again.');
             clearInterval(interval); // Clear interval on error
             setUploadProgress(0); // Reset progress on error
             setLoading(false);
@@ -554,9 +560,10 @@ const Update = ({ token }) => {
                                           ))}
                                           <label className="relative flex h-24 w-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#cfb8d7] bg-white text-[#a27695] transition-colors hover:border-[#b77997] hover:bg-[#faf0f6] focus-within:ring-2 focus-within:ring-[#b77997]">
                                               <ImagePlus size={22} aria-hidden="true" /><span className="text-[11px] font-medium">Upload images</span>
-                                              <input aria-label={"Upload images for variation " + (v_index + 1)} onChange={(e)=>handleImageChange(v_index,e)} type="file" multiple className="sr-only"/>
+                                              <input aria-label={"Upload images for variation " + (v_index + 1)} accept={PRODUCT_IMAGE_ACCEPT} onChange={(e)=>handleImageChange(v_index,e)} type="file" multiple className="sr-only"/>
                                           </label>
                                       </div>
+                                      <p className="mt-2 text-[11px] leading-relaxed text-[#8b7b93]">{PRODUCT_UPLOAD_HINT}</p>
                                   </div>
                               </div>
                               {variations.length > 1 && role !== 'staff' && (
