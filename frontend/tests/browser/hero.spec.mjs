@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { writeFile } from 'node:fs/promises';
 
 const shop = 'http://127.0.0.1:5177';
 const admin = 'http://127.0.0.1:5178';
@@ -19,7 +20,7 @@ async function fixture(page, slides = defaults, sections = {}) {
     slides: structuredClone(slides),
     pose: structuredClone(sections.pose ?? poseDefaults),
     styles: structuredClone(sections.styles ?? styleDefaults),
-    errors: [], uploads: [], saves: [],
+    errors: [], uploads: [], saves: [], uploadError: null,
   };
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.install({ time: new Date('2026-10-12T00:00:00Z') });
@@ -48,6 +49,7 @@ async function fixture(page, slides = defaults, sections = {}) {
       if (url.pathname === '/api/cms/style_categories') return route.fulfill({ json: { success: true, content: state.styles } });
       if (url.pathname === '/api/cms/upload') {
         state.uploads.push({ token: request.headers().token, body: request.postDataBuffer() });
+        if (state.uploadError) return route.fulfill({ status: 413, json: { success: false, message: state.uploadError } });
         return route.fulfill({ json: { success: true, imageUrl: '/media/animated.gif' } });
       }
       if (url.pathname === '/api/cms' && request.method() === 'POST') {
@@ -233,4 +235,52 @@ test('admin accepts GIFs, previews their complete dimensions and saves them for 
   await page.setViewportSize({ width: 390, height: 844 });
   await expectNaturalSize(page, '/media/animated.gif', 2);
   expect(state.errors).toEqual([]);
+});
+
+test('a 25 MB hero GIF uploads and is saved for both desktop and mobile fallback', async ({ page }) => {
+  const state = await fixture(page, [{ desktop: '/media/wide.svg', mobile: '', link: '/products' }]);
+  await page.goto(admin + '/images');
+  await expect(page.getByText(/Animated GIF: up to 50 MB per file/)).toBeVisible();
+  const largeGif = Buffer.concat([gif, Buffer.alloc(25 * 1024 * 1024 - gif.length)]);
+  await page.getByLabel('Upload Desktop Image / GIF').setInputFiles({ name: 'large-animated.gif', mimeType: 'image/gif', buffer: largeGif });
+  await expect(page.getByAltText('Desktop preview for slide 1')).toHaveAttribute('src', '/media/animated.gif');
+  expect(state.uploads).toHaveLength(1); expect(state.uploads[0].body.includes(largeGif)).toBe(true);
+  await page.getByRole('button', { name: 'Save Carousel', exact: true }).click();
+  await expect.poll(() => state.saves.length).toBe(1);
+  await page.goto(shop); await expectNaturalSize(page, '/media/animated.gif', 2);
+  await page.setViewportSize({ width: 390, height: 844 }); await expectNaturalSize(page, '/media/animated.gif', 2);
+  expect(state.errors).toEqual([]);
+});
+
+test('oversized GIFs and still images are rejected locally without replacing the current hero', async ({ page }) => {
+  const state = await fixture(page, [defaults[0]]); await page.goto(admin + '/images');
+  const input = page.getByLabel('Upload Desktop Image / GIF');
+  for (const [name, length, message] of [
+    ['too-large.gif', 50 * 1024 * 1024 + 1, 'GIFs must be 50 MB or smaller.'],
+    ['too-large.png', 5 * 1024 * 1024 + 1, 'Images must be 5 MB or smaller.'],
+  ]) {
+    // Playwright caps in-memory upload buffers at 50 MB; use a local fixture.
+    const path = test.info().outputPath(name);
+    await writeFile(path, Buffer.alloc(length));
+    await input.setInputFiles(path);
+    await expect(page.getByText(message, { exact: true })).toBeVisible();
+    await expect(page.getByAltText('Desktop preview for slide 1')).toHaveAttribute('src', '/media/wide.svg');
+  }
+  expect(state.uploads).toHaveLength(0); expect(state.saves).toHaveLength(0); expect(state.errors).toEqual([]);
+});
+
+test('a Cloudinary rejection preserves the saved hero and permits retrying the same file', async ({ page }) => {
+  const state = await fixture(page, [defaults[0]]);
+  state.uploadError = 'Cloudinary rejected this file because it exceeds your account’s upload limit. Reduce the file size or increase the upload limit in your Cloudinary account.';
+  await page.goto(admin + '/images');
+  const input = page.getByLabel('Upload Mobile Image / GIF');
+  await input.setInputFiles({ name: 'animated.gif', mimeType: 'image/gif', buffer: gif });
+  await expect(page.getByText(state.uploadError, { exact: true })).toBeVisible();
+  await expect(page.getByAltText('Mobile preview for slide 1')).toHaveAttribute('src', '/media/portrait.svg');
+  await expect(page.getByRole('heading', { name: 'Loading...', exact: true })).toHaveCount(0);
+  expect(state.saves).toHaveLength(0);
+  state.uploadError = null;
+  await input.setInputFiles({ name: 'animated.gif', mimeType: 'image/gif', buffer: gif });
+  await expect(page.getByAltText('Mobile preview for slide 1')).toHaveAttribute('src', '/media/animated.gif');
+  expect(state.uploads).toHaveLength(2); expect(state.errors).toEqual([]);
 });

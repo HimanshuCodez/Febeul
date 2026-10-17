@@ -4,6 +4,7 @@ import { unlink } from 'node:fs/promises';
 import { fileTypeFromFile } from 'file-type';
 import { rejectUnsafeInput } from './security.js';
 import { PRODUCT_UPLOAD_MAX_FILES, PRODUCT_IMAGE_MAX_BYTES, PRODUCT_IMAGE_TYPES } from '../../shared/productUploads.js';
+import { CMS_GIF_MAX_BYTES, CMS_MEDIA_TYPES, cmsUploadLimit, cmsUploadSizeMessage } from '../../shared/cmsUploads.js';
 
 const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']);
 const storage = multer.diskStorage({ filename: (_req, _file, callback) => callback(null, randomUUID()) });
@@ -23,18 +24,29 @@ const productParser = multer({
         cb(valid ? null : new Error('Invalid file type.'), valid);
     },
 });
-function checked(middleware, product = false) {
+const cmsParser = multer({
+    storage,
+    // Busboy signals its limit when the byte count equals it. The extra byte
+    // makes the documented maximum inclusive; the checked size below enforces it.
+    limits: { fileSize: CMS_GIF_MAX_BYTES + 1, files: 1, fields: 10, fieldSize: 16 * 1024, parts: 11 },
+    fileFilter: (_req, file, cb) => cb(CMS_MEDIA_TYPES.includes(file.mimetype) ? null : new Error('Invalid file type.'), CMS_MEDIA_TYPES.includes(file.mimetype)),
+});
+function checked(middleware, profile = 'default') {
     return (req, res, next) => middleware(req, res, async error => {
         const files = req.file ? [req.file] : Array.isArray(req.files) ? req.files : Object.values(req.files || {}).flat();
         const cleanup = () => { for (const file of files) unlink(file.path).catch(() => {}); };
         res.once('finish', cleanup);
         res.once('close', cleanup);
         const fail = error => {
-            if (product) {
+            if (profile === 'product') {
                 error.uploadMessage = error.code === 'LIMIT_FILE_COUNT' ? `Upload up to ${PRODUCT_UPLOAD_MAX_FILES} new images across all variations at a time.`
                     : error.code === 'LIMIT_FILE_SIZE' ? 'Each product image must be 5 MB or smaller.'
                     : error.code === 'LIMIT_UNEXPECTED_FILE' ? 'Upload product images under their variation.'
                     : error.message === 'Invalid file type.' ? 'Use valid JPG, PNG, WebP or GIF images.' : undefined;
+            } else if (profile === 'cms') {
+                error.uploadMessage = error.code === 'LIMIT_FILE_SIZE' ? error.uploadMessage || 'GIFs must be 50 MB or smaller. Other images: 5 MB; videos: 20 MB.'
+                    : ['LIMIT_FILE_COUNT', 'LIMIT_UNEXPECTED_FILE'].includes(error.code) ? 'Upload one media file at a time using the image field.'
+                    : error.message === 'Invalid file type.' ? 'Use a valid JPG, PNG, WebP, GIF, MP4, WebM, Ogg or MOV file.' : undefined;
             }
             cleanup(); return next(error);
         };
@@ -43,7 +55,13 @@ function checked(middleware, product = false) {
             for (const file of files) {
                 const detected = await fileTypeFromFile(file.path);
                 const declared = file.mimetype === 'image/jpg' ? 'image/jpeg' : file.mimetype;
-                if (!detected || !allowed.has(detected.mime) || detected.mime !== declared || (detected.mime.startsWith('image/') && file.size > 5 * 1024 * 1024)) throw new Error('Invalid file type.');
+                if (!detected || !allowed.has(detected.mime) || detected.mime !== declared) throw new Error('Invalid file type.');
+                if (profile === 'cms' && file.size > cmsUploadLimit(detected.mime)) {
+                    const error = new multer.MulterError('LIMIT_FILE_SIZE');
+                    error.uploadMessage = cmsUploadSizeMessage(detected.mime);
+                    return fail(error);
+                }
+                if (profile !== 'cms' && detected.mime.startsWith('image/') && file.size > 5 * 1024 * 1024) throw new Error('Invalid file type.');
             }
             rejectUnsafeInput(req, res, next);
         } catch {
@@ -51,7 +69,8 @@ function checked(middleware, product = false) {
         }
     });
 }
-export const productUpload = { any: () => checked(productParser.any(), true) };
+export const productUpload = { any: () => checked(productParser.any(), 'product') };
+export const cmsUpload = { single: name => checked(cmsParser.single(name), 'cms') };
 export default {
     single: name => checked(parser.single(name)),
     array: (name, count) => checked(parser.array(name, count)),

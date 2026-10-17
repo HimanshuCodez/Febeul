@@ -94,11 +94,17 @@ const uploadCmsImage = async (req, res) => {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        const result = await cloudinary.uploader.upload(req.file.path, { resource_type: 'auto' });
+        // Keep the original GIF and all frames; do not flatten it into a still image.
+        const result = await cloudinary.uploader.upload(req.file.path, { resource_type: 'auto', timeout: 120000 });
         res.json({ success: true, imageUrl: result.secure_url });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, message: 'Error uploading image' });
+        const providerMessage = String(error?.message || error?.error?.message || '');
+        console.error('CMS media upload failed', { code: error?.http_code });
+        if (error?.http_code === 413 || /file size too large|file too large|exceeds.*(?:size|limit)|maximum file size/i.test(providerMessage)) {
+            return res.status(413).json({ success: false, code: 'MEDIA_PROVIDER_SIZE_LIMIT', message: 'Cloudinary rejected this file because it exceeds your account’s upload limit. Reduce the file size or increase the upload limit in your Cloudinary account.' });
+        }
+        if (error?.http_code === 499 || error?.code === 'ETIMEDOUT') return res.status(504).json({ success: false, message: 'The media upload timed out. Please retry with a smaller file or a stable connection.' });
+        res.status(500).json({ success: false, message: 'Error uploading media. Please try again.' });
     }
 };
 

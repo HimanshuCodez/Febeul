@@ -1,7 +1,7 @@
 import express from 'express';
 import { getCmsContent, updateCmsContent, uploadCmsImage } from '../controllers/cmsController.js';
 import adminAuth from '../middleware/adminAuth.js';
-import upload from '../middleware/multer.js';
+import { cmsUpload } from '../middleware/multer.js';
 import { getAdminGiftOffer } from '../utils/homeGiftOffer.js';
 
 const cmsRouter = express.Router();
@@ -9,6 +9,6 @@ const cmsRouter = express.Router();
 cmsRouter.get('/admin/homeGiftOffer', adminAuth, getAdminGiftOffer);
 cmsRouter.get('/:name', getCmsContent);
 cmsRouter.post('/', adminAuth, updateCmsContent);
-cmsRouter.post('/upload', adminAuth, upload.single('image'), uploadCmsImage);
+cmsRouter.post('/upload', adminAuth, cmsUpload.single('image'), uploadCmsImage);
 
 export default cmsRouter;

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
 import Loading from '../../components/Loading';
+import { CMS_BANNER_TYPES, CMS_BANNER_UPLOAD_HINT, validateCmsUpload } from '../../../../shared/cmsUploads.js';
 
 const FONT_GROUPS = {
   'Sans-Serif (Modern)': ['Inter', 'Roboto', 'Montserrat', 'Poppins', 'Open Sans', 'Lato', 'Raleway', 'Nunito', 'Ubuntu'],
@@ -14,7 +15,7 @@ const FONT_GROUPS = {
 };
 
 const SYSTEM_FONTS = ['Arial', 'Verdana', 'Times New Roman', 'Georgia', 'Courier New', 'system-ui'];
-const BANNER_MEDIA_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const BANNER_MEDIA_TYPES = CMS_BANNER_TYPES;
 
 const FontSelect = ({ value, onChange }) => (
   <select
@@ -133,12 +134,14 @@ const Images = ({ token }) => {
       toast.error('Choose a JPG, PNG, WebP or animated GIF');
       return;
     }
+    const uploadError = validateCmsUpload(file);
+    if (uploadError) { toast.error(uploadError); return; }
     const formData = new FormData();
     formData.append('image', file);
     setLoading(true);
     try {
       const response = await axios.post(`${backendUrl}/api/cms/upload`, formData, {
-        headers: { token, 'Content-Type': 'multipart/form-data' },
+        headers: { token },
       });
 
       if (response.data.success) {
@@ -199,6 +202,7 @@ const Images = ({ token }) => {
         {activeAccordion === 'hero' && (
           <div className="p-6 bg-white space-y-8">
             <p className="text-sm text-gray-600">Upload JPG, PNG, WebP or animated GIF banners in any dimensions. Each slide fills the available width and adjusts its height to show the full image without cropping. Add a mobile version if you want different artwork on phones; otherwise the desktop version is used.</p>
+            <p className="text-xs text-gray-500">{CMS_BANNER_UPLOAD_HINT}</p>
             {slides.map((slide, index) => (
               <div key={index} className="border p-4 rounded-md relative bg-gray-50 shadow-inner">
                 <button onClick={() => setSlides(slides.filter((_, i) => i !== index))} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">X</button>
