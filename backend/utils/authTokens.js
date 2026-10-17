@@ -7,7 +7,7 @@ export const safeEqual = (a, b) => {
     const left = Buffer.from(a), right = Buffer.from(b);
     return left.length === right.length && timingSafeEqual(left, right);
 };
-export const signToken = (claims, audience, expiresIn = '2h') => jwt.sign(claims, process.env.JWT_SECRET, {
+export const signToken = (claims, audience, expiresIn = audience === 'admin' ? '3d' : '2h') => jwt.sign(claims, process.env.JWT_SECRET, {
     algorithm: 'HS256', issuer, audience, expiresIn,
 });
 export const verifyToken = (token, audience) => {
@@ -26,5 +26,5 @@ export const envAccounts = () => {
     ].filter(a => a.email?.trim() && a.password).map(a => ({ ...a, email: a.email.trim().toLowerCase() }));
 };
 const fingerprint = account => createHmac('sha256', process.env.JWT_SECRET).update(JSON.stringify([account.email, account.password, account.role])).digest('hex');
-export const envToken = account => signToken({ email: account.email, source: 'env', fingerprint: fingerprint(account) }, 'admin', '1h');
+export const envToken = account => signToken({ email: account.email, source: 'env', fingerprint: fingerprint(account) }, 'admin');
 export const envAccountForToken = claims => envAccounts().find(a => a.email === claims.email && safeEqual(claims.fingerprint, fingerprint(a)));

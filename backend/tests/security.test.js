@@ -170,6 +170,56 @@ test('tokens are expiring, audience-specific, and contain no admin password; leg
     assert.equal((await request('/identity', {}, expired)).status, 401);
 });
 
+test('admin password and OTP logins last 72 hours while customer sessions remain two hours', async (t) => {
+    const assertAdminSession = result => {
+        assert.equal(result.status, 200);
+        assert.equal(result.data.success, true);
+        const claims = verifyToken(result.data.token, 'admin');
+        assert.equal(claims.exp - claims.iat, 72 * 60 * 60);
+        const clock = t.mock.method(Date, 'now', () => (claims.exp - 1) * 1000);
+        try {
+            assert.doesNotThrow(() => verifyToken(result.data.token, 'admin'));
+            clock.mock.mockImplementation(() => claims.exp * 1000);
+            assert.throws(() => verifyToken(result.data.token, 'admin'), { name: 'TokenExpiredError' });
+        } finally {
+            clock.mock.restore();
+        }
+    };
+    for (const account of envAccounts()) {
+        assertAdminSession(await request('/admin-login', { email: account.email, password: account.password }));
+    }
+    const password = 'database-admin-password';
+    for (const account of [admin, staff]) {
+        account.password = await bcrypt.hash(password, 4);
+        await account.save();
+        assertAdminSession(await request('/admin-login', { email: account.email, password }));
+        const otp = await issueOtp(account, 'admin-login');
+        assertAdminSession(await request('/admin-otp', { email: account.email, otp }));
+    }
+    const login = await request('/login', { email: customer.email, password: 'customer-password' });
+    assert.equal(login.data.success, true);
+    const claims = verifyToken(login.data.token, 'customer');
+    assert.equal(claims.exp - claims.iat, 2 * 60 * 60);
+});
+
+test('three-day admin sessions are still revoked by credential changes', async () => {
+    const envSession = envToken(envAccounts()[0]);
+    assert.equal((await request('/api/product/update', {}, envSession)).status, 200);
+    const originalPassword = process.env.ADMIN_PASSWORD;
+    try {
+        process.env.ADMIN_PASSWORD = 'changed-admin-password';
+        assert.equal((await request('/api/product/update', {}, envSession)).status, 401);
+    } finally {
+        process.env.ADMIN_PASSWORD = originalPassword;
+    }
+    const dbSession = userToken(admin, 'admin');
+    assert.equal((await request('/api/product/update', {}, dbSession)).status, 200);
+    const otp = await issueOtp(admin, 'password-reset');
+    const reset = await request('/reset', { email: admin.email, otp, newPassword: 'replacement-admin-password' });
+    assert.equal(reset.data.success, true);
+    assert.equal((await request('/api/product/update', {}, dbSession)).status, 401);
+});
+
 test('account identity cannot be supplied by the client; revoked and blocked sessions fail', async () => {
     const token = userToken(customer);
     const identity = await request('/identity', { userId: String(other._id) }, token);
