@@ -42,6 +42,8 @@ test('admin edits text/colors, previews a reveal and publishes to the home page'
   await page.goto(admin + '/home-gift-offer');
   await expect(page.getByRole('heading', { name: 'Home Gift Offer', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Home Gift Offer', exact: true })).toHaveAttribute('aria-current', 'page');
+  await page.getByLabel('Discount percentage', { exact: true }).fill('35');
+  await expect(page.getByRole('complementary', { name: 'Gift offer live preview' }).locator('.gift-offer-discount')).toHaveText('35% OFF');
   await page.getByLabel('Popup heading', { exact: true }).fill('A lovely gift for you');
   await page.getByLabel('Reveal button text', { exact: true }).fill('Open my surprise');
   await page.getByLabel('Offer background', { exact: true }).fill('#f9aeaf');
@@ -54,12 +56,16 @@ test('admin edits text/colors, previews a reveal and publishes to the home page'
   const saved = state.calls.find(call => call.method === 'POST');
   expect(saved.token).toBe('local-admin'); expect(saved.body.name).toBe('homeGiftOffer');
   expect(saved.body.content.title).toBe('A lovely gift for you');
+  expect(saved.body.content.badgeOffer).toBe('35% OFF');
   await page.reload(); await expect(page.getByLabel('Popup heading', { exact: true })).toHaveValue('A lovely gift for you');
+  await expect(page.getByLabel('Discount percentage', { exact: true })).toHaveValue('35');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('heading', { name: 'Home Gift Offer', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: test.info().outputPath('gift-admin-mobile.png'), fullPage: true });
-  await page.goto(shop + '/'); await page.getByRole('button', { name: 'Open your gift offer' }).click();
+  await page.goto(shop + '/');
+  await expect(page.getByRole('button', { name: 'Open your gift offer' }).locator('.gift-offer-discount')).toHaveText('35% OFF');
+  await page.getByRole('button', { name: 'Open your gift offer' }).click();
   const popup = page.getByRole('dialog', { name: 'A lovely gift for you' });
   await expect(popup).toBeVisible(); await expect(popup).toHaveCSS('background-color', 'rgb(249, 174, 175)');
   await expect(popup.getByRole('button', { name: 'Open my surprise' })).toHaveCSS('background-color', 'rgb(91, 35, 64)');

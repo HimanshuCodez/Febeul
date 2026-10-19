@@ -5,7 +5,7 @@ import { ArrowRight, Check, Copy, Gift, LoaderCircle, LockKeyhole, Pause, Play, 
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
 import { analytics } from '../analytics/runtime';
-import { isPublicGiftCoupon, validateHomeGiftOffer } from '../../../shared/homeGiftOffer.js';
+import { getGiftDiscountLabel, isPublicGiftCoupon, validateHomeGiftOffer } from '../../../shared/homeGiftOffer.js';
 import './HomeGiftOffer.css';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -138,6 +138,7 @@ export default function HomeGiftOffer({ open, onOpenChange }) {
   };
 
   if (!settings?.enabled || waitingForConsent) return null;
+  const discountLabel = getGiftDiscountLabel(settings.badgeOffer);
   const colors = { '--gift-bg': settings.backgroundColor, '--gift-ink': settings.textColor, '--gift-button': settings.buttonColor, '--gift-button-ink': settings.buttonTextColor, '--gift-paper': settings.ticketColor };
 
   return <>
@@ -149,6 +150,7 @@ export default function HomeGiftOffer({ open, onOpenChange }) {
         <Motion.button type="button" aria-label="Open your gift offer" aria-haspopup="dialog" onClick={() => { setMessage(''); onOpenChange(true); }}
           whileHover={motionStopped ? undefined : { y: -5, scale: 1.06 }} whileTap={motionStopped ? undefined : { scale: 0.95 }} className="gift-offer-launcher-button">
           <GiftArtwork compact />
+          {discountLabel && <span className="gift-offer-discount">{discountLabel}</span>}
         </Motion.button>
       </Motion.div>}
     </AnimatePresence>

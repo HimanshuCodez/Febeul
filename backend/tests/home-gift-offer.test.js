@@ -100,7 +100,7 @@ test('only available public coupons may be promoted; private and Luxe codes are 
 });
 
 test('disabled drafts remain editable and other CMS responses retain their format', async () => {
-  assert.equal((await save({ ...content(), enabled: false })).status, 201);
+  assert.equal((await save({ ...content(), enabled: false, badgeOffer: '' })).status, 201);
   assert.equal((await request('/homeGiftOffer')).data.content.couponCode, '');
   const other = await request('', { auth: adminToken(), body: { name: 'existingTestContent', content: { heading: 'Unchanged' } } });
   assert.equal(other.status, 201);

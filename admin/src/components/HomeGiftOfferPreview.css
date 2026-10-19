@@ -1,0 +1,20 @@
+/* Use the storefront stylesheet; only adapt fixed positioning to the editor. */
+.home-gift-preview { --primary-font: 'Inter', sans-serif; --accent-font: 'Playfair Display'; }
+.home-gift-preview .gift-offer-dialog { position: relative; inset: auto; width: 100%; max-height: none; margin: 0; box-shadow: 0 8px 24px #21160e12; }
+.home-gift-preview .gift-offer-launcher { position: relative; inset: auto; z-index: auto; display: inline-block; margin: 2px auto 12px; }
+.home-gift-preview-launcher-stage { margin-bottom: 18px; padding: 16px 12px; border: 1px solid #eee7dc; border-radius: 16px; background: radial-gradient(ellipse at center, #fff7dd80, transparent 70%), #faf9f6; text-align: center; }
+.home-gift-preview-label { color: #776e62; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.home-gift-preview-hint { margin-top: 5px; color: #928575; font-size: 10px; line-height: 1.5; }
+.home-gift-preview-controls { display: flex; gap: 4px; margin-bottom: 14px; padding: 4px; border: 1px solid #eae5dd; border-radius: 10px; background: #f7f5f1; }
+.home-gift-preview-controls button { flex: 1; min-height: 36px; padding: 7px; border-radius: 7px; color: #8a7d6c; font-size: 11px; }
+.home-gift-preview-controls button[aria-pressed='true'] { background: white; color: #55452e; box-shadow: 0 1px 4px #44301612; }
+.home-gift-preview-controls button:focus-visible { outline: 2px solid #a27a40; outline-offset: 2px; }
+.home-gift-preview .gift-offer-header { padding-inline: 18px; }
+.home-gift-preview .gift-offer-stage { margin-inline: 18px; }
+.home-gift-preview .gift-offer-actions { padding-inline: 18px; }
+.home-gift-preview .gift-offer-footer { margin-inline: 18px; }
+.home-gift-preview .gift-offer-eyebrow { gap: 5px; font-size: 8px; letter-spacing: 0.1em; }
+.home-gift-preview .gift-offer-title { font-size: 29px; }
+.home-gift-preview .gift-offer-seal { flex-wrap: wrap; gap: 5px; padding-inline: 9px; }
+.home-gift-preview .gift-offer-reveal { animation: gift-offer-entrance 450ms ease both; }
+@media (prefers-reduced-motion: reduce) { .home-gift-preview .gift-offer-playback { display: none; } }

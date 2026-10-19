@@ -21,7 +21,7 @@ export const DEFAULT_HOME_GIFT_OFFER = Object.freeze({
 
 export const GIFT_TEXT_FIELDS = [
   ['badgeLabel', 'Badge label', 16],
-  ['badgeOffer', 'Badge main text', 12],
+  ['badgeOffer', 'Discount label', 12],
   ['badgeCaption', 'Badge bottom text', 16],
   ['title', 'Popup heading', 80],
   ['ticketLabel', 'Ticket label', 24],
@@ -39,6 +39,13 @@ export const GIFT_COLOR_FIELDS = [
   ['ticketColor', 'Ticket background'],
 ];
 
+// Keep existing CMS records compatible while showing only a percentage on the gift.
+export function getGiftDiscountLabel(badgeOffer) {
+  const match = typeof badgeOffer === 'string' && badgeOffer.match(/^\s*(\d+(?:\.\d+)?)\s*%\s*(?:off)?\s*$/i);
+  const percentage = match ? Number(match[1]) : 0;
+  return percentage > 0 && percentage <= 100 ? `${percentage}% OFF` : '';
+}
+
 export function validateHomeGiftOffer(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Enter valid gift offer settings.');
   if (typeof input.enabled !== 'boolean') throw new Error('Choose whether the gift offer is enabled.');
@@ -48,7 +55,7 @@ export function validateHomeGiftOffer(input) {
       throw new Error(`${label} must be plain text, up to ${max} characters.`);
     }
     result[key] = input[key].trim();
-    if (!result[key] && !['description', 'terms', 'couponCode'].includes(key)) throw new Error(`${label} is required.`);
+    if (!result[key] && !['description', 'terms', 'couponCode'].includes(key) && !(key === 'badgeOffer' && !input.enabled)) throw new Error(`${label} is required.`);
   }
   result.couponCode = result.couponCode.toUpperCase();
   if (result.enabled && !result.couponCode) throw new Error('Choose an existing coupon before enabling this offer.');
