@@ -17,13 +17,13 @@ export function validateItems(items, paymentMethod) {
 
 export function couponDiscountFor(coupon, items, user, paymentMethod) {
     if (!coupon || !coupon.isActive || isCouponExpired(coupon)) throw new Error('Invalid or expired coupon.');
+    if (coupon.userType === 'membership' && !items.every(i => i.sku === 'LUXE-MEMBERSHIP')) throw new Error('This coupon is valid for Luxe membership only.');
     if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) throw new Error('Coupon usage limit reached.');
     const uses = (coupon.usersWhoUsed || []).filter(u => String(u.userId) === String(user._id)).length;
     if (coupon.usageLimitPerUser && uses >= coupon.usageLimitPerUser) throw new Error('Coupon usage limit reached.');
     if ((coupon.offerType === 'prepaid' && paymentMethod === 'COD') || (coupon.offerType === 'cod' && paymentMethod !== 'COD')) throw new Error('Coupon is not valid for this payment method.');
     const luxe = user.isLuxeMember && new Date(user.luxeMembershipExpires) > new Date();
     if (coupon.userType === 'luxe' && !luxe) throw new Error('Coupon requires an active membership.');
-    if (coupon.userType === 'membership' && !items.every(i => i.sku === 'LUXE-MEMBERSHIP')) throw new Error('Coupon requires a membership purchase.');
     if (coupon.specificUsers?.length && !coupon.specificUsers.some(id => id === user.email || id === String(user._id))) throw new Error('Coupon unavailable for this account.');
     const eligible = items.filter(i => !coupon.applicableSKUs?.length || coupon.applicableSKUs.includes(i.sku));
     const amount = eligible.reduce((total, i) => total + i.price * i.quantity - (i.discountAmount || 0), 0);

@@ -8,6 +8,7 @@ const address = { _id: 'address-home', name: 'Local shopper', address: '12 Rose 
 const product = { _id: productId, name: 'Rose satin pyjama set', price: 499, quantity: 2, color: 'Dusty rose', size: 'M', image, appliedCoupon: 'SAVE100', discountAmount: 100, variations: [{ color: 'Dusty rose', sku: 'ROSE', images: [image], sizes: [{ size: 'M', price: 499 }] }] };
 const wrap = { _id: 'wrap-rose', name: 'Rose gift box', price: 35, image };
 const offer = { _id: 'prepaid-offer', code: 'ONLINE50', offerType: 'prepaid', isActive: true, isLifetime: true, expiryDate: null, discountType: 'fixed', discountValue: 50, description: 'Save ₹50 on eligible online orders.' };
+const membershipOffer = { ...offer, _id: 'membership-offer', code: 'JOIN30', userType: 'membership', discountValue: 30 };
 
 async function fixture(page, options = {}) {
   const state = {
@@ -35,8 +36,11 @@ async function fixture(page, options = {}) {
         return reply({ success: true, cartItems: options.empty ? [] : [product], giftWrap: options.giftWrap ? wrap : null });
       }
       if (url.pathname === '/api/order/get-key') return reply({ success: true, key: 'rzp_test_local' });
-      if (url.pathname === '/api/coupon/all') return reply({ success: true, coupons: options.offers ? [offer] : [] });
-      if (url.pathname === '/api/coupon/apply') return reply({ success: true, code: body.code, discountAmount: 50, offerType: 'prepaid', message: 'Coupon applied' });
+      if (url.pathname === '/api/coupon/all') return reply({ success: true, coupons: [...(options.offers ? [offer] : []), ...(options.membershipOffer ? [membershipOffer] : [])] });
+      if (url.pathname === '/api/coupon/apply') {
+        if (body.code === 'JOIN30') return route.fulfill({ status: 400, json: { success: false, message: 'This coupon is valid for Luxe membership only.' } });
+        return reply({ success: true, code: body.code, discountAmount: 50, offerType: 'prepaid', message: 'Coupon applied' });
+      }
       if (url.pathname === '/api/giftwrap/list') return reply({ success: true, data: [wrap] });
       if (url.pathname.startsWith('/api/user/pincode-check/')) return reply([{ Status: 'Success', PostOffice: [{ District: 'Delhi', State: 'Delhi' }] }]);
       if (url.pathname === '/api/user/add-address') { state.user.addresses.push({ ...body.address, _id: 'address-new' }); return reply({ success: true }); }
@@ -59,6 +63,34 @@ async function fixture(page, options = {}) {
 const summary = page => page.getByRole('complementary', { name: 'Order Summary' });
 const payment = page => page.getByRole('radio', { name: /UPI \/ Net Banking \/ Card/ });
 const cod = page => page.getByRole('radio', { name: /Cash on Delivery/ });
+
+for (const member of [false, true]) {
+  test(`membership coupon is rejected at product checkout for ${member ? 'Luxe members' : 'non-members'}`, async ({ page }) => {
+    const state = await fixture(page, { member, membershipOffer: true });
+    await page.setViewportSize({ width: member ? 390 : 1280, height: 900 });
+    await expect(summary(page).getByRole('button', { name: /Available Offers/ })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Use this address' }).click();
+    await payment(page).check();
+    // A membership offer must never be automatically selected for a product order.
+    expect(state.calls.filter(call => call.path === '/api/coupon/apply')).toHaveLength(0);
+    const input = page.getByRole('textbox', { name: 'Coupon code', exact: true });
+    await input.fill(' join30 ');
+    await input.press('Enter');
+    await expect(summary(page).getByRole('alert')).toHaveText('This coupon is valid for Luxe membership only.');
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByLabel('Order total')).toHaveText('₹898.00');
+    await expect(page.getByRole('button', { name: 'Remove coupon', exact: true })).toHaveCount(0);
+    expect(state.calls.filter(call => call.path === '/api/coupon/apply')).toHaveLength(1);
+    expect(state.calls.find(call => call.path === '/api/coupon/apply').body.code).toBe('JOIN30');
+    // The customer can correct the entry and use a product coupon normally.
+    await input.fill('ONLINE50');
+    await expect(summary(page).getByRole('alert')).toHaveCount(0);
+    await page.getByRole('button', { name: /^apply$/i }).click();
+    await expect(page.getByLabel('Order total')).toHaveText('₹848.00');
+    await expect(summary(page).getByText('Coupon Applied', { exact: true })).toBeVisible();
+    expect(state.errors).toEqual([]);
+  });
+}
 
 test('responsive checkout keeps totals correct through gift wrapping, COD, failure and retry', async ({ page }, testInfo) => {
   const state = await fixture(page);

@@ -109,8 +109,52 @@ test('membership purchase coupons are listed only for the membership page', asyn
     assert.equal(membership.data.discountAmount, 30);
     const product = await request('/apply-product-coupon', { code: 'JOIN30', productItem: { sku: 'STYLE-ROSE', price: 500, quantity: 1 }, userId: String(customer._id) });
     assert.equal(product.status, 400);
+    assert.equal(product.data.message, 'This coupon is valid for Luxe membership only.');
     const cart = await request('/apply', { code: 'JOIN30', items: [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }], userId: String(customer._id) });
     assert.equal(cart.status, 400);
+    assert.equal(cart.data.success, false);
+    assert.equal(cart.data.message, 'This coupon is valid for Luxe membership only.');
+    assert.equal(cart.data.discountAmount, undefined);
+  });
+
+  await t.test('checkout rejects membership coupons for members, non-members, mixed carts and misleading item names', async () => {
+    const membership = { sku: 'LUXE-MEMBERSHIP', price: 129, quantity: 1 };
+    const product = { sku: 'STYLE-ROSE', price: 500, quantity: 1 };
+    const savedCoupon = await couponModel.findOne({ code: 'JOIN30' });
+    try {
+      for (const isLuxeMember of [false, true]) {
+        const shopper = await userModel.findByIdAndUpdate(customer._id, { isLuxeMember, luxeMembershipExpires: '2099-12-31' }, { new: true });
+        for (const items of [[product], [membership, product], [{ ...product, name: 'Febeul Luxe Membership' }]]) {
+          const result = await request('/apply', { code: 'join30', items, paymentMethod: 'card' });
+          assert.equal(result.status, 400);
+          assert.deepEqual(result.data, { success: false, message: 'This coupon is valid for Luxe membership only.' });
+          assert.throws(() => couponDiscountFor(savedCoupon, items, shopper, 'Razorpay'), { message: result.data.message });
+        }
+        // Membership purchases still receive the discount, including for new members.
+        assert.equal(couponDiscountFor(savedCoupon, [membership], shopper, 'Razorpay'), 30);
+        // Discounts for existing Luxe members are a separate, valid product offer.
+        const luxeOffer = await request('/apply', { code: 'LUXESHOP', items: [product] });
+        assert.equal(luxeOffer.status, isLuxeMember ? 200 : 403);
+        if (isLuxeMember) assert.equal(luxeOffer.data.discountAmount, 20);
+      }
+    } finally {
+      await userModel.findByIdAndUpdate(customer._id, { isLuxeMember: false });
+    }
+    assert.equal((await couponModel.findOne({ code: 'JOIN30' })).usageCount, 0);
+  });
+
+  await t.test('membership restriction takes priority over payment restrictions at product checkout', async () => {
+    const created = await request('/add', { code: 'JOINPREPAID', userType: 'membership', offerType: 'prepaid', discountType: 'fixed', discountValue: 30, isLifetime: true }, adminToken());
+    assert.equal(created.data.success, true);
+    const items = [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }];
+    for (const paymentMethod of [undefined, 'card', 'cod']) {
+      const result = await request('/apply', { code: 'JOINPREPAID', items, paymentMethod });
+      assert.equal(result.status, 400);
+      assert.equal(result.data.message, 'This coupon is valid for Luxe membership only.');
+    }
+    assert.throws(() => couponDiscountFor(created.data.coupon, items, customer, 'COD'), {
+      message: 'This coupon is valid for Luxe membership only.',
+    });
   });
 });
 

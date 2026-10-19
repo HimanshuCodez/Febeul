@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
@@ -10,6 +10,8 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
     const [couponCode, setCouponCode] = useState('');
     const [appliedCode, setAppliedCode] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [couponError, setCouponError] = useState('');
+    const errorId = useId();
     const [offers, setOffers] = useState([]);
     const [isExpanded, setIsExpanded] = useState(false);
     const { token, user } = useAuthStore();
@@ -20,6 +22,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
         if (appliedCoupon) {
             setAppliedCode(appliedCoupon.code);
             setCouponCode(appliedCoupon.code);
+            setCouponError('');
         } else {
             setAppliedCode(null);
             setCouponCode('');
@@ -34,6 +37,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                 if (response.data.success) {
                     const filteredOffers = response.data.coupons.filter(c =>
                         c.isActive &&
+                        c.userType !== 'membership' &&
                         !isCouponExpired(c) &&
                         (c.offerType === 'prepaid' || c.offerType === 'cod') // Only show payment-specific coupons
                     );
@@ -46,23 +50,29 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
         fetchOffers();
     }, [url, token]);
 
+    const showCouponError = message => {
+        setCouponError(message);
+        toast.error(message);
+    };
+
     const handleApplyCoupon = async (codeToApply = couponCode) => {
         if (loading) return;
+        setCouponError('');
         const code = codeToApply.trim().toUpperCase();
         if (!code) {
-            toast.error('Please enter a coupon code.');
+            showCouponError('Please enter a coupon code.');
             return;
         }
 
         // Check if this coupon is already applied to any item
         const alreadyApplied = items.some(item => item.appliedCoupon?.toUpperCase() === code);
         if (alreadyApplied) {
-            toast.error('This coupon is already applied to an item in your cart.');
+            showCouponError('This coupon is already applied to an item in your cart.');
             return;
         }
 
         if (!token) {
-            toast.error('You must be logged in to apply a coupon.');
+            showCouponError('You must be logged in to apply a coupon.');
             return;
         }
 
@@ -82,12 +92,14 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                 onCouponApply(response.data);
                 if (codeToApply !== couponCode) setCouponCode(code);
             } else {
-                toast.error(response.data.message);
+                showCouponError(response.data.message || 'Failed to apply coupon.');
+                setAppliedCode(null);
                 onCouponApply(null);
             }
         } catch (error) {
             console.error("Error applying coupon:", error);
-            toast.error(error.response?.data?.message || 'Failed to apply coupon.');
+            showCouponError(error.response?.data?.message || 'Failed to apply coupon.');
+            setAppliedCode(null);
             onCouponApply(null);
         } finally {
             setLoading(false);
@@ -95,6 +107,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
     };
 
     const handleRemoveCoupon = () => {
+        setCouponError('');
         setAppliedCode(null);
         setCouponCode('');
         onCouponApply(null);
@@ -123,11 +136,13 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-pink-500 transition-colors" />
                                 <input
                                     aria-label="Coupon code"
+                                    aria-invalid={Boolean(couponError)}
+                                    aria-describedby={couponError ? errorId : undefined}
                                     type="text"
                                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all text-sm font-medium uppercase placeholder:normal-case"
                                     placeholder="Enter coupon code..."
                                     value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
                                     disabled={loading}
                                     onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); handleApplyCoupon(); } }}
                                 />
@@ -168,6 +183,12 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                     </Motion.div>
                 )}
             </AnimatePresence>
+
+            {couponError && (
+                <p id={errorId} role="alert" className="mt-3 text-sm text-red-600">
+                    {couponError}
+                </p>
+            )}
 
             {offers.length > 0 && (
                 <div className="mt-6 pt-4 border-t border-dashed border-gray-100">

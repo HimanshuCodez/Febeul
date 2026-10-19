@@ -275,6 +275,11 @@ export const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Coupon has expired.' });
         }
 
+        // Explain the purchase restriction before checking payment or customer eligibility.
+        if (coupon.userType === 'membership' && !items.every(item => item.sku === 'LUXE-MEMBERSHIP')) {
+            return res.status(400).json({ success: false, message: 'This coupon is valid for Luxe membership only.' });
+        }
+
         // Check Payment Method Restriction
         if (coupon.offerType === 'prepaid' && paymentMethod && paymentMethod !== 'card') {
             return res.status(400).json({ success: false, message: 'This coupon is only applicable for prepaid orders.' });
@@ -311,14 +316,6 @@ export const applyCoupon = async (req, res) => {
                 }
             }
 
-        }
-
-        // Membership-only coupons can only be redeemed while purchasing the Luxe Membership itself
-        if (coupon.userType === 'membership') {
-            const isMembershipCart = items.every(item => item.sku === 'LUXE-MEMBERSHIP' || item.name === 'Febeul Luxe Membership');
-            if (!isMembershipCart) {
-                return res.status(400).json({ success: false, message: 'This coupon is only valid for the Luxe Membership purchase.' });
-            }
         }
 
         let applicableTotal = 0;
@@ -442,13 +439,13 @@ export const applyProductCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Coupon has expired.' });
         }
 
-        if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
-            return res.status(400).json({ success: false, message: 'Coupon has reached its usage limit.' });
-        }
-
         // Membership-only coupons can only be redeemed while purchasing the Luxe Membership itself
         if (coupon.userType === 'membership' && productItem.sku !== 'LUXE-MEMBERSHIP') {
-            return res.status(400).json({ success: false, message: 'This coupon is only valid for the Luxe Membership purchase.' });
+            return res.status(400).json({ success: false, message: 'This coupon is valid for Luxe membership only.' });
+        }
+
+        if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
+            return res.status(400).json({ success: false, message: 'Coupon has reached its usage limit.' });
         }
 
         // Check user-specific usage limit if userId is provided

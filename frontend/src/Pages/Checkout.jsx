@@ -309,7 +309,7 @@ export default function CheckoutPage() {
       try {
         const response = await axios.get(`${backendUrl}/api/coupon/all`, { headers: { token } });
         if (response.data.success) {
-          setActiveOffers(response.data.coupons.filter(c => c.isActive && !isCouponExpired(c)));
+          setActiveOffers(response.data.coupons.filter(c => c.isActive && c.userType !== 'membership' && !isCouponExpired(c)));
         }
       } catch (error) {
         console.error("Failed to fetch active offers", error);
