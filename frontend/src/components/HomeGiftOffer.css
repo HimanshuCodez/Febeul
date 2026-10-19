@@ -13,25 +13,26 @@
   outline-offset: 4px;
 }
 
-/* A small foil invitation that sits quietly alongside the storefront. */
+/* A freestanding animated present, with no card or promotional text around it. */
 .gift-offer-launcher { position: fixed; left: max(16px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom)); z-index: 60; }
-.gift-offer-badge {
+.gift-offer-launcher-button {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 178px;
-  min-height: 76px;
-  padding: 13px 14px;
-  overflow: hidden;
+  display: block;
+  width: 112px;
+  height: 126px;
+  padding: 0;
+  overflow: visible;
   isolation: isolate;
-  border: 1px solid #fff9;
-  border-radius: 19px;
-  background: linear-gradient(125deg, #ffffffa6, #ffffff15 48%, #ffffff70), color-mix(in srgb, var(--gift-bg) 42%, var(--gift-paper));
-  box-shadow: inset 0 0 0 4px #ffffff35, 0 8px 30px #49301a26, 0 2px 5px #49301a12;
-  text-align: left;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
-.gift-offer-badge::after,
+.gift-offer-launcher-button .gift-offer-art { position: absolute; left: 50%; top: 50%; width: 180px; height: 190px; margin: 0; transform: translate(-50%, -50%) scale(0.72); pointer-events: none; }
+.gift-offer-launcher-button .gift-offer-lid { animation: gift-offer-peek 5s ease-in-out infinite; }
+.gift-offer-launcher-button .gift-offer-box::after,
 .gift-offer-primary::after,
 .gift-offer-ticket::after {
   content: '';
@@ -43,16 +44,8 @@
   animation: gift-offer-shine 6s ease-in-out infinite;
   pointer-events: none;
 }
-.gift-offer-dismiss { position: absolute; right: -16px; top: -18px; z-index: 2; display: grid; place-items: center; width: 40px; height: 40px; border: 9px solid transparent; border-radius: 50%; background: var(--gift-paper); background-clip: padding-box; color: var(--gift-muted); }
+.gift-offer-dismiss { position: absolute; right: -8px; top: -5px; z-index: 2; display: grid; place-items: center; width: 40px; height: 40px; border: 9px solid transparent; border-radius: 50%; background: var(--gift-paper); background-clip: padding-box; color: var(--gift-muted); }
 .gift-offer-dismiss:hover { color: var(--gift-ink); }
-.gift-offer-badge-icon { position: relative; display: grid; place-items: center; width: 42px; height: 46px; flex-shrink: 0; border: 1px solid #ffffff90; border-radius: 13px; background: linear-gradient(145deg, #ffffffa0, #ffffff10); color: #8b6026; box-shadow: inset 0 1px 2px #fff9, 0 3px 8px #895e1910; }
-.gift-offer-badge-icon > svg:first-child { animation: gift-offer-wiggle 6s ease-in-out infinite; }
-.gift-offer-badge-sparkle { position: absolute; top: -3px; right: -4px; fill: #fff5; animation: gift-offer-twinkle 3s ease-in-out infinite; }
-.gift-offer-badge-copy { display: grid; min-width: 0; gap: 4px; }
-.gift-offer-badge-label { font-size: 8px; font-weight: 600; letter-spacing: 0.17em; line-height: 1.4; overflow-wrap: anywhere; }
-.gift-offer-badge-offer { font-size: 17px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.15; overflow-wrap: anywhere; }
-.gift-offer-badge-offer > span { font-size: 10px; font-weight: 500; letter-spacing: 0.02em; }
-.gift-offer-badge-arrow { margin-left: auto; flex-shrink: 0; opacity: 0.65; }
 
 /* Native dialog retains focus trapping, Escape, and backdrop behavior. */
 .gift-offer-dialog {
@@ -171,7 +164,7 @@
 @keyframes gift-offer-orbit { to { transform: translate(-50%, -50%) rotate(360deg); } }
 @keyframes gift-offer-twinkle { 0%, 100% { transform: scale(0.7) rotate(-12deg); opacity: 0.3; } 50% { transform: scale(1.1) rotate(12deg); opacity: 1; } }
 @keyframes gift-offer-breathe { 0%, 100% { transform: scale(0.9); opacity: 0.65; } 50% { transform: scale(1.12); opacity: 1; } }
-@keyframes gift-offer-wiggle { 0%, 65%, 100% { transform: rotate(0); } 72% { transform: rotate(-10deg); } 78% { transform: rotate(8deg); } 84% { transform: rotate(-5deg); } 90% { transform: rotate(0); } }
+@keyframes gift-offer-peek { 0%, 60%, 100% { transform: translateY(0) rotate(0); } 68%, 82% { transform: translateY(-5px) rotate(-3deg); } 75%, 89% { transform: translateY(-1px) rotate(1deg); } }
 @keyframes gift-offer-opening { from { transform: translateY(1px) rotate(-6deg); } to { transform: translateY(-5px) rotate(3deg); } }
 @keyframes gift-offer-lift { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-12px) rotate(-8deg); } }
 @keyframes gift-offer-spin { to { transform: rotate(360deg); } }
@@ -186,6 +179,8 @@
 
 @media (min-width: 640px) {
   .gift-offer-launcher { left: max(24px, env(safe-area-inset-left)); bottom: max(28px, env(safe-area-inset-bottom)); }
+  .gift-offer-launcher-button { width: 120px; height: 136px; }
+  .gift-offer-launcher-button .gift-offer-art { transform: translate(-50%, -50%) scale(0.78); }
 }
 @media (max-width: 374px) {
   .gift-offer-header { padding-inline: 22px; }
@@ -193,7 +188,6 @@
   .gift-offer-actions { padding-inline: 22px; }
   .gift-offer-eyebrow { gap: 6px; font-size: 8px; }
   .gift-offer-seal { gap: 5px; padding-inline: 10px; }
-  .gift-offer-badge { width: 162px; min-height: 70px; gap: 8px; padding: 11px; }
 }
 @media (max-height: 740px) {
   .gift-offer-header { padding-top: 40px; }

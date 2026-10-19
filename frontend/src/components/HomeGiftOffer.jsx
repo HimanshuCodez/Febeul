@@ -24,10 +24,10 @@ const confettiPieces = Array.from({ length: 14 }, (_, index) => ({
   animationDelay: `${index % 4 * 0.05}s`,
 }));
 
-function GiftArtwork() {
+function GiftArtwork({ compact = false }) {
   return <div className="gift-offer-art" aria-hidden="true">
-    <div className="gift-offer-orbit gift-offer-orbit--outer" />
-    <div className="gift-offer-orbit gift-offer-orbit--inner" />
+    {!compact && <><div className="gift-offer-orbit gift-offer-orbit--outer" />
+      <div className="gift-offer-orbit gift-offer-orbit--inner" /></>}
     <div className="gift-offer-present-shadow" />
     <div className="gift-offer-present">
       <div className="gift-offer-box"><span className="gift-offer-ribbon" /><span className="gift-offer-box-mark">F</span></div>
@@ -37,7 +37,7 @@ function GiftArtwork() {
         <span className="gift-offer-bow-knot" />
         <span className="gift-offer-lid-ribbon" />
       </div>
-      <span className="gift-offer-tag"><Sparkles size={12} strokeWidth={1.3} />For you</span>
+      {!compact && <span className="gift-offer-tag"><Sparkles size={12} strokeWidth={1.3} />For you</span>}
     </div>
     {sparklePositions.map(([left, top, size], index) => <Sparkle key={index} className="gift-offer-sparkle" size={size} style={{ left: `${left}%`, top: `${top}%`, animationDelay: `${index * 0.55}s` }} />)}
   </div>;
@@ -147,13 +147,8 @@ export default function HomeGiftOffer({ open, onOpenChange }) {
         exit={{ y: motionStopped ? 0 : 12, opacity: 0, scale: motionStopped ? 1 : 0.94 }} transition={{ duration: motionStopped ? 0 : 0.35 }}>
         <button type="button" aria-label="Dismiss gift offer" onClick={() => setDismissed(true)} className="gift-offer-dismiss"><X size={12} /></button>
         <Motion.button type="button" aria-label="Open your gift offer" aria-haspopup="dialog" onClick={() => { setMessage(''); onOpenChange(true); }}
-          whileHover={motionStopped ? undefined : { y: -3, scale: 1.025 }} whileTap={motionStopped ? undefined : { scale: 0.97 }} className="gift-offer-badge">
-          <span className="gift-offer-badge-icon" aria-hidden="true"><Gift size={27} strokeWidth={1.4} /><Sparkle className="gift-offer-badge-sparkle" size={12} /></span>
-          <span className="gift-offer-badge-copy">
-            <span className="gift-offer-badge-label">{settings.badgeLabel}</span>
-            <span className="gift-offer-badge-offer">{settings.badgeOffer} <span>{settings.badgeCaption}</span></span>
-          </span>
-          <ArrowRight className="gift-offer-badge-arrow" size={14} aria-hidden="true" />
+          whileHover={motionStopped ? undefined : { y: -5, scale: 1.06 }} whileTap={motionStopped ? undefined : { scale: 0.95 }} className="gift-offer-launcher-button">
+          <GiftArtwork compact />
         </Motion.button>
       </Motion.div>}
     </AnimatePresence>

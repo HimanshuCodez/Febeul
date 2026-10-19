@@ -237,7 +237,7 @@ export default function Header() {
       <div className="bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between text-sm">
           <div className="mr-3 min-w-0 flex-1"> {/* Social links + swiping messages */}
-            <SwipingMessages messagesClassName="hidden md:block" />
+            <SwipingMessages className="!justify-start" messagesClassName="hidden md:block" />
           </div>
 
           <div className="flex items-center gap-1 cursor-pointer hover:opacity-80"> {/* Help Link */}
