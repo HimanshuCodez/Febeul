@@ -65,6 +65,23 @@ button, nav, .ui-element {
   font-family: var(--primary-font);
 }
 
+.product-description,
+.product-description * {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  /* Pasted rich text may include inline styles that prevent wrapping. */
+  white-space: normal !important;
+}
+
+.product-description pre,
+.product-description pre * {
+  white-space: pre-wrap !important;
+}
+
+.product-description img {
+  height: auto;
+}
+
 .product-description ul {
   list-style-type: disc;
   margin-left: 1.25em; /* Adjust as needed for spacing */

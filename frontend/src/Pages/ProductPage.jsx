@@ -1063,12 +1063,12 @@ const ProductDetailPage = () => {
                   </button>
                 )}
               </div>
-              <div className="p-6 sm:p-8 lg:p-16">
+              <div className="min-w-0 p-6 sm:p-8 lg:p-16">
                 <h2 className="text-xl font-playfair font-bold text-gray-900 mb-8 uppercase tracking-[0.3em]">  
                   Product Description
                 </h2>
                 <div
-                  className="product-description text-sm text-black leading-relaxed font-medium"
+                  className="product-description min-w-0 max-w-full text-sm text-black leading-relaxed font-medium"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description, { USE_PROFILES: { html: true } }) }}
                 />
               </div>
