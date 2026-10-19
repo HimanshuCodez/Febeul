@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FaCheckCircle, 
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
+import {
+  FaCheckCircle,
   FaShippingFast,
   FaMapMarkerAlt,
   FaMoneyBillWave,
@@ -13,8 +13,6 @@ import {
   FaCreditCard,
   FaTruckLoading,
   FaClipboardList,
-  FaUndo,
-  FaCamera,
   FaCrown
 } from 'react-icons/fa';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -26,492 +24,12 @@ import { toast } from 'react-hot-toast';
 
 import SimilarItems from '../components/SimilarItems';
 import Reviews from '../components/Reviews';
-import BankAccountFields from '../components/BankAccountFields';
-import useBankAccountForm from '../hooks/useBankAccountForm';
+import OrderRequestModal from '../components/OrderRequestModal';
+import { OrderAftercareActions, OrderAftercareTimeline } from '../components/OrderAftercare';
+import { getAftercareEligibility, hasAftercareJourney } from '../utils/orderAftercare';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-// Copy for the exchange milestone ladder — mirrors CUSTOMER_STAGES in
-// backend/utils/exchangeStatus.js. Kept module-level since it has no
-// dependency on component state, unlike RETURN_MILESTONE_COPY below.
-const EXCHANGE_MILESTONE_COPY = {
-    requested: 'We received your exchange request.',
-    verified: 'Your exchange has been approved.',
-    pickup_scheduled: 'A pickup has been scheduled to collect the item.',
-    picked_up: 'Your item has been collected. From here it is our responsibility.',
-    received: 'Your item has reached our warehouse.',
-    dispatched: 'Your replacement has been dispatched.',
-    out_for_delivery: 'Your replacement is out for delivery.',
-    delivered: 'Your replacement has been delivered.'
-};
-
-// Compact per-item exchange status card — same visual language as the
-// order-level return journey card below (dotted ladder, pulsing current
-// dot), scoped to a single line item since exchanges are per-item.
-const ExchangeStatusCard = ({ exchange }) => {
-    const status = exchange.exchangeStatus;
-    if (!status) return null;
-
-    if (status.blocked) {
-        return (
-            <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 mt-2">
-                <div className="flex items-center gap-2">
-                    <Repeat size={14} className="text-slate-400" />
-                    <p className="text-sm font-black text-slate-700">{status.label}</p>
-                </div>
-                <p className="text-xs text-slate-500 font-medium mt-1.5">{status.message}</p>
-                {status.rejectionReason && (
-                    <p className="text-xs text-slate-600 font-medium italic mt-1.5">"{status.rejectionReason}"</p>
-                )}
-                <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-wider">Ticket {status.ticketId}</p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="mb-6 p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-100 mt-2">
-            <div className="flex items-center justify-between gap-2 mb-4">
-                <div className="flex items-center gap-2">
-                    <Repeat size={14} className="text-[#e8767a]" />
-                    <p className="text-sm font-black text-slate-800">Exchange {status.ticketId}</p>
-                </div>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black ${
-                    status.stage === 'delivered' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-[#fff5f5] text-[#d5666a] border border-[#f9aeaf]'
-                }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${status.stage === 'delivered' ? 'bg-emerald-500' : 'bg-[#e8767a] animate-pulse'}`} />
-                    {status.label}
-                </span>
-            </div>
-            <div className="relative pl-6 border-l-2 border-slate-100 space-y-4">
-                {(status.milestones || []).map((milestone) => (
-                    <div key={milestone.key} className="relative">
-                        <span className="absolute -left-[29px] top-0.5 flex items-center justify-center">
-                            {milestone.current ? (
-                                <span className="relative flex h-3.5 w-3.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8767a] opacity-75" />
-                                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#e8767a] ring-4 ring-slate-50" />
-                                </span>
-                            ) : milestone.reached ? (
-                                <span className="h-3.5 w-3.5 rounded-full bg-emerald-500 ring-4 ring-slate-50 flex items-center justify-center">
-                                    <Check size={8} className="text-white" strokeWidth={4} />
-                                </span>
-                            ) : (
-                                <span className="h-2.5 w-2.5 rounded-full bg-slate-200 ring-4 ring-slate-50" />
-                            )}
-                        </span>
-                        <p className={`text-xs font-black ${milestone.current ? 'text-[#e8767a]' : milestone.reached ? 'text-slate-700' : 'text-slate-300'}`}>
-                            {milestone.label}
-                        </p>
-                        {milestone.reached && (
-                            <>
-                                <p className="text-[11px] text-slate-500 font-medium mt-0.5">{EXCHANGE_MILESTONE_COPY[milestone.key]}</p>
-                                {milestone.at && (
-                                    <p className="text-[9px] text-slate-400 font-bold mt-0.5">
-                                        {new Date(milestone.at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                                    </p>
-                                )}
-                            </>
-                        )}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-// --- Return/Exchange Modal Component ---
-const ReturnExchangeModal = ({ order, token, onClose, onSubmitted }) => {
-    const savedAccount = useAuthStore((state) => state.user?.bankAccount);
-    const [bankAccountChoice, setBankAccountChoice] = useState('saved');
-    const [reason, setReason] = useState('');
-    const [type, setType] = useState('return'); // 'return' or 'refund'
-    const [images, setImages] = useState([]);
-    const [imagePreviews, setImagePreviews] = useState([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    // COD orders never had an electronic payment source, so the customer picks
-    // how they want the payout settled. Prepaid (Razorpay) orders always
-    // auto-refund to the original payment source — no choice needed there.
-    const [payoutMethod, setPayoutMethod] = useState('bank'); // 'bank' or 'upi'
-    const [upiId, setUpiId] = useState('');
-    const { form: bankForm, errors: bankErrors, handleChange: handleBankChange, validate: validateBankForm } = useBankAccountForm();
-
-    useEffect(() => {
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = previousOverflow; };
-    }, []);
-
-    const isCod = order.paymentMethod === 'COD';
-    const hasSavedAccount = Boolean(savedAccount?.accountNumber);
-    const useSavedAccount = hasSavedAccount && bankAccountChoice === 'saved';
-    const selectedAccount = useSavedAccount ? savedAccount : bankForm;
-    const selectedBankDetails = {
-        accountHolderName: selectedAccount.accountHolderName,
-        bankAccount: selectedAccount.accountNumber,
-        ifsc: selectedAccount.ifsc,
-        bankName: selectedAccount.bankName
-    };
-
-    const handleInputChange = (e) => {
-        setBankAccountChoice('new');
-        handleBankChange(e);
-    };
-
-    const handleImageChange = (e) => {
-        if (e.target.files) {
-            const filesArray = Array.from(e.target.files);
-            if (images.length + filesArray.length > 4) {
-                toast.error("You must upload exactly 4 images.");
-                return;
-            }
-            
-            const newImages = [...images, ...filesArray];
-            setImages(newImages);
-
-            const newPreviews = filesArray.map(file => URL.createObjectURL(file));
-            setImagePreviews(prev => [...prev, ...newPreviews]);
-        }
-    };
-
-    const removeImage = (index) => {
-        const newImages = [...images];
-        const newPreviews = [...imagePreviews];
-        newImages.splice(index, 1);
-        newPreviews.splice(index, 1);
-        setImages(newImages);
-        setImagePreviews(newPreviews);
-    }
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!reason.trim()) {
-            toast.error("Please provide a reason.");
-            return;
-        }
-        if (images.length !== 4) {
-            toast.error("Please upload exactly 4 images for verification.");
-            return;
-        }
-        if (isCod && payoutMethod === 'upi' && !upiId.trim()) {
-            toast.error("Please provide your UPI ID for the refund.");
-            return;
-        }
-        if (isCod && payoutMethod === 'bank' && !useSavedAccount && !validateBankForm()) {
-            return;
-        }
-        if (isCod && payoutMethod === 'bank' && (!selectedBankDetails.accountHolderName || !selectedBankDetails.bankAccount || !selectedBankDetails.ifsc)) {
-            toast.error("Please provide bank details for the refund.");
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        const formData = new FormData();
-        formData.append('orderId', order._id);
-        formData.append('reason', reason);
-        formData.append('requestType', type);
-        if (isCod) {
-            const payoutDetails = payoutMethod === 'upi'
-                ? { type: 'upi', upiId }
-                : { type: 'bank', ...selectedBankDetails };
-            formData.append('payoutDetails', JSON.stringify(payoutDetails));
-        }
-        images.forEach(image => {
-            formData.append('images', image);
-        });
-
-        try {
-            const response = await axios.post(`${backendUrl}/api/refund/request`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    token: token
-                }
-            });
-
-            if (response.data.success) {
-                toast.success("Request submitted successfully.");
-                onSubmitted();
-            } else {
-                toast.error(response.data.message);
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || "An error occurred.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 pt-4 sm:items-center sm:p-6"
-        >
-            <motion.div
-                initial={{ scale: 0.8, y: -50 }}
-                animate={{ scale: 1, y: 0 }}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="return-request-title"
-                className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl"
-            >
-                <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6 sm:py-4">
-                    <h2 id="return-request-title" className="text-lg font-bold leading-snug text-gray-800 sm:text-xl">Return or Refund Request</h2>
-                    <button type="button" onClick={onClose} aria-label="Close return request" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e8767a]"><X size={24} /></button>
-                </div>
-                <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
-                  <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
-                    <div>
-                        <label htmlFor="return-request-type" className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
-                        <select 
-                            id="return-request-type"
-                            value={type} 
-                            onChange={e => setType(e.target.value)}
-                            className="min-h-12 w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-base"
-                        >
-                            <option value="return">Return Product</option>
-                            <option value="refund">Full Refund Request</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                        <textarea
-                            id="reason"
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            rows="3"
-                            className="min-h-28 w-full rounded-lg border border-gray-300 p-3 text-base focus:ring-[#e8767a] focus:border-[#e8767a]"
-                            placeholder="Describe the issue..."
-                        ></textarea>
-                    </div>
-
-                    {isCod && (
-                        <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:p-4">
-                            <h3 className="font-bold text-sm text-gray-800 flex items-center gap-2">
-                                <FaCreditCard className="text-[#e8767a]" />
-                                Refund Payout Method
-                            </h3>
-                            <div className="grid grid-cols-2 gap-2">
-                                <label className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-medium text-gray-700 ${payoutMethod === 'bank' ? 'border-[#e8767a] bg-rose-50' : 'border-gray-200 bg-white'}`}>
-                                    <input type="radio" name="payoutMethod" value="bank" checked={payoutMethod === 'bank'} onChange={() => setPayoutMethod('bank')} className="h-5 w-5 shrink-0 accent-[#e8767a]" />
-                                    Bank Account
-                                </label>
-                                <label className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-medium text-gray-700 ${payoutMethod === 'upi' ? 'border-[#e8767a] bg-rose-50' : 'border-gray-200 bg-white'}`}>
-                                    <input type="radio" name="payoutMethod" value="upi" checked={payoutMethod === 'upi'} onChange={() => setPayoutMethod('upi')} className="h-5 w-5 shrink-0 accent-[#e8767a]" />
-                                    UPI
-                                </label>
-                            </div>
-
-                            {payoutMethod === 'upi' ? (
-                                <div>
-                                    <label htmlFor="return-upi-id" className="mb-1 block text-sm font-medium text-gray-700">UPI ID</label>
-                                    <input id="return-upi-id" type="text" placeholder="yourname@upi" value={upiId} onChange={(e) => setUpiId(e.target.value)} className="min-h-12 w-full rounded-lg border p-3 text-base" required />
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {hasSavedAccount && (
-                                        <>
-                                            <label className={`flex items-start gap-3 p-3 border rounded-md cursor-pointer ${useSavedAccount ? 'border-[#e8767a] bg-rose-50' : 'border-gray-200 bg-white'}`}>
-                                                <input type="radio" name="bankAccountChoice" value="saved" checked={useSavedAccount} onChange={() => setBankAccountChoice('saved')} className="mt-0.5 h-5 w-5 shrink-0 accent-[#e8767a]" />
-                                                <span className="min-w-0 text-sm">
-                                                    <span className="block font-semibold text-gray-800">Saved bank account</span>
-                                                    <span className="block text-gray-700 break-words">{savedAccount.accountHolderName}</span>
-                                                    <span className="block text-gray-500 break-words">{savedAccount.bankName}</span>
-                                                    <span className="block text-gray-700">Account ending in {savedAccount.accountNumber.slice(-4)}</span>
-                                                    <span className="block text-xs text-gray-500 mt-1">IFSC: {savedAccount.ifsc}</span>
-                                                </span>
-                                            </label>
-                                            <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm font-medium text-gray-700 ${!useSavedAccount ? 'border-[#e8767a] bg-rose-50' : 'border-gray-200 bg-white'}`}>
-                                                <input type="radio" name="bankAccountChoice" value="new" checked={!useSavedAccount} onChange={() => setBankAccountChoice('new')} className="h-5 w-5 shrink-0 accent-[#e8767a]" />
-                                                Add new bank account
-                                            </label>
-                                        </>
-                                    )}
-                                    {!useSavedAccount && (
-                                        <div className="[&_input]:min-h-12 [&_input]:text-base">
-                                            <BankAccountFields form={bankForm} errors={bankErrors} onChange={handleInputChange} />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    <div>
-                        <p className="mb-3 text-sm font-medium text-gray-700">Upload 4 Images (Required)</p>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                            {imagePreviews.map((preview, index) => (
-                                <div key={index} className="relative">
-                                    <img src={preview} alt={`Return photo ${index + 1}`} className="aspect-square w-full rounded-lg object-cover" />
-                                    <button type="button" onClick={() => removeImage(index)} aria-label={`Remove photo ${index + 1}`} className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white shadow-sm hover:bg-red-700"><X size={20} /></button>
-                                </div>
-                            ))}
-                            {images.length < 4 && (
-                                <label className="relative flex aspect-square min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:bg-gray-50 focus-within:border-[#e8767a] focus-within:ring-2 focus-within:ring-[#e8767a]">
-                                    <FaCamera className="text-gray-400 text-xl" />
-                                    <span className="text-sm font-medium text-gray-600">Add photos</span>
-                                    <input type="file" multiple accept="image/*" aria-label="Add return photos" onChange={handleImageChange} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
-                                </label>
-                            )}
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">{images.length}/4 images uploaded</p>
-                    </div>
-                  </div>
-                    <div className="grid shrink-0 grid-cols-2 gap-3 border-t bg-white px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:justify-end sm:px-6">
-                        <button type="button" onClick={onClose} className="min-h-12 rounded-xl bg-gray-100 px-4 py-3 font-semibold text-gray-700 hover:bg-gray-200 sm:px-6">Cancel</button>
-                        <button type="submit" disabled={isSubmitting || images.length !== 4} className="min-h-12 rounded-xl bg-[#e8767a] px-4 py-3 font-semibold text-white hover:bg-[#d96569] disabled:cursor-not-allowed disabled:bg-gray-300 sm:px-6">
-                            {isSubmitting ? 'Submitting...' : 'Submit'}
-                        </button>
-                    </div>
-                </form>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-// --- Exchange Modal Component ---
-// A separate, simpler flow from ReturnExchangeModal above: exchanges are only
-// for a wrong or damaged item, and always replace it with the exact same
-// product/size the customer originally ordered — there is nothing to choose,
-// no payout details, no request-type selector.
-const ExchangeModal = ({ order, itemIndex, token, onClose, onSubmitted }) => {
-    const item = order.items[itemIndex];
-    const [reason, setReason] = useState('wrong_item');
-    const [description, setDescription] = useState('');
-    const [images, setImages] = useState([]);
-    const [imagePreviews, setImagePreviews] = useState([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleImageChange = (e) => {
-        if (e.target.files) {
-            const filesArray = Array.from(e.target.files);
-            if (images.length + filesArray.length > 4) {
-                toast.error("You can upload up to 4 images.");
-                return;
-            }
-            setImages(prev => [...prev, ...filesArray]);
-            setImagePreviews(prev => [...prev, ...filesArray.map(file => URL.createObjectURL(file))]);
-        }
-    };
-
-    const removeImage = (index) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
-        setImagePreviews(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (images.length < 1) {
-            toast.error("Please upload at least one photo as evidence.");
-            return;
-        }
-
-        setIsSubmitting(true);
-        const formData = new FormData();
-        formData.append('orderId', order._id);
-        formData.append('orderItemIndex', itemIndex);
-        formData.append('reason', reason);
-        formData.append('description', description);
-        images.forEach(image => formData.append('images', image));
-
-        try {
-            const response = await axios.post(`${backendUrl}/api/exchange/request`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data', token }
-            });
-            if (response.data.success) {
-                toast.success("Exchange request submitted.");
-                onSubmitted();
-            } else {
-                toast.error(response.data.message);
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || "An error occurred.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 overflow-y-auto"
-        >
-            <motion.div
-                initial={{ scale: 0.8, y: -50 }}
-                animate={{ scale: 1, y: 0 }}
-                className="bg-white rounded-lg shadow-xl w-full max-w-lg my-8"
-            >
-                <div className="p-6 border-b flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Request an Exchange</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
-                </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                        {item?.image && <img src={item.image} className="w-12 h-12 object-cover rounded-md shrink-0" />}
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-800 truncate">{item?.name}</p>
-                            <p className="text-xs text-gray-500">Size {item?.size} · Qty {item?.quantity}</p>
-                        </div>
-                    </div>
-                    <p className="text-xs text-slate-500 -mt-3">We'll send you back the exact same item, in full working condition.</p>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">What went wrong?</label>
-                        <select
-                            value={reason}
-                            onChange={e => setReason(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded-md"
-                        >
-                            <option value="wrong_item">Wrong Item Delivered</option>
-                            <option value="damaged">Damaged or Defective Product</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="exchange-description" className="block text-sm font-medium text-gray-700 mb-1">Tell us more (optional)</label>
-                        <textarea
-                            id="exchange-description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            rows="3"
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#e8767a] focus:border-[#e8767a]"
-                            placeholder="Describe what's wrong with the item..."
-                        ></textarea>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos (1–4, required)</label>
-                        <div className="flex flex-wrap gap-2">
-                            {imagePreviews.map((preview, index) => (
-                                <div key={index} className="relative">
-                                    <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-md" />
-                                    <button type="button" onClick={() => removeImage(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><X size={12} /></button>
-                                </div>
-                            ))}
-                            {images.length < 4 && (
-                                <label className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50">
-                                    <FaCamera className="text-gray-400 text-xl" />
-                                    <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
-                                </label>
-                            )}
-                        </div>
-                        <p className="text-[10px] text-gray-500 mt-1">{images.length}/4 images uploaded</p>
-                    </div>
-                    <div className="flex justify-end gap-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
-                        <button type="submit" disabled={isSubmitting || images.length < 1} className="px-4 py-2 text-white bg-[#e8767a] rounded-lg disabled:bg-gray-300">
-                            {isSubmitting ? 'Submitting...' : 'Submit Request'}
-                        </button>
-                    </div>
-                </form>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-// --- Cancellation Modal Component ---
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
@@ -549,13 +67,13 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
     };
 
     return (
-        <motion.div
+        <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
         >
-            <motion.div
+            <Motion.div
                 initial={{ scale: 0.8, y: -50 }}
                 animate={{ scale: 1, y: 0 }}
                 className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
@@ -615,8 +133,8 @@ const CancellationModal = ({ order, token, onClose, onCancelled }) => {
                         </button>
                     </div>
                 </form>
-            </motion.div>
-        </motion.div>
+            </Motion.div>
+        </Motion.div>
     );
 };
 
@@ -640,7 +158,7 @@ const HorizontalBikeTracker = ({ displayStatus }) => {
   return (
     <div className="mb-8 px-2 sm:px-6 pt-2 pb-8">
       <div className="relative h-1.5 rounded-full bg-slate-100">
-        <motion.div
+        <Motion.div
           className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#f9aeaf] to-[#e8767a]"
           initial={{ width: 0 }}
           animate={{ width: `${progressPercent}%` }}
@@ -648,14 +166,14 @@ const HorizontalBikeTracker = ({ displayStatus }) => {
         />
 
         {/* Delivery bike riding along the progress line */}
-        <motion.div
+        <Motion.div
           className="absolute -top-[15px]"
           initial={{ left: 0 }}
           animate={{ left: `${progressPercent}%` }}
           transition={{ duration: 0.9, ease: 'easeInOut' }}
           style={{ transform: 'translateX(-50%)' }}
         >
-          <motion.div
+          <Motion.div
             animate={isInTransit ? { y: [0, -4, 0], rotate: [-4, 4, -4] } : { y: 0, rotate: 0 }}
             transition={isInTransit ? { duration: 0.7, repeat: Infinity, ease: 'easeInOut' } : {}}
             className={`w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 border-white ${
@@ -663,8 +181,8 @@ const HorizontalBikeTracker = ({ displayStatus }) => {
             }`}
           >
             {isDelivered ? <Check size={18} className="text-white" /> : <Bike size={18} className="text-white" />}
-          </motion.div>
-        </motion.div>
+          </Motion.div>
+        </Motion.div>
 
         {/* Stage dots */}
         {BIKE_STAGES.map((stage, index) => {
@@ -701,15 +219,14 @@ const HorizontalBikeTracker = ({ displayStatus }) => {
 
 export default function OrderDetailPage() {
   const { orderId } = useParams();
-  const { token, isAuthenticated, siteSettings, fetchSiteSettings, fetchDeliveryZones, getStateServiceability } = useAuthStore();
+  const { token, isAuthenticated, fetchSiteSettings, fetchDeliveryZones, getStateServiceability } = useAuthStore();
   const navigate = useNavigate();
 
   const [order, setOrder] = useState(null);
   const [trackingData, setTrackingData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
-  const [exchangeModalItemIndex, setExchangeModalItemIndex] = useState(null);
+  const [requestModal, setRequestModal] = useState(null);
   const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
   const [showCancelledAnimation, setShowCancelledAnimation] = useState(false);
   const [isCancellingReturnRequest, setIsCancellingReturnRequest] = useState(false);
@@ -718,17 +235,18 @@ export default function OrderDetailPage() {
   useEffect(() => {
     fetchSiteSettings();
     fetchDeliveryZones();
-  }, []);
+  }, [fetchSiteSettings, fetchDeliveryZones]);
 
   // `refresh` forces the backend to re-poll Shiprocket instead of serving the
   // last-synced snapshot; `silent` keeps the page rendered while it happens.
-  const fetchOrderDetails = async ({ silent = false, refresh = false } = {}) => {
+  const fetchOrderDetails = useCallback(async ({ silent = false, refresh = false } = {}) => {
     if (!silent) setLoading(true);
     try {
       const response = await axios.get(`${backendUrl}/api/order/${orderId}${refresh ? '?refresh=1' : ''}`, {
         headers: { token },
       });
       if (response.data.success) {
+        setError(null);
         setOrder(response.data.order);
         setTrackingData(response.data.trackingData || null);
       } else {
@@ -740,7 +258,7 @@ export default function OrderDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId, token]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -748,7 +266,7 @@ export default function OrderDetailPage() {
       return;
     }
     fetchOrderDetails();
-  }, [orderId, token, isAuthenticated, navigate]);
+  }, [fetchOrderDetails, isAuthenticated, navigate]);
 
   // Shipment status changes while the customer is away from the tab (an admin
   // ships the order from the Shiprocket panel), so re-check on the way back in
@@ -772,12 +290,12 @@ export default function OrderDetailPage() {
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
-  }, [orderId, token, isAuthenticated]);
+  }, [fetchOrderDetails, isAuthenticated]);
 
   const handleDownloadInvoice = async () => {
     try {
         const invoiceUrl = `${backendUrl}/api/order/invoice/${orderId}`;
-        
+
         const response = await axios.get(invoiceUrl, {
             headers: {
                 token: token
@@ -838,7 +356,7 @@ export default function OrderDetailPage() {
   if (error || !order) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#fff0f0] to-white flex items-center justify-center text-center px-4">
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, type: 'spring' }}
@@ -850,7 +368,7 @@ export default function OrderDetailPage() {
           <h1 className="text-xl font-black text-slate-800">Order Details Not Found</h1>
           <p className="text-slate-500 text-sm mt-2">{error || 'Could not retrieve order details.'}</p>
           <Link to="/" className="mt-6 inline-block bg-[#e8767a] text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-[#d5666a] transition-colors uppercase tracking-wider">Go to Homepage</Link>
-        </motion.div>
+        </Motion.div>
       </div>
     );
   }
@@ -884,36 +402,16 @@ export default function OrderDetailPage() {
   // a customer-initiated return/refund request.
   const displayStatusLabel = displayStatus === 'Returned' ? 'Courier Return' : displayStatus;
 
-  // Calculate if return is eligible
-  const isReturnEligible = () => {
-    if (displayStatus !== 'Delivered' || !order.deliveredAt) {
-      return false;
-    }
-    if (order.refundDetails?.status !== 'none' && order.refundDetails?.status !== 'rejected') {
-        return false; // Already requested or processed
-    }
-    const threeDaysInMillis = 3 * 24 * 60 * 60 * 1000;
-    const deliveredDate = new Date(order.deliveredAt);
-    const currentDate = new Date();
-    return (currentDate - deliveredDate) <= threeDaysInMillis;
-  };
-
-  // Exchanges are per line-item and only for a wrong/damaged item — a tighter
-  // 2-day window than the 3-day return/refund window above, per business rule.
-  const EXCHANGE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
-  const exchangeWindowOpen = displayStatus === 'Delivered' && order.deliveredAt
-    && (new Date() - new Date(order.deliveredAt)) <= EXCHANGE_WINDOW_MS;
-  const hasActiveReturnOrRefund = order.refundDetails?.status && !['none', 'rejected'].includes(order.refundDetails.status);
-  const exchangeForItem = (itemIndex) => (order.exchanges || []).find((exc) => exc.orderItemIndex === itemIndex);
-  const isExchangeEligibleForItem = (itemIndex) =>
-    exchangeWindowOpen && !hasActiveReturnOrRefund && !exchangeForItem(itemIndex);
+  const aftercareEligibility = getAftercareEligibility(order, displayStatus);
+  const hasAftercare = hasAftercareJourney(order);
+  const exchangeForItem = (itemIndex) => (order.exchanges || []).find((exchange) => exchange.orderItemIndex === itemIndex);
+  const openRequest = (type, itemIndex) => setRequestModal({ type, itemIndex });
 
   const isCancellationPossible = () => {
     const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
     return !nonCancellable.includes(displayStatus);
   };
 
-  const returnPossible = isReturnEligible();
   const cancellationPossible = isCancellationPossible();
   const cancellationEligible = !['Delivered', 'Cancelled', 'Returned', 'Refunded'].includes(displayStatus);
 
@@ -930,14 +428,13 @@ export default function OrderDetailPage() {
   const orderTotal = order.orderTotal || (productAmount - (order.couponDiscount || 0) + shippingCharge + codCharge + (order.giftWrap?.price || 0));
 
   const orderNumberToDisplay = order?._id;
-  
-  const parsedDeliveredDate = new Date(order.deliveredAt);
+
 
   const getExpectedDelivery = () => {
     if (displayStatus === 'Delivered') {
       return 'Delivered';
     }
-    
+
     // Persisted live EDD (saved server-side whenever Shiprocket is polled) is
     // the source of truth so it survives across page loads, not just the
     // exact request that happened to trigger a live poll.
@@ -949,7 +446,7 @@ export default function OrderDetailPage() {
         year: 'numeric',
       });
     }
-    
+
     // Fallback to older estimation logic
     if (order.deliveredAt) {
       return new Date(order.deliveredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -1002,35 +499,6 @@ export default function OrderDetailPage() {
     ? [...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
     : (trackingData?.tracking_data?.shipment_track_activities || [])
   ).map(stripInternalActivity);
-
-  // Reverse pickup tracking (courier collecting a returned item), populated
-  // once admin approves a delivered-item return request.
-  const pickup = order.refundDetails?.pickup;
-  const hasPickup = pickup && pickup.status !== 'none';
-  const pickupActivities = pickup?.trackingHistory?.length > 0
-    ? [...pickup.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
-    : [];
-
-  // The return journey, as the server computed it. Every label here comes from
-  // a fixed customer-facing set — the internal status (which may by now be
-  // "critical", "lost" or "claim pending") is never sent to this page, so
-  // there is nothing to accidentally render. When a return stalls, the
-  // timeline simply stops advancing.
-  const returnStatus = order.returnStatus;
-  const returnMilestones = returnStatus?.milestones || [];
-  const refundByLabel = returnStatus?.refundByDate
-    ? new Date(returnStatus.refundByDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    : null;
-  const RETURN_MILESTONE_COPY = {
-    requested: 'We received your return request.',
-    pickup_scheduled: 'A pickup has been scheduled with our courier partner.',
-    picked_up: 'Your item has been collected. From here it is our responsibility.',
-    in_transit: 'Your return is on its way to us.',
-    received: 'Your return has reached our warehouse.',
-    qc_done: 'Your item has passed through our quality check.',
-    refund_initiated: 'Your refund has been initiated.',
-    refund_completed: 'Your refund has been completed.'
-  };
 
   // --- Unified status + live-update timeline (Flipkart/Meesho style) ---
   // Merges the always-known "Order Placed" moment with every real courier
@@ -1100,28 +568,20 @@ export default function OrderDetailPage() {
   return (
     <>
       <AnimatePresence>
-        {isReturnModalOpen && (
-            <ReturnExchangeModal
-                order={order}
-                token={token}
-                onClose={() => setIsReturnModalOpen(false)}
-                onSubmitted={() => {
-                    setIsReturnModalOpen(false);
-                    fetchOrderDetails(); // Re-fetch order details to show updated status
-                }}
-            />
-        )}
-        {exchangeModalItemIndex !== null && (
-            <ExchangeModal
-                order={order}
-                itemIndex={exchangeModalItemIndex}
-                token={token}
-                onClose={() => setExchangeModalItemIndex(null)}
-                onSubmitted={() => {
-                    setExchangeModalItemIndex(null);
-                    fetchOrderDetails();
-                }}
-            />
+        {requestModal && (
+          <OrderRequestModal
+            order={order}
+            token={token}
+            initialType={requestModal.type}
+            initialItemIndex={requestModal.itemIndex}
+            eligibility={aftercareEligibility}
+            onClose={() => setRequestModal(null)}
+            onSubmitted={async () => {
+              setRequestModal(null);
+              await fetchOrderDetails({ silent: true });
+              window.requestAnimationFrame(() => document.getElementById('aftercare-timeline')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+            }}
+          />
         )}
         {isCancellationModalOpen && (
             <CancellationModal
@@ -1132,50 +592,50 @@ export default function OrderDetailPage() {
             />
         )}
         {showCancelledAnimation && (
-            <motion.div
+            <Motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[100] text-center"
             >
-                <motion.div
+                <Motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
                     className="w-32 h-32 bg-red-100 rounded-full flex items-center justify-center mb-6"
                 >
                     <X size={64} className="text-red-600" />
-                </motion.div>
-                <motion.h2
+                </Motion.div>
+                <Motion.h2
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.3 }}
                     className="text-4xl font-black text-gray-900 uppercase tracking-tighter"
                 >
                     Order Cancelled
-                </motion.h2>
-                <motion.p
+                </Motion.h2>
+                <Motion.p
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5 }}
                     className="text-gray-500 mt-2 font-medium"
                 >
                     Your request has been processed successfully.
-                </motion.p>
-            </motion.div>
+                </Motion.p>
+            </Motion.div>
         )}
       </AnimatePresence>
       <div className="min-h-screen bg-gradient-to-b from-[#fff0f0] via-[#fff7f7] to-slate-50 py-6 sm:py-10 px-4">
         <div className="max-w-4xl mx-auto">
 
           {/* Order Details Header */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="bg-white rounded-3xl shadow-xl shadow-slate-100/60 border border-gray-200 p-6 sm:p-8 mb-5 text-center"
           >
-            <motion.div
+            <Motion.div
               variants={{
                 hidden: { scale: 0, rotate: -180 },
                 visible: {
@@ -1194,27 +654,27 @@ export default function OrderDetailPage() {
               className={`inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full ${isLuxeOrder ? 'bg-yellow-50' : 'bg-[#fff0f0]'}`}
             >
               {isLuxeOrder ? <FaCrown className="text-4xl sm:text-5xl text-yellow-500" /> : <FaClipboardList className="text-4xl sm:text-5xl text-[#e8767a]" />}
-            </motion.div>
+            </Motion.div>
 
-            <motion.h1
+            <Motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
               className="text-2xl sm:text-3xl font-black text-slate-800 mt-5 tracking-tight"
             >
               {isLuxeOrder ? displayStatus === 'Cancelled' ? 'Luxe Membership Cancelled' : 'Luxe Membership Active' : 'Order Details'}
-            </motion.h1>
+            </Motion.h1>
 
-            <motion.p
+            <Motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
               className="text-slate-500 text-sm mt-1.5"
             >
               {isLuxeOrder && displayStatus !== 'Cancelled' ? 'Thank you for joining the elite.' : 'Here are the details for your order.'}
-            </motion.p>
+            </Motion.p>
 
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.7 }}
@@ -1230,17 +690,21 @@ export default function OrderDetailPage() {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</p>
                 <p className="text-sm sm:text-lg font-bold text-[#e8767a] break-all select-all font-mono mt-1">{orderNumberToDisplay}</p>
               </div>
-            </motion.div>
+            </Motion.div>
 
-          </motion.div>
+          </Motion.div>
+
+          {displayStatus === 'Delivered' && aftercareEligibility.physicalItems.length > 0 && (
+            <OrderAftercareActions eligibility={aftercareEligibility} onRequest={openRequest} />
+          )}
 
           {/* Redesigned Live Order Tracking Timeline (Meesho / Flipkart style) */}
-          <motion.div
+          <Motion.div
             variants={{
               hidden: { opacity: 0 },
-              visible: { 
+              visible: {
                 opacity: 1,
-                transition: { 
+                transition: {
                   staggerChildren: 0.1,
                   delayChildren: 0.3
                 }
@@ -1248,14 +712,14 @@ export default function OrderDetailPage() {
             }}
             initial="hidden"
             animate="visible"
-            className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6"
+            className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 p-4 sm:p-8 mb-6"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 mb-6 gap-3 text-left">
               <div>
                 <h2 className="text-lg font-black text-slate-800 tracking-tight">
-                  Shipment Tracking
+                  {hasAftercare ? 'Order & Request Tracking' : 'Shipment Tracking'}
                 </h2>
-                <p className="text-xs text-slate-500 font-bold mt-0.5">Real-time status updates of your package</p>
+                <p className="text-xs text-slate-500 font-bold mt-0.5">{hasAftercare ? 'From delivery to resolution, follow every update here' : 'Real-time status updates of your package'}</p>
               </div>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black capitalize w-fit ${
                 displayStatus === "Processing" || displayStatus === "Confirmed" ? "bg-amber-50 text-amber-700 border border-amber-100" :
@@ -1284,7 +748,7 @@ export default function OrderDetailPage() {
                 shipment detail they get. */}
 
             {/* Unified Status + Live Update Timeline (Flipkart / Meesho style) */}
-            <div className="space-y-2 relative pl-4 text-left">
+            <div className="space-y-2 relative sm:pl-4 text-left">
               {MILESTONE_GROUPS.filter(group => {
                   if (displayStatus === 'Cancelled') return group.key === 'confirmed';
                   if (isLuxeOrder) return group.key === 'confirmed' || group.key === 'delivered';
@@ -1293,17 +757,17 @@ export default function OrderDetailPage() {
                   const groupActivities = allActivities.filter(a => group.statuses.includes(a.status));
                   const hasData = groupActivities.length > 0;
                   const isCompleted = displayStatus === 'Cancelled' ? true : group.level <= currentStatusLevel;
-                  const isCurrent = displayStatus === 'Cancelled' ? false : (Math.floor(currentStatusLevel) === Math.floor(group.level) || currentStatusLevel === group.level);
-                  const headerDate = hasData ? groupActivities[groupActivities.length - 1].date : null;
+                  const isCurrent = displayStatus === 'Cancelled' || hasAftercare ? false : (Math.floor(currentStatusLevel) === Math.floor(group.level) || currentStatusLevel === group.level);
+                  const headerDate = hasData ? groupActivities[groupActivities.length - 1].date : group.key === 'delivered' ? order.deliveredAt : null;
 
                   return (
-                      <motion.div
+                      <Motion.div
                         key={group.key}
                         variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0, transition: { duration: 0.4 } } }}
                         className="flex gap-4 relative"
                       >
                           {/* Connector Line */}
-                          {(index < array.length - 1 || displayStatus === 'Cancelled') && (
+                          {(index < array.length - 1 || displayStatus === 'Cancelled' || hasAftercare) && (
                             <div className={`absolute left-5 top-10 bottom-0 w-0.5 ${
                               displayStatus === 'Cancelled' ? 'bg-red-400' : (group.level < currentStatusLevel ? 'bg-[#e8767a]' : 'bg-slate-200')
                             }`} />
@@ -1317,7 +781,7 @@ export default function OrderDetailPage() {
                           </div>
 
                           {/* Details */}
-                          <div className="flex-1 pt-1.5 pb-6">
+                          <div className="min-w-0 flex-1 pt-1.5 pb-6">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                                 <p className={`font-bold text-sm sm:text-base ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>
                                   {group.label}
@@ -1355,7 +819,7 @@ export default function OrderDetailPage() {
                                       <>
                                         <AnimatePresence initial={false}>
                                           {isExpanded && earlierActivities.length > 0 && (
-                                            <motion.div
+                                            <Motion.div
                                               key="earlier-updates"
                                               initial={{ height: 0, opacity: 0 }}
                                               animate={{ height: 'auto', opacity: 1 }}
@@ -1364,7 +828,7 @@ export default function OrderDetailPage() {
                                               className="space-y-2.5 overflow-hidden"
                                             >
                                               {earlierActivities.map(renderActivity)}
-                                            </motion.div>
+                                            </Motion.div>
                                           )}
                                         </AnimatePresence>
 
@@ -1388,13 +852,15 @@ export default function OrderDetailPage() {
                                 <p className="text-xs sm:text-sm text-slate-400 mt-1">{group.fallbackDescription}</p>
                               )}
                           </div>
-                      </motion.div>
+                      </Motion.div>
                   );
               })}
 
+              {hasAftercare && <OrderAftercareTimeline order={order} />}
+
               {/* Cancelled State */}
               {displayStatus === 'Cancelled' && (
-                <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
+                <Motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
                     <div className="w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center shrink-0 z-10 ring-4 ring-red-100 animate-pulse">
                         <X size={18} />
                     </div>
@@ -1413,12 +879,12 @@ export default function OrderDetailPage() {
                             </div>
                         )}
                     </div>
-                </motion.div>
+                </Motion.div>
               )}
 
               {/* Rejected State */}
-              {order.refundDetails?.status === 'rejected' && displayStatus !== 'Cancelled' && (
-                <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
+              {!hasAftercare && order.refundDetails?.status === 'rejected' && displayStatus !== 'Cancelled' && (
+                <Motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
                     <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0 z-10">
                         <X size={18} />
                     </div>
@@ -1428,12 +894,12 @@ export default function OrderDetailPage() {
                             <p className="text-xs text-red-800 font-bold italic">"{order.refundDetails.rejectionReason}"</p>
                         </div>
                     </div>
-                </motion.div>
+                </Motion.div>
               )}
 
               {/* Refund Initiated / Refunded State */}
-              {(displayStatus === 'Refund Initiated' || displayStatus === 'Refunded') && (
-                <motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
+              {!hasAftercare && (displayStatus === 'Refund Initiated' || displayStatus === 'Refunded') && (
+                <Motion.div variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} className="flex gap-4 relative">
                     <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 z-10">
                         <Check size={18} />
                     </div>
@@ -1452,13 +918,13 @@ export default function OrderDetailPage() {
                             </p>
                         </div>
                     </div>
-                </motion.div>
+                </Motion.div>
               )}
             </div>
 
             {/* Expected Delivery Banner */}
-            {!isLuxeOrder && displayStatus !== 'Cancelled' && (
-              <motion.div 
+            {!isLuxeOrder && !hasAftercare && displayStatus !== 'Cancelled' && (
+              <Motion.div
                 variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
                 className="mt-6 p-4 bg-[#fff5f5] rounded-2xl border border-[#f9aeaf] flex items-center justify-center text-center"
               >
@@ -1468,191 +934,13 @@ export default function OrderDetailPage() {
                     {displayStatus === 'Delivered' ? 'Delivery Status' : (order.deliveredAt ? 'Delivered On' : 'Expected Delivery')}: {estimatedDelivery}
                   </p>
                 </div>
-              </motion.div>
+              </Motion.div>
             )}
-          </motion.div>
-
-          {/* Return journey — one view of the parcel coming back and the money
-              going out. Driven entirely by the server-computed customer status;
-              nothing internal reaches this component to be rendered. */}
-          {returnStatus && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 overflow-hidden mb-6"
-            >
-              <div className="p-6 sm:p-8 pb-0">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
-                  <div>
-                    <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-                      <FaUndo className="text-[#e8767a]" /> Your Return
-                    </h2>
-                    <p className="text-xs text-slate-500 font-bold mt-0.5">Everything from pickup to refund, in one place</p>
-                  </div>
-                  <span className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-black w-fit ${
-                    returnStatus.stage === 'refund_completed'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                      : 'bg-[#fff5f5] text-[#d5666a] border border-[#f9aeaf]'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      returnStatus.stage === 'refund_completed' ? 'bg-emerald-500' : 'bg-[#e8767a] animate-pulse'
-                    }`} />
-                    {returnStatus.label}
-                  </span>
-                </div>
-
-                {/* The promise. A customer who knows the date stops chasing the
-                    parcel — which is the whole reason we own transit risk. */}
-                {refundByLabel && (
-                  <div className="mt-6 flex items-start gap-3 bg-gradient-to-br from-[#fff5f5] to-[#fffafa] border border-[#f9aeaf] rounded-2xl p-4 text-left">
-                    <FaCalendarAlt className="text-[#e8767a] mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-sm font-black text-[#d5666a]">Refund by {refundByLabel}</p>
-                      <p className="text-[11px] text-slate-600 font-medium mt-0.5 leading-relaxed">
-                        We complete refunds within {returnStatus.maxRefundDays} days of pickup. If the courier is slow, that is ours to sort out —
-                        your refund is not held up by it.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-6 sm:p-8">
-                {/* Milestone ladder */}
-                <div className="relative pl-7 border-l-2 border-slate-100 space-y-6">
-                  {returnMilestones.map((milestone) => (
-                    <div key={milestone.key} className="relative text-left">
-                      <span className="absolute -left-[35px] top-0.5 flex items-center justify-center">
-                        {milestone.current ? (
-                          <span className="relative flex h-4 w-4">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8767a] opacity-75" />
-                            <span className="relative inline-flex rounded-full h-4 w-4 bg-[#e8767a] ring-4 ring-white" />
-                          </span>
-                        ) : milestone.reached ? (
-                          <span className="h-4 w-4 rounded-full bg-emerald-500 ring-4 ring-white flex items-center justify-center">
-                            <Check size={9} className="text-white" strokeWidth={4} />
-                          </span>
-                        ) : (
-                          <span className="h-3 w-3 rounded-full bg-slate-200 ring-4 ring-white" />
-                        )}
-                      </span>
-                      <p className={`text-sm font-black ${
-                        milestone.current ? 'text-[#e8767a]' : milestone.reached ? 'text-slate-800' : 'text-slate-300'
-                      }`}>
-                        {milestone.label}
-                      </p>
-                      {milestone.reached && (
-                        <>
-                          <p className="text-xs text-slate-500 font-medium mt-0.5">{RETURN_MILESTONE_COPY[milestone.key]}</p>
-                          {milestone.at && (
-                            <p className="text-[10px] text-slate-400 font-bold mt-1">
-                              {new Date(milestone.at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Courier reference — the one thing we may ask them for */}
-                {(returnStatus.awb || returnStatus.courier) && (
-                  <div className="mt-7 bg-slate-50 border border-slate-100 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-                    {returnStatus.courier && (
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Courier Partner</span>
-                        <span className="text-sm font-extrabold text-slate-800">{returnStatus.courier}</span>
-                      </div>
-                    )}
-                    {returnStatus.awb && (
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Return AWB</span>
-                        <span className="text-sm font-extrabold text-[#e8767a] select-all break-all">#{returnStatus.awb}</span>
-                      </div>
-                    )}
-                    {returnStatus.pickedUpAt && (
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Picked Up On</span>
-                        <span className="text-sm font-extrabold text-slate-800">
-                          {new Date(returnStatus.pickedUpAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Latest courier scans, when there are any */}
-                {pickupActivities.length > 0 && (
-                  <details className="mt-4 group">
-                    <summary className="cursor-pointer list-none text-[11px] font-black text-[#e8767a] uppercase tracking-wider flex items-center gap-1.5 hover:text-[#d5666a] transition-colors">
-                      Shipment updates
-                      <span className="inline-block transition-transform duration-200 group-open:rotate-180">▾</span>
-                    </summary>
-                    <div className="mt-4 relative pl-5 border-l border-slate-100 space-y-4">
-                      {pickupActivities.map((act, index) => (
-                        <div key={index} className="relative text-left">
-                          <span className={`absolute -left-[23px] top-1.5 h-2 w-2 rounded-full ${index === 0 ? 'bg-[#e8767a]' : 'bg-slate-300'}`} />
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className={`text-xs font-bold ${index === 0 ? 'text-[#e8767a]' : 'text-slate-700'}`}>{act.activity || act.status}</p>
-                            {act.location && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-                                📍 {act.location}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                            {new Date(act.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </div>
-
-              {/* Reassurance. Told plainly and up front, this is what stops the
-                  "where is my parcel" messages before they are sent. */}
-              {returnStatus.stage !== 'refund_completed' && (
-                <div className="px-6 sm:px-8 py-5 bg-slate-50 border-t border-slate-100 text-left">
-                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                    <strong className="font-black text-slate-800">Nothing needed from you.</strong> Once the courier collects your parcel, the
-                    shipment is our responsibility — you don&apos;t need to track it or follow up with anyone. If a return takes longer to reach us,
-                    we coordinate with the courier at our end and it does not affect your refund. Just keep your pickup receipt or AWB number
-                    until the refund is credited.
-                    {returnStatus.supportEmail && (
-                      <>
-                        {' '}Any questions, write to{' '}
-                        <a href={`mailto:${returnStatus.supportEmail}`} className="font-black text-[#e8767a] hover:underline">
-                          {returnStatus.supportEmail}
-                        </a>{' '}with your order ID.
-                      </>
-                    )}
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Pre-approval fallback: a pickup exists but the journey hasn't
-              started yet (returnStatus only exists once a return is approved). */}
-          {!returnStatus && hasPickup && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-slate-100/50 p-6 sm:p-8 mb-6 text-left"
-            >
-              <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-                <FaUndo className="text-[#e8767a]" /> Return Pickup
-              </h2>
-              <p className="text-xs text-slate-500 font-bold mt-1">
-                We&apos;re arranging collection for your return. No action needed from you.
-              </p>
-            </motion.div>
-          )}
+          </Motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
             {/* Delivery Address */}
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
@@ -1680,10 +968,10 @@ export default function OrderDetailPage() {
                   </>
                 )}
               </div>
-            </motion.div>
+            </Motion.div>
 
             {/* Payment Method */}
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
@@ -1711,11 +999,11 @@ export default function OrderDetailPage() {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           </div >
 
           {/* Order Summary */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
@@ -1737,7 +1025,7 @@ export default function OrderDetailPage() {
 
                 return (
                   <React.Fragment key={item.productId + item.size + item.color}>
-                  <motion.div
+                  <Motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.7 + (index * 0.1) }}
@@ -1774,14 +1062,16 @@ export default function OrderDetailPage() {
                         </p>
                       )}
                     </div>
-                  </motion.div>
+                  </Motion.div>
                   {displayStatus === 'Delivered' && item.sku !== 'LUXE-MEMBERSHIP' && (
                     exchangeForItem(index) ? (
-                      <ExchangeStatusCard exchange={exchangeForItem(index)} />
-                    ) : isExchangeEligibleForItem(index) ? (
+                      <a href="#aftercare-timeline" className="inline-flex items-center gap-2 my-3 text-xs font-semibold text-[#a74757]">
+                        <Repeat size={14} /> View exchange progress
+                      </a>
+                    ) : aftercareEligibility.exchange.allowed && aftercareEligibility.exchangeItems.includes(index) ? (
                       <button
                         type="button"
-                        onClick={() => setExchangeModalItemIndex(index)}
+                        onClick={() => openRequest('exchange', index)}
                         className="flex items-center gap-1.5 text-xs font-bold text-[#e8767a] hover:text-[#d5666a] mt-1 mb-4 transition-colors"
                       >
                         <Repeat size={13} /> Wrong item or damaged? Exchange it
@@ -1849,28 +1139,28 @@ export default function OrderDetailPage() {
                 <span className="text-[#e8767a]">₹{orderTotal.toFixed(2)}</span>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
 
           {/* Action Buttons */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
             className="flex flex-col sm:flex-row gap-4"
           >
             <Link to={isLuxeOrder ? "/luxe" : "/"} className="flex-1">
-              <motion.button
+              <Motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full bg-[#e8767a] hover:bg-[#d5666a] text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg shadow-rose-200/50 transition-colors flex items-center justify-center uppercase tracking-widest text-xs sm:text-sm"
               >
                   {isLuxeOrder ? <FaCrown className="mr-2" /> : <FaHome className="mr-2" />}
                   {isLuxeOrder ? 'View Luxe Products' : 'Go to Homepage'}
-              </motion.button>
+              </Motion.button>
             </Link>
 
             {!isLuxeOrder && displayStatus !== 'Cancelled' ? (
-              <motion.button
+              <Motion.button
                   onClick={handleDownloadInvoice}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -1878,9 +1168,9 @@ export default function OrderDetailPage() {
               >
                   <FaFileInvoice className="mr-2" />
                   Download Invoice
-              </motion.button>
+              </Motion.button>
             ) : isLuxeOrder && (
-              <motion.button
+              <Motion.button
                   onClick={() => navigate('/support')}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -1888,19 +1178,19 @@ export default function OrderDetailPage() {
               >
                   <FaEnvelope className="mr-2" />
                   VIP Support
-              </motion.button>
+              </Motion.button>
             )}
-          </motion.div>
+          </Motion.div>
 
           {/* Cancel Order Button */}
           {cancellationEligible && (
-            <motion.div
+            <Motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.85 }}
                 className="mt-4"
             >
-                <motion.button
+                <Motion.button
                     onClick={() => setIsCancellationModalOpen(true)}
                     disabled={!cancellationPossible}
                     whileHover={cancellationPossible ? { scale: 1.02 } : {}}
@@ -1913,45 +1203,19 @@ export default function OrderDetailPage() {
                 >
                     <X className="mr-2" size={18} />
                     {cancellationPossible ? 'Cancel Order' : 'Order Cannot Be Cancelled'}
-                </motion.button>
-            </motion.div>
-          )}
-
-          {/* Return/Exchange Button */}
-          {displayStatus === 'Delivered' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9 }}
-              className="mt-4"
-            >
-              <motion.button
-                  onClick={() => setIsReturnModalOpen(true)}
-                  disabled={!returnPossible}
-                  whileHover={returnPossible ? { scale: 1.02 } : {}}
-                  whileTap={returnPossible ? { scale: 0.98 } : {}}
-                  className={`w-full py-3.5 px-6 rounded-2xl transition-colors flex items-center justify-center uppercase tracking-widest text-xs sm:text-sm font-bold ${
-                      returnPossible
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200/50'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
-              >
-                  <FaUndo className="mr-2" />
-                  {returnPossible ? 'Return or Refund' : 'Return Window Closed'}
-              </motion.button>
-              {returnPossible && <p className="text-[10px] text-slate-400 mt-2 text-center italic">Industry Standard: Return window closes 3 days after delivery. Exactly 4 images required.</p>}
-            </motion.div>
+                </Motion.button>
+            </Motion.div>
           )}
 
           {/* Cancel Return/Refund Request Button */}
           {canCancelReturnRequest && (
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
               className="mt-4"
             >
-              <motion.button
+              <Motion.button
                   onClick={handleCancelReturnRequest}
                   disabled={isCancellingReturnRequest}
                   whileHover={!isCancellingReturnRequest ? { scale: 1.02 } : {}}
@@ -1960,20 +1224,20 @@ export default function OrderDetailPage() {
               >
                   <X className="mr-2" size={18} />
                   {isCancellingReturnRequest ? 'Cancelling...' : 'Cancel Return/Refund Request'}
-              </motion.button>
+              </Motion.button>
               <p className="text-[10px] text-slate-400 mt-2 text-center italic">You can cancel this request until the courier picks up the item for return.</p>
-            </motion.div>
+            </Motion.div>
           )}
 
           {/* Help Section */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1 }}
             className="mt-6 text-center text-slate-500 text-sm"
           >
             <p>Need help with your order? <Link to="/support" className="text-[#e8767a] hover:underline font-semibold">Contact Support</Link></p>
-          </motion.div>
+          </Motion.div>
         </div>
       </div>
     </>

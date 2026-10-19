@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import OrderCancellationDialog from '../components/OrderCancellationDialog';
+import OrderTrackingTimeline from '../components/OrderTrackingTimeline';
+import { ORDER_TRACKING_CHANGED, ORDER_TRACKING_STORAGE_KEY } from '../utils/orderTrackingEvents';
 import axios from 'axios'
 import { backendUrl, currency } from '../App'
 import { toast } from 'react-toastify'
@@ -14,6 +16,7 @@ import {
 
 const Orders = ({ token }) => {
   const [orders, setOrders] = useState([])
+  const fetchVersion = useRef(0);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -81,7 +84,8 @@ const Orders = ({ token }) => {
     setCurrentPage(1);
   };
 
-  const StatusBadge = ({ status }) => {
+  // eslint-disable-next-line react/prop-types -- Values come from the admin order tracking response.
+  const StatusBadge = ({ status, tone }) => {
     let colorClass = '';
     let icon = null;
 
@@ -135,8 +139,11 @@ const Orders = ({ token }) => {
         icon = <AlertCircle size={12} />;
     }
 
+    if (tone === 'active') { colorClass = 'bg-violet-50 text-violet-700 border-violet-100'; icon = <RefreshCcw size={12} className="shrink-0" />; }
+    if (tone === 'complete') { colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-100'; icon = <BadgeCheck size={12} className="shrink-0" />; }
+    if (tone === 'attention') colorClass = 'bg-amber-50 text-amber-800 border-amber-200';
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border whitespace-nowrap ${colorClass}`}>
+      <span aria-label="Current order status" className={`inline-flex max-w-full items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${colorClass}`}>
         {icon} {status}
       </span>
     );
@@ -160,7 +167,8 @@ const Orders = ({ token }) => {
   };
 
   const orderDetailsPanel = (order) => (
-    <div className='p-5 border-t border-[#eee9f0] bg-[#faf8fb]'>
+    <div className='min-w-0 p-3 sm:p-5 border-t border-[#eee9f0] bg-[#faf8fb]'>
+      <OrderTrackingTimeline tracking={order.tracking} orderId={order.orderItemId || order._id} />
       <div className='grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3'>
         {/* Products */}
         <div className='min-w-0 break-words bg-white rounded-xl border border-[#eee9f0] p-4 [&_svg]:shrink-0'>
@@ -254,69 +262,33 @@ const Orders = ({ token }) => {
                     <FileText size={12}/> Track Shipment
                   </a>
                 )}
-                {order.shiprocket.trackingHistory?.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-[#eae5ed] space-y-1">
-                    {[...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3).map((act, i) => (
-                      <p key={i} className="text-[10px] text-[#8b7b93]">
-                        <span className="font-bold text-[#65526f]">{act.activity || act.status}</span>
-                        {act.location ? ` · ${act.location}` : ''} · {formatDate(act.date)}
-                      </p>
-                    ))}
-                  </div>
-                )}
+
               </div>
             </div>
           )}
         </div>
 
-        {/* Cancellation / Refund Info */}
-        {(order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned' || order.orderStatus === 'Refunded' || order.orderStatus === 'Refund Initiated') && (
-          <div className='min-w-0 break-words bg-white rounded-xl border border-[#eee9f0] p-4 [&_svg]:shrink-0'>
-            <p className='font-bold text-red-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b pb-1.5'><AlertCircle size={14}/> Returns / Cancellation</p>
-            <div className='space-y-2 text-xs text-[#756480] bg-red-50/50 p-3.5 rounded-xl border border-red-100'>
-              <p className="font-semibold text-red-700 capitalize">Status: {order.orderStatus}</p>
-              {order.refundDetails?.reason && (
-                <p><span className="font-bold text-[#65526f]">Reason:</span> <span className="italic text-[#756480]">&quot;{order.refundDetails.reason}&quot;</span></p>
-              )}
-              {order.refundDetails?.status && order.refundDetails.status !== 'none' && (
-                <p><span className="font-bold text-[#65526f]">Refund status:</span> <span className="font-bold text-[#342a3c] uppercase text-[10px] bg-white px-2 py-0.5 rounded shadow-sm border">{order.refundDetails.status}</span></p>
-              )}
-              {order.refundDetails?.amount > 0 && (
-                <p><span className="font-bold text-[#65526f]">Refund Amount:</span> <span className="font-semibold text-red-700">{currency}{order.refundDetails.amount.toFixed(2)}</span></p>
-              )}
-              {order.refundDetails?.requestedAt && (
-                <p><span className="font-bold text-[#65526f]">Claimed Date:</span> <span className="font-medium text-[#756480]">{formatDate(order.refundDetails.requestedAt)}</span></p>
-              )}
-              {order.refundDetails?.pickup && order.refundDetails.pickup.status !== 'none' && (
-                <div className="mt-2 pt-2 border-t border-red-100">
-                  <p><span className="font-bold text-[#65526f]">Pickup status:</span> <span className="font-bold text-[#342a3c] uppercase text-[10px] bg-white px-2 py-0.5 rounded shadow-sm border">{order.refundDetails.pickup.status.replace(/_/g, ' ')}</span></p>
-                  {order.refundDetails.pickup.awb && <p className="text-[10px] text-[#8b7b93] mt-1">Return AWB: <span className="font-bold">{order.refundDetails.pickup.awb}</span> {order.refundDetails.pickup.courier ? `(${order.refundDetails.pickup.courier})` : ''}</p>}
-                  {order.refundDetails.pickup.status === 'failed' && order.refundDetails.pickup.failureReason && (
-                    <p className="text-[10px] text-red-600 italic mt-1">Auto-schedule failed: {order.refundDetails.pickup.failureReason} — arrange pickup manually.</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );
 
-  const fetchAllOrders = useCallback(async () => {
+  const fetchAllOrders = useCallback(async ({ silent = false } = {}) => {
     if (!token) {
       return null;
     }
 
+    const version = ++fetchVersion.current;
     try {
       const response = await axios.post(backendUrl + '/api/order/list', {}, { headers: { token } })
+      if (version !== fetchVersion.current) return;
       if (response.data.success) {
-        setOrders(response.data.orders.reverse())
+        setOrders([...response.data.orders].sort((a, b) => new Date(b.date) - new Date(a.date)))
       } else {
-        toast.error(response.data.message)
+        if (!silent) toast.error(response.data.message)
       }
     } catch (error) {
-      toast.error(error.message)
+      if (!silent) toast.error(error.message)
     }
   }, [token])
 
@@ -353,12 +325,19 @@ const Orders = ({ token }) => {
     if (!token) return;
 
     const refreshOnFocus = () => {
-      if (document.visibilityState === 'visible') fetchAllOrders();
+      if (document.visibilityState === 'visible') fetchAllOrders({ silent: true });
     };
 
+    const refreshOnStorage = event => { if (event.key === ORDER_TRACKING_STORAGE_KEY) refreshOnFocus(); };
+    const interval = window.setInterval(refreshOnFocus, 30000);
+    window.addEventListener(ORDER_TRACKING_CHANGED, refreshOnFocus);
+    window.addEventListener('storage', refreshOnStorage);
     window.addEventListener('focus', refreshOnFocus);
     document.addEventListener('visibilitychange', refreshOnFocus);
     return () => {
+      window.clearInterval(interval);
+      window.removeEventListener(ORDER_TRACKING_CHANGED, refreshOnFocus);
+      window.removeEventListener('storage', refreshOnStorage);
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
@@ -548,6 +527,8 @@ const Orders = ({ token }) => {
           order.couponCode,
           order.paymentMethod,
           order.orderStatus,
+          order.tracking?.label,
+          ...(order.tracking?.journeys || []).flatMap(journey => [journey.label, journey.ticketId, journey.references?.awb, journey.references?.replacementAwb]),
           order.shiprocket?.awb,
           order.address?.city,
           order.address?.state,
@@ -587,6 +568,8 @@ const Orders = ({ token }) => {
     { label: 'Payment Method', key: 'paymentMethod' },
     { label: 'Payment Status', key: 'paymentStatus' },
     { label: 'Order Status', key: 'orderStatus' },
+    { label: 'Current Tracking Status', key: 'trackingStatus' },
+    { label: 'Return / Refund / Exchange Statuses', key: 'requestStatuses' },
     { label: 'Coupon Code', key: 'couponCode' },
     { label: 'Coupon Discount', key: 'couponDiscount' },
     { label: 'Shipping Charge', key: 'shippingCharge' },
@@ -612,6 +595,8 @@ const Orders = ({ token }) => {
     paymentMethod: order.paymentMethod,
     paymentStatus: order.payment ? 'Paid' : order.orderStatus === 'Cancelled' ? 'Cancelled' : 'Pending',
     orderStatus: order.orderStatus,
+    trackingStatus: order.tracking?.label || order.orderStatus,
+    requestStatuses: (order.tracking?.journeys || []).filter(journey => journey.key !== 'delivery').map(journey => `${journey.title}: ${journey.label}`).join(' | '),
     couponCode: order.couponCode || '',
     couponDiscount: order.couponDiscount || 0,
     shippingCharge: order.shippingCharge || 0,
@@ -943,8 +928,8 @@ const Orders = ({ token }) => {
             </div>
           ) : (
             <>
-              {/* Desktop / tablet table */}
-              <div className='hidden md:block bg-white rounded-xl border border-[#eae5ed] overflow-hidden'>
+              {/* Keep the eight-column table on screens wide enough for its expanded tracking panel. */}
+              <div className='hidden min-[1400px]:block bg-white rounded-xl border border-[#eae5ed] overflow-hidden'>
                 <div className='min-w-0 overflow-x-auto'>
                   <table className='w-full min-w-full divide-y divide-[#eee9f0]'>
                     <thead className='bg-[#faf8fb]'>
@@ -992,8 +977,8 @@ const Orders = ({ token }) => {
                               <p className='text-xs text-[#65526f] font-medium truncate' title={`${order.address.city}, ${order.address.state}`}>{order.address.city}, {order.address.state}</p>
                               <p className='text-[11px] text-[#9d8da5]'>{order.address.zip}</p>
                             </td>
-                            <td className='px-4 py-3 align-top whitespace-nowrap'>
-                              <StatusBadge status={order.orderStatus} />
+                            <td className='px-4 py-3 align-top min-w-[170px] max-w-[230px]'>
+                              <StatusBadge status={order.tracking?.label || order.orderStatus} tone={order.tracking?.tone} />
                             </td>
                             <td className='px-4 py-3 align-top'>
                               <div className='flex items-center justify-end gap-1.5'>
@@ -1029,12 +1014,12 @@ const Orders = ({ token }) => {
                 </div>
               </div>
 
-              {/* Mobile card list */}
-              <div className='md:hidden space-y-3'>
+              {/* Cards keep tracking readable on phones, tablets and compact desktop screens. */}
+              <div className='min-[1400px]:hidden space-y-3'>
                 {paginatedOrders.map((order) => (
                   <div key={order._id} className='bg-white rounded-xl border border-[#eae5ed] overflow-hidden'>
                     <div className='p-4'>
-                      <div className='flex items-start justify-between gap-3'>
+                      <div className='flex flex-wrap items-start justify-between gap-3'>
                         <div className='min-w-0'>
                           {order.orderItemId && (
                             <p className='text-[11px] font-bold text-[#a85070] truncate' title={order.orderItemId}>#{order.orderItemId}</p>
@@ -1048,7 +1033,7 @@ const Orders = ({ token }) => {
                             </span>
                           )}
                         </div>
-                        <StatusBadge status={order.orderStatus} />
+                        <StatusBadge status={order.tracking?.label || order.orderStatus} tone={order.tracking?.tone} />
                       </div>
 
                       <div className='grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-[#eee9f0] text-xs'>

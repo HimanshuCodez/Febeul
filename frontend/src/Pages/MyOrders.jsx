@@ -6,6 +6,7 @@ import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import Loader from "../components/Loader";
+import { getOrderRequestStatus } from "../utils/orderAftercare";
 import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL; // Assume backendUrl is accessible
@@ -30,41 +31,15 @@ const getOrderDisplayStatus = (order) => {
   return order.orderStatus;
 };
 
-const JOURNEY_STAGES = ["Order Placed", "Processing", "Shipped", "Out for delivery", "Delivered"];
-const STAGE_LEVELS = { "Order Placed": 0, "Processing": 1, "Confirmed": 1, "Shipped": 2, "Out for delivery": 3, "Delivered": 4 };
-
 const STATUS_FILTERS = [
   { label: "All", match: () => true },
   { label: "Processing", match: (s) => ["Order Placed", "Processing", "Confirmed"].includes(s) },
   { label: "Shipped", match: (s) => ["Shipped", "Out for delivery"].includes(s) },
-  { label: "Delivered", match: (s) => s === "Delivered" },
+  { label: "Delivered", match: (s, request) => s === "Delivered" && !request },
   { label: "Cancelled", match: (s) => ["Cancelled", "Failed"].includes(s) },
-  { label: "Returns/Refunds", match: (s) => ["Returned", "Refund Initiated", "Refunded"].includes(s) },
+  { label: "Returns/Refunds", match: (s, request) => ["Returned", "Refund Initiated", "Refunded"].includes(s) || ["return", "refund"].includes(request?.type) },
+  { label: "Exchanges", match: (_s, request) => request?.type === "exchange" },
 ];
-
-const OrderProgressStrip = ({ status }) => {
-  if (["Cancelled", "Returned", "Refund Initiated", "Refunded", "Failed"].includes(status)) return null;
-  const currentLevel = STAGE_LEVELS[status] ?? 0;
-
-  return (
-    <ol aria-label="Delivery progress" className="grid w-full grid-cols-5">
-      {JOURNEY_STAGES.map((stage, index) => {
-        const stageLevel = STAGE_LEVELS[stage];
-        const isDone = stageLevel <= currentLevel;
-        return (
-          <li key={stage} aria-current={stageLevel === currentLevel ? "step" : undefined} className="relative flex min-w-0 flex-col items-center">
-            {index < JOURNEY_STAGES.length - 1 && (
-              <span aria-hidden="true" className={`absolute left-1/2 top-1 h-0.5 w-full ${stageLevel < currentLevel ? "bg-pink-500" : "bg-slate-200"}`} />
-            )}
-            <span aria-hidden="true" className={`relative z-10 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white ${isDone ? "bg-pink-500" : "bg-slate-200"}`} />
-            <span className={`mt-2.5 hidden px-1 text-center text-[10px] leading-snug sm:block ${stageLevel === currentLevel ? "font-semibold text-pink-600" : "text-slate-500"}`}>{stage}</span>
-            <span className="sr-only sm:hidden">{stage}{isDone ? " reached" : " pending"}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-};
 
 const CancellationModal = ({ order, token, onClose, onCancelled }) => {
   const [reason, setReason] = useState("");
@@ -299,7 +274,7 @@ const MyOrders = () => {
     return orders.filter((order) => {
       const displayStatus = getOrderDisplayStatus(order);
       const statusMatcher = STATUS_FILTERS.find((f) => f.label === statusFilter);
-      if (statusMatcher && !statusMatcher.match(displayStatus)) return false;
+      if (statusMatcher && !statusMatcher.match(displayStatus, getOrderRequestStatus(order))) return false;
 
       const orderDate = new Date(order.date);
       if (timeFilter === "Last 30 Days") {
@@ -340,7 +315,7 @@ const MyOrders = () => {
   };
 
   const canCancel = (status) => {
-    const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refunded'];
+    const nonCancellable = ['Shipped', 'Out for delivery', 'Delivered', 'Cancelled', 'Returned', 'Refund Initiated', 'Refunded'];
     return !nonCancellable.includes(status);
   };
 
@@ -416,35 +391,17 @@ const MyOrders = () => {
               const isLuxe = order.items.some(item => item.name === "Febeul Luxe Membership" || item.sku === "LUXE-MEMBERSHIP");
               const totalQuantity = order.items.reduce((total, item) => total + (Number(item.quantity) || 0), 0);
               const displayStatus = getOrderDisplayStatus(order);
-              // "Returned" always means the courier sent it back (a customer
-              // return uses refundDetails.pickup, not this field) — only the
-              // label shown is renamed, all the logic above stays on 'Returned'.
-              const displayStatusLabel = displayStatus === "Returned" ? "Courier Return" : displayStatus;
+              const requestStatus = getOrderRequestStatus(order);
+              const displayStatusLabel = requestStatus?.label || (displayStatus === "Returned" ? "Courier Return" : displayStatus);
               const refundStatus = order.refundDetails?.status;
-              const pickupStatus = order.refundDetails?.pickup?.status;
-              // For an approved return the server sends a single customer-safe
-              // label (order.returnStatus) covering both the parcel and the
-              // money — using it here keeps this card and the detail page's
-              // timeline from ever disagreeing.
-              const refundSubLabel = displayStatus === 'Cancelled'
+              // Cancellation/RTO payment information is separate from a
+              // delivered-item request. Keep its existing payment explanation.
+              const refundSubLabel = requestStatus ? null : displayStatus === 'Cancelled'
                 ? (!order.payment ? 'No payment collected. No refund due.'
                   : refundStatus === 'completed' ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed`
                   : refundStatus === 'processing' ? 'Refund processing with the payment provider.'
                   : 'Refund pending. We are following up on your payment.')
-                : order.returnStatus
-                ? (order.returnStatus.stage === 'refund_completed'
-                    ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed`
-                    : `Return: ${order.returnStatus.label}`)
-                : refundStatus === 'completed'
-                ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed`
-                : refundStatus === 'rejected'
-                ? 'Refund request rejected'
-                : refundStatus && ['pending', 'initiated', 'processing'].includes(refundStatus)
-                ? (pickupStatus === 'picked_up' || pickupStatus === 'in_transit' ? 'Return: Picked up by courier'
-                  : pickupStatus === 'delivered_to_warehouse' ? 'Return: Received at warehouse'
-                  : pickupStatus === 'scheduled' ? 'Return: Pickup scheduled'
-                  : 'Return/Refund: Under review')
-                : null;
+                : refundStatus === 'completed' ? `Refund: ₹${(order.refundDetails.amount || 0).toFixed(2)} processed` : null;
 
               return (
                 <Motion.article
@@ -477,7 +434,10 @@ const MyOrders = () => {
 
                   <div className="space-y-4 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
                     <div className="flex flex-wrap items-center justify-between gap-2.5">
-                      <span className={'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold capitalize ' + (
+                      <span aria-label="Order status" className={'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold capitalize ' + (
+                        requestStatus?.tone === 'active' ? 'border-violet-100 bg-violet-50 text-violet-700' :
+                        requestStatus?.tone === 'issue' ? 'border-rose-100 bg-rose-50 text-rose-700' :
+                        requestStatus?.tone === 'complete' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' :
                         displayStatus === 'Processing' ? 'border-amber-100 bg-amber-50 text-amber-700' :
                         displayStatus === 'Shipped' || displayStatus === 'Out for delivery' ? 'border-blue-100 bg-blue-50 text-blue-700' :
                         displayStatus === 'Delivered' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' :
@@ -489,7 +449,6 @@ const MyOrders = () => {
                       </span>
                       <span className="text-xs text-slate-500">{totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} in this order</span>
                     </div>
-                    <OrderProgressStrip status={displayStatus} />
                     {refundSubLabel && <p className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-800">{refundSubLabel}</p>}
                   </div>
 
@@ -522,7 +481,7 @@ const MyOrders = () => {
                       {order.paymentMethod && <p className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500"><CreditCard size={12} aria-hidden="true" />{order.paymentMethod}</p>}
                     </div>
                     <div className="flex min-w-0 items-center gap-2 sm:shrink-0">
-                      {canCancel(displayStatus) && <button type="button" onClick={(e) => { e.stopPropagation(); setOrderToCancel(order); }} className="min-h-11 flex-1 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-600 transition-colors hover:border-rose-300 hover:bg-rose-50 sm:flex-none">Cancel</button>}
+                      {!requestStatus && canCancel(displayStatus) && <button type="button" onClick={(e) => { e.stopPropagation(); setOrderToCancel(order); }} className="min-h-11 flex-1 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-600 transition-colors hover:border-rose-300 hover:bg-rose-50 sm:flex-none">Cancel</button>}
                       <button type="button" onClick={() => handleViewOrderDetails(order._id)} className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-black sm:flex-none">Details <ArrowRight size={15} aria-hidden="true" /></button>
                     </div>
                   </div>

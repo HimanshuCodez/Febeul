@@ -243,7 +243,10 @@ export const buildCustomerReturnStatus = (order, settings = RETURN_SETTINGS_DEFA
     const milestones = CUSTOMER_STAGES.map((stage, index) => ({
         key: stage.key,
         label: stage.label,
-        reached: index <= currentIdx,
+        // Paying a refund early must not imply that the courier delivered the
+        // return or that the warehouse inspected it. Parcel and payout progress
+        // are independent even when the headline shows the later refund stage.
+        reached: index <= STAGE_INDEX.qc_done ? index <= parcelStageIdx : index <= refundStageIdx,
         current: index === currentIdx,
         at: stageDates[stage.key] || null
     }));

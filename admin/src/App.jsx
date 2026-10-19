@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useEffect, useRef, useState, Suspense, lazy } from 'react'
+import { useEffect, useRef, useState, Suspense, lazy } from 'react'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 import ScrollToTop from './components/ScrollToTop'
@@ -9,6 +9,7 @@ import Login from './components/Login'
 import ForgetPass from './pages/ForgetPass'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { isOrderTrackingMutation, notifyOrderTrackingChanged } from './utils/orderTrackingEvents';
 
 // Route-level code splitting: each admin page (and its data fetching) only
 // loads once its route is actually visited, instead of all pages being
@@ -63,7 +64,10 @@ const App = () => {
   const [permissions, setPermissions] = useState(JSON.parse(localStorage.getItem('permissions') || '[]'));
 
   useEffect(() => {
-    const id = axios.interceptors.response.use(response => response, error => {
+    const id = axios.interceptors.response.use(response => {
+      if (isOrderTrackingMutation(response)) notifyOrderTrackingChanged();
+      return response;
+    }, error => {
       if (error.response?.status === 401 && error.config?.headers?.token) {
         setToken(''); setRole(''); setPermissions([]); setUserEmail('');
       }

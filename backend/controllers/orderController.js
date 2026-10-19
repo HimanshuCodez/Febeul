@@ -15,6 +15,7 @@ import { syncReturnTracking, syncReturnsTracking } from '../utils/returnTracking
 import { getReturnSettings, sanitizeOrderForCustomer, sanitizeOrdersForCustomer } from '../utils/returnStatus.js';
 import exchangeModel from '../models/exchangeModel.js';
 import { getExchangeSettings, sanitizeExchangesForCustomer, applyWindowExpiry } from '../utils/exchangeStatus.js';
+import { buildAdminOrderTracking } from '../utils/adminOrderTracking.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
@@ -750,8 +751,21 @@ const allOrders = async (req,res) => {
         // Same throttled+capped sync the storefront uses, so a big order list
         // doesn't turn into a burst of Shiprocket calls.
         await syncOrdersTracking(orders);
-
-        res.json({success:true,orders})
+        await syncReturnsTracking(orders);
+        const exchanges = orders.length ? await exchangeModel.find({ orderId: { $in: orders.map(order => order._id) } }) : [];
+        await Promise.all(exchanges.filter(exchange => applyWindowExpiry(exchange)).map(exchange => exchange.save()));
+        const [returnSettings, exchangeSettings] = await Promise.all([getReturnSettings(), getExchangeSettings()]);
+        const exchangesByOrder = new Map();
+        for (const exchange of exchanges) {
+            const key = String(exchange.orderId);
+            if (!exchangesByOrder.has(key)) exchangesByOrder.set(key, []);
+            exchangesByOrder.get(key).push(exchange);
+        }
+        const trackedOrders = orders.map(order => ({
+            ...order.toObject(),
+            tracking: buildAdminOrderTracking(order, exchangesByOrder.get(String(order._id)) || [], returnSettings, exchangeSettings),
+        }));
+        res.json({ success: true, orders: trackedOrders })
 
     } catch (error) {
         console.error('Order request failed', { name: error?.name, code: error?.code })
@@ -782,7 +796,21 @@ const userOrders = async (req,res) => {
         // return journey's internal vocabulary (critical, investigation, lost,
         // claim) which must not exist anywhere in the response, visible or not.
         const settings = await getReturnSettings();
-        res.json({ success: true, orders: sanitizeOrdersForCustomer(orders, settings) })
+        const customerOrders = sanitizeOrdersForCustomer(orders, settings);
+        // Fetch exchanges once for this customer's visible orders so the list
+        // can show the same current status as the detail page.
+        const exchanges = orders.length ? await exchangeModel.find({ userId, orderId: { $in: orders.map(order => order._id) } }) : [];
+        const expired = exchanges.filter(exchange => applyWindowExpiry(exchange));
+        await Promise.all(expired.map(exchange => exchange.save()));
+        const exchangeSettings = exchanges.length ? await getExchangeSettings() : undefined;
+        const exchangesByOrder = new Map();
+        for (const exchange of sanitizeExchangesForCustomer(exchanges, exchangeSettings)) {
+            const key = String(exchange.orderId);
+            if (!exchangesByOrder.has(key)) exchangesByOrder.set(key, []);
+            exchangesByOrder.get(key).push(exchange);
+        }
+        for (const order of customerOrders) order.exchanges = exchangesByOrder.get(String(order._id)) || [];
+        res.json({ success: true, orders: customerOrders })
 
     } catch (error) {
         console.error('Order request failed', { name: error?.name, code: error?.code })
