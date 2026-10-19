@@ -1,14 +1,47 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion as Motion, useReducedMotion } from 'framer-motion';
-import { Check, Copy, Gift, Sparkles, X } from 'lucide-react';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
+import { ArrowRight, Check, Copy, Gift, LoaderCircle, LockKeyhole, Pause, Play, Sparkle, Sparkles, Ticket, X } from 'lucide-react';
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
 import { analytics } from '../analytics/runtime';
 import { isPublicGiftCoupon, validateHomeGiftOffer } from '../../../shared/homeGiftOffer.js';
-import giftArtwork from '../../../shared/gift-offer.svg';
+import './HomeGiftOffer.css';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
+const subscribeToReducedMotion = listener => {
+  const media = window.matchMedia(reducedMotionQuery);
+  media.addEventListener('change', listener);
+  return () => media.removeEventListener('change', listener);
+};
+const getReducedMotion = () => window.matchMedia(reducedMotionQuery).matches;
+const sparklePositions = [[13, 26, 12], [82, 17, 18], [76, 72, 11], [18, 76, 17], [52, 9, 9], [91, 49, 8]];
+const confettiPieces = Array.from({ length: 14 }, (_, index) => ({
+  '--confetti-x': `${Math.cos(index * 2.4) * (85 + index * 5)}px`,
+  '--confetti-y': `${Math.sin(index * 2.4) * 90 - 45}px`,
+  '--confetti-rotation': `${index * 67}deg`,
+  animationDelay: `${index % 4 * 0.05}s`,
+}));
+
+function GiftArtwork() {
+  return <div className="gift-offer-art" aria-hidden="true">
+    <div className="gift-offer-orbit gift-offer-orbit--outer" />
+    <div className="gift-offer-orbit gift-offer-orbit--inner" />
+    <div className="gift-offer-present-shadow" />
+    <div className="gift-offer-present">
+      <div className="gift-offer-box"><span className="gift-offer-ribbon" /><span className="gift-offer-box-mark">F</span></div>
+      <div className="gift-offer-lid">
+        <span className="gift-offer-bow gift-offer-bow--left" />
+        <span className="gift-offer-bow gift-offer-bow--right" />
+        <span className="gift-offer-bow-knot" />
+        <span className="gift-offer-lid-ribbon" />
+      </div>
+      <span className="gift-offer-tag"><Sparkles size={12} strokeWidth={1.3} />For you</span>
+    </div>
+    {sparklePositions.map(([left, top, size], index) => <Sparkle key={index} className="gift-offer-sparkle" size={size} style={{ left: `${left}%`, top: `${top}%`, animationDelay: `${index * 0.55}s` }} />)}
+  </div>;
+}
 
 export default function HomeGiftOffer({ open, onOpenChange }) {
   const [settings, setSettings] = useState(null);
@@ -18,12 +51,14 @@ export default function HomeGiftOffer({ open, onOpenChange }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const [paused, setPaused] = useState(false);
   const dialog = useRef(null);
   const request = useRef(null);
   const titleId = useId();
   const navigate = useNavigate();
   const location = useLocation();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useSyncExternalStore(subscribeToReducedMotion, getReducedMotion, () => true);
+  const motionStopped = reduceMotion || paused;
   const { token, isAuthenticated } = useAuthStore();
   const signedIn = Boolean(token && isAuthenticated);
   const consent = useSyncExternalStore(analytics.subscribe, analytics.getSnapshot);
@@ -106,18 +141,22 @@ export default function HomeGiftOffer({ open, onOpenChange }) {
   const colors = { '--gift-bg': settings.backgroundColor, '--gift-ink': settings.textColor, '--gift-button': settings.buttonColor, '--gift-button-ink': settings.buttonTextColor, '--gift-paper': settings.ticketColor };
 
   return <>
-    {!dismissed && <div style={colors} className="fixed bottom-5 left-3 z-[60] font-sans sm:bottom-7 sm:left-6">
-      <button type="button" aria-label="Dismiss gift offer" onClick={() => setDismissed(true)} className="absolute -right-2 -top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-slate-100 bg-white text-slate-700 shadow-md transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"><X size={16} /></button>
-      <Motion.button type="button" aria-label="Open your gift offer" aria-haspopup="dialog" onClick={() => { setMessage(''); onOpenChange(true); }}
-        initial={reduceMotion ? false : { y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-        whileHover={reduceMotion ? undefined : { y: -4, rotate: -3 }} whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-        className="relative flex w-24 flex-col items-center rounded-2xl border-[3px] border-white bg-[var(--gift-bg)] px-2 pb-3 pt-6 text-[var(--gift-ink)] shadow-[0_8px_30px_rgba(0,0,0,0.2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 sm:w-28">
-        <span aria-hidden="true" className="absolute -top-4 flex h-9 w-12 items-center justify-center rounded-xl border-[3px] border-white bg-[var(--gift-bg)]"><Gift size={29} strokeWidth={2} /></span>
-        <span className="w-full break-words border-b border-black/10 pb-1 text-[10px] font-extrabold uppercase leading-tight tracking-wide">{settings.badgeLabel}</span>
-        <span className="mt-1.5 w-full break-words text-xl font-black uppercase leading-none sm:text-2xl">{settings.badgeOffer}</span>
-        <span className="mt-1 w-full break-words text-xs font-extrabold uppercase leading-tight">{settings.badgeCaption}</span>
-      </Motion.button>
-    </div>}
+    <AnimatePresence>
+      {!dismissed && <Motion.div style={colors} className="gift-offer-launcher" data-motion={motionStopped || open ? 'paused' : 'playing'}
+        initial={motionStopped ? false : { y: 24, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: motionStopped ? 0 : 12, opacity: 0, scale: motionStopped ? 1 : 0.94 }} transition={{ duration: motionStopped ? 0 : 0.35 }}>
+        <button type="button" aria-label="Dismiss gift offer" onClick={() => setDismissed(true)} className="gift-offer-dismiss"><X size={12} /></button>
+        <Motion.button type="button" aria-label="Open your gift offer" aria-haspopup="dialog" onClick={() => { setMessage(''); onOpenChange(true); }}
+          whileHover={motionStopped ? undefined : { y: -3, scale: 1.025 }} whileTap={motionStopped ? undefined : { scale: 0.97 }} className="gift-offer-badge">
+          <span className="gift-offer-badge-icon" aria-hidden="true"><Gift size={27} strokeWidth={1.4} /><Sparkle className="gift-offer-badge-sparkle" size={12} /></span>
+          <span className="gift-offer-badge-copy">
+            <span className="gift-offer-badge-label">{settings.badgeLabel}</span>
+            <span className="gift-offer-badge-offer">{settings.badgeOffer} <span>{settings.badgeCaption}</span></span>
+          </span>
+          <ArrowRight className="gift-offer-badge-arrow" size={14} aria-hidden="true" />
+        </Motion.button>
+      </Motion.div>}
+    </AnimatePresence>
 
     <dialog ref={dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onOpenChange(false); }}
       onClick={event => {
@@ -125,36 +164,54 @@ export default function HomeGiftOffer({ open, onOpenChange }) {
         const rect = event.currentTarget.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onOpenChange(false);
       }}
-      style={colors} className="fixed inset-0 m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-[420px] overflow-y-auto overscroll-contain rounded-[26px] border-0 bg-[var(--gift-bg)] p-0 font-sans text-[var(--gift-ink)] shadow-2xl backdrop:bg-black/55 backdrop:backdrop-blur-sm">
-      {open && <Motion.div initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="relative isolate overflow-hidden px-5 pb-6 pt-12 text-center sm:px-8 sm:pb-8">
-        <span aria-hidden="true" className="pointer-events-none absolute -left-24 -top-40 -z-10 h-96 w-96 rounded-full bg-white/15" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-52 -right-28 -z-10 h-96 w-96 rounded-full bg-black/5" />
-        <button type="button" autoFocus aria-label="Close gift offer" onClick={() => onOpenChange(false)} className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-slate-800 transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"><X size={20} /></button>
-        <h2 id={titleId} className="break-words font-sans text-2xl font-extrabold leading-tight tracking-tight sm:text-[28px]">{revealed ? settings.revealTitle : settings.title}</h2>
-        {settings.description && <p className="mx-auto mt-2 max-w-xs break-words text-xs leading-relaxed opacity-80 sm:text-sm">{settings.description}</p>}
+      style={colors} className="gift-offer-dialog" data-motion={motionStopped ? 'paused' : 'playing'}>
+      {open && <div className="gift-offer-content" data-revealed={revealed} data-busy={busy}>
+        <div className="gift-offer-ambient" aria-hidden="true" />
+        <button type="button" autoFocus aria-label="Close gift offer" onClick={() => onOpenChange(false)} className="gift-offer-close"><X size={18} strokeWidth={1.5} /></button>
+        {!reduceMotion && <button type="button" aria-label={paused ? 'Play gift animations' : 'Pause gift animations'} aria-pressed={paused} onClick={() => setPaused(value => !value)} className="gift-offer-playback">
+          {paused ? <Play size={13} /> : <Pause size={13} />}
+        </button>}
 
-        <div className="relative mx-auto mt-6 max-w-[300px]">
-          <div aria-hidden="true" className="absolute -left-2 -right-2 -top-1 h-4 rounded-full border border-black/20 bg-black/10 shadow-inner" />
-          <div className="relative bg-[var(--gift-paper)] pt-6 shadow-[0_8px_20px_rgba(0,0,0,0.08)]">
-            <p className="break-words px-4 text-sm font-semibold uppercase tracking-[0.25em] sm:text-base sm:tracking-[0.35em]">{settings.ticketLabel}</p>
-            <div aria-hidden="true" className="relative mt-5 flex justify-between border-t-2 border-dashed border-[var(--gift-bg)]">
-              {Array.from({ length: 11 }, (_, index) => <span key={index} className="-mt-1.5 h-2.5 w-2.5 rounded-full bg-[var(--gift-bg)] first:-ml-1.5 last:-mr-1.5" />)}
-            </div>
-            {revealed ? <Motion.div key="revealed" initial={reduceMotion ? false : { scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex min-h-48 flex-col items-center justify-center px-5 py-6" aria-live="polite">
-              <Sparkles size={30} className="mb-4 opacity-60" aria-hidden="true" />
-              <p className="text-[10px] font-semibold uppercase tracking-widest opacity-70">Your coupon code</p>
-              <p className="mt-2 w-full select-all break-all text-2xl font-black tracking-wide sm:text-3xl">{settings.couponCode}</p>
-              <button type="button" onClick={copyCode} className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-current px-5 py-2 text-xs font-semibold transition hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? 'Copied!' : 'Copy code'}</button>
-            </Motion.div> : <img src={giftArtwork} alt="A golden gift box with a surprise inside" width="300" height="250" className="mx-auto aspect-[6/5] w-full max-w-[270px] p-2" />}
-          </div>
+        <header className="gift-offer-header">
+          <div className="gift-offer-eyebrow"><span /><Sparkle size={12} aria-hidden="true" />A gift from Febeul<span /></div>
+          <h2 id={titleId} className="gift-offer-title">{revealed ? settings.revealTitle : settings.title}</h2>
+          {settings.description && <p className="gift-offer-description">{settings.description}</p>}
+        </header>
+
+        <div className="gift-offer-stage" aria-live="polite" aria-busy={busy}>
+          <AnimatePresence mode="wait" initial={false}>
+            {revealed ? <Motion.div key="revealed" className="gift-offer-reveal" initial={motionStopped ? false : { opacity: 0, y: 18, scale: 0.92 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: motionStopped ? 0 : 0.5, ease: [0.16, 1, 0.3, 1] }}>
+              <div className="gift-offer-confetti" aria-hidden="true">{confettiPieces.map((style, index) => <i key={index} style={style} />)}</div>
+              <div className="gift-offer-success" aria-hidden="true"><Check size={24} strokeWidth={1.5} /></div>
+              <div className="gift-offer-ticket">
+                <div className="gift-offer-ticket-heading"><Ticket size={15} aria-hidden="true" /><span>{settings.ticketLabel}</span><Sparkles size={14} aria-hidden="true" /></div>
+                <div className="gift-offer-ticket-body">
+                  <p className="gift-offer-code-label">Your coupon code</p>
+                  <p className="gift-offer-code">{settings.couponCode}</p>
+                  <button type="button" onClick={copyCode} className="gift-offer-copy" data-copied={copied}>
+                    {copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'Copied!' : 'Copy code'}
+                  </button>
+                </div>
+                <div className="gift-offer-ticket-footer"><span /><span>Unwrapped. Just for you.</span><span /></div>
+              </div>
+            </Motion.div> : <Motion.div key="wrapped" className="gift-offer-wrapped" exit={motionStopped ? { opacity: 0 } : { opacity: 0, y: -15, scale: 1.08 }} transition={{ duration: motionStopped ? 0 : 0.25 }}>
+              <GiftArtwork />
+              <div className="gift-offer-seal"><Ticket size={14} aria-hidden="true" /><span>{settings.ticketLabel}</span><span className="gift-offer-seal-line" /><LockKeyhole size={11} aria-hidden="true" /><span className="gift-offer-seal-hint">Unwrap to reveal</span></div>
+            </Motion.div>}
+          </AnimatePresence>
         </div>
 
-        {message && <p role="status" className="mt-4 rounded-xl bg-white/80 p-3 text-xs leading-relaxed text-slate-800">{message}</p>}
-        {revealed ? <button type="button" onClick={() => { onOpenChange(false); navigate('/products'); }} className="mt-6 min-h-12 w-full break-words rounded-full bg-[var(--gift-button)] px-5 py-3 text-sm font-bold text-[var(--gift-button-ink)] transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">Continue shopping</button>
-          : <button type="button" disabled={busy} onClick={revealGift} className="mt-6 min-h-12 w-full break-words rounded-full bg-[var(--gift-button)] px-5 py-3 text-sm font-bold uppercase tracking-wide text-[var(--gift-button-ink)] transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-wait disabled:opacity-60">{busy ? 'Opening your gift...' : settings.buttonText}</button>}
-        {!signedIn && <p className="mt-3 text-[11px] leading-relaxed opacity-80">Sign in to reveal and use your gift.</p>}
-        {settings.terms && <p className="mx-auto mt-3 max-w-xs break-words text-[11px] leading-relaxed opacity-75">{settings.terms}</p>}
-      </Motion.div>}
+        <div className="gift-offer-actions">
+          {message && <p role="status" className="gift-offer-message">{message}</p>}
+          {revealed ? <button type="button" onClick={() => { onOpenChange(false); navigate('/products'); }} className="gift-offer-primary"><span>Continue shopping</span><ArrowRight size={17} aria-hidden="true" /></button>
+            : <button type="button" disabled={busy} onClick={revealGift} className="gift-offer-primary">
+              {busy ? <LoaderCircle size={17} className="gift-offer-spinner" aria-hidden="true" /> : <Gift size={17} strokeWidth={1.5} aria-hidden="true" />}<span>{busy ? 'Opening your gift...' : settings.buttonText}</span>{!busy && <ArrowRight size={17} aria-hidden="true" />}
+            </button>}
+          {!signedIn && <p className="gift-offer-signin"><LockKeyhole size={10} aria-hidden="true" />Sign in to reveal and use your gift.</p>}
+          {settings.terms && <p className="gift-offer-terms">{settings.terms}</p>}
+        </div>
+        <div className="gift-offer-footer" aria-hidden="true"><span />Little luxuries. Lovely surprises.<span /></div>
+      </div>}
     </dialog>
   </>;
 }
