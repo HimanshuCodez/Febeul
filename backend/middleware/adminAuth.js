@@ -44,6 +44,7 @@ const getRequiredPermission = (fullPath) => {
     if (fullPath.includes('/configurations')) return '/configurations';
     if (fullPath.startsWith('/api/admin/update-permissions')) return '/allusers';
     if (fullPath.startsWith('/api/admin/toggle-block')) return '/allusers';
+    if (fullPath.startsWith('/api/admin/grant-luxe')) return '/allusers';
     if (fullPath.startsWith('/api/user/allusers')) return '/allusers';
 
     return null;

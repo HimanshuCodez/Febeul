@@ -1,7 +1,7 @@
 import express from 'express';
 import adminAuth from '../middleware/adminAuth.js';
 import * as adminController from '../controllers/adminController.js';
-import { updateStaffPermissions, toggleBlockUser } from '../controllers/userController.js';
+import { updateStaffPermissions, toggleBlockUser, grantLuxeMembership } from '../controllers/userController.js';
 import adminSearchRouter from './adminSearchRoute.js';
 
 const adminRouter = express.Router();
@@ -22,5 +22,6 @@ adminRouter.get('/mail-history', adminAuth, adminController.getMailHistory);
 adminRouter.get('/mail-history/:id', adminAuth, adminController.getMailHistoryDetail);
 adminRouter.post('/update-permissions', adminAuth, updateStaffPermissions);
 adminRouter.post('/toggle-block', adminAuth, toggleBlockUser);
+adminRouter.post('/grant-luxe', adminAuth, grantLuxeMembership);
 
 export default adminRouter;

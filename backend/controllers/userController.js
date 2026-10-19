@@ -545,6 +545,47 @@ const decrementGiftWraps = async (req, res) => {
 };
 
 
+// Grant one month of Luxe, preserving any remaining membership time.
+const grantLuxeMembership = async (req, res) => {
+    const { userId } = req.body || {};
+    if (typeof userId !== 'string' || !/^[a-f\d]{24}$/i.test(userId)) {
+        return res.status(400).json({ success: false, message: 'A valid user ID is required.' });
+    }
+
+    try {
+        const user = await userModel.findById(userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+        const now = new Date();
+        const expiryDate = new Date(user.isLuxeMember && user.luxeMembershipExpires > now ? user.luxeMembershipExpires : now);
+        const day = expiryDate.getUTCDate();
+        // Clamp month-end dates, e.g. January 31 becomes February 28/29.
+        expiryDate.setUTCDate(1);
+        expiryDate.setUTCMonth(expiryDate.getUTCMonth() + 1);
+        const lastDay = new Date(Date.UTC(expiryDate.getUTCFullYear(), expiryDate.getUTCMonth() + 1, 0)).getUTCDate();
+        expiryDate.setUTCDate(Math.min(day, lastDay));
+
+        user.isLuxeMember = true;
+        user.luxeMembershipExpires = expiryDate;
+        user.giftWrapsLeft = 15;
+        await user.save();
+
+        return res.json({
+            success: true,
+            message: 'One month of Luxe membership granted.',
+            user: {
+                _id: user._id,
+                isLuxeMember: user.isLuxeMember,
+                luxeMembershipExpires: user.luxeMembershipExpires,
+                giftWrapsLeft: user.giftWrapsLeft,
+            },
+        });
+    } catch (error) {
+        console.error('Error granting Luxe membership:', error);
+        return res.status(500).json({ success: false, message: 'Unable to grant Luxe membership.' });
+    }
+};
+
 // Update staff permissions
 const updateStaffPermissions = async (req, res) => {
     try {
@@ -628,4 +669,4 @@ const adminOtpLogin = async (req, res) => {
 };
 
 
-export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, addBankAccount, removeBankAccount, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, updateStaffPermissions, toggleBlockUser, sendAdminOTP, adminOtpLogin }
+export { loginUser, registerUser, adminLogin, getProfile, forgotPassword, verifyPasswordOtp, resetPassword, addAddress, updateAddress, addBankAccount, removeBankAccount, pincodeProxy, getAllUsers, getWishlist, addToWishlist, removeFromWishlist, googleLogin, decrementGiftWraps, grantLuxeMembership, updateStaffPermissions, toggleBlockUser, sendAdminOTP, adminOtpLogin }

@@ -14,6 +14,7 @@ const emptyClass = 'flex min-h-[270px] flex-col items-center justify-center gap-
 const avatarColors = ['border-[#f1e4ed] bg-[#fbf0f5] text-[#ab6a89]', 'border-[#e5eded] bg-[#eef5f5] text-[#6c8286]', 'border-[#f0e9db] bg-[#faf5eb] text-[#95815f]', 'border-[#eae2f4] bg-[#f3effa] text-[#8b77a1]'];
 const summaryIcons = { dark: 'bg-white/5 text-[#e4b0c4]', green: 'bg-[#edf5f0] text-[#5e8c74]', rose: 'bg-[#fcf0f5] text-[#b5748e]', purple: 'bg-[#f4eff7] text-[#9478a4]' };
 const roleColors = { user: 'bg-[#f2eff6] text-[#887095]', staff: 'bg-[#eef1fb] text-[#6e7da4]', admin: 'bg-[#f3ecf9] text-[#9672ab]' };
+const hasActiveLuxe = user => user.isLuxeMember && new Date(user.luxeMembershipExpires).getTime() > Date.now();
 
 const AllUsers = ({ token }) => {
   const [users, setUsers] = useState([]);
@@ -21,6 +22,8 @@ const AllUsers = ({ token }) => {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [savingPermissions, setSavingPermissions] = useState(false);
+  const [grantingLuxeUserId, setGrantingLuxeUserId] = useState(null);
+  const luxeRequestRef = useRef(false);
   const dialogRef = useRef(null);
   const modalTriggerRef = useRef(null);
   
@@ -116,6 +119,35 @@ const AllUsers = ({ token }) => {
       }
     } catch (err) {
       toast.error("Failed to update block status");
+    }
+  };
+
+  const handleGrantLuxe = async (user) => {
+    if (luxeRequestRef.current) return;
+    const confirmMessage = hasActiveLuxe(user)
+      ? `Extend Luxe membership for ${user.email} by 1 month from their current expiry? Their gift wrap allowance will be reset to 15.`
+      : `Grant ${user.email} Luxe membership for 1 month starting now, including 15 free gift wraps?`;
+    if (!window.confirm(confirmMessage)) return;
+
+    luxeRequestRef.current = true;
+    setGrantingLuxeUserId(user._id);
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/grant-luxe`, {
+        userId: user._id
+      }, { headers: { token } });
+
+      if (response.data.success) {
+        const updatedUser = response.data.user;
+        setUsers(previous => previous.map(account => account._id === updatedUser._id ? { ...account, ...updatedUser } : account));
+        toast.success(`Luxe membership active until ${formatDate(updatedUser.luxeMembershipExpires)}.`);
+      } else {
+        toast.error(response.data.message || 'Failed to grant Luxe membership');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to grant Luxe membership');
+    } finally {
+      luxeRequestRef.current = false;
+      setGrantingLuxeUserId(null);
     }
   };
 
@@ -215,11 +247,11 @@ const AllUsers = ({ token }) => {
   const summary = [
     { label: 'Total users', value: users.length, icon: Users, note: 'All registered accounts', tone: 'dark' },
     { label: 'Active accounts', value: users.filter(user => !user.isBlocked).length, icon: UserCheck, note: users.filter(user => user.isBlocked).length + ' blocked accounts', tone: 'green' },
-    { label: 'Luxe members', value: users.filter(user => user.isLuxeMember).length, icon: Crown, note: 'Membership access', tone: 'rose' },
+    { label: 'Luxe members', value: users.filter(hasActiveLuxe).length, icon: Crown, note: 'Membership access', tone: 'rose' },
     { label: 'Staff & admins', value: users.filter(user => ['staff', 'admin'].includes(user.role)).length, icon: ShieldCheck, note: 'Team accounts', tone: 'purple' },
   ];
   const initials = name => (name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
-  const joinedDate = value => {
+  const formatDate = value => {
     const date = value ? new Date(value) : null;
     return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
   };
@@ -233,7 +265,7 @@ const AllUsers = ({ token }) => {
           <p className="mt-2 text-xs text-[#776d80] sm:text-[13px]">Your customers, members, and team in one place.</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button type="button" className={buttonClass + ' !px-3'} onClick={fetchUsers} disabled={loading} aria-label="Refresh users" title="Refresh users">
+          <button type="button" className={buttonClass + ' !px-3'} onClick={fetchUsers} disabled={loading || Boolean(grantingLuxeUserId)} aria-label="Refresh users" title="Refresh users">
             <RefreshCw size={17} className={loading ? 'motion-safe:animate-spin' : ''} />
           </button>
           <button type="button" className={darkButtonClass + ' flex-1 lg:flex-none'} onClick={() => openPermissionsModal()}>
@@ -259,7 +291,7 @@ const AllUsers = ({ token }) => {
         <div className="flex items-start justify-between gap-3 px-4 py-5 sm:items-center sm:px-6">
           <div>
             <h2 id="users-directory-title" className="text-base font-semibold tracking-tight sm:text-[17px]">User directory</h2>
-            <p className="mt-1 text-[11px] leading-relaxed text-[#776d80] sm:text-xs">Manage account access and staff permissions.</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-[#776d80] sm:text-xs">Manage account access, Luxe membership, and staff permissions.</p>
           </div>
           <span className="shrink-0 rounded-md border border-[#efdee7] bg-[#faf1f6] px-2 py-1 text-[10px] font-medium text-[#947184] sm:px-2.5 sm:text-[11px]">{loading || error ? '\u2014' : filteredUsers.length} users</span>
         </div>
@@ -336,12 +368,23 @@ const AllUsers = ({ token }) => {
                       </td>
                       <td className={cellClass} data-label="Phone"><span className="whitespace-nowrap text-[11px] tabular-nums text-[#86728f]">{user.mobile || 'N/A'}</span></td>
                       <td className={cellClass} data-label="Role"><span className={badgeClass + ' capitalize ' + (roleColors[user.role] || roleColors.user)}>{user.role || 'user'}</span></td>
-                      <td className={cellClass} data-label="Membership">{user.isLuxeMember ? <span className={badgeClass + ' bg-[#faf1e5] text-[#a17e49]'}><Crown size={12} aria-hidden="true" />Luxe</span> : <span className="text-[11px] text-[#9c8ba6]">Standard</span>}</td>
+                      <td className={cellClass} data-label="Membership">
+                        {hasActiveLuxe(user) ? (
+                          <div className="flex flex-col items-start gap-1.5">
+                            <span className={badgeClass + ' bg-[#faf1e5] text-[#a17e49]'}><Crown size={12} aria-hidden="true" />Luxe</span>
+                            <span className="whitespace-nowrap text-[10px] text-[#9c8ba6]">Until {formatDate(user.luxeMembershipExpires)}</span>
+                          </div>
+                        ) : <span className="text-[11px] text-[#9c8ba6]">Standard</span>}
+                      </td>
                       <td className={cellClass} data-label="Gift wraps"><span className="inline-flex items-center gap-1.5 text-[11px] text-[#8f789c]"><Gift size={14} className="text-[#b7a3bf]" aria-hidden="true" />{user.giftWrapsLeft ?? 0}</span></td>
-                      <td className={cellClass} data-label="Joined"><span className="whitespace-nowrap text-[11px] tabular-nums text-[#86728f]">{joinedDate(user.createdAt)}</span></td>
+                      <td className={cellClass} data-label="Joined"><span className="whitespace-nowrap text-[11px] tabular-nums text-[#86728f]">{formatDate(user.createdAt)}</span></td>
                       <td className={cellClass} data-label="Status"><span className={badgeClass + (user.isBlocked ? ' bg-[#faeef2] text-[#b0607b]' : ' bg-[#edf6f1] text-[#4f876c]')}><i className="h-1 w-1 rounded-full bg-current" />{user.isBlocked ? 'Blocked' : 'Active'}</span></td>
                       <td className="col-span-full min-w-0 xl:border-b xl:border-[#f3eff6] xl:py-3.5 xl:pl-3 xl:pr-6 xl:align-middle">
                         <div className="flex flex-wrap items-start gap-2 xl:flex-col xl:gap-1">
+                          <button type="button" className="inline-flex min-h-9 items-center justify-center gap-1 whitespace-nowrap rounded-md border border-[#efdfc5] bg-[#faf1e5] px-2 py-1.5 text-[10px] font-medium text-[#a17e49] hover:border-[#d8bd92] hover:bg-[#f7e9d5] sm:text-[11px] xl:min-h-7 xl:text-[10px]" onClick={() => handleGrantLuxe(user)} disabled={Boolean(grantingLuxeUserId)} aria-label={(hasActiveLuxe(user) ? 'Extend' : 'Grant') + ' Luxe membership for 1 month for ' + user.email} aria-busy={grantingLuxeUserId === user._id}>
+                            {grantingLuxeUserId === user._id ? <RefreshCw size={14} className="motion-safe:animate-spin" aria-hidden="true" /> : <Crown size={14} aria-hidden="true" />}
+                            {grantingLuxeUserId === user._id ? 'Granting...' : <>{hasActiveLuxe(user) ? 'Extend' : 'Grant'} Luxe &middot; 1 month</>}
+                          </button>
                           <button type="button" className="inline-flex min-h-9 items-center justify-center gap-1 whitespace-nowrap rounded-md border border-[#e9dfee] bg-white px-2 py-1.5 text-[10px] font-medium text-[#94749f] hover:border-[#ceafdb] hover:bg-[#faf5fd] sm:text-[11px] xl:min-h-7 xl:text-[10px]" onClick={() => openPermissionsModal(user)} aria-label={'View Permissions for ' + user.email}><LockKeyhole size={14} aria-hidden="true" />View Permissions</button>
                           <button type="button" className={'inline-flex min-h-9 items-center justify-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[10px] font-medium sm:text-[11px] xl:min-h-7 xl:text-[10px] ' + (user.isBlocked ? 'text-[#6a9580] hover:bg-[#eef7f2] hover:text-[#47755c]' : 'text-[#af7388] hover:bg-[#fcf0f4] hover:text-[#a04d6a]')} onClick={() => handleToggleBlock(user)} aria-label={(user.isBlocked ? 'Unblock' : 'Block') + ' ' + user.email}>
                             {user.isBlocked ? <UserCheck size={14} aria-hidden="true" /> : <ShieldOff size={14} aria-hidden="true" />}{user.isBlocked ? 'Unblock' : 'Block'}
