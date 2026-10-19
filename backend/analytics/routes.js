@@ -1,12 +1,14 @@
 import express from 'express';
 import { createHash, randomBytes } from 'node:crypto';
+import { once } from 'node:events';
 import authUser from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 import { AnalyticsEvent, AnalyticsRevocation } from './models.js';
 import { analyticsConfig, expiresAt } from './config.js';
 import { validateBatch, reportRange, journeyFilters } from './validation.js';
 import { ingestEvents } from './service.js';
-import { summaryReport, journeyReport } from './reports.js';
+import { summaryReport, journeyReport, journeyExportRows } from './reports.js';
+import { journeyCsv } from './export.js';
 import { UUID } from '../../shared/analyticsPrivacy.js';
 
 export function createRateLimiter({ limit = 120, maxBuckets = 5000, now = Date.now } = {}) {
@@ -50,6 +52,33 @@ export function createAnalyticsRouter(deps = {}) {
   });
   // Reuse existing auth; ENV staff without explicit permissions must not bypass it.
   router.use('/reports', adminAuth, (req, res, next) => req.role === 'admin' || (req.role === 'staff' && req.permissions?.includes('/user-tracking')) ? next() : res.status(403).json({ success: false, message: 'User Tracking permission required' }));
+  router.get('/reports/export', async (req, res) => {
+    let range, filters;
+    try { range = reportRange(req.query); filters = journeyFilters(req.query); }
+    catch (error) { return res.status(400).json({ success: false, message: error.message }); }
+    const controller = new AbortController();
+    const disconnect = () => controller.abort();
+    res.on('close', disconnect);
+    const rows = journeyExportRows(range, filters);
+    try {
+      const selection = filters.stage ? `stage-${filters.stage}` : filters.event ? `event-${filters.event}` : filters.sessionId ? 'session' : 'all';
+      res.set('Content-Type', 'text/csv; charset=utf-8');
+      res.set('Content-Disposition', `attachment; filename="user-tracking-${selection}-${range.from}-to-${range.to}.csv"`);
+      for await (const chunk of journeyCsv(rows)) {
+        if (controller.signal.aborted) break;
+        if (!res.write(chunk)) await once(res, 'drain', { signal: controller.signal });
+      }
+      if (!controller.signal.aborted) res.end();
+    } catch {
+      if (!res.headersSent && !res.destroyed) {
+        res.removeHeader('Content-Disposition');
+        res.status(503).type('json').json({ success: false, message: 'Activity export temporarily unavailable. Please retry.' });
+      } else if (!res.destroyed) res.destroy();
+    } finally {
+      res.off('close', disconnect);
+      await rows.close().catch(() => {});
+    }
+  });
   router.get('/reports/:report', async (req, res) => {
     if (!['summary', 'journeys'].includes(req.params.report)) return res.status(404).json({ success: false });
     let range, page, filters;

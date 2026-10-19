@@ -54,27 +54,36 @@ function revenueReport(model, match) {
   ]);
 }
 
-export async function journeyReport(range, page = 1, filters = {}) {
-  // Filter sessions using the same stage coverage as summaryReport, before pagination.
-  // The timeline then shows the selected activity, including events after the first 100
-  // unrelated events. Guest actions are never attributed to a later signed-in account.
+function journeySelection(range, filters) {
   const required = filters.stage ? FUNNEL_STAGES[filters.stage] : filters.event ? [filters.event] : [];
   const selectedEvent = required.at(-1);
-  const relevant = selectedEvent ? { $eq: ['$name', selectedEvent] } : true;
   const match = { ...eventMatch(range), ...(filters.sessionId ? { sessionId: filters.sessionId } : {}) };
-  const timeline = [
-    { $match: { ...match, ...(selectedEvent ? { name: selectedEvent } : {}), $expr: { $eq: ['$sessionId', '$$session'] } } },
-    { $sort: { timestamp: 1, _id: 1 } }, { $limit: 100 },
+  return { required, selectedEvent, match };
+}
+
+function journeyEventDetails() {
+  return [
     { $lookup: { from: productModel.collection.name, localField: 'productId', foreignField: '_id', pipeline: [{ $project: { name: 1 } }], as: 'product' } },
     { $lookup: { from: orderModel.collection.name, let: { order: '$orderId', event: '$name' }, pipeline: [
       { $match: { $expr: { $and: [{ $eq: ['$$event', 'purchase'] }, { $eq: ['$_id', '$$order'] }] } } },
       { $project: { _id: 0, items: { $map: { input: { $slice: [{ $ifNull: ['$items', []] }, 100] }, as: 'item', in: { productId: '$$item.productId', name: '$$item.name', quantity: '$$item.quantity' } } } } },
     ], as: 'order' } },
     { $project: {
-      _id: 0, eventId: 1, name: 1, timestamp: 1, path: 1, productId: 1, quantity: 1, searchTerm: 1, currency: 1, amount: 1, userId: 1, orderId: 1,
+      _id: 0, eventId: 1, sessionId: 1, visitorId: 1, name: 1, timestamp: 1, path: 1, productId: 1, quantity: 1, searchTerm: 1, currency: 1, amount: 1, userId: 1, orderId: 1,
       productName: { $cond: [{ $ifNull: ['$productId', false] }, { $ifNull: [{ $arrayElemAt: ['$product.name', 0] }, 'Unavailable product'] }, '$$REMOVE'] },
       items: { $ifNull: [{ $arrayElemAt: ['$order.items', 0] }, []] },
     } },
+  ];
+}
+
+export async function journeyReport(range, page = 1, filters = {}) {
+  // Filter sessions before pagination; guest events keep their own anonymous identity.
+  const { required, selectedEvent, match } = journeySelection(range, filters);
+  const relevant = selectedEvent ? { $eq: ['$name', selectedEvent] } : true;
+  const timeline = [
+    { $match: { ...match, ...(selectedEvent ? { name: selectedEvent } : {}), $expr: { $eq: ['$sessionId', '$$session'] } } },
+    { $sort: { timestamp: 1, _id: 1 } }, { $limit: 100 },
+    ...journeyEventDetails(),
   ];
   const rows = await run(AnalyticsEvent, [
     { $match: match },
@@ -97,4 +106,24 @@ export async function journeyReport(range, page = 1, filters = {}) {
     accounts: accountIds.map(id => accounts.find(account => String(account._id) === String(id)) || { _id: id, name: 'Unavailable account' }),
   }));
   return { page, pageSize: 10, total: rows[0]?.total[0]?.count || 0, rows: journeys };
+}
+
+// Stream individual matching events without the dashboard's page or timeline limits.
+export function journeyExportRows(range, filters = {}) {
+  const { required, selectedEvent, match } = journeySelection(range, filters);
+  const earlierStages = required.slice(0, -1);
+  return AnalyticsEvent.aggregate([
+    { $match: { ...match, ...(selectedEvent ? { name: selectedEvent } : {}) } },
+    { $sort: { timestamp: 1, _id: 1 } },
+    ...(earlierStages.length ? [
+      { $lookup: { from: AnalyticsEvent.collection.name, let: { session: '$sessionId' }, pipeline: [
+        { $match: { ...match, name: { $in: earlierStages }, $expr: { $eq: ['$sessionId', '$$session'] } } },
+        { $group: { _id: '$name' } },
+      ], as: 'earlierStages' } },
+      { $match: { 'earlierStages._id': { $all: earlierStages } } },
+    ] : []),
+    ...journeyEventDetails(),
+    { $lookup: { from: userModel.collection.name, localField: 'userId', foreignField: '_id', pipeline: [{ $project: { _id: 0, name: 1, email: 1 } }], as: 'account' } },
+    { $set: { account: { $arrayElemAt: ['$account', 0] } } },
+  ]).option({ maxTimeMS: 30000, allowDiskUse: true }).cursor({ batchSize: 500 });
 }

@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Activity, RefreshCw, ShieldCheck, ChevronRight, ListFilter } from 'lucide-react';
+import { Activity, RefreshCw, ShieldCheck, ChevronRight, ListFilter, Download, Loader2 } from 'lucide-react';
 import { backendUrl } from '../App';
 
 const dateText = date => date.toISOString().slice(0, 10);
@@ -53,6 +53,14 @@ export default function UserTracking({ token }) {
   const [error, setError] = useState('');
   const [journeyError, setJourneyError] = useState('');
   const [journeyLoading, setJourneyLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+  const exportRequest = useRef(null);
+
+  useEffect(() => {
+    setExportError(''); setExporting(false);
+    return () => { exportRequest.current?.abort(); exportRequest.current = null; };
+  }, [range, filters, refresh, token]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -89,6 +97,37 @@ export default function UserTracking({ token }) {
     if (scroll) journeysRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   };
 
+  const exportActivity = async () => {
+    if (exportRequest.current || journeyLoading || !journeys?.total) return;
+    const controller = new AbortController();
+    exportRequest.current = controller;
+    setExporting(true); setExportError('');
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/analytics/reports/export`, {
+        params: { ...range, ...filters }, headers: { token }, responseType: 'blob',
+        signal: controller.signal, timeout: 120000,
+      });
+      if (controller.signal.aborted) return;
+      const url = URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `user-tracking-${activitySelection.replace(':', '-')}-${range.from}-to-${range.to}.csv`;
+      document.body.appendChild(link);
+      link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      let message = 'Could not export activity. Please try again.';
+      try {
+        const body = err.response?.data;
+        message = (body instanceof Blob ? JSON.parse(await body.text()) : body)?.message || message;
+      } catch { /* Keep the readable fallback for network and interrupted downloads. */ }
+      if (!controller.signal.aborted) setExportError(message);
+    } finally {
+      if (exportRequest.current === controller) { exportRequest.current = null; setExporting(false); }
+    }
+  };
+
   return <div className="min-w-0 space-y-6 pb-12 font-[Outfit,sans-serif] [&_*]:[font-family:inherit]">
     <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-500"><Activity size={18} /> USER TRACKING</div><h1 className="text-3xl font-bold text-gray-900">Ecommerce analytics</h1><p className="mt-2 text-sm text-gray-500">Shopping activity from visitors who chose analytics.</p></div><button onClick={() => setRefresh(value => value + 1)} className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 text-sm font-semibold"><RefreshCw size={16} /> Refresh</button></div>
     <div className="flex gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-gray-700"><ShieldCheck size={22} className="shrink-0 text-rose-500" /><p><strong>Partial coverage:</strong> these visitor metrics include consented activity only. Browser IDs represent browsers, not identified people. Account names appear only for events recorded while signed in. Rejection, withdrawal, blocked requests and expired data reduce coverage. Operational orders below include all consent choices.</p></div>
@@ -113,7 +152,8 @@ export default function UserTracking({ token }) {
           <h2 id="journeys-heading" className="text-lg font-bold text-gray-900">Consented visitor journeys</h2>
           <p className="mt-1 text-sm text-gray-500">See who viewed products, changed their cart, searched, started checkout or purchased.</p>
         </div>
-        <label className="w-full min-w-0 text-xs font-medium text-gray-500 sm:w-auto">
+        <div className="flex w-full min-w-0 flex-wrap items-end gap-2 sm:w-auto">
+        <label className="min-w-0 flex-1 text-xs font-medium text-gray-500 sm:flex-none">
           <span className="mb-1.5 flex items-center gap-1.5"><ListFilter size={14} /> Activity filter</span>
           <select aria-label="Activity filter" value={activitySelection} onChange={event => {
             const [kind, value] = event.target.value.split(':');
@@ -125,7 +165,16 @@ export default function UserTracking({ token }) {
             <optgroup label="Individual activities">{Object.entries(activityLabels).map(([key, label]) => <option key={key} value={'event:' + key}>{label}</option>)}</optgroup>
           </select>
         </label>
+        <button type="button" onClick={exportActivity} disabled={exporting || journeyLoading || Boolean(journeyError) || !journeys?.total}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400 disabled:cursor-not-allowed disabled:opacity-40">
+          {exporting ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} aria-hidden="true" />}
+          {exporting ? 'Exporting…' : 'Export CSV'}
+        </button>
+        </div>
       </div>
+      <p className="mt-3 text-xs text-gray-500">Export includes all matching activity across every page for the selected filter and applied dates, with one row per event.</p>
+      {exporting && <p role="status" className="mt-2 text-xs text-gray-500">Preparing activity export…</p>}
+      {exportError && <p role="alert" className="mt-2 text-sm text-red-600">{exportError}</p>}
       <p className="mt-3 text-xs leading-relaxed text-gray-500">One row per browser session, not per person. Names and emails come only from account IDs recorded on signed-in events. Guest events stay unidentified, even when the same browser later signs in. Times are UTC.</p>
       <div className="mb-4 mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-gray-50 px-3 py-3">
         <div><h3 className="text-sm font-semibold text-gray-800">{activityTitle}</h3><p className="mt-1 text-xs text-gray-500">{filters.stage ? 'These sessions meet the selected funnel stage; the timeline shows actions for that stage.' : filters.event ? 'Sessions with this activity, regardless of earlier funnel stages.' : 'All recorded activity in the selected date range.'}</p></div>

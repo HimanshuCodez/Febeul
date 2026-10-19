@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 const shop = 'http://127.0.0.1:5177', admin = 'http://127.0.0.1:5178';
 const productId = '507f1f77bcf86cd799439011';
@@ -196,19 +197,23 @@ async function mockJourneyDetails(page) {
     return { _id: uuid(index + 1), visitorId: uuid(index + 101), names, events: timeline.length, firstAt: '2026-10-10T10:00:00Z', lastAt: '2026-10-10T11:00:00Z', timeline };
   });
   const metrics = { success: true, config: { enabled: true, retentionDays: 90, abandonmentMinutes: 30 }, visitors: { total: 16, new: 16, returning: 0 }, sessions: { total: 16, purchasing: 1, product: 6, cart: 2, checkout: 2, purchase: 1 }, conversionRate: 6.25, activity: [{ _id: 'add_to_cart', events: 12 }, { _id: 'remove_from_cart', events: 1 }, { _id: 'checkout_started', events: 2 }], products: [], searches: [], sources: [], payments: [], trackedPayments: [], operational: [], abandonment: { abandoned: 1, checkouts: 2, purchased: 1 } };
-  const state = { calls: [], errors: [], fail: false, empty: false, delay: false };
+  const state = { calls: [], errors: [], fail: false, empty: false, delay: false, exportFail: false, exportDelay: 0 };
   page.on('pageerror', error => state.errors.push(error.message));
   await page.route('**/*', async route => {
     const request = route.request(), url = new URL(request.url());
     if (url.pathname.startsWith('/api/')) {
       state.calls.push({ url, method: request.method(), token: request.headers().token });
-      if (!url.pathname.endsWith('/journeys')) return route.fulfill({ json: metrics });
+      const isExport = url.pathname.endsWith('/export');
+      if (!url.pathname.endsWith('/journeys') && !isExport) return route.fulfill({ json: metrics });
+      if (isExport && state.exportDelay) await new Promise(resolve => setTimeout(resolve, state.exportDelay));
+      if (isExport && state.exportFail) return route.fulfill({ status: 503, json: { success: false, message: 'Export temporarily unavailable' } });
       if (state.fail) return route.fulfill({ status: 503, json: { success: false, message: 'Journey details temporarily unavailable' } });
       const stage = url.searchParams.get('stage'), type = url.searchParams.get('event'), sessionId = url.searchParams.get('sessionId');
       if (state.delay && stage === 'cart') await new Promise(resolve => setTimeout(resolve, 700));
       const required = stages[stage] || (type ? [type] : []);
       const selected = required.at(-1), pageNumber = Number(url.searchParams.get('page') || 1);
       const matching = state.empty ? [] : rows.filter(row => required.every(name => row.names.includes(name)) && (!sessionId || row._id === sessionId));
+      if (isExport) return route.fulfill({ contentType: 'text/csv; charset=utf-8', body: 'Activity type,Session ID\r\n' + matching.flatMap(row => row.timeline.filter(item => !selected || item.name === selected).map(item => `${item.name},${row._id}\r\n`)).join('') });
       return route.fulfill({ json: { success: true, total: matching.length, page: pageNumber, pageSize: 10, rows: matching.slice((pageNumber - 1) * 10, pageNumber * 10).map(row => {
         const timeline = row.timeline.filter(item => !selected || item.name === selected);
         return { ...row, timeline, matchingEvents: timeline.length, anonymousEvents: timeline.filter(item => !item.userId).length, accounts: timeline.some(item => item.userId === account._id) ? [account] : [] };
@@ -219,6 +224,80 @@ async function mockJourneyDetails(page) {
   });
   return state;
 }
+
+test('activity export follows filters and applied dates and includes all pages', async ({ page }) => {
+  const state = await mockJourneyDetails(page);
+  await page.goto(`${admin}/user-tracking`);
+  const journeys = page.getByRole('region', { name: 'Consented visitor journeys' });
+  await page.getByLabel('From (UTC)', { exact: true }).fill('2026-10-01');
+  await page.getByLabel('To (UTC, inclusive)', { exact: true }).fill('2026-10-11');
+  await page.getByRole('button', { name: 'Apply dates' }).click();
+  await page.getByLabel('Activity filter').selectOption('event:add_to_cart');
+  await expect(journeys.locator('details')).toHaveCount(10);
+  await journeys.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(journeys.locator('details')).toHaveCount(2);
+  // Unapplied date edits must not change which period is exported.
+  await page.getByLabel('To (UTC, inclusive)', { exact: true }).fill('2026-10-15');
+  const downloadCsv = async () => {
+    const pending = page.waitForEvent('download');
+    await journeys.getByRole('button', { name: 'Export CSV', exact: true }).click();
+    const download = await pending;
+    return { name: download.suggestedFilename(), csv: await readFile(await download.path(), 'utf8') };
+  };
+  const cart = await downloadCsv();
+  expect(cart.name).toBe('user-tracking-event-add_to_cart-2026-10-01-to-2026-10-11.csv');
+  expect(cart.csv.trim().split('\r\n')).toHaveLength(13);
+  expect(cart.csv).not.toContain('product_view');
+  const request = state.calls.filter(call => call.url.pathname.endsWith('/export')).at(-1);
+  expect(request.token).toBe('local-admin');
+  expect(Object.fromEntries(request.url.searchParams)).toEqual({ from: '2026-10-01', to: '2026-10-11', event: 'add_to_cart' });
+  await page.getByLabel('Activity filter').selectOption('stage:cart');
+  await expect(journeys.locator('details')).toHaveCount(2);
+  const stage = await downloadCsv();
+  expect(stage.name).toContain('stage-cart');
+  expect(stage.csv.trim().split('\r\n')).toHaveLength(3);
+  await journeys.locator('summary').first().click();
+  await journeys.getByRole('button', { name: 'View full journey' }).first().click();
+  const session = await downloadCsv();
+  expect(session.name).toContain('-session-');
+  expect(session.csv).toContain('purchase');
+  expect(state.calls.filter(call => call.url.pathname.endsWith('/export')).at(-1).url.searchParams.get('sessionId')).toBeTruthy();
+  await journeys.getByRole('button', { name: 'Clear activity filter' }).click();
+  const all = await downloadCsv();
+  expect(all.name).toContain('-all-');
+  expect(all.csv).toContain('search');
+  expect(state.errors).toEqual([]);
+});
+
+test('export handles errors, empty results and cancelling a changed activity filter', async ({ page }) => {
+  const state = await mockJourneyDetails(page);
+  await page.goto(`${admin}/user-tracking`);
+  const journeys = page.getByRole('region', { name: 'Consented visitor journeys' });
+  const button = () => journeys.getByRole('button', { name: 'Export CSV', exact: true });
+  const downloads = [];
+  page.on('download', download => downloads.push(download));
+  state.exportFail = true;
+  await button().click();
+  await expect(journeys.getByRole('alert')).toHaveText('Export temporarily unavailable');
+  await expect(button()).toBeEnabled();
+  expect(downloads).toHaveLength(0);
+  state.exportFail = false; state.exportDelay = 700;
+  await button().click();
+  await expect(journeys.getByRole('button', { name: 'Exporting…', exact: true })).toBeDisabled();
+  await page.getByLabel('Activity filter').selectOption('event:search');
+  await expect(button()).toBeEnabled();
+  await expect(journeys.getByRole('alert')).toHaveCount(0);
+  await page.waitForTimeout(800);
+  expect(downloads).toHaveLength(0);
+  state.exportDelay = 0;
+  await button().click();
+  await expect.poll(() => downloads.length).toBe(1);
+  state.empty = true;
+  await page.getByLabel('Activity filter').selectOption('event:page_view');
+  await expect(journeys.getByText('No consented sessions match this activity in the selected range.')).toBeVisible();
+  await expect(button()).toBeDisabled();
+  expect(state.errors).toEqual([]);
+});
 
 test('funnel stages reveal matching accounts and guest activity, purchase items and full sessions', async ({ page }) => {
   const state = await mockJourneyDetails(page);

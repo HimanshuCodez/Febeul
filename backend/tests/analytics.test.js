@@ -26,6 +26,20 @@ const context = () => ({ visitorId: randomUUID(), sessionId: randomUUID(), conse
 const event = (ctx, name = 'page_view', extra = {}) => ({ ...ctx, eventId: randomUUID(), name, timestamp: new Date(), expiresAt: new Date(Date.now() + 86400000), ...extra });
 const auth = () => userToken(user);
 const admin = () => adminTokenFor(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD);
+async function exportActivity(query = '') {
+  const response = await fetch(base + '/api/analytics/reports/export' + query, { headers: { token: admin() } });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /text\/csv/);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  const csv = await response.text();
+  const records = []; let row = [];
+  for (const match of csv.matchAll(/"((?:[^"]|"")*)"(,|\r\n)/g)) {
+    row.push(match[1].replaceAll('""', '"'));
+    if (match[2] === '\r\n') { records.push(row); row = []; }
+  }
+  const headers = records.shift();
+  return { response, csv, rows: records.map(values => Object.fromEntries(headers.map((header, index) => [header, values[index]]))) };
+}
 const request = async (path, body, token) => {
   const response = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { token } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
   return { status: response.status, body: response.status === 204 ? null : await response.json() };
@@ -161,6 +175,9 @@ test('funnel drill-down totals match summary cohorts, with independent activity 
     assert.equal(report.total, summary.sessions[stage]);
     const expectedEvent = stages[['product', 'cart', 'checkout', 'purchase'].indexOf(stage)];
     assert.ok(report.rows.every(row => row.timeline.every(item => item.name === expectedEvent)));
+    const exported = await exportActivity('?stage=' + stage);
+    assert.equal(new Set(exported.rows.map(row => row['Session ID'])).size, summary.sessions[stage]);
+    assert.ok(exported.rows.every(row => row['Activity type'] === expectedEvent));
   }
   assert.equal((await journeyReport(range, 1, { stage: 'cart' })).total, 3);
   assert.equal((await journeyReport(range, 1, { event: 'add_to_cart' })).total, 6);
@@ -168,6 +185,10 @@ test('funnel drill-down totals match summary cohorts, with independent activity 
   const full = await journeyReport(range, 1, { sessionId: contexts[3].sessionId });
   assert.equal(full.total, 1); assert.equal(full.rows[0].timeline.length, 4);
   assert.equal((await journeyReport(range, 1, { stage: 'purchase', sessionId: contexts[0].sessionId })).total, 0);
+  assert.equal((await exportActivity('?event=add_to_cart')).rows.length, 7);
+  const sessionExport = await exportActivity('?sessionId=' + contexts[3].sessionId);
+  assert.equal(sessionExport.rows.length, 4);
+  assert.ok(sessionExport.rows.every(row => row['Session ID'] === contexts[3].sessionId));
 });
 
 test('journeys identify only recorded signed-in actions and expose allowlisted account/product/order details', async () => {
@@ -223,6 +244,49 @@ test('filtered journey pagination and event limits apply after selecting matchin
   assert.equal(delayed.events, 208); assert.equal(delayed.matchingEvents, 102); assert.equal(delayed.timeline.length, 100);
   assert.ok(delayed.timeline.every(item => item.name === 'add_to_cart')); assert.equal(delayed.accounts[0].email, user.email);
   assert.equal((await journeyReport(range, 1, { event: 'search' })).total, 12);
+  const exported = await exportActivity('?stage=cart&page=2');
+  assert.equal(exported.rows.length, 113);
+  assert.equal(new Set(exported.rows.map(row => row['Session ID'])).size, 12);
+  assert.equal(exported.rows.filter(row => row['Session ID'] === ctx.sessionId).length, 102);
+  assert.ok(exported.rows.every(row => row['Activity type'] === 'add_to_cart'));
+});
+
+test('activity CSV keeps guest identity, quotes spreadsheet values and respects date boundaries', async () => {
+  const ctx = context(), range = reportRange({});
+  const unsafeName = '=SUM(1,2) "Rose"\nSecond line';
+  await userModel.updateOne({ _id: user._id }, { $set: { name: unsafeName, password: 'private-password', otp: 'private-otp' } });
+  const item = await productModel.create({ name: '+Rose, "lace"', description: 'Test', category: 'Lingerie', date: Date.now(), variations: [] });
+  await AnalyticsEvent.insertMany([
+    event(ctx, 'product_view', { productId: item._id, timestamp: range.start }),
+    event(ctx, 'add_to_cart', { productId: item._id, userId: user._id, quantity: 2, timestamp: new Date(+range.end - 1) }),
+    event(ctx, 'search', { searchTerm: 'outside before', timestamp: new Date(+range.start - 1) }),
+    event(ctx, 'search', { searchTerm: 'outside after', timestamp: range.end }),
+    event(ctx, 'page_view', { expiresAt: new Date(Date.now() - 1000) }),
+  ]);
+  const exported = await exportActivity(`?from=${range.from}&to=${range.to}`);
+  assert.equal(exported.rows.length, 2);
+  assert.equal(exported.rows[0]['Account name'], 'Guest / unidentified');
+  assert.equal(exported.rows[0]['Account email'], '');
+  assert.equal(exported.rows[1]['Account name'], "'" + unsafeName);
+  assert.equal(exported.rows[1]['Account email'], user.email);
+  assert.equal(exported.rows[1]['Product name'], '\'+Rose, "lace"');
+  assert.equal(exported.rows[1].Quantity, '2');
+  assert.ok(!exported.csv.includes('private-'));
+  assert.match(exported.response.headers.get('content-disposition'), /user-tracking-all-/);
+  assert.equal((await exportActivity('?event=purchase')).rows.length, 0);
+});
+
+test('activity exports require report permission and validate filters and dates', async () => {
+  const path = '/api/analytics/reports/export';
+  const staff = await userModel.create({ email: 'export-staff@example.test', role: 'staff', permissions: ['/orders'] });
+  for (const token of [undefined, auth()]) assert.equal((await request(path, null, token)).status, 401);
+  assert.equal((await request(path, null, adminTokenFor(staff._id))).status, 403);
+  await userModel.updateOne({ _id: staff._id }, { $set: { permissions: ['/user-tracking'] } });
+  const allowed = await fetch(base + path, { headers: { token: adminTokenFor(staff._id) } });
+  assert.equal(allowed.status, 200); await allowed.text();
+  for (const query of ['stage=invalid', 'stage=cart&event=add_to_cart', 'event=password', 'sessionId=invalid', 'from=2026-02-30', 'from=2020-01-01&to=2026-01-01']) {
+    assert.equal((await request(path + '?' + query, null, admin())).status, 400);
+  }
 });
 
 test('identity-bearing journey filters retain admin authorization and reject invalid query values', async () => {
