@@ -7,15 +7,15 @@ import ReactQuill from '../components/SafeRichText';
 import 'react-quill-new/dist/quill.snow.css';
 import Loading from '../components/Loading';
 import EditableSelect from '../components/EditableSelect';
+import ProductImageGallery from '../components/ProductImageGallery';
 import { DEFAULT_TAXONOMY, fetchTaxonomy, saveTaxonomy } from '../utils/taxonomy';
-import { PRODUCT_IMAGE_ACCEPT, PRODUCT_UPLOAD_HINT, validateProductImageUploads } from '../../../shared/productUploads.js';
+import { getProductImageOrder, validateProductImageUploads } from '../../../shared/productUploads.js';
 import {
   PackageSearch,
   Palette,
   ScrollText,
   Truck,
   Sparkles,
-  ImagePlus,
   Trash2,
   Tags,
   Package,
@@ -273,10 +273,8 @@ const Update = ({ token }) => {
         setVariations(newVariations);
     }
 
-    const removeImage = (v_index, i_index) => {
-        const newVariations = [...variations];
-        newVariations[v_index].images.splice(i_index, 1);
-        setVariations(newVariations);
+    const updateImages = (index, images) => {
+        setVariations(previous => previous.map((variation, i) => i === index ? { ...variation, images } : variation));
     }
 
     const onSubmitHandler = async (e) => {
@@ -362,6 +360,7 @@ const Update = ({ token }) => {
                 color: v.color,
                 sku: v.sku,
                 images: v.images.filter(img => typeof img === 'string'), // only existing images (URLs)
+                imageOrder: getProductImageOrder(v.images),
                 sizes: v.sizes.map(s => ({
                     size: s.size,
                     price: s.price,
@@ -547,24 +546,8 @@ const Update = ({ token }) => {
                                       </div>
                                   </div>
 
-                                  <div className="min-w-0">
-                                      <p className="mb-2 block text-xs font-medium text-[#776580]">Images</p>
-                                      <div className="flex flex-wrap gap-3">
-                                          {variation.images.map((image, i_index)=>(
-                                              <div key={i_index} className='relative group'>
-                                                  <img className="h-24 w-24 rounded-xl border border-[#e5dbe9] bg-white object-cover" src={typeof image === 'string' ? image : URL.createObjectURL(image)} alt={"Variation " + (v_index + 1) + ", image " + (i_index + 1)} />
-                                                  {role !== 'staff' && (
-                                                      <button type='button' aria-label={"Remove image " + (i_index + 1) + " from variation " + (v_index + 1)} onClick={()=>removeImage(v_index,i_index)} className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-[#e9d9e3] bg-white text-sm text-[#a96483] shadow-sm hover:bg-rose-50 hover:text-rose-600">×</button>
-                                                  )}
-                                              </div>
-                                          ))}
-                                          <label className="relative flex h-24 w-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#cfb8d7] bg-white text-[#a27695] transition-colors hover:border-[#b77997] hover:bg-[#faf0f6] focus-within:ring-2 focus-within:ring-[#b77997]">
-                                              <ImagePlus size={22} aria-hidden="true" /><span className="text-[11px] font-medium">Upload images</span>
-                                              <input aria-label={"Upload images for variation " + (v_index + 1)} accept={PRODUCT_IMAGE_ACCEPT} onChange={(e)=>handleImageChange(v_index,e)} type="file" multiple className="sr-only"/>
-                                          </label>
-                                      </div>
-                                      <p className="mt-2 text-[11px] leading-relaxed text-[#8b7b93]">{PRODUCT_UPLOAD_HINT}</p>
-                                  </div>
+                                  <ProductImageGallery images={variation.images} variationIndex={v_index} disabled={loading} canRemove={role !== 'staff'}
+                                    onChange={images => updateImages(v_index, images)} onUpload={event => handleImageChange(v_index, event)} />
                               </div>
                               {variations.length > 1 && role !== 'staff' && (
                                 <button type='button' onClick={()=>removeVariation(v_index)} className="self-end rounded-lg px-3 py-2 text-xs font-medium text-[#b4758d] transition-colors hover:bg-rose-50 hover:text-rose-600">Remove Variation</button>

@@ -1,6 +1,7 @@
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/productModel.js"
+import { orderProductImages } from '../../shared/productUploads.js';
 
 // function for add product
 const addProduct = async (req, res) => {
@@ -214,17 +215,6 @@ const updateProduct = async (req, res) => {
         const variations = JSON.parse(variationsJSON);
         const files = req.files;
 
-        // Handle image deletions from cloudinary (logic remains the same)
-        const incomingImageUrls = new Set(variations.flatMap(v => v.images).filter(img => typeof img === 'string'));
-        const existingImageUrls = product.variations.flatMap(v => v.images);
-        
-        for (const imageUrl of existingImageUrls) {
-            if (!incomingImageUrls.has(imageUrl)) {
-                const publicId = imageUrl.split('/').pop().split('.')[0];
-                await cloudinary.uploader.destroy(publicId);
-            }
-        }
-
         // Step 1: Group files by variation index
         const filesGroupedByVariation = {};
         files.forEach(file => {
@@ -237,6 +227,24 @@ const updateProduct = async (req, res) => {
                 filesGroupedByVariation[v_idx].push(file);
             }
         });
+
+        // Validate every gallery before uploading or deleting any images.
+        try {
+            variations.forEach((variation, index) => {
+                orderProductImages((variation.images || []).filter(image => typeof image === 'string'), filesGroupedByVariation[index] || [], variation.imageOrder);
+            });
+        } catch (error) {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+
+        const incomingImageUrls = new Set(variations.flatMap(v => v.images).filter(img => typeof img === 'string'));
+        const existingImageUrls = product.variations.flatMap(v => v.images);
+        for (const imageUrl of existingImageUrls) {
+            if (!incomingImageUrls.has(imageUrl)) {
+                const publicId = imageUrl.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            }
+        }
 
         let processedVariations = await Promise.all(variations.map(async (variation, v_idx) => {
             const newImageFiles = filesGroupedByVariation[v_idx] || []; // Get files for this v_idx
@@ -253,7 +261,7 @@ const updateProduct = async (req, res) => {
             return {
                 color: variation.color,
                 sku: variation.sku,
-                images: [...existingImages, ...newImagesUrl],
+                images: orderProductImages(existingImages, newImagesUrl, variation.imageOrder),
                 sizes: variation.sizes.map(s => ({ // Process sizes array
                     size: s.size,
                     price: Number(s.price),

@@ -8,7 +8,7 @@ const product = {
   variations: Array.from({ length: 5 }, (_, i) => ({ color: `Color ${i}`, sku: `SKU-${i}`, images: [`https://res.cloudinary.com/local/existing-${i}.png`], sizes: [{ size: 'M', price: 399, mrp: 499, stock: 10 }] })),
 };
 
-async function fixture(page, path = '/add') {
+async function fixture(page, path = '/add', initialProduct = product) {
   const state = { errors: [], saved: [], reject: false };
   await page.addInitScript(() => {
     if (location.origin !== 'http://127.0.0.1:5179') return;
@@ -27,13 +27,86 @@ async function fixture(page, path = '/add') {
         ? route.fulfill({ status: 413, json: { success: false, message: 'Each product image must be 5 MB or smaller.' } })
         : route.fulfill({ json: { success: true, message: url.pathname.endsWith('/add') ? 'Product Added' : 'Product Updated' } });
     }
-    if (url.pathname === '/api/product/single') return route.fulfill({ json: { success: true, product } });
-    if (url.pathname === '/api/product/list') return route.fulfill({ json: { success: true, products: path.startsWith('/update') ? [product] : [] } });
+    if (url.pathname === '/api/product/single') return route.fulfill({ json: { success: true, product: initialProduct } });
+    if (url.pathname === '/api/product/list') return route.fulfill({ json: { success: true, products: path.startsWith('/update') ? [initialProduct] : [] } });
     return route.fulfill({ json: { success: true, data: {}, content: null } });
   });
   await page.goto(admin + path); await expect(page.getByLabel('Product name')).toBeVisible();
   return state;
 }
+
+test('Add lets images be dragged in both directions and submits the displayed order', async ({ page }) => {
+  const state = await fixture(page);
+  await page.getByLabel('Product name').fill('Reordered product');
+  await page.locator('.ql-editor').fill('Product description');
+  const variation = page.getByRole('group', { name: 'Variation 1', exact: true });
+  await variation.getByLabel('Color', { exact: true }).fill('Rose');
+  await variation.locator('input[name="sku"]').fill('ROSE-ORDER');
+  await variation.getByRole('button', { name: '+ M', exact: true }).click();
+  await variation.getByLabel('MRP', { exact: true }).fill('499');
+  await variation.getByLabel('Price', { exact: true }).fill('399');
+  await variation.getByLabel('Stock', { exact: true }).fill('10');
+  await variation.getByLabel('Upload images for variation 1').setInputFiles(files(4));
+  const gallery = variation.getByRole('list', { name: 'Images for variation 1' });
+  const reorder = number => gallery.getByRole('button', { name: `Reorder image ${number} in variation 1`, exact: true });
+  await expect(gallery.getByRole('img').nth(3)).toHaveAttribute('src', /^blob:/);
+  const original = await gallery.getByRole('img').evaluateAll(images => images.map(image => image.src));
+  await reorder(3).dragTo(reorder(1));
+  await expect(gallery.getByRole('img').nth(0)).toHaveAttribute('src', original[2]);
+  await expect(gallery.getByRole('listitem').first()).toContainText('Cover');
+  await reorder(1).dragTo(reorder(4));
+  await expect(gallery.getByRole('img').nth(3)).toHaveAttribute('src', original[2]);
+  expect(await gallery.getByRole('img').evaluateAll(images => images.map(image => image.src))).toEqual([original[0], original[1], original[3], original[2]]);
+  await page.getByRole('button', { name: /^Add Product$/i }).click();
+  await expect(page.getByText('Product Added', { exact: true })).toBeVisible();
+  expect(state.saved[0].uploads.map(file => file.name)).toEqual(['image-0.png', 'image-1.png', 'image-3.png', 'image-2.png']);
+  expect(state.errors).toEqual([]);
+});
+
+test('Update reorders existing and new images together without affecting another variation', async ({ page }, testInfo) => {
+  const existing = structuredClone(product);
+  existing.variations[0].images = [1, 2, 3, 4].map(index => `https://res.cloudinary.com/local/existing-image-${index}.png`);
+  const state = await fixture(page, `/update/${product._id}`, existing);
+  const gallery = page.getByRole('list', { name: 'Images for variation 1' });
+  const reorder = number => gallery.getByRole('button', { name: `Reorder image ${number} in variation 1`, exact: true });
+  await page.getByLabel('Upload images for variation 1').setInputFiles(files(2, 'new'));
+  await expect(gallery.getByRole('img').nth(5)).toHaveAttribute('src', /^blob:/);
+  const original = await gallery.getByRole('img').evaluateAll(images => images.map(image => image.src));
+  await reorder(3).dragTo(reorder(1));
+  await expect(gallery.getByRole('img').first()).toHaveAttribute('src', original[2]);
+  await reorder(6).dragTo(reorder(1));
+  await expect(gallery.getByRole('img').first()).toHaveAttribute('src', original[5]);
+  await page.getByRole('button', { name: 'Remove image 4 from variation 1', exact: true }).click();
+  expect(await gallery.getByRole('img').evaluateAll(images => images.map(image => image.src))).toEqual([original[5], original[2], original[0], original[3], original[4]]);
+  await expect(page.getByRole('list', { name: 'Images for variation 2' }).getByRole('img')).toHaveAttribute('src', product.variations[1].images[0]);
+  await gallery.screenshot({ path: testInfo.outputPath('reordered-gallery.png') });
+  await page.getByRole('button', { name: /^Update Product$/i }).click();
+  await expect(page).toHaveURL(`${admin}/list`);
+  expect(state.saved[0].variations[0].images).toEqual([original[2], original[0], original[3]]);
+  expect(state.saved[0].variations[0].imageOrder).toEqual([3, 0, 1, 2, 4]);
+  expect(state.saved[0].uploads.map(file => file.name)).toEqual(['new-1.png', 'new-0.png']);
+  expect(state.saved[0].variations[1].images).toEqual(product.variations[1].images);
+  expect(state.errors).toEqual([]);
+});
+
+test('image arrows and keyboard controls reorder on narrow screens', async ({ page }) => {
+  const state = await fixture(page);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.getByLabel('Upload images for variation 1').setInputFiles(files(4));
+  const gallery = page.getByRole('list', { name: 'Images for variation 1' });
+  await expect(gallery.getByRole('img').nth(3)).toHaveAttribute('src', /^blob:/);
+  const original = await gallery.getByRole('img').evaluateAll(images => images.map(image => image.src));
+  await gallery.getByRole('button', { name: 'Move image 3 earlier in variation 1', exact: true }).click();
+  await gallery.getByRole('button', { name: 'Move image 2 earlier in variation 1', exact: true }).click();
+  await expect(gallery.getByRole('img').first()).toHaveAttribute('src', original[2]);
+  await gallery.getByRole('button', { name: 'Reorder image 1 in variation 1', exact: true }).press('End');
+  await expect(gallery.getByRole('img').nth(3)).toHaveAttribute('src', original[2]);
+  await gallery.getByRole('button', { name: 'Reorder image 4 in variation 1', exact: true }).press('Home');
+  await expect(gallery.getByRole('img').first()).toHaveAttribute('src', original[2]);
+  expect(await gallery.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  expect(state.saved).toHaveLength(0);
+  expect(state.errors).toEqual([]);
+});
 
 test('five variations submit all 26 images and preserve entered details after a server error', async ({ page }) => {
   const state = await fixture(page); state.reject = true;

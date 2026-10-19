@@ -87,6 +87,45 @@ test('update accepts 26 new images while retaining existing variation images', a
     assert.equal(calls.length, 26);
 });
 
+test('update persists interleaved existing and new images, then supports reordering without uploading again', async () => {
+    const variations = variationsFor(2);
+    const oldImages = [1, 2, 3, 4].map(index => `https://res.cloudinary.com/local/image/upload/existing-${index}.png`);
+    variations[0].images = oldImages;
+    variations[1].images = ['https://res.cloudinary.com/local/image/upload/other.png'];
+    const product = await productModel.create({ name: 'Existing', description: 'Existing', category: 'BABYDOLL', date: Date.now(), variations });
+    variations[0].images = [oldImages[2], oldImages[0], oldImages[1], oldImages[3]];
+    variations[0].imageOrder = [4, 0, 1, 5, 2, 3];
+    const result = await send('/api/product/update', bodyFor([2, 0], { variations, productId: String(product._id) }));
+    assert.equal(result.data.success, true);
+    const expected = ['https://res.cloudinary.com/local/image/upload/0-0.png', oldImages[2], oldImages[0], 'https://res.cloudinary.com/local/image/upload/0-1.png', oldImages[1], oldImages[3]];
+    let saved = await productModel.findById(product._id);
+    assert.deepEqual([...saved.variations[0].images], expected);
+    assert.deepEqual([...saved.variations[1].images], variations[1].images);
+    assert.equal(calls.length, 2);
+
+    const reordered = saved.variations.map(variation => variation.toObject());
+    reordered[0].images = [...expected.slice(1), expected[0]];
+    reordered[0].imageOrder = [0, 1, 2, 3, 4, 5];
+    const second = await send('/api/product/update', bodyFor([0, 0], { variations: reordered, productId: String(product._id) }));
+    assert.equal(second.data.success, true);
+    saved = await productModel.findById(product._id);
+    assert.deepEqual([...saved.variations[0].images], reordered[0].images);
+    assert.equal(calls.length, 2);
+});
+
+test('invalid image orders never change the saved gallery or upload or delete images', async () => {
+    const variations = variationsFor(1);
+    variations[0].images = ['https://res.cloudinary.com/local/image/upload/existing.png'];
+    const product = await productModel.create({ name: 'Existing', description: 'Existing', category: 'BABYDOLL', date: Date.now(), variations });
+    for (const imageOrder of [null, [], [0], [0, 0], [0, 2], [-1, 0], ['0', 1]]) {
+        const result = await send('/api/product/update', bodyFor([1], { variations: [{ ...variations[0], imageOrder }], productId: String(product._id) }));
+        assert.equal(result.status, 400);
+        assert.match(result.data.message, /Invalid image order/);
+        assert.deepEqual([...(await productModel.findById(product._id)).variations[0].images], variations[0].images);
+    }
+    assert.equal(calls.length, 0);
+});
+
 test('product uploads accept the 60-file boundary but reject 61 before contacting Cloudinary', async () => {
     assert.equal((await send('/api/product/add', bodyFor([PRODUCT_UPLOAD_MAX_FILES]))).data.success, true);
     calls = [];
