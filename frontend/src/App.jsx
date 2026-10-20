@@ -4,6 +4,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
   useLocation,
 } from "react-router-dom";
 import axios from "axios";
@@ -202,6 +203,7 @@ const AppContent = () => {
         <Route path="/products/:category" element={<AllProducts />} />
         <Route path="/GiftWrap" element={<GiftWrapSelector />} />
         <Route path="/luxe" element={<LuxePage />} />
+        <Route path="/PrimeMember" element={<Navigate to="/luxe" replace />} />
         <Route path="/new-and-now" element={<NewAndNow />} />
         <Route path="/bestsellers" element={<Bestseller />} />
        

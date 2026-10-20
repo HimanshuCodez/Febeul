@@ -257,7 +257,7 @@ export default function FebeulLuxe() {
             if (verifyResponse.data.success) {
               toast.success("Payment successful! Welcome to Febeul Luxe.");
               await getProfile();
-              navigate('/PrimeMember');
+              navigate('/luxe', { replace: true });
             } else {
               toast.error("Payment verification failed.");
             }
