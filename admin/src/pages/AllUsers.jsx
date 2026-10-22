@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
-import { CalendarRange, X, Users, UserCheck, ShieldCheck, Crown, Search, SlidersHorizontal, Plus, RefreshCw, ChevronLeft, ChevronRight, Gift, LockKeyhole, ShieldOff, Check, CircleAlert } from 'lucide-react';
+import { CalendarRange, X, Users, UserCheck, ShieldCheck, Crown, Search, SlidersHorizontal, Plus, RefreshCw, ChevronLeft, ChevronRight, Gift, LockKeyhole, ShieldOff, Check, CircleAlert, Download } from 'lucide-react';
 import useSearchPrefill from '../search/useSearchPrefill';
 
 const buttonClass = 'inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-[#eae5ed] bg-white px-4 py-2.5 text-xs font-medium text-[#64566e] hover:border-[#d8cbdc] hover:bg-[#faf6fa]';
@@ -15,6 +15,12 @@ const avatarColors = ['border-[#f1e4ed] bg-[#fbf0f5] text-[#ab6a89]', 'border-[#
 const summaryIcons = { dark: 'bg-white/5 text-[#e4b0c4]', green: 'bg-[#edf5f0] text-[#5e8c74]', rose: 'bg-[#fcf0f5] text-[#b5748e]', purple: 'bg-[#f4eff7] text-[#9478a4]' };
 const roleColors = { user: 'bg-[#f2eff6] text-[#887095]', staff: 'bg-[#eef1fb] text-[#6e7da4]', admin: 'bg-[#f3ecf9] text-[#9672ab]' };
 const hasActiveLuxe = user => user.isLuxeMember && new Date(user.luxeMembershipExpires).getTime() > Date.now();
+const csvCell = value => {
+  const text = String(value ?? '');
+  // Keep customer-entered formulas literal and preserve quotes, commas and newlines.
+  const literal = /^\s*[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${literal.replace(/"/g, '""')}"`;
+};
 
 const AllUsers = ({ token }) => {
   const [users, setUsers] = useState([]);
@@ -256,6 +262,28 @@ const AllUsers = ({ token }) => {
     return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
   };
 
+  const exportUsers = () => {
+    if (loading || error || filteredUsers.length === 0) return;
+    const rows = [
+      ['User ID', 'Name', 'Email', 'Phone', 'Role', 'Membership', 'Luxe Expiry', 'Gift Wraps Left', 'Joined Date', 'Account Status'],
+      ...filteredUsers.map(user => [
+        user._id, user.name, user.email, user.mobile, user.role || 'user',
+        hasActiveLuxe(user) ? 'Luxe' : 'Standard', formatDate(user.luxeMembershipExpires),
+        user.giftWrapsLeft ?? 0, formatDate(user.createdAt), user.isBlocked ? 'Blocked' : 'Active',
+      ]),
+    ];
+    const csv = '\uFEFF' + rows.map(row => row.map(csvCell).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    const today = new Date().toLocaleDateString('en-CA');
+    link.href = url;
+    link.download = `users-${hasFilters ? 'filtered' : 'all'}-${today}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   return (
     <div className="mx-auto w-full max-w-[1600px] font-['Outfit',sans-serif] text-[#29232e] [&_*]:[font-family:inherit] [&_button]:transition-colors [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50 [&_button:focus-visible]:outline [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-[#a85070] [&_input:focus-visible]:outline-[#a85070] [&_select:focus-visible]:outline-[#a85070] motion-reduce:[&_*]:animate-none motion-reduce:[&_*]:transition-none">
       <header className="flex flex-col gap-5 pb-6 pt-1 lg:flex-row lg:items-center lg:justify-between">
@@ -309,6 +337,9 @@ const AllUsers = ({ token }) => {
                 <option value="all">All Roles</option><option value="staff">Staff/Admin</option><option value="user">Normal Users</option>
               </select>
             </label>
+            <button type="button" className={buttonClass + ' w-full shrink-0 sm:ml-auto sm:w-auto'} onClick={exportUsers} disabled={loading || Boolean(error) || filteredUsers.length === 0} aria-describedby="users-export-description">
+              <Download size={16} aria-hidden="true" />Export CSV
+            </button>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <span className="inline-flex w-full items-center gap-1.5 text-[11px] text-[#8b7a95] sm:w-auto"><CalendarRange size={15} aria-hidden="true" />Joined date</span>
@@ -326,6 +357,7 @@ const AllUsers = ({ token }) => {
             </div>
             {hasFilters && <button type="button" className="ml-auto inline-flex min-h-8 items-center gap-1 text-[11px] text-[#a85070] hover:text-[#73364e]" onClick={clearFilters}><X size={13} />Clear filters</button>}
           </div>
+          <p id="users-export-description" className="text-[10px] leading-relaxed text-[#897b92] sm:text-[11px]">Exports all matching users across every page using the current search, role and joined-date filters.</p>
         </div>
 
         {error ? (

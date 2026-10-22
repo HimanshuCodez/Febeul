@@ -86,10 +86,26 @@ export const sendMarketingMail = async (req, res) => {
 // Controller to list past marketing mail campaigns (without heavy html content)
 export const getMailHistory = async (req, res) => {
     try {
-        const history = await mailHistoryModel.find({})
+        const { sentFrom, sentBefore } = req.query;
+        const sentAt = {};
+        for (const [value, operator] of [[sentFrom, '$gte'], [sentBefore, '$lt']]) {
+            if (value === undefined) continue;
+            const date = typeof value === 'string' ? new Date(value) : new Date(NaN);
+            if (!Number.isFinite(date.getTime()) || date.toISOString() !== value) {
+                return res.status(400).json({ success: false, message: 'Enter a valid campaign date range.' });
+            }
+            sentAt[operator] = date;
+        }
+        if (sentAt.$gte && sentAt.$lt && sentAt.$gte >= sentAt.$lt) {
+            return res.status(400).json({ success: false, message: 'Sent from must be on or before Sent to.' });
+        }
+        const hasDates = Object.keys(sentAt).length > 0;
+        const query = mailHistoryModel.find(hasDates ? { sentAt } : {})
             .sort({ sentAt: -1 })
-            .limit(100)
             .select('-htmlContent -body');
+        // Keep the initial history lightweight; a selected range includes all matches for export.
+        if (!hasDates) query.limit(100);
+        const history = await query;
 
         res.json({ success: true, history });
     } catch (error) {

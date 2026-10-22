@@ -5,7 +5,7 @@ import { ArrowRight, Check, Copy, Gift, LoaderCircle, LockKeyhole, Pause, Play, 
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
 import { analytics } from '../analytics/runtime';
-import { getGiftDiscountLabel, isPublicGiftCoupon, validateHomeGiftOffer } from '../../../shared/homeGiftOffer.js';
+import { getCouponDiscountLabel, getGiftDiscountLabel, isPublicGiftCoupon, validateHomeGiftOffer } from '../../../shared/homeGiftOffer.js';
 import './HomeGiftOffer.css';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -117,7 +117,7 @@ export default function HomeGiftOffer({ open, onOpenChange }) {
       const current = validateHomeGiftOffer(offer.data.content);
       const coupon = coupons.data.coupons?.find(item => item.code === current.couponCode);
       if (!current.enabled || !isPublicGiftCoupon(coupon)) throw new Error('This gift is no longer available for your account. Please check other offers while shopping.');
-      setSettings(current);
+      setSettings({ ...current, badgeOffer: getCouponDiscountLabel(coupon) });
       setRevealed(true);
     } catch (error) {
       if (!controller.signal.aborted) setMessage(error.response?.data?.message || error.message || 'Please try again in a moment.');

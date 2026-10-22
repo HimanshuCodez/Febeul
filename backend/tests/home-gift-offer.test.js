@@ -10,7 +10,7 @@ import cmsRouter from '../routes/cmsRoute.js';
 import cmsModel from '../models/cmsModel.js';
 import couponModel from '../models/couponModel.js';
 import userModel from '../models/userModel.js';
-import { DEFAULT_HOME_GIFT_OFFER, validateHomeGiftOffer } from '../../shared/homeGiftOffer.js';
+import { DEFAULT_HOME_GIFT_OFFER, getGiftDiscountLabel, validateHomeGiftOffer } from '../../shared/homeGiftOffer.js';
 import { findSearchPages } from '../../admin/src/search/pages.js';
 
 // Isolated local fixtures only. Do not import dotenv or the production server.
@@ -118,4 +118,61 @@ test('public lifetime coupons can be promoted without bypassing privacy or usage
     await couponModel.findByIdAndUpdate(coupon._id, { specificUsers: [], usageLimit: null, usageCount: 0, ...restriction });
     assert.equal((await request('/homeGiftOffer')).data.content.enabled, false);
   }
+});
+
+test('CMS coupon dropdown includes every active coupon with discounts and eligibility, without customer data', async () => {
+  await couponModel.findByIdAndUpdate(coupon._id, { isActive: true, isLifetime: true, expiryDate: null, usageLimit: null, usageCount: 0, specificUsers: [], userType: 'normal' });
+  const baseCoupon = { discountType: 'fixed', discountValue: 500, isLifetime: true };
+  await couponModel.create([
+    { ...baseCoupon, code: 'FLAT500' },
+    { ...baseCoupon, code: 'PRIVATE500', specificUsers: ['private-customer@example.test'] },
+    { ...baseCoupon, code: 'LUXE500', userType: 'luxe' },
+    { ...baseCoupon, code: 'MEMBER500', userType: 'membership' },
+    { ...baseCoupon, code: 'PAUSED500', isActive: false },
+    { ...baseCoupon, code: 'EXPIRED500', isLifetime: false, expiryDate: new Date(0) },
+    { ...baseCoupon, code: 'USED500', usageLimit: 1, usageCount: 1 },
+  ]);
+  const result = await request('/admin/homeGiftOffer', { auth: token(editor._id) });
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.data.coupons.map(item => item.code), ['FLAT500', 'LUXE500', 'MEMBER500', 'PRIVATE500', 'WELCOME20']);
+  assert.equal(result.data.coupons.find(item => item.code === 'FLAT500').discountValue, 500);
+  assert.equal(result.data.coupons.find(item => item.code === 'WELCOME20').discountType, 'percentage');
+  assert.equal(result.data.coupons.find(item => item.code === 'FLAT500').eligibleForGift, true);
+  for (const code of ['LUXE500', 'MEMBER500', 'PRIVATE500']) {
+    const item = result.data.coupons.find(item => item.code === code);
+    assert.equal(item.eligibleForGift, false);
+    assert.ok(item.restriction);
+  }
+  assert.ok(!JSON.stringify(result.data).includes('private-customer@example.test'));
+  assert.ok(result.data.coupons.every(item => !('specificUsers' in item) && !('usersWhoUsed' in item)));
+});
+
+test('discounts come from Coupons on save and every read, including fixed amounts and existing CMS records', async () => {
+  const saved = await save({ ...content(), badgeOffer: '99% OFF' });
+  assert.equal(saved.status, 201);
+  assert.equal(saved.data.content.badgeOffer, '20% OFF');
+  await couponModel.findByIdAndUpdate(coupon._id, { discountType: 'percentage', discountValue: 12.5 });
+  assert.equal((await request('/homeGiftOffer')).data.content.badgeOffer, '12.5% OFF');
+  await couponModel.findByIdAndUpdate(coupon._id, { discountType: 'fixed', discountValue: 1250.5 });
+  const publicOffer = (await request('/homeGiftOffer')).data.content;
+  assert.equal(publicOffer.badgeOffer, '₹1,250.5 OFF');
+  assert.equal(getGiftDiscountLabel(publicOffer.badgeOffer), '₹1,250.5 OFF');
+  assert.equal(getGiftDiscountLabel('20%'), '20% OFF');
+  assert.equal(getGiftDiscountLabel('YOUR'), '');
+  assert.equal((await request('/admin/homeGiftOffer', { auth: adminToken() })).data.content.badgeOffer, '₹1,250.5 OFF');
+  assert.equal((await cmsModel.findOne({ name: 'homeGiftOffer' })).content.badgeOffer, '20% OFF');
+  assert.equal((await couponModel.findById(coupon._id)).usageCount, 0);
+  assert.equal((await save({ ...content(), couponCode: 'FLAT500', badgeOffer: '' })).data.content.badgeOffer, '₹500 OFF');
+});
+
+test('deactivating the selected coupon removes the public discount and preserves an editable selection', async () => {
+  await couponModel.updateOne({ code: 'FLAT500' }, { isActive: false });
+  const publicOffer = (await request('/homeGiftOffer')).data.content;
+  assert.equal(publicOffer.enabled, false);
+  assert.equal(publicOffer.badgeOffer, '');
+  assert.equal(publicOffer.couponCode, '');
+  const adminOffer = await request('/admin/homeGiftOffer', { auth: adminToken() });
+  assert.equal(adminOffer.data.content.couponCode, 'FLAT500');
+  assert.ok(!adminOffer.data.coupons.some(item => item.code === 'FLAT500'));
+  assert.equal((await save({ ...content(), couponCode: 'FLAT500' })).status, 400);
 });

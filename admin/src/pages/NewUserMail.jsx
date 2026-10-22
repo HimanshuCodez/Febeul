@@ -1,13 +1,17 @@
 import DOMPurify from 'dompurify';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 import ReactQuill from '../components/SafeRichText';
 import 'react-quill-new/dist/quill.snow.css';
 import Loading from '../components/Loading';
+import MarketingEmailPreview from '../components/MarketingEmailPreview';
 import { CSVLink } from 'react-csv';
-import { Download } from 'lucide-react';
+import { Download, Blocks, FileCode, Monitor, Smartphone } from 'lucide-react';
+
+const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+const sanitizeEmail = html => DOMPurify.sanitize(html || '', { WHOLE_DOCUMENT: true, USE_PROFILES: { html: true }, FORBID_TAGS: ['base', 'iframe', 'object', 'embed', 'form'] });
 
 const targetLabels = {
     all: 'All Registered Users',
@@ -16,6 +20,7 @@ const targetLabels = {
     specific: 'Specific Email IDs'
 };
 
+// eslint-disable-next-line react/prop-types -- The authenticated route supplies the token.
 const NewUserMail = ({ token }) => {
     const [activeTab, setActiveTab] = useState('compose');
 
@@ -28,35 +33,49 @@ const NewUserMail = ({ token }) => {
     const [target, setTarget] = useState('all');
     const [specificEmails, setSpecificEmails] = useState('');
     const [loading, setLoading] = useState(false);
+    const [editorMode, setEditorMode] = useState('visual');
+    const [htmlDraft, setHtmlDraft] = useState(null);
+    const [previewDevice, setPreviewDevice] = useState('desktop');
+    const sendingRef = useRef(false);
 
     const [history, setHistory] = useState([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState('');
+    const [historyFrom, setHistoryFrom] = useState('');
+    const [historyTo, setHistoryTo] = useState('');
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [detailLoading, setDetailLoading] = useState(false);
-
-    const fetchHistory = async () => {
-        setHistoryLoading(true);
-        try {
-            const response = await axios.get(backendUrl + '/api/admin/mail-history', { headers: { token } });
-            if (response.data.success) {
-                setHistory(response.data.history);
-            } else {
-                toast.error(response.data.message);
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || "Failed to fetch mail history.");
-        } finally {
-            setHistoryLoading(false);
-        }
-    };
+    const hasHistoryDates = Boolean(historyFrom || historyTo);
+    const invalidHistoryRange = Boolean(historyFrom && historyTo && historyFrom > historyTo);
 
     useEffect(() => {
-        if (activeTab === 'history') {
-            fetchHistory();
+        if (activeTab !== 'history' || invalidHistoryRange) return;
+        const controller = new AbortController();
+        let active = true;
+        const params = {};
+        if (historyFrom) params.sentFrom = new Date(`${historyFrom}T00:00:00`).toISOString();
+        if (historyTo) {
+            const nextDay = new Date(`${historyTo}T00:00:00`);
+            nextDay.setDate(nextDay.getDate() + 1);
+            params.sentBefore = nextDay.toISOString();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab]);
+        setHistoryLoading(true);
+        setHistoryError('');
+        const fetchHistory = async () => {
+            try {
+                const response = await axios.get(backendUrl + '/api/admin/mail-history', { headers: { token }, params, signal: controller.signal });
+                if (!active) return;
+                if (!response.data.success) throw new Error(response.data.message || 'Failed to fetch mail history.');
+                setHistory(response.data.history);
+            } catch (error) {
+                if (active && !axios.isCancel(error)) setHistoryError(error.response?.data?.message || error.message || 'Failed to fetch mail history.');
+            } finally {
+                if (active) setHistoryLoading(false);
+            }
+        };
+        fetchHistory();
+        return () => { active = false; controller.abort(); };
+    }, [activeTab, token, historyFrom, historyTo, invalidHistoryRange]);
 
     const viewRecord = async (id) => {
         setDetailLoading(true);
@@ -99,25 +118,25 @@ const NewUserMail = ({ token }) => {
         { label: 'Email', key: 'email' }
     ];
 
-    const emailPreviewHtml = `
+    const visualEmailHtml = `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px 20px; color: #333;">
             <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
                 <div style="background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%); padding: 30px; text-align: center;">
                     <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px; font-weight: 700;">FEBEUL</h1>
                 </div>
                 
-                ${imageUrl ? `<img src="${imageUrl}" style="width: 100%; height: auto; display: block;" alt="Promotion Image" />` : ''}
+                ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" style="width: 100%; height: auto; display: block;" alt="Promotion Image" />` : ''}
                 
                 <div style="padding: 40px 30px; line-height: 1.6;">
-                    <h2 style="color: #1a1a1a; margin-top: 0; font-size: 24px; font-weight: 600;">${title || 'Your Title Here'}</h2>
+                    <h2 style="color: #1a1a1a; margin-top: 0; font-size: 24px; font-weight: 600;">${escapeHtml(title || 'Your Title Here')}</h2>
                     <div style="color: #555; font-size: 16px; margin-bottom: 30px;">
                         ${body || 'Your message will appear here. Start typing to see the preview...'}
                     </div>
                     
                     ${buttonText && buttonLink ? `
                         <div style="text-align: center; margin-top: 40px;">
-                            <a href="${buttonLink}" style="background-color: #1a1a1a; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block; transition: background-color 0.3s ease;">
-                                ${buttonText}
+                            <a href="${escapeHtml(buttonLink)}" style="background-color: #1a1a1a; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block; transition: background-color 0.3s ease;">
+                                ${escapeHtml(buttonText)}
                             </a>
                         </div>
                     ` : ''}
@@ -131,24 +150,39 @@ const NewUserMail = ({ token }) => {
         </div>
     `;
 
+    const emailPreviewHtml = useMemo(() => sanitizeEmail(editorMode === 'html' ? htmlDraft : visualEmailHtml), [editorMode, htmlDraft, visualEmailHtml]);
+    const historyPreviewHtml = useMemo(() => sanitizeEmail(selectedRecord?.htmlContent), [selectedRecord?.htmlContent]);
+
+    const switchEditorMode = mode => {
+        if (mode === 'html' && htmlDraft === null) setHtmlDraft(visualEmailHtml);
+        setEditorMode(mode);
+    };
+
+    const copyVisualToHtml = () => {
+        if (htmlDraft?.trim() && !window.confirm('Replace your HTML with the current visual editor design?')) return;
+        setHtmlDraft(visualEmailHtml);
+    };
+
     const handleSendMail = async (e) => {
         e.preventDefault();
-        if (!subject || !title || !body) {
-            toast.error("Subject, Title, and Body are required.");
+        if (sendingRef.current) return;
+        if (!subject.trim() || (editorMode === 'html' ? !htmlDraft?.trim() : !title.trim() || !body.trim())) {
+            toast.error(editorMode === 'html' ? 'Subject and HTML code are required.' : 'Subject, Title, and Body are required.');
+            return;
+        }
+        if (target === 'specific' && !specificEmails.trim()) {
+            toast.error('Enter the specific email IDs to send to.');
             return;
         }
 
+        sendingRef.current = true;
         setLoading(true);
         try {
             const response = await axios.post(
                 backendUrl + '/api/admin/send-marketing-mail',
                 {
-                    subject,
-                    title,
-                    body,
-                    buttonText,
-                    buttonLink,
-                    imageUrl,
+                    subject: subject.trim(),
+                    ...(editorMode === 'visual' ? { title, body, buttonText, buttonLink, imageUrl } : {}),
                     target,
                     specificEmails,
                     htmlContent: emailPreviewHtml
@@ -165,6 +199,8 @@ const NewUserMail = ({ token }) => {
                 setButtonLink('');
                 setImageUrl('');
                 setSpecificEmails('');
+                setHtmlDraft(null);
+                setEditorMode('visual');
             } else {
                 toast.error(response.data.message);
             }
@@ -172,18 +208,19 @@ const NewUserMail = ({ token }) => {
             console.error(error);
             toast.error(error.response?.data?.message || "Failed to send email.");
         } finally {
+            sendingRef.current = false;
             setLoading(false);
         }
     };
 
     return (
-        <div className="flex flex-col gap-8 w-full max-w-6xl mx-auto p-4">
-            <div className="flex justify-between items-center border-b pb-4">
+        <div className="flex min-w-0 flex-col gap-8 w-full max-w-6xl mx-auto p-3 sm:p-4">
+            <div className="flex flex-wrap justify-between items-center gap-3 border-b pb-4">
                 <h1 className="text-2xl font-bold text-gray-800">Email Marketing Campaign</h1>
-                <p className="text-sm text-gray-500">Design and send professional emails to all your users</p>
+                <p className="text-sm text-gray-500">Design and send emails to your selected audience</p>
             </div>
 
-            <div className="flex justify-between items-center gap-2 border-b">
+            <div className="flex flex-wrap justify-between items-center gap-2 border-b">
                 <div className="flex gap-2">
                     <button
                         onClick={() => setActiveTab('compose')}
@@ -198,26 +235,46 @@ const NewUserMail = ({ token }) => {
                         History
                     </button>
                 </div>
-                {activeTab === 'history' && history.length > 0 && (
+                {activeTab === 'history' && !historyLoading && !historyError && !invalidHistoryRange && history.length > 0 ? (
                     <CSVLink
                         data={historyForExport}
                         headers={historyExportHeaders}
-                        filename={`Mail_Campaign_History_${new Date().toISOString().split('T')[0]}.csv`}
+                        filename={`Mail_Campaign_History_${hasHistoryDates ? `${historyFrom || 'beginning'}_to_${historyTo || 'latest'}` : new Date().toISOString().split('T')[0]}.csv`}
                         className="flex items-center gap-2 mb-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-all active:scale-95"
                     >
                         <Download className="w-4 h-4" /> Export to Excel
                     </CSVLink>
-                )}
+                ) : activeTab === 'history' ? <button type="button" disabled className="mb-2 flex items-center gap-2 rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-500"><Download className="w-4 h-4" /> Export to Excel</button> : null}
             </div>
 
             {activeTab === 'history' ? (
-                <div className="flex flex-col gap-4">
-                    {historyLoading ? (
-                        <Loading />
+                <div className="flex min-w-0 flex-col gap-4">
+                    <div className="rounded-xl border bg-white p-4">
+                        <div className="flex flex-wrap items-end gap-3">
+                            <div className="flex min-w-0 w-full flex-col gap-1 sm:w-auto">
+                                <label htmlFor="campaign-from" className="text-sm font-medium text-gray-700">Sent from</label>
+                                <input id="campaign-from" type="date" value={historyFrom} max={historyTo || undefined} onChange={event => setHistoryFrom(event.target.value)} aria-invalid={invalidHistoryRange} className="min-w-0 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+                            <div className="flex min-w-0 w-full flex-col gap-1 sm:w-auto">
+                                <label htmlFor="campaign-to" className="text-sm font-medium text-gray-700">Sent to</label>
+                                <input id="campaign-to" type="date" value={historyTo} min={historyFrom || undefined} onChange={event => setHistoryTo(event.target.value)} aria-invalid={invalidHistoryRange} className="min-w-0 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+                            {hasHistoryDates && <button type="button" onClick={() => { setHistoryFrom(''); setHistoryTo(''); }} className="rounded-lg border px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">Clear dates</button>}
+                        </div>
+                        <p className="mt-3 text-xs text-gray-500">Filter by campaign sent date in your local time. Both dates are included. The export uses the same results.</p>
+                    </div>
+                    {invalidHistoryRange ? (
+                        <p role="alert" className="text-sm text-red-600">Sent from must be on or before Sent to.</p>
+                    ) : historyError ? (
+                        <p role="alert" className="text-sm text-red-600">{historyError}</p>
+                    ) : historyLoading ? (
+                        <p role="status" className="py-10 text-center text-sm text-gray-500">Loading campaigns...</p>
                     ) : history.length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-10">No campaigns sent yet.</p>
+                        <p className="text-sm text-gray-500 text-center py-10">{hasHistoryDates ? 'No campaigns found for the selected dates.' : 'No campaigns sent yet.'}</p>
                     ) : (
-                        <div className="overflow-x-auto bg-white rounded-xl shadow-sm border">
+                        <>
+                        <p role="status" className="text-xs text-gray-500">{history.length} campaign{history.length === 1 ? '' : 's'}{hasHistoryDates ? ` ${history.length === 1 ? 'matches' : 'match'} the selected dates.` : ' shown. Showing the latest 100 at most; select dates to find older campaigns.'}</p>
+                        <div className="min-w-0 overflow-x-auto bg-white rounded-xl shadow-sm border">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="bg-gray-50 text-left text-gray-600 border-b">
@@ -256,20 +313,22 @@ const NewUserMail = ({ token }) => {
                                 </tbody>
                             </table>
                         </div>
+                        </>
                     )}
                 </div>
             ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
                 {/* Editor Section */}
-                <div className="flex flex-col gap-5 bg-white p-6 rounded-xl shadow-sm border">
+                <div className="flex min-w-0 flex-col gap-5 bg-white p-4 sm:p-6 rounded-xl shadow-sm border">
                     <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
                         <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                         Composer
                     </h2>
                     
                     <div className="flex flex-col gap-1">
-                        <label className="text-sm font-medium text-gray-700">Email Subject Line</label>
+                        <label htmlFor="marketing-subject" className="text-sm font-medium text-gray-700">Email Subject Line</label>
                         <input
+                            id="marketing-subject"
                             value={subject}
                             onChange={(e) => setSubject(e.target.value)}
                             className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
@@ -280,8 +339,9 @@ const NewUserMail = ({ token }) => {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                        <label className="text-sm font-medium text-gray-700">Target Audience</label>
+                        <label htmlFor="marketing-target" className="text-sm font-medium text-gray-700">Target Audience</label>
                         <select
+                            id="marketing-target"
                             value={target}
                             onChange={(e) => setTarget(e.target.value)}
                             className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all bg-white font-medium"
@@ -295,8 +355,9 @@ const NewUserMail = ({ token }) => {
 
                     {target === 'specific' && (
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-medium text-gray-700">Specific Email IDs (Comma separated)</label>
+                            <label htmlFor="marketing-recipients" className="text-sm font-medium text-gray-700">Specific Email IDs (Comma separated)</label>
                             <textarea
+                                id="marketing-recipients"
                                 value={specificEmails}
                                 onChange={(e) => setSpecificEmails(e.target.value)}
                                 className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all min-h-[100px]"
@@ -305,9 +366,15 @@ const NewUserMail = ({ token }) => {
                         </div>
                     )}
 
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Email editor mode">
+                        {[['visual', 'Visual editor', Blocks], ['html', 'HTML code', FileCode]].map(([mode, label, Icon]) => <button key={mode} type="button" aria-pressed={editorMode === mode} disabled={loading} onClick={() => switchEditorMode(mode)} className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${editorMode === mode ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}><Icon size={16} />{label}</button>)}
+                    </div>
+
+                    {editorMode === 'visual' ? <>
                     <div className="flex flex-col gap-1">
-                        <label className="text-sm font-medium text-gray-700">Main Heading (Inside Email)</label>
+                        <label htmlFor="marketing-heading" className="text-sm font-medium text-gray-700">Main Heading (Inside Email)</label>
                         <input
+                            id="marketing-heading"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
@@ -339,7 +406,7 @@ const NewUserMail = ({ token }) => {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-medium text-gray-700">Button Text</label>
                             <input
@@ -361,30 +428,41 @@ const NewUserMail = ({ token }) => {
                             />
                         </div>
                     </div>
+                    </> : <div className="flex min-w-0 flex-col gap-3">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                            <p id="marketing-html-help" className="text-xs leading-relaxed text-gray-500">Paste or edit the complete email HTML, including images, tables and styles. Inline styles work best across email apps.</p>
+                            <button type="button" onClick={copyVisualToHtml} disabled={loading} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"><Blocks size={13} />Copy from visual editor</button>
+                        </div>
+                        <label htmlFor="marketing-html" className="text-sm font-medium text-gray-700">Email HTML code</label>
+                        <textarea id="marketing-html" value={htmlDraft ?? ''} onChange={event => setHtmlDraft(event.target.value)} spellCheck={false} autoCapitalize="off" autoCorrect="off" rows={25} wrap="off" aria-describedby="marketing-html-help" className="min-w-0 w-full resize-y overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-xs leading-relaxed outline-none focus:border-black focus:ring-2 focus:ring-black/5" />
+                        <p className="text-[11px] leading-relaxed text-gray-500">Both drafts are kept when you switch modes. The selected mode is used for preview and sending.</p>
+                    </div>}
 
                     <button
                         onClick={handleSendMail}
                         disabled={loading}
                         className={`mt-6 py-3 px-6 rounded-lg font-bold text-white transition-all ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800 active:scale-95 shadow-md hover:shadow-lg'}`}
                     >
-                        {loading ? 'Sending Emails...' : 'Broadcast Email to All Users'}
+                        {loading ? 'Sending Emails...' : 'Send campaign'}
                     </button>
                 </div>
 
                 {/* Preview Section */}
-                <div className="flex flex-col gap-4">
+                <div className="flex min-w-0 flex-col gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
                         <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                         Live Preview
                     </h2>
-                    <div className="border rounded-xl overflow-hidden shadow-inner bg-gray-100 min-h-[600px] flex items-start justify-center p-4">
-                        <div 
-                            className="bg-white w-full max-w-[600px] shadow-2xl rounded-lg overflow-hidden"
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailPreviewHtml, { USE_PROFILES: { html: true } }) }}
-                        />
+                    <div className="inline-flex overflow-hidden rounded-lg border border-gray-200">
+                        <button type="button" aria-label="Desktop preview" aria-pressed={previewDevice === 'desktop'} onClick={() => setPreviewDevice('desktop')} className={`px-3 py-2 ${previewDevice === 'desktop' ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-50'}`}><Monitor size={15} /></button>
+                        <button type="button" aria-label="Mobile preview" aria-pressed={previewDevice === 'mobile'} onClick={() => setPreviewDevice('mobile')} className={`px-3 py-2 ${previewDevice === 'mobile' ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-50'}`}><Smartphone size={15} /></button>
                     </div>
+                    </div>
+                    <div className="min-w-0 rounded-lg border bg-gray-50 p-3 text-xs"><span className="text-gray-500">Subject</span><p className="mt-1 break-words font-semibold text-gray-800">{subject || 'Your subject line'}</p></div>
+                    <MarketingEmailPreview html={emailPreviewHtml} device={previewDevice} />
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-700">
-                        <strong>Tip:</strong> Ensure your image URL is publicly accessible. Test links before broadcasting to all users.
+                        <strong>Tip:</strong> Ensure your image URLs are publicly accessible and check links before sending your campaign.
                     </div>
                 </div>
             </div>
@@ -444,12 +522,7 @@ const NewUserMail = ({ token }) => {
 
                             <div>
                                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Email Preview</h4>
-                                <div className="border rounded-xl overflow-hidden shadow-inner bg-gray-100 p-4">
-                                    <div
-                                        className="bg-white w-full shadow-lg rounded-lg overflow-hidden"
-                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedRecord.htmlContent, { USE_PROFILES: { html: true } }) }}
-                                    />
-                                </div>
+                                <MarketingEmailPreview html={historyPreviewHtml} title="Sent campaign preview" />
                             </div>
                         </div>
                     </div>

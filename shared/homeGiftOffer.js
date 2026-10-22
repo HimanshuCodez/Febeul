@@ -3,7 +3,7 @@ import { isCouponExpired } from './couponValidity.js';
 export const DEFAULT_HOME_GIFT_OFFER = Object.freeze({
   enabled: false,
   badgeLabel: 'COUPON',
-  badgeOffer: 'YOUR',
+  badgeOffer: '',
   badgeCaption: 'GIFT',
   title: 'Exclusive welcome offer',
   ticketLabel: 'COUPON',
@@ -21,7 +21,7 @@ export const DEFAULT_HOME_GIFT_OFFER = Object.freeze({
 
 export const GIFT_TEXT_FIELDS = [
   ['badgeLabel', 'Badge label', 16],
-  ['badgeOffer', 'Discount label', 12],
+  ['badgeOffer', 'Discount label', 64],
   ['badgeCaption', 'Badge bottom text', 16],
   ['title', 'Popup heading', 80],
   ['ticketLabel', 'Ticket label', 24],
@@ -39,23 +39,33 @@ export const GIFT_COLOR_FIELDS = [
   ['ticketColor', 'Ticket background'],
 ];
 
-// Keep existing CMS records compatible while showing only a percentage on the gift.
+export function getCouponDiscountLabel(coupon) {
+  const value = Number(coupon?.discountValue);
+  if (!Number.isFinite(value) || value <= 0) return '';
+  const amount = value.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  if (coupon.discountType === 'percentage' && value <= 100) return `${amount}% OFF`;
+  return coupon.discountType === 'fixed' ? `₹${amount} OFF` : '';
+}
+
+// Read both legacy percentage labels and the coupon-derived rupee labels.
 export function getGiftDiscountLabel(badgeOffer) {
-  const match = typeof badgeOffer === 'string' && badgeOffer.match(/^\s*(\d+(?:\.\d+)?)\s*%\s*(?:off)?\s*$/i);
-  const percentage = match ? Number(match[1]) : 0;
-  return percentage > 0 && percentage <= 100 ? `${percentage}% OFF` : '';
+  if (typeof badgeOffer !== 'string') return '';
+  const percentage = badgeOffer.match(/^\s*(\d+(?:\.\d+)?)\s*%\s*(?:off)?\s*$/i);
+  if (percentage) return getCouponDiscountLabel({ discountType: 'percentage', discountValue: percentage[1] });
+  const fixed = badgeOffer.match(/^\s*₹\s*(\d[\d,]*(?:\.\d+)?)\s*(?:off)?\s*$/i);
+  return fixed ? getCouponDiscountLabel({ discountType: 'fixed', discountValue: fixed[1].replaceAll(',', '') }) : '';
 }
 
 export function validateHomeGiftOffer(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Enter valid gift offer settings.');
   if (typeof input.enabled !== 'boolean') throw new Error('Choose whether the gift offer is enabled.');
   const result = { enabled: input.enabled };
-  for (const [key, label, max] of [...GIFT_TEXT_FIELDS, ['couponCode', 'Coupon code', 64]]) {
+  for (const [key, label, max] of [...GIFT_TEXT_FIELDS, ['couponCode', 'Coupon code', 100]]) {
     if (typeof input[key] !== 'string' || input[key].trim().length > max || /[\u0000-\u001f\u007f]/.test(input[key])) {
       throw new Error(`${label} must be plain text, up to ${max} characters.`);
     }
     result[key] = input[key].trim();
-    if (!result[key] && !['description', 'terms', 'couponCode'].includes(key) && !(key === 'badgeOffer' && !input.enabled)) throw new Error(`${label} is required.`);
+    if (!result[key] && !['description', 'terms', 'couponCode', 'badgeOffer'].includes(key)) throw new Error(`${label} is required.`);
   }
   result.couponCode = result.couponCode.toUpperCase();
   if (result.enabled && !result.couponCode) throw new Error('Choose an existing coupon before enabling this offer.');
@@ -68,7 +78,11 @@ export function validateHomeGiftOffer(input) {
 
 // A home-page promotion is public. Never advertise private or Luxe-only codes here.
 export function isPublicGiftCoupon(coupon, now = Date.now()) {
+  return Boolean(isActiveGiftCoupon(coupon, now) && getCouponDiscountLabel(coupon) &&
+    (!coupon.userType || coupon.userType === 'normal') && !coupon.specificUsers?.length);
+}
+
+export function isActiveGiftCoupon(coupon, now = Date.now()) {
   return Boolean(coupon && coupon.isActive && !isCouponExpired(coupon, now) &&
-    (!coupon.userType || coupon.userType === 'normal') && !coupon.specificUsers?.length &&
     (!coupon.usageLimit || (coupon.usageCount || 0) < coupon.usageLimit));
 }

@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { DEFAULT_HOME_GIFT_OFFER } from '../../../shared/homeGiftOffer.js';
+import { DEFAULT_HOME_GIFT_OFFER, getCouponDiscountLabel, isActiveGiftCoupon, isPublicGiftCoupon } from '../../../shared/homeGiftOffer.js';
 
 const shop = 'http://127.0.0.1:5177', admin = 'http://127.0.0.1:5178';
 const coupon = { _id: '507f1f77bcf86cd799439033', code: 'WELCOME20', isActive: true, userType: 'normal', specificUsers: [], isLifetime: true, expiryDate: null, usageLimit: 100, usageCount: 0, discountType: 'percentage', discountValue: 20, applicableSKUs: [] };
 
 async function fixture(page, { signedIn = false, consentEnabled = false, role = 'admin', permissions = [], enabled = true } = {}) {
-  const state = { content: { ...DEFAULT_HOME_GIFT_OFFER, enabled, couponCode: 'WELCOME20', badgeOffer: '20%', badgeCaption: 'OFF' }, coupons: [coupon], failLoad: false, failSave: false, calls: [], errors: [] };
+  const state = { content: { ...DEFAULT_HOME_GIFT_OFFER, enabled, couponCode: 'WELCOME20', badgeOffer: '99%', badgeCaption: 'OFF' }, coupons: [{ ...coupon }], accountCoupons: null, failLoad: false, failSave: false, calls: [], errors: [] };
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.install();
   await page.addInitScript(({ signedIn, role, permissions }) => {
@@ -22,13 +22,23 @@ async function fixture(page, { signedIn = false, consentEnabled = false, role = 
       if (url.pathname === '/api/analytics/config') return route.fulfill({ json: { success: true, enabled: consentEnabled, consentVersion: '2026-10-v1' } });
       if (url.pathname === '/api/user/profile') return route.fulfill({ json: { success: true, user: { _id: '507f1f77bcf86cd799439022', name: 'Local Buyer', email: 'buyer@example.test', isLuxeMember: false, addresses: [] } } });
       if (url.pathname === '/api/cart/get') return route.fulfill({ json: { success: true, cartItems: [], giftWrap: null } });
-      if (url.pathname === '/api/cms/homeGiftOffer' || url.pathname === '/api/cms/admin/homeGiftOffer') return route.fulfill({ status: state.failLoad ? 503 : 200, json: state.failLoad ? { success: false, message: 'Local offer outage' } : { success: true, content: state.content } });
+      if (url.pathname === '/api/cms/homeGiftOffer' || url.pathname === '/api/cms/admin/homeGiftOffer') {
+        if (state.failLoad) return route.fulfill({ status: 503, json: { success: false, message: 'Local offer outage' } });
+        const selected = state.coupons.find(item => item.code === state.content.couponCode);
+        const content = { ...state.content, badgeOffer: getCouponDiscountLabel(selected) };
+        if (url.pathname === '/api/cms/homeGiftOffer') return route.fulfill({ json: { success: true, content: state.content.enabled && isPublicGiftCoupon(selected) ? content : { ...content, enabled: false, couponCode: '', badgeOffer: '' } } });
+        const coupons = state.coupons.filter(item => isActiveGiftCoupon(item)).map(item => ({
+          _id: item._id, code: item.code, discountType: item.discountType, discountValue: item.discountValue,
+          eligibleForGift: isPublicGiftCoupon(item), restriction: item.specificUsers?.length ? 'Customer-specific' : item.userType === 'luxe' ? 'Luxe members only' : item.userType === 'membership' ? 'Membership purchase only' : '',
+        }));
+        return route.fulfill({ json: { success: true, content, coupons } });
+      }
       if (url.pathname === '/api/cms' && req.method() === 'POST') {
         if (state.failSave) return route.fulfill({ status: 503, json: { success: false, message: 'Local save failure' } });
-        state.content = body.content;
+        state.content = { ...body.content, badgeOffer: getCouponDiscountLabel(state.coupons.find(item => item.code === body.content.couponCode)) };
         return route.fulfill({ status: 201, json: { success: true, content: state.content } });
       }
-      if (['/api/coupon/active', '/api/coupon/all'].includes(url.pathname)) return route.fulfill({ json: { success: true, coupons: state.coupons } });
+      if (['/api/coupon/active', '/api/coupon/all'].includes(url.pathname)) return route.fulfill({ json: { success: true, coupons: state.accountCoupons || state.coupons } });
       return route.fulfill({ json: { success: true, content: null, products: [], wishlist: [], tickets: [], coupons: [], giftWraps: [], reviews: [], policies: [], messages: [] } });
     }
     if (![shop, admin].includes(url.origin)) return route.abort();
@@ -39,17 +49,18 @@ async function fixture(page, { signedIn = false, consentEnabled = false, role = 
 
 test('admin edits text/colors, previews a reveal and publishes to the home page', async ({ page }) => {
   const state = await fixture(page);
+  state.coupons.push({ ...coupon, _id: 'coupon35', code: 'WELCOME35', discountValue: 35 });
   await page.goto(admin + '/home-gift-offer');
   await expect(page.getByRole('heading', { name: 'Home Gift Offer', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Home Gift Offer', exact: true })).toHaveAttribute('aria-current', 'page');
-  await page.getByLabel('Discount percentage', { exact: true }).fill('35');
+  await page.getByRole('combobox', { name: 'Coupon code', exact: true }).selectOption('WELCOME35');
   await expect(page.getByRole('complementary', { name: 'Gift offer live preview' }).locator('.gift-offer-discount')).toHaveText('35% OFF');
   await page.getByLabel('Popup heading', { exact: true }).fill('A lovely gift for you');
   await page.getByLabel('Reveal button text', { exact: true }).fill('Open my surprise');
   await page.getByLabel('Offer background', { exact: true }).fill('#f9aeaf');
   await page.getByLabel('Button background', { exact: true }).fill('#5b2340');
   await page.getByRole('button', { name: 'Open my surprise', exact: true }).click();
-  await expect(page.getByRole('complementary', { name: 'Gift offer live preview' }).getByText('WELCOME20')).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Gift offer live preview' }).getByText('WELCOME35')).toBeVisible();
   await page.screenshot({ path: test.info().outputPath('gift-admin-desktop.png'), fullPage: true });
   await page.getByRole('button', { name: 'Save gift offer' }).click();
   await expect(page.getByRole('button', { name: 'Save gift offer' })).toBeDisabled();
@@ -58,7 +69,7 @@ test('admin edits text/colors, previews a reveal and publishes to the home page'
   expect(saved.body.content.title).toBe('A lovely gift for you');
   expect(saved.body.content.badgeOffer).toBe('35% OFF');
   await page.reload(); await expect(page.getByLabel('Popup heading', { exact: true })).toHaveValue('A lovely gift for you');
-  await expect(page.getByLabel('Discount percentage', { exact: true })).toHaveValue('35');
+  await expect(page.getByLabel('Automatic discount', { exact: true })).toHaveText('35% OFF');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('heading', { name: 'Home Gift Offer', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -137,13 +148,13 @@ test('disabled/unavailable offers fail quietly, account limits are respected, an
   await expect(page.getByRole('button', { name: 'Open your gift offer' })).toHaveCount(0);
   state.failLoad = true; state.content.enabled = true;
   await page.reload(); await expect(page.getByRole('button', { name: 'Open your gift offer' })).toHaveCount(0);
-  state.failLoad = false; state.coupons = [];
+  state.failLoad = false; state.accountCoupons = [];
   await page.reload(); await page.getByRole('button', { name: 'Open your gift offer' }).click();
   const popup = page.getByRole('dialog', { name: 'Exclusive welcome offer' });
   await popup.getByRole('button', { name: 'Grab your gift' }).click();
   await expect(popup.getByRole('status')).toContainText('no longer available for your account');
   await expect(popup.getByText('WELCOME20', { exact: true })).toHaveCount(0);
-  state.coupons = [coupon]; state.failLoad = true;
+  state.accountCoupons = null; state.failLoad = true;
   await popup.getByRole('button', { name: 'Grab your gift' }).click();
   await expect(popup.getByRole('status')).toContainText('Local offer outage');
   state.failLoad = false;
@@ -173,5 +184,60 @@ test('CMS staff can edit and recover from load/save errors; other staff have no 
   await page.reload();
   await expect(page.getByRole('link', { name: 'Home Gift Offer', exact: true })).toHaveCount(0);
   expect(state.calls.filter(call => call.path === '/api/cms/admin/homeGiftOffer')).toHaveLength(before);
+  expect(state.errors).toEqual([]);
+});
+
+test('active coupon dropdown derives percentage and rupee discounts and refreshes without losing edits', async ({ page }) => {
+  const state = await fixture(page, { role: 'staff', permissions: ['/cms'], signedIn: true });
+  state.coupons.push(
+    { ...coupon, _id: 'fixed', code: 'FLAT500', discountType: 'fixed', discountValue: 500 },
+    { ...coupon, _id: 'private', code: 'PRIVATE20', specificUsers: ['private@example.test'] },
+    { ...coupon, _id: 'luxe', code: 'LUXE20', userType: 'luxe' },
+    { ...coupon, _id: 'member', code: 'MEMBER20', userType: 'membership' },
+    { ...coupon, _id: 'paused', code: 'PAUSED', isActive: false },
+    { ...coupon, _id: 'expired', code: 'EXPIRED', isLifetime: false, expiryDate: '2000-01-01' },
+    { ...coupon, _id: 'used', code: 'USED', usageLimit: 1, usageCount: 1 },
+  );
+  await page.goto(admin + '/home-gift-offer');
+  const select = page.getByRole('combobox', { name: 'Coupon code', exact: true });
+  await expect(select.locator('option')).toHaveCount(6);
+  await expect(select.locator('option[value="FLAT500"]')).toHaveText('FLAT500 — ₹500 OFF');
+  for (const code of ['PRIVATE20', 'LUXE20', 'MEMBER20']) await expect(select.locator(`option[value="${code}"]`)).toHaveJSProperty('disabled', true);
+  for (const code of ['PAUSED', 'EXPIRED', 'USED']) await expect(select.locator(`option[value="${code}"]`)).toHaveCount(0);
+  await expect(page.getByLabel('Automatic discount', { exact: true })).toHaveText('20% OFF');
+  await expect(page.getByLabel('Discount percentage', { exact: true })).toHaveCount(0);
+  await select.selectOption('FLAT500');
+  await expect(page.getByLabel('Automatic discount', { exact: true })).toHaveText('₹500 OFF');
+  await expect(page.locator('.gift-offer-discount')).toHaveText('₹500 OFF');
+  await page.getByLabel('Popup heading', { exact: true }).fill('A saved surprise');
+  state.coupons.find(item => item.code === 'FLAT500').discountValue = 750;
+  await page.getByRole('button', { name: 'Refresh coupons' }).click();
+  await expect(page.getByLabel('Automatic discount', { exact: true })).toHaveText('₹750 OFF');
+  await expect(page.getByLabel('Popup heading', { exact: true })).toHaveValue('A saved surprise');
+  await page.getByRole('button', { name: 'Save gift offer' }).click();
+  await expect(page.getByRole('button', { name: 'Save gift offer' })).toBeDisabled();
+  expect(state.content.couponCode).toBe('FLAT500');
+  expect(state.content.badgeOffer).toBe('₹750 OFF');
+  state.coupons.find(item => item.code === 'FLAT500').discountValue = 1250.5;
+  await page.goto(shop + '/?gift=1');
+  await expect(page.locator('.gift-offer-discount')).toHaveText('₹1,250.5 OFF');
+  await page.getByRole('dialog').getByRole('button', { name: 'Grab your gift' }).click();
+  await expect(page.getByRole('dialog').getByText('FLAT500', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close gift offer' }).click();
+  await page.setViewportSize({ width: 320, height: 844 });
+  const bounds = await page.locator('.gift-offer-discount').boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0); expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+  await page.screenshot({ path: test.info().outputPath('gift-fixed-discount-mobile.png') });
+  state.coupons.find(item => item.code === 'FLAT500').isActive = false;
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Open your gift offer' })).toHaveCount(0);
+  await page.goto(admin + '/home-gift-offer');
+  await expect(select).toHaveValue('FLAT500');
+  await expect(select.locator('option[value="FLAT500"]')).toHaveText('FLAT500 — No longer active');
+  await page.getByLabel('Popup heading', { exact: true }).fill('Unsaved edit');
+  await expect(page.getByRole('button', { name: 'Save gift offer' })).toBeDisabled();
+  await page.getByLabel('Show on home page').uncheck();
+  await expect(page.getByRole('button', { name: 'Save gift offer' })).toBeEnabled();
+  expect(state.calls.some(call => call.path === '/api/coupon/list' || call.path.includes('/apply'))).toBe(false);
   expect(state.errors).toEqual([]);
 });
