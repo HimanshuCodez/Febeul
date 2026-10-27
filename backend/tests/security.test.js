@@ -12,6 +12,7 @@ import userModel from '../models/userModel.js';
 import orderModel from '../models/orderModel.js';
 import productModel from '../models/productModel.js';
 import couponModel from '../models/couponModel.js';
+import cmsModel from '../models/cmsModel.js';
 import giftWrapModel from '../models/giftWrapModel.js';
 import { ticketModel } from '../models/ticketModel.js';
 import { userToken, envToken, envAccounts, signToken, verifyToken } from '../utils/authTokens.js';
@@ -131,8 +132,10 @@ test('registration cannot overwrite existing accounts and requires a single-use 
     const verified = await request('/signup-otp', { email: pending.email, otp: code });
     assert.equal(verified.data.success, true);
     const registration = { email: pending.email, name: 'New Buyer', password: 'valid-password', registrationToken: verified.data.registrationToken, role: 'admin' };
-    nock('https://api.resend.com').post('/emails').reply(200, { id: 'welcome' });
+    await cmsModel.create({ name: 'welcomeEmail', content: { mode: 'html', subject: 'A personal welcome for {{userName}}', html: '<p>Welcome {{userName}}!</p>' } });
+    const welcome = nock('https://api.resend.com').post('/emails', body => body.to === pending.email && body.subject === 'A personal welcome for New Buyer' && body.html === '<p>Welcome New Buyer!</p>').reply(200, { id: 'welcome' });
     assert.equal((await request('/register', registration)).data.success, true);
+    assert.equal(welcome.isDone(), true);
     assert.equal((await userModel.findById(pending._id)).role, 'user');
     assert.equal((await request('/register', registration)).data.success, false);
 });
@@ -314,6 +317,9 @@ test('public coupons omit customer redemption data and private CMS templates sta
     assert.equal(result.data.coupons.length, 1);
     assert.equal(result.data.coupons[0].usersWhoUsed, undefined); assert.equal(result.data.coupons[0].specificUsers, undefined);
     assert.equal((await request('/api/cms/orderConfirmationEmail')).status, 404);
+    assert.equal((await request('/api/cms/welcomeEmail')).status, 404);
+    assert.equal((await request('/api/cms', { name: 'welcomeEmail', content: { subject: 'Unauthorized edit' } }, userToken(admin, 'admin'))).status, 403);
+    assert.equal(await cmsModel.countDocuments({ name: 'welcomeEmail' }), 0);
 });
 
 test('NoSQL operators, prototype keys and nested auth objects are rejected before querying', async () => {

@@ -51,7 +51,7 @@ async function openEditor(page) {
 test('dropdown edits, previews, saves, reloads and resets each template independently', async ({ page }) => {
   const state = await openEditor(page);
   const select = page.getByLabel('Email template', { exact: true });
-  await expect(select.locator('option')).toHaveCount(4);
+  await expect(select.locator('option')).toHaveCount(EMAIL_TEMPLATE_OPTIONS.length);
   for (const { id, label } of EMAIL_TEMPLATE_OPTIONS) {
     await select.selectOption(id);
     await expect(page.getByRole('heading', { name: `${label} Email`, exact: true })).toBeVisible();
@@ -65,7 +65,7 @@ test('dropdown edits, previews, saves, reloads and resets each template independ
     await expect(page.getByRole('button', { name: 'Save template', exact: true })).toBeDisabled();
     if (id !== 'order-confirmation') await expect(page.getByRole('option', { name: 'Latest real order' })).toHaveCount(0);
   }
-  expect(state.saved.size).toBe(4);
+  expect(state.saved.size).toBe(EMAIL_TEMPLATE_OPTIONS.length);
   for (const { id, label } of EMAIL_TEMPLATE_OPTIONS) {
     await select.selectOption(id);
     await expect(page.getByPlaceholder(`${label} email subject`)).toHaveValue(`Updated ${id}`);
@@ -77,7 +77,31 @@ test('dropdown edits, previews, saves, reloads and resets each template independ
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Reset to default', exact: true }).click();
   await expect(page.getByPlaceholder('Luxe Membership Expired email subject')).toHaveValue(getDefaultEmailContent('luxe-expired').subject);
-  expect(state.saved.size).toBe(3);
+  expect(state.saved.size).toBe(EMAIL_TEMPLATE_OPTIONS.length - 1);
+  expect(state.errors).toEqual([]);
+});
+
+test('welcome email opens the original HTML and supports the visual builder', async ({ page }) => {
+  const state = await openEditor(page);
+  await page.getByLabel('Email template', { exact: true }).selectOption('welcome');
+  await expect(page.getByRole('heading', { name: 'Welcome Email', exact: true })).toBeVisible();
+  await expect(page.locator('textarea')).toHaveValue(getDefaultEmailContent('welcome').html);
+  const preview = page.frameLocator('iframe[title="Email preview"]');
+  await expect(preview.getByText('Hello Priya Sharma! 👋', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Visual builder', exact: true }).click();
+  await expect(preview.getByRole('link', { name: 'Start Shopping Now', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Add block', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Ordered Items|Price Summary|Order & Shipping Info/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save template', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Save template', exact: true })).toBeDisabled();
+  expect(state.saved.get('welcome').mode).toBe('builder');
+  await page.reload();
+  await page.getByLabel('Email template', { exact: true }).selectOption('welcome');
+  await expect(preview.getByRole('link', { name: 'Start Shopping Now', exact: true })).toBeVisible();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Reset to default', exact: true }).click();
+  await expect(page.locator('textarea')).toHaveValue(getDefaultEmailContent('welcome').html);
+  expect(state.saved.has('welcome')).toBe(false);
   expect(state.errors).toEqual([]);
 });
 

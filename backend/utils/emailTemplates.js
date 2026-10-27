@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import cmsModel from '../models/cmsModel.js';
 import { EMAIL_TEMPLATE_OPTIONS } from '../../shared/emailTemplates.js';
 import { REQUEST_TYPE_LABEL, RETURN_REQUEST_CREATED_HTML, REFUND_PROCESSED_HTML } from '../templates/returnEmail.js';
@@ -16,6 +17,16 @@ const DEFINITIONS = {
     'order-confirmation': {
         cmsName: ORDER_EMAIL_CMS_NAME,
         requiredHtmlTokens: ['itemRows', 'totalAmount', 'orderId'],
+    },
+    'welcome': {
+        cmsName: 'welcomeEmail',
+        subject: 'Welcome to Febeul!',
+        html: readFileSync(new URL('../templates/welcomeEmail.html', import.meta.url), 'utf8'),
+        title: 'Welcome to Febeul!',
+        body: '<p>Hello {{userName}}! 👋</p><p>We\'re absolutely thrilled to have you join the Febeul family! Thank you for choosing us as your shopping destination.</p><p>You\'ve just unlocked a world of incredible products, exclusive deals, and a seamless shopping experience tailored just for you.</p><h3>🎉 What\'s Waiting for You:</h3><ul><li><strong>Exclusive Offers</strong> – Get access to member-only deals</li><li><strong>Fast &amp; Secure Checkout</strong> – Shop with confidence</li><li><strong>24/7 Support</strong> – We\'re always here to help</li><li><strong>Latest Collections</strong> – Be the first to discover new arrivals</li></ul><p>Ready to explore? Browse our collections and find your perfect match.</p>',
+        button: { text: 'Start Shopping Now', url: 'https://febeul.onrender.com' },
+        tokens: customerTokens,
+        requiredHtmlTokens: ['userName'],
     },
     'return-request': {
         cmsName: 'returnRequestEmail',

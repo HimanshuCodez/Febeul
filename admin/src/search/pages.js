@@ -13,7 +13,7 @@ export const searchPages = [
   ['Gift Wraps', '/gift-wraps', '/gift-wraps', 'Sales', 'gift wrapping packaging'],
   ['Coupons', '/coupons', '/coupons', 'Sales', 'discount promotion codes offers'],
   ['Email Marketing', '/send-mail', '/send-mail', 'Marketing & Content', 'send mail campaigns newsletters'],
-  ['Email Templates', '/email-templates', '/email-templates', 'Marketing & Content', 'email settings notifications order confirmation return refund luxe membership expired'],
+  ['Email Templates', '/email-templates', '/email-templates', 'Marketing & Content', 'email settings notifications welcome signup registration order confirmation return refund luxe membership expired'],
   ['Content (CMS)', '/cms', '/cms', 'Marketing & Content', 'settings website text swiping messages promo banner info bar shipping scan shop staff details'],
   ['Luxe Page', '/luxe-page', '/cms', 'Marketing & Content', 'settings membership benefits images text'],
   ['Home Gift Offer', '/home-gift-offer', '/cms', 'Marketing & Content', 'settings home welcome coupon popup gift badge colors promotion'],

@@ -10,7 +10,7 @@ import { getPublicGiftOffer, validateGiftOfferForSave } from '../utils/homeGiftO
 // @access  Public
 const getCmsContent = async (req, res) => {
     try {
-        if (['orderConfirmationEmail', 'returnRequestEmail', 'refundProcessedEmail', 'luxeExpiredEmail'].includes(req.params.name)) return res.status(404).json({ success: false, message: 'Content not found' });
+        if (['orderConfirmationEmail', 'welcomeEmail', 'returnRequestEmail', 'refundProcessedEmail', 'luxeExpiredEmail'].includes(req.params.name)) return res.status(404).json({ success: false, message: 'Content not found' });
         const content = await cmsModel.findOne({ name: req.params.name });
         if (req.params.name === 'homeGiftOffer') {
             res.set('Cache-Control', 'no-store');
@@ -37,7 +37,7 @@ const updateCmsContent = async (req, res) => {
     try {
         const { name, content } = req.body;
         if (typeof name !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]{0,79}$/.test(name)) return res.status(400).json({ success: false, message: 'Invalid content name.' });
-        if (['orderConfirmationEmail', 'returnRequestEmail', 'refundProcessedEmail', 'luxeExpiredEmail'].includes(name)) return res.status(403).json({ success: false, message: 'Use the email template endpoint.' });
+        if (['orderConfirmationEmail', 'welcomeEmail', 'returnRequestEmail', 'refundProcessedEmail', 'luxeExpiredEmail'].includes(name)) return res.status(403).json({ success: false, message: 'Use the email template endpoint.' });
         let savedContent = content;
         if (name === 'homeGiftOffer') {
             try {

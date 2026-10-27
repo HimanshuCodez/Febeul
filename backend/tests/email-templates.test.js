@@ -2,6 +2,7 @@ import { adminTokenFor } from './helpers/auth.js';
 import { userToken } from '../utils/authTokens.js';
 import { after, before, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import express from 'express';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
@@ -88,6 +89,17 @@ test('every default renders complete HTML with template-specific data in both ed
     assert.match(refund.html, /your provided payout details/);
 });
 
+test('welcome defaults preserve the HTML file and safely personalize every placeholder', () => {
+    const content = getDefaultEmailContent('welcome');
+    assert.equal(content.mode, 'html');
+    assert.equal(content.html, readFileSync(new URL('../templates/welcomeEmail.html', import.meta.url), 'utf8'));
+    const rendered = renderEmailTemplate('welcome', {
+        ...content,
+        html: '<p>{{userName}} / {{userName}} / {{currentYear}}</p>',
+    }, { userName: '<img src=x> & Customer' });
+    assert.equal(rendered.html, `<p>&lt;img src=x&gt; &amp; Customer / &lt;img src=x&gt; &amp; Customer / ${new Date().getFullYear()}</p>`);
+});
+
 test('admin permissions protect all operations and unknown template IDs cannot mutate CMS', async () => {
     for (const type of types) {
         const content = getDefaultEmailContent(type);
@@ -123,7 +135,7 @@ test('saved subjects and HTML are isolated per template and used by real email s
             assert.equal(provider.isDone(), true);
         }
     }
-    assert.equal(await cmsModel.countDocuments(), 4);
+    assert.equal(await cmsModel.countDocuments(), types.length);
     for (const type of types) assert.ok((await request(type)).data.content.subject.startsWith(type));
 });
 
@@ -154,7 +166,16 @@ test('invalid content is rejected and resetting one template preserves every oth
         assert.equal((await request(other)).data.isDefault, false);
         assert.ok((await request(other)).data.content.subject.startsWith(other));
     }
-    assert.equal(await cmsModel.countDocuments(), 3);
+    assert.equal(await cmsModel.countDocuments(), types.length - 1);
+});
+
+test('resetting the welcome email restores the original design used for delivery', async () => {
+    assert.equal((await request('welcome')).data.isDefault, false);
+    assert.equal((await request('welcome', { method: 'DELETE' })).status, 200);
+    const loaded = await request('welcome');
+    assert.equal(loaded.data.isDefault, true);
+    assert.deepEqual(loaded.data.content, getDefaultEmailContent('welcome'));
+    assert.deepEqual(await getSavedEmail('welcome', sample('welcome')), renderEmailTemplate('welcome', null, sample('welcome')));
 });
 
 test('delivery falls back to the original template if the template lookup fails', async () => {
