@@ -6,10 +6,13 @@ import { Link } from 'react-router-dom'
 import { CSVLink } from 'react-csv'
 import useSearchPrefill from '../search/useSearchPrefill'
 
+const LOW_STOCK_THRESHOLD = 15;
+
 const List = ({ token }) => {
 
   const [list, setList] = useState([])
   const [searchQuery, setSearchQuery] = useSearchPrefill();
+  const [activeFilter, setActiveFilter] = useState('all');
   const [selectedSkus, setSelectedSkus] = useState([]); // Tracks "productId|sku|size"
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
@@ -119,7 +122,7 @@ const List = ({ token }) => {
     ) || item.variations?.[0];
   };
 
-  const filteredList = list.filter(item => {
+  const searchedList = list.filter(item => {
     const searchLower = searchQuery.toLowerCase().trim();
     return (
       String(item._id).toLowerCase().includes(searchLower) ||
@@ -133,13 +136,40 @@ const List = ({ token }) => {
     );
   });
 
+  const filterTabs = [
+    { id: 'all', label: 'All products', products: searchedList },
+    {
+      id: 'low-stock',
+      label: 'Low stock',
+      products: searchedList.filter(item => {
+        const stock = calculateTotalStock(item);
+        return stock > 0 && stock <= LOW_STOCK_THRESHOLD;
+      })
+    },
+    {
+      id: 'out-of-stock',
+      label: 'Out of stock',
+      products: searchedList.filter(item => calculateTotalStock(item) <= 0)
+    },
+    {
+      id: 'hidden',
+      label: 'Not visible on website',
+      products: searchedList.filter(item => item.isActive === false)
+    }
+  ];
+  const filteredList = filterTabs.find(tab => tab.id === activeFilter).products;
+
   // Pagination Logic
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
   const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, activeFilter]);
+
+  useEffect(() => {
+    setCurrentPage(page => Math.min(page, totalPages || 1));
+  }, [totalPages]);
 
   const handleProductSelect = (item) => {
     const pKeys = getProductSkuKeys(item);
@@ -232,10 +262,32 @@ const List = ({ token }) => {
           Export Selected ({selectedSkus.length})
         </CSVLink>
       </div>
+
+      <div className='mb-4'>
+        <div role="group" aria-label="Filter products" className='flex gap-2 overflow-x-auto border-b border-gray-200'>
+          {filterTabs.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              aria-pressed={activeFilter === tab.id}
+              onClick={() => setActiveFilter(tab.id)}
+              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 ${activeFilter === tab.id ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}
+            >
+              {tab.label}
+              <span className={`rounded-full px-2 py-0.5 text-xs ${activeFilter === tab.id ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                {tab.products.length}
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className='mt-2 text-xs text-gray-500'>
+          Low stock: 1–{LOW_STOCK_THRESHOLD} total units across all variations and sizes.
+        </p>
+      </div>
       
       <div className='flex flex-col gap-2'>
         <div className='flex justify-between items-center mb-2'>
-          <p className='font-bold text-lg text-gray-700'>All Products List ({filteredList.length})</p>
+          <p className='font-bold text-lg text-gray-700'>Products ({filteredList.length})</p>
           <p className='text-sm text-gray-500'>Page {currentPage} of {totalPages || 1}</p>
         </div>
 
@@ -264,8 +316,13 @@ const List = ({ token }) => {
         </div>
 
         {/* ------ Product List ------ */}
+        {filteredList.length === 0 && (
+          <p className='rounded-lg border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500'>
+            No products match the selected filter and search.
+          </p>
+        )}
         {
-          paginatedList.map((item, index) => {
+          paginatedList.map(item => {
             const displayVariation = getDisplayVariation(item);
             const pKeys = getProductSkuKeys(item);
             const selectedPKeys = pKeys.filter(k => selectedSkus.includes(k));
@@ -273,7 +330,7 @@ const List = ({ token }) => {
             const isProductPartiallySelected = selectedPKeys.length > 0 && selectedPKeys.length < pKeys.length;
 
             return (
-              <div key={index} className='border rounded-lg overflow-hidden bg-white shadow-sm hover:bg-gray-50 transition-colors'>
+              <div key={item._id} className='border rounded-lg overflow-hidden bg-white shadow-sm hover:bg-gray-50 transition-colors'>
                 <div 
                   className={`grid ${columnLayout} items-center gap-2 py-3 px-3 cursor-pointer`}
                   onClick={() => setExpandedProductId(expandedProductId === item._id ? null : item._id)}
