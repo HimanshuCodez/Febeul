@@ -1,5 +1,4 @@
-export const luxeEmailTemplate = (userName, expiryDate) => {
-    return `
+export const LUXE_ACTIVATED_HTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -113,12 +112,12 @@ export const luxeEmailTemplate = (userName, expiryDate) => {
         </div>
         <div class="content" style="text-align: center;">
             <div class="membership-badge">LUXE MEMBER</div>
-            <p class="welcome-text">Hello, ${userName}!</p>
+            <p class="welcome-text">Hello, {{userName}}!</p>
             <p>We are delighted to welcome you to <strong>Febeul Luxe</strong>. Your membership is now active, unlocking a world of exclusive benefits and premium experiences curated just for you.</p>
             
             <div style="margin: 30px 0; border-top: 1px solid #eeeeee; border-bottom: 1px solid #eeeeee; padding: 20px 0;">
                 <p style="margin: 0; font-size: 14px; color: #666;">Membership valid until:</p>
-                <p style="margin: 5px 0; font-size: 18px; font-weight: bold; color: #b87a7b;">${new Date(expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <p style="margin: 5px 0; font-size: 18px; font-weight: bold; color: #b87a7b;">{{expiryDate}}</p>
             </div>
 
             <div class="benefit-grid">
@@ -145,11 +144,10 @@ export const luxeEmailTemplate = (userName, expiryDate) => {
             <a href="https://febeul.onrender.com/luxe" class="cta-button">EXPLORE LUXE PRIVE</a>
         </div>
         <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Febeul. All rights reserved.</p>
+            <p>&copy; {{currentYear}} Febeul. All rights reserved.</p>
             <p>You received this email because you joined Febeul Luxe.</p>
         </div>
     </div>
 </body>
 </html>
-    `;
-};
+`;

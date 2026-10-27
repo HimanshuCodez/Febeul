@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import orderModel from '../models/orderModel.js';
+import { sendRefundCompletedEmail } from './orderNotifications.js';
 import { processPrepaidRefund, processStripeRefund, fetchGatewayRefund, refundErrorMessage } from './paymentRefunds.js';
 
 const MINUTE = 60 * 1000;
@@ -63,7 +64,9 @@ export async function runCancellationRefund(orderId, { force = false, reconcileC
     const note = errorMessage || `${order.paymentMethod} refund of INR ${order.orderTotal.toFixed(2)} ${completed ? 'processed' : 'accepted'} (reference ${result.refundId}).`;
     const update = { $set: set, $unset: { 'refundDetails.attemptToken': '' } };
     if (status !== order.refundDetails.status || errorMessage || !order.refundDetails.id) update.$push = { 'refundDetails.returnTracking.history': history(event, note, by) };
-    return orderModel.findOneAndUpdate({ _id: orderId, 'refundDetails.attemptToken': attemptToken }, update, { new: true });
+    const updated = await orderModel.findOneAndUpdate({ _id: orderId, 'refundDetails.attemptToken': attemptToken }, update, { new: true });
+    if (updated && completed) await sendRefundCompletedEmail(orderId);
+    return updated;
 }
 
 export async function processDueCancellationRefunds() {

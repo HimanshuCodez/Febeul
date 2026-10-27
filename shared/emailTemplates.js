@@ -1,7 +1,15 @@
 export const EMAIL_TEMPLATE_OPTIONS = [
     { id: 'order-confirmation', label: 'Order Confirmation', description: 'Design the email customers receive right after placing an order.' },
     { id: 'welcome', label: 'Welcome', description: 'Design the welcome email customers receive after registering an account.' },
+    { id: 'email-otp', label: 'Email Verification / Login OTP', description: 'Design the verification code email used for customer signup and email login.' },
+    { id: 'password-reset-otp', label: 'Password Reset OTP', description: 'Design the password reset code email for customers and administrators.' },
+    { id: 'admin-login-otp', label: 'Admin Login OTP', description: 'Design the login code email for administrators and staff.' },
+    { id: 'order-shipped', label: 'Order Shipped', description: 'Design the dispatch notification with courier and tracking details.' },
+    { id: 'order-delivered', label: 'Order Delivered', description: 'Design the confirmation sent when an order is delivered.' },
+    { id: 'order-cancelled', label: 'Order Cancelled', description: 'Design the notification sent when an order is cancelled.' },
     { id: 'return-request', label: 'Return / Refund Request Received', description: 'Design the confirmation sent when a return, refund, cancellation or courier return request is received.' },
-    { id: 'refund-processed', label: 'Refund Processed', description: 'Design the email customers receive when their refund has been processed.' },
+    { id: 'refund-processed', label: 'Refund Completed', description: 'Design the email customers receive when their refund has been processed.' },
+    { id: 'support-ticket-received', label: 'Support Ticket Received', description: 'Design the receipt sent when a support ticket is created.' },
+    { id: 'luxe-activated', label: 'Luxe Membership Activated', description: 'Design the confirmation sent when Luxe membership is purchased or granted.' },
     { id: 'luxe-expired', label: 'Luxe Membership Expired', description: 'Design the email customers receive when their Luxe membership expires.' },
 ];

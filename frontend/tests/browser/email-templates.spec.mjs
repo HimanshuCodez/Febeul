@@ -49,6 +49,7 @@ async function openEditor(page) {
 }
 
 test('dropdown edits, previews, saves, reloads and resets each template independently', async ({ page }) => {
+  test.setTimeout(EMAIL_TEMPLATE_OPTIONS.length * 8000);
   const state = await openEditor(page);
   const select = page.getByLabel('Email template', { exact: true });
   await expect(select.locator('option')).toHaveCount(EMAIL_TEMPLATE_OPTIONS.length);
@@ -58,7 +59,7 @@ test('dropdown edits, previews, saves, reloads and resets each template independ
     const subject = page.getByPlaceholder(`${label} email subject`);
     await subject.fill(`Updated ${id}`);
     await page.getByRole('button', { name: 'HTML code', exact: true }).click();
-    await page.locator('textarea').fill(`<p>Custom ${id}: {{${id === 'order-confirmation' ? 'billingAddressName' : 'userName'}}}</p>`);
+    await page.locator('textarea').fill(`<p>Custom ${id}: {{${id === 'order-confirmation' ? 'billingAddressName' : 'userName'}}}</p>${id.endsWith('-otp') ? '<p>{{otp}}</p>' : ''}`);
     await expect(page.frameLocator('iframe[title="Email preview"]').getByText(`Custom ${id}: Priya Sharma`)).toBeVisible();
     await page.getByRole('button', { name: 'Save template', exact: true }).click();
     await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
@@ -128,6 +129,6 @@ test('switching protects unsaved edits, disables during saves and recovers from 
   await select.selectOption('luxe-expired');
   await expect(page.getByText('Could not load the email template. Please refresh the page.')).toBeVisible();
   await select.selectOption('refund-processed');
-  await expect(page.getByRole('heading', { name: 'Refund Processed Email', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Refund Completed Email', exact: true })).toBeVisible();
   expect(state.errors).toEqual([]);
 });

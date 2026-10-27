@@ -16,12 +16,17 @@ import {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const validateContent = (content) => {
+const validateContent = (content, type) => {
     if (!content || typeof content !== 'object' || Array.isArray(content)) return 'Template content is required.';
     if (!['builder', 'html'].includes(content.mode)) return 'Choose visual builder or HTML mode.';
     if (content.mode === 'html' && (typeof content.html !== 'string' || !content.html.trim())) return 'HTML template cannot be empty.';
     if (typeof content.html === 'string' && content.html.length > 90000) return 'HTML template is too large (max ~90 KB).';
     if (Array.isArray(content.blocks) && content.blocks.length > 80) return 'Too many blocks (max 80).';
+    const required = getEmailTemplateDefinition(type)?.requiredTokens || [];
+    if (required.length) {
+        const html = content.mode === 'html' ? content.html : renderTemplateHtml(normalizeEmailContent(type, content));
+        if (required.some(key => !new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`).test(html))) return 'OTP emails must include the {{otp}} placeholder so recipients can use their code.';
+    }
     return null;
 };
 
@@ -67,7 +72,7 @@ const getEmailTemplate = async (req, res) => {
 const saveEmailTemplate = async (req, res) => {
     try {
         const { content } = req.body;
-        const error = validateContent(content);
+        const error = validateContent(content, req.params.type);
         if (error) return res.status(400).json({ success: false, message: error });
 
         const doc = await cmsModel.findOneAndUpdate(
@@ -100,7 +105,7 @@ const resetEmailTemplate = async (req, res) => {
 const previewEmailTemplate = async (req, res) => {
     try {
         const { content, source } = req.body;
-        const error = validateContent(content);
+        const error = validateContent(content, req.params.type);
         if (error) return res.status(400).json({ success: false, message: error });
 
         const resolved = await resolvePreviewData(req.params.type, source);
@@ -122,7 +127,7 @@ const sendTestEmail = async (req, res) => {
         if (!to || !EMAIL_RE.test(String(to).trim())) {
             return res.status(400).json({ success: false, message: 'Enter a valid email address' });
         }
-        const error = validateContent(content);
+        const error = validateContent(content, req.params.type);
         if (error) return res.status(400).json({ success: false, message: error });
 
         const resolved = await resolvePreviewData(req.params.type, source);

@@ -4,11 +4,7 @@ import { userToken, envToken, envAccounts, safeEqual, verifyToken } from '../uti
 import { issueOtp, checkOtp } from '../utils/otp.js';
 import axios from 'axios';
 import userModel from "../models/userModel.js";
-import { Resend } from 'resend';
-import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
 import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 const createToken = userToken;
 
@@ -108,17 +104,8 @@ const forgotPassword = async (req, res) => {
 
         const otp = await issueOtp(user, 'password-reset');
 
-        // IMPORTANT: For reliable email delivery, you must replace 'onboarding@resend.dev'
-        // with an email address from a domain you have verified in your Resend account.
-        const { data, error } = await resend.emails.send({
-            from: 'noreply@febeul.com', // Replace with your verified domain
-            to: email,
-            subject: 'Your Password Reset OTP',
-            html: `<p>Your OTP for password reset is: <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
-        });
-
-        if (error) {
-            console.error({ error });
+        const result = await sendTemplateEmail('password-reset-otp', email, { userName: user.name, otp });
+        if (!result.success) {
             return res.json({ success: false, message: "Failed to send OTP email." });
         }
 
@@ -553,6 +540,8 @@ const grantLuxeMembership = async (req, res) => {
         user.giftWrapsLeft = 15;
         await user.save();
 
+        if (user.email) await sendTemplateEmail('luxe-activated', user.email, { userName: user.name, expiryDate });
+
         return res.json({
             success: true,
             message: 'One month of Luxe membership granted.',
@@ -631,7 +620,8 @@ const sendAdminOTP = async (req, res) => {
         const user = await userModel.findOne({ email, role: { $in: ['admin', 'staff'] }, isBlocked: { $ne: true } });
         if (user) {
             const otp = await issueOtp(user, 'admin-login');
-            await sendEmail(email, 'Your Admin Login OTP', `<p>Your admin login OTP is <strong>${otp}</strong>. It expires in 5 minutes.</p>`);
+            const result = await sendTemplateEmail('admin-login-otp', email, { userName: user.name, otp });
+            if (!result.success) throw new Error('Email failed');
         }
         res.json({ success: true, message: 'If eligible, a code has been sent to your email.' });
     } catch {

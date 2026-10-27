@@ -554,7 +554,12 @@ const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
                 className='w-full font-mono text-xs leading-relaxed p-3 border border-gray-200 rounded-lg outline-none focus:border-black bg-gray-50 resize-y'
               />
               <p className='text-[11px] text-gray-400'>
-                Required: <code>{'{{itemRows}}'}</code> inside a <code>&lt;tbody&gt;</code>, and <code>{'{{totalAmount}}'}</code>. Row variables such as <code>{'{{gstRows}}'}</code> output <code>&lt;tr&gt;</code> elements, so place them inside a table. Switching back to the visual builder keeps this HTML saved, but the builder design is what gets sent.
+                {isOrderTemplate ? <>
+                  Required: <code>{'{{itemRows}}'}</code> inside a <code>&lt;tbody&gt;</code>, and <code>{'{{totalAmount}}'}</code>. Row variables such as <code>{'{{gstRows}}'}</code> output <code>&lt;tr&gt;</code> elements, so place them inside a table.
+                </> : <>
+                  Keep these placeholders for recipient details: <code>{(meta.requiredHtmlTokens || []).map(key => `{{${key}}}`).join(', ')}</code>.
+                </>}{' '}
+                Switching back to the visual builder keeps this HTML saved, but the builder design is what gets sent.
               </p>
             </div>
           )}

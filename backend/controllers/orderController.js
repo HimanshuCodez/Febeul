@@ -19,7 +19,8 @@ import { buildAdminOrderTracking } from '../utils/adminOrderTracking.js';
 import crypto from 'crypto'
 import { buildInvoicePDF } from '../templates/invoiceGenerator.js'; // New import for PDF generation logic
 import { sendEmail } from '../utils/sendEmail.js'; // New import for email utility
-import { luxeEmailTemplate } from '../templates/luxemail.js'; // Import luxeEmailTemplate
+import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
+import { sendOrderStatusEmail } from '../utils/orderNotifications.js';
 import { getOrderConfirmationEmail } from '../utils/orderEmailTemplate.js';
 import productModel from "../models/productModel.js";
 import couponModel from "../models/couponModel.js"; // Import couponModel
@@ -456,8 +457,7 @@ const verifyStripe = async (req,res) => {
                 // Send Luxe Welcome Email
                 try {
                     if (updatedOrder.userId && updatedOrder.userId.email) {
-                        const emailContent = luxeEmailTemplate(updatedOrder.userId.name || 'Luxe Member', expiryDate);
-                        await sendEmail(updatedOrder.userId.email, "Welcome to Febeul Luxe - Your Elite Membership is Active", emailContent);
+                        await sendTemplateEmail('luxe-activated', updatedOrder.userId.email, { userName: updatedOrder.userId.name, expiryDate });
                     }
                 } catch (emailErr) {
                     console.error("Error sending Luxe welcome email (Stripe):", emailErr);
@@ -647,8 +647,7 @@ const verifyRazorpay = async (req,res) => {
                     try {
                         const luxeUser = await userModel.findById(userId);
                         if (luxeUser && luxeUser.email) {
-                            const emailContent = luxeEmailTemplate(luxeUser.name || 'Luxe Member', expiryDate);
-                            await sendEmail(luxeUser.email, "Welcome to Febeul Luxe - Your Elite Membership is Active", emailContent);
+                            await sendTemplateEmail('luxe-activated', luxeUser.email, { userName: luxeUser.name, expiryDate });
                         }
                     } catch (emailErr) {
                         console.error("Error sending Luxe welcome email:", emailErr);
@@ -827,6 +826,7 @@ const updateStatus = async (req,res) => {
         if (orderStatus === 'Cancelled') return cancelAdminOrder(req, res);
         const order = await orderModel.findOneAndUpdate({ _id: orderId, isCancelled: { $ne: true }, 'refundDetails.requestType': { $ne: 'cancellation' }, orderStatus: { $ne: 'Cancelled' } }, { orderStatus }, { runValidators: true });
         if (!order) return res.status(409).json({ success: false, message: 'Cancelled orders cannot be reopened or marked refunded manually.' });
+        await sendOrderStatusEmail(order._id, orderStatus);
         res.json({success:true,message:'Status Updated'})
 
     } catch (error) {

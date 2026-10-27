@@ -3,6 +3,7 @@ import cmsModel from '../models/cmsModel.js';
 import { EMAIL_TEMPLATE_OPTIONS } from '../../shared/emailTemplates.js';
 import { REQUEST_TYPE_LABEL, RETURN_REQUEST_CREATED_HTML, REFUND_PROCESSED_HTML } from '../templates/returnEmail.js';
 import { LUXE_EXPIRED_HTML } from '../templates/luxeExpiredEmail.js';
+import { LUXE_ACTIVATED_HTML } from '../templates/luxemail.js';
 import {
     ORDER_EMAIL_CMS_NAME, ORDER_BLOCK_TYPES, BLOCK_DEFAULTS,
     getDefaultOrderEmailContent, getTemplateMeta, normalizeContent,
@@ -12,6 +13,14 @@ import {
 const textToken = (key, label) => ({ key, label, group: 'text' });
 const customerTokens = [textToken('userName', 'Customer name'), textToken('currentYear', 'Current year')];
 const orderToken = textToken('orderId', 'Order ID');
+const orderTokens = [...customerTokens, orderToken, textToken('orderUrl', 'Order details link')];
+const otpDefinition = (cmsName, subject, purpose) => ({
+    cmsName, subject, title: subject,
+    body: `<p>Hello {{userName}},</p><p>Your ${purpose} code is:</p><h2>{{otp}}</h2><p>This code expires in {{expiryMinutes}} minutes. Do not share it with anyone.</p>`,
+    tokens: [...customerTokens, textToken('otp', 'One-time code'), textToken('expiryMinutes', 'Code validity in minutes')],
+    requiredHtmlTokens: ['otp', 'expiryMinutes'],
+    requiredTokens: ['otp'],
+});
 
 const DEFINITIONS = {
     'order-confirmation': {
@@ -27,6 +36,27 @@ const DEFINITIONS = {
         button: { text: 'Start Shopping Now', url: 'https://febeul.onrender.com' },
         tokens: customerTokens,
         requiredHtmlTokens: ['userName'],
+    },
+    'email-otp': otpDefinition('emailOtpEmail', 'Your Febeul verification code', 'verification / login'),
+    'password-reset-otp': otpDefinition('passwordResetOtpEmail', 'Your Password Reset OTP', 'password reset'),
+    'admin-login-otp': otpDefinition('adminLoginOtpEmail', 'Your Admin Login OTP', 'admin login'),
+    'order-shipped': {
+        cmsName: 'orderShippedEmail', subject: 'Your Febeul Order #{{orderId}} Has Shipped', title: 'Your Order Has Shipped',
+        body: '<p>Hello {{userName}},</p><p>Your order <strong>#{{orderId}}</strong> is on its way.</p><p>Courier: {{courierName}}<br>Tracking number: {{trackingNumber}}</p><p><a href="{{trackingUrl}}">Track your order</a></p>',
+        button: { text: 'View Order', url: '{{orderUrl}}' },
+        tokens: [...orderTokens, textToken('courierName', 'Courier name'), textToken('trackingNumber', 'Tracking / AWB number'), textToken('trackingUrl', 'Tracking link')],
+        requiredHtmlTokens: ['orderId', 'trackingUrl'],
+    },
+    'order-delivered': {
+        cmsName: 'orderDeliveredEmail', subject: 'Your Febeul Order #{{orderId}} Has Been Delivered', title: 'Your Order Has Been Delivered',
+        body: '<p>Hello {{userName}},</p><p>Your order <strong>#{{orderId}}</strong> has been delivered.</p><p>Thank you for shopping with Febeul. If you need help with your order, please contact our support team.</p>',
+        button: { text: 'View Order', url: '{{orderUrl}}' }, tokens: orderTokens, requiredHtmlTokens: ['orderId'],
+    },
+    'order-cancelled': {
+        cmsName: 'orderCancelledEmail', subject: 'Your Febeul Order #{{orderId}} Has Been Cancelled', title: 'Order Cancelled',
+        body: '<p>Hello {{userName}},</p><p>Your order <strong>#{{orderId}}</strong> has been cancelled.</p><p>{{cancellationReason}}</p><p>Check your order details for the latest payment and refund status.</p>',
+        button: { text: 'View Order', url: '{{orderUrl}}' },
+        tokens: [...orderTokens, textToken('cancellationReason', 'Cancellation reason')], requiredHtmlTokens: ['orderId'],
     },
     'return-request': {
         cmsName: 'returnRequestEmail',
@@ -46,6 +76,19 @@ const DEFINITIONS = {
         tokens: [...customerTokens, orderToken, textToken('refundAmount', 'Refund amount'), textToken('methodLabel', 'Refund destination'), textToken('paymentMethod', 'Payment method')],
         requiredHtmlTokens: ['orderId', 'refundAmount', 'methodLabel'],
     },
+    'support-ticket-received': {
+        cmsName: 'supportTicketReceivedEmail', subject: 'We Received Your Support Ticket #{{ticketNumber}}', title: 'Support Ticket Received',
+        body: '<p>Hello {{userName}},</p><p>Your support ticket <strong>#{{ticketNumber}}</strong> has been created.</p><p><strong>{{ticketSubject}}</strong></p><p>Our support team will review it and reply. You can view updates in your support account.</p>',
+        button: { text: 'View Support Tickets', url: 'https://febeul.onrender.com/support' },
+        tokens: [...customerTokens, textToken('ticketNumber', 'Ticket number'), textToken('ticketSubject', 'Ticket subject')], requiredHtmlTokens: ['ticketNumber'],
+    },
+    'luxe-activated': {
+        cmsName: 'luxeActivatedEmail', subject: 'Welcome to Febeul Luxe - Your Elite Membership is Active', html: LUXE_ACTIVATED_HTML,
+        title: 'Welcome to the Elite',
+        body: '<p>Hello {{userName}},</p><p>Your <strong>Febeul Luxe</strong> membership is now active.</p><p>Membership valid until: <strong>{{expiryDate}}</strong></p><p>Enjoy 15 free gift wraps, priority shipping, Luxe Prive sales, and VIP support.</p>',
+        button: { text: 'EXPLORE LUXE PRIVE', url: 'https://febeul.onrender.com/luxe' },
+        tokens: [...customerTokens, textToken('expiryDate', 'Membership expiry date')], requiredHtmlTokens: ['userName', 'expiryDate'],
+    },
     'luxe-expired': {
         cmsName: 'luxeExpiredEmail',
         subject: 'Your Febeul Luxe Membership Has Expired',
@@ -58,6 +101,8 @@ const DEFINITIONS = {
     },
 };
 
+export const isEmailTemplateCmsName = name => Object.values(DEFINITIONS).some(definition => definition.cmsName === name);
+
 export const getEmailTemplateDefinition = (type) => {
     if (!Object.hasOwn(DEFINITIONS, type)) return null;
     return { ...EMAIL_TEMPLATE_OPTIONS.find(option => option.id === type), ...DEFINITIONS[type] };
@@ -68,13 +113,13 @@ export const getDefaultEmailContent = (type) => {
     const definition = getEmailTemplateDefinition(type);
     if (!definition) throw new Error('Unknown email template');
     const block = (id, blockType, overrides = {}) => ({ id, type: blockType, ...structuredClone(BLOCK_DEFAULTS[blockType]), ...overrides });
-    return {
+    const content = {
         ...getDefaultOrderEmailContent(),
         // Preserve the existing emails exactly; the visual builder also has a matching starting design.
         mode: 'html',
         subject: definition.subject,
         preheader: definition.title,
-        html: definition.html,
+        html: definition.html || '',
         theme: { ...getDefaultOrderEmailContent().theme, accent: '#b87a7b', accentText: '#b87a7b', bodyFont: 'Helvetica', headingFont: 'Helvetica', radius: 20 },
         blocks: [
             block('logo', 'logo', { imageUrl: 'https://febeul.onrender.com/removebgLogo.png', showDivider: false }),
@@ -84,6 +129,8 @@ export const getDefaultEmailContent = (type) => {
             block('footer', 'footer', { html: '', links: [], legal: '© {{currentYear}} Febeul. All rights reserved.' }),
         ],
     };
+    if (!definition.html) content.html = renderTemplateHtml(content);
+    return content;
 };
 
 export const normalizeEmailContent = (type, raw) => {
@@ -112,9 +159,26 @@ const escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace
 const fillTokens = (template, tokens) => template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
     (match, key) => Object.hasOwn(tokens, key) ? String(tokens[key] ?? '') : match);
 
+const safeLink = (value, fallback) => {
+    try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : fallback; }
+    catch { return fallback; }
+};
+
 export const buildEmailTokens = (type, data = {}) => {
-    const tokens = { userName: data.userName || (type === 'luxe-expired' ? 'Luxe Member' : 'Customer'), currentYear: String(new Date().getFullYear()) };
-    if (type === 'return-request' || type === 'refund-processed') tokens.orderId = String(data.orderId || '').slice(-8).toUpperCase();
+    const tokens = { userName: data.userName || (type.startsWith('luxe-') ? 'Luxe Member' : 'Customer'), currentYear: String(new Date().getFullYear()) };
+    if (type.endsWith('-otp')) Object.assign(tokens, { otp: String(data.otp || ''), expiryMinutes: '5' });
+    if (type.startsWith('order-') || type === 'return-request' || type === 'refund-processed') tokens.orderId = String(data.orderId || '').slice(-8).toUpperCase();
+    if (type.startsWith('order-')) tokens.orderUrl = safeLink(data.orderUrl, 'https://febeul.onrender.com/myorders');
+    if (type === 'order-shipped') Object.assign(tokens, {
+        courierName: data.courierName || 'See order details', trackingNumber: data.trackingNumber || 'See order details',
+        trackingUrl: safeLink(data.trackingUrl, tokens.orderUrl),
+    });
+    if (type === 'order-cancelled') tokens.cancellationReason = data.cancellationReason || 'Your order was cancelled.';
+    if (type === 'support-ticket-received') Object.assign(tokens, { ticketNumber: String(data.ticketNumber || ''), ticketSubject: data.ticketSubject || 'Support request' });
+    if (type === 'luxe-activated') {
+        const expiry = new Date(data.expiryDate);
+        tokens.expiryDate = Number.isNaN(expiry.getTime()) ? 'See your membership details' : expiry.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
+    }
     if (type === 'return-request') {
         tokens.requestLabel = Object.hasOwn(REQUEST_TYPE_LABEL, data.requestType) ? REQUEST_TYPE_LABEL[data.requestType] : 'Return/Refund Request';
         tokens.requestLabelLower = tokens.requestLabel.toLowerCase();
@@ -122,7 +186,7 @@ export const buildEmailTokens = (type, data = {}) => {
     if (type === 'refund-processed') {
         tokens.refundAmount = Number(data.amount || 0).toFixed(2);
         tokens.paymentMethod = data.method || '';
-        tokens.methodLabel = data.method === 'Razorpay' ? 'your original payment source' : 'your provided payout details';
+        tokens.methodLabel = ['Razorpay', 'Stripe'].includes(data.method) ? 'your original payment source' : 'your provided payout details';
     }
     if (type === 'luxe-expired') tokens.renewalUrl = 'https://febeul.onrender.com/luxe';
     return tokens;
@@ -130,6 +194,9 @@ export const buildEmailTokens = (type, data = {}) => {
 
 export const buildSampleEmailData = () => ({
     userName: 'Priya Sharma', orderId: '000000000000000A1B2C3D4E', requestType: 'return', amount: 1299, method: 'Razorpay',
+    otp: '123456', courierName: 'Sample Courier', trackingNumber: 'SAMPLE123456', trackingUrl: 'https://febeul.onrender.com/myorders',
+    orderUrl: 'https://febeul.onrender.com/order-detail/000000000000000A1B2C3D4E', cancellationReason: 'Customer requested cancellation',
+    ticketNumber: '123456', ticketSubject: 'Help with my order', expiryDate: '2030-12-31T12:00:00.000Z',
 });
 
 export const renderEmailTemplate = (type, rawContent, data) => {

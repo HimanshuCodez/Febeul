@@ -6,6 +6,7 @@ import Razorpay from "razorpay";
 import { v2 as cloudinary } from "cloudinary";
 import { createReturnOrder, buildShiprocketOrderPayload, cancelShiprocketOrder } from "../utils/shiprocket.js";
 import { sendTemplateEmail } from "../utils/sendTemplateEmail.js";
+import { sendRefundCompletedEmail } from '../utils/orderNotifications.js';
 import { appendReturnHistory, INTERNAL_STATUS } from "../utils/returnStatus.js";
 
 const razorpayInstance = new Razorpay({
@@ -184,13 +185,7 @@ const approveRefund = async (req, res) => {
 
             await order.save();
 
-            if (order.userId?.email) {
-                sendTemplateEmail(
-                    'refund-processed',
-                    order.userId.email,
-                    { userName: order.userId.name, orderId: order._id, amount: refundAmount, method: order.paymentMethod }
-                );
-            }
+            await sendRefundCompletedEmail(order._id);
 
             return res.json({ success: true, message: `Refund successful. Amount: ₹${refundAmount}` });
         }
@@ -324,14 +319,7 @@ const autoRefundOnCourierReturn = async (order) => {
         order.isRefundable = false;
         await order.save();
 
-        const user = await userModel.findById(order.userId);
-        if (user?.email) {
-            sendTemplateEmail(
-                'refund-processed',
-                user.email,
-                { userName: user.name, orderId: order._id, amount: refundAmount, method: order.paymentMethod }
-            );
-        }
+        await sendRefundCompletedEmail(order._id);
     } catch (error) {
         console.log("Error auto-refunding courier return:", error.message);
     }

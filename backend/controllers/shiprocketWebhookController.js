@@ -6,6 +6,7 @@ import { mapShiprocketStatus, parseShiprocketTimestamp, mergeTrackingHistory, is
 import { applyReturnPickupStatus } from '../utils/returnTrackingSync.js';
 import { autoRefundOnCourierReturn } from './refundController.js';
 import { appendExchangeHistory } from '../utils/exchangeStatus.js';
+import { sendOrderStatusEmail } from '../utils/orderNotifications.js';
 
 // Shiprocket omits identifiers it doesn't have yet (no `shipment_id` key at
 // all, `awb: ''` before a courier is assigned). Feeding those straight into a
@@ -271,6 +272,7 @@ export const handleWebhook = async (req, res) => {
         // status didn't change, so the timeline UI has every scan event.
         if (!matchedPickup) order.$where = { isCancelled: { $ne: true } };
         await order.save();
+        if (!matchedPickup) await sendOrderStatusEmail(order._id, order.orderStatus);
         console.log(`Order ${order._id} ${matchedPickup ? 'pickup ' : ''}tracking updated (statusChanged=${statusChanged}) for Shiprocket status: ${current_status}`);
 
         // The parcel is confirmed back at origin — a prepaid customer never

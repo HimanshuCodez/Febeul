@@ -151,6 +151,7 @@ const esc = (v = '') => String(v ?? '')
 
 const safeUrl = (url, fallback = '') => {
     const u = String(url || '').trim();
+    if (/^\{\{\s*(orderUrl|trackingUrl|renewalUrl)\s*\}\}$/.test(u)) return u;
     if (/^(https?:|mailto:|tel:)/i.test(u)) return esc(u);
     return fallback;
 };

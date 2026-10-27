@@ -18,7 +18,7 @@ import {
     RETURN_TABS
 } from '../utils/returnStatus.js';
 import { syncReturnsTracking, syncReturnTracking } from '../utils/returnTrackingSync.js';
-import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
+import { sendRefundCompletedEmail } from '../utils/orderNotifications.js';
 
 const RETURN_FILTER = { 'refundDetails.requestType': 'return' };
 
@@ -332,13 +332,7 @@ const recordRefundSettlement = async (req, res) => {
 
         await order.save();
 
-        if (order.userId?.email) {
-            sendTemplateEmail(
-                'refund-processed',
-                order.userId.email,
-                { userName: order.userId.name, orderId: order._id, amount: settledAmount, method: order.paymentMethod }
-            );
-        }
+        await sendRefundCompletedEmail(order._id);
 
         const settings = await getReturnSettings();
         res.json({

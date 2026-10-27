@@ -20,6 +20,7 @@ import {
     mergeTrackingHistory,
     isStatusProgression
 } from './shiprocketStatusMap.js';
+import { sendOrderStatusEmail } from './orderNotifications.js';
 
 // How long persisted tracking data is trusted before we re-poll Shiprocket's
 // live API. Short enough that a "Ship Now" click shows up on the customer's
@@ -141,6 +142,7 @@ export const syncOrderTracking = async (order, { force = false, staleMs = TRACKI
         order.shiprocket.lastTrackedAt = new Date();
         order.$where = { isCancelled: { $ne: true } };
         await order.save();
+        await sendOrderStatusEmail(order._id, order.orderStatus);
     } catch (error) {
         console.error(`Error syncing Shiprocket tracking for order ${order._id}:`, error.message);
     }

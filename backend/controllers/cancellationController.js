@@ -3,6 +3,7 @@ import orderModel from '../models/orderModel.js';
 import productModel from '../models/productModel.js';
 import { cancelShiprocketOrder } from '../utils/shiprocket.js';
 import { runCancellationRefund } from '../utils/cancellationRefunds.js';
+import { sendOrderStatusEmail } from '../utils/orderNotifications.js';
 
 const openStatuses = ['Order Placed', 'Processing', 'Confirmed'];
 const unshippedStatuses = ['NEW', 'UNKNOWN'];
@@ -67,6 +68,7 @@ const cancel = async (req, res, admin) => {
                 await orderModel.updateOne({ _id: orderId }, { $set: { 'cancellation.shipmentError': 'Cancel the shipment in Shiprocket; automatic cancellation failed.' }, $push: { 'refundDetails.returnTracking.history': history('SHIPMENT_CANCELLATION_FAILED', 'Cancel the shipment manually in Shiprocket.', 'system') } });
             }
         }
+        await sendOrderStatusEmail(orderId, 'Cancelled');
         const settled = prepaid ? await runCancellationRefund(orderId, { by }) : claimed;
         return sendResult(res, settled || claimed);
     } catch (error) {

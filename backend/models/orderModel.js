@@ -159,6 +159,7 @@ const orderSchema = new mongoose.Schema({
     // To prevent double refunds or conflicting operations
     isRefundable: { type: Boolean, default: true },
     isCancelled: { type: Boolean, default: false },
+    emailNotifications: { type: Map, of: Date, default: undefined },
     cancellation: {
         requestedBy: { type: String, enum: ['customer', 'admin'] },
         requestedByName: { type: String },

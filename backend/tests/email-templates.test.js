@@ -87,6 +87,8 @@ test('every default renders complete HTML with template-specific data in both ed
     assert.match(refund.html, /₹12\.50/);
     assert.match(refund.html, /Order #9ABCDEF0/);
     assert.match(refund.html, /your provided payout details/);
+    const stripeRefund = renderEmailTemplate('refund-processed', null, { ...sample('refund-processed'), method: 'Stripe' });
+    assert.match(stripeRefund.html, /your original payment source/);
 });
 
 test('welcome defaults preserve the HTML file and safely personalize every placeholder', () => {
@@ -121,14 +123,15 @@ test('admin permissions protect all operations and unknown template IDs cannot m
 test('saved subjects and HTML are isolated per template and used by real email sending', async () => {
     for (const type of types) {
         const nameToken = type === 'order-confirmation' ? 'billingAddressName' : 'userName';
-        const content = { ...getDefaultEmailContent(type), mode: 'html', subject: `${type} for {{${nameToken}}}`, html: `<p>${type}: {{${nameToken}}}</p>` };
+        const code = type.endsWith('-otp') ? '<p>{{otp}}</p>' : '';
+        const content = { ...getDefaultEmailContent(type), mode: 'html', subject: `${type} for {{${nameToken}}}`, html: `<p>${type}: {{${nameToken}}}</p>${code}` };
         const saved = await request(type, { method: 'POST', auth: token(editor._id), body: { content } });
         assert.equal(saved.status, 200);
         assert.equal(saved.data.creator.name, 'Editor');
         assert.deepEqual((await request(type)).data.content, saved.data.content);
         const rendered = type === 'order-confirmation' ? await getOrderConfirmationEmail(sample(type)) : await getSavedEmail(type, sample(type));
         assert.equal(rendered.subject, `${type} for Priya Sharma`);
-        assert.equal(rendered.html, `<p>${type}: Priya Sharma</p>`);
+        assert.equal(rendered.html, `<p>${type}: Priya Sharma</p>${type.endsWith('-otp') ? '<p>123456</p>' : ''}`);
         if (type !== 'order-confirmation') {
             const provider = nock('https://api.resend.com').post('/emails', body => body.subject === rendered.subject && body.html === rendered.html && body.to === 'customer@example.test').reply(200, { id: 'local-test' });
             assert.equal((await sendTemplateEmail(type, 'customer@example.test', sample(type))).success, true);
@@ -187,5 +190,31 @@ test('delivery falls back to the original template if the template lookup fails'
     } finally {
         find.mock.restore();
         log.mock.restore();
+    }
+});
+
+test('OTP templates cannot omit the usable code in HTML or visual builder mode', async () => {
+    for (const type of types.filter(type => type.endsWith('-otp'))) {
+        const content = getDefaultEmailContent(type);
+        for (const invalid of [{ ...content, html: '<p>No code</p>' }, { ...content, mode: 'builder', blocks: content.blocks.filter(block => block.id !== 'message') }]) {
+            const response = await request(type, { method: 'POST', body: { content: invalid } });
+            assert.equal(response.status, 400);
+            assert.match(response.data.message, /\{\{otp\}\}/);
+        }
+        const preview = renderEmailTemplate(type, content, sample(type));
+        assert.match(preview.html, /123456/);
+        assert.match(preview.html, /5 minutes/);
+    }
+});
+
+test('shipment links and membership dates render safely in both editing modes', () => {
+    for (const mode of ['html', 'builder']) {
+        const shipped = renderEmailTemplate('order-shipped', { ...getDefaultEmailContent('order-shipped'), mode }, sample('order-shipped'));
+        assert.match(shipped.html, /href="https:\/\/febeul.onrender.com\/order-detail\/000000000000000A1B2C3D4E"/);
+        const unsafe = renderEmailTemplate('order-shipped', { ...getDefaultEmailContent('order-shipped'), mode }, { ...sample('order-shipped'), trackingUrl: 'javascript:alert(1)', courierName: '<img src=x>' });
+        assert.doesNotMatch(unsafe.html, /javascript:/);
+        assert.match(unsafe.html, /&lt;img src=x&gt;/);
+        const membership = renderEmailTemplate('luxe-activated', { ...getDefaultEmailContent('luxe-activated'), mode }, sample('luxe-activated'));
+        assert.match(membership.html, /31 December 2030/);
     }
 });

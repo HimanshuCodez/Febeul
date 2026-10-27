@@ -1,4 +1,5 @@
 import cmsModel from '../models/cmsModel.js';
+import { isEmailTemplateCmsName } from '../utils/emailTemplates.js';
 import { v2 as cloudinary } from 'cloudinary';
 import { invalidateReturnSettingsCache } from '../utils/returnStatus.js';
 import { DEFAULT_SOCIAL_SETTINGS, validateSocialSettings } from '../utils/socialSettings.js';
@@ -10,7 +11,7 @@ import { getPublicGiftOffer, validateGiftOfferForSave } from '../utils/homeGiftO
 // @access  Public
 const getCmsContent = async (req, res) => {
     try {
-        if (['orderConfirmationEmail', 'welcomeEmail', 'returnRequestEmail', 'refundProcessedEmail', 'luxeExpiredEmail'].includes(req.params.name)) return res.status(404).json({ success: false, message: 'Content not found' });
+        if (isEmailTemplateCmsName(req.params.name)) return res.status(404).json({ success: false, message: 'Content not found' });
         const content = await cmsModel.findOne({ name: req.params.name });
         if (req.params.name === 'homeGiftOffer') {
             res.set('Cache-Control', 'no-store');
@@ -37,7 +38,7 @@ const updateCmsContent = async (req, res) => {
     try {
         const { name, content } = req.body;
         if (typeof name !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]{0,79}$/.test(name)) return res.status(400).json({ success: false, message: 'Invalid content name.' });
-        if (['orderConfirmationEmail', 'welcomeEmail', 'returnRequestEmail', 'refundProcessedEmail', 'luxeExpiredEmail'].includes(name)) return res.status(403).json({ success: false, message: 'Use the email template endpoint.' });
+        if (isEmailTemplateCmsName(name)) return res.status(403).json({ success: false, message: 'Use the email template endpoint.' });
         let savedContent = content;
         if (name === 'homeGiftOffer') {
             try {

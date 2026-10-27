@@ -280,6 +280,7 @@ export const buildCustomerReturnStatus = (order, settings = RETURN_SETTINGS_DEFA
 // to the model later cannot leak by default.
 export const sanitizeOrderForCustomer = (orderDoc, settings = RETURN_SETTINGS_DEFAULTS) => {
     const order = typeof orderDoc?.toObject === 'function' ? orderDoc.toObject() : { ...orderDoc };
+    delete order.emailNotifications;
     if (!order?.refundDetails) return order;
 
     const returnStatus = buildCustomerReturnStatus(order, settings);

@@ -1,6 +1,11 @@
 import { ticketModel } from '../models/ticketModel.js';
 import userModel from '../models/userModel.js';
 import { v2 as cloudinary } from 'cloudinary'; // Import cloudinary
+import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
+
+const sendTicketReceipt = (user, ticket) => user.email && sendTemplateEmail('support-ticket-received', user.email, {
+    userName: user.name, ticketNumber: ticket.ticketNumber, ticketSubject: ticket.subject,
+});
 
 // User: Create a new ticket
 export const createTicket = async (req, res) => {
@@ -54,6 +59,8 @@ export const createTicket = async (req, res) => {
         });
 
         await newTicket.save();
+
+        await sendTicketReceipt(user, newTicket);
 
         res.json({ success: true, message: 'Ticket created successfully.', ticket: newTicket });
 
@@ -140,6 +147,8 @@ export const createAppeal = async (req, res) => {
         user.lastAppealAt = new Date();
         await user.save();
 
+        await sendTicketReceipt(user, newTicket);
+
         res.json({ success: true, message: 'Appeal submitted successfully.', ticket: newTicket });
 
     } catch (error) {
@@ -214,6 +223,8 @@ export const adminCreateTicket = async (req, res) => {
         });
 
         await newTicket.save();
+
+        await sendTicketReceipt(user, newTicket);
 
         res.json({ success: true, message: 'Ticket created successfully.', ticket: newTicket });
 

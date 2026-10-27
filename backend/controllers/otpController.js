@@ -1,10 +1,9 @@
 import userModel from '../models/userModel.js';
 import validator from 'validator';
 import { randomBytes } from 'node:crypto';
-import { Resend } from 'resend';
+import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
 import { issueOtp, checkOtp } from '../utils/otp.js';
 import { userToken, signToken } from '../utils/authTokens.js';
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // No SMS delivery provider is configured. Do not issue or log usable codes.
 const sendOTP = (_req, res) => res.status(503).json({ success: false, message: 'SMS login is unavailable. Use email login.' });
@@ -20,8 +19,8 @@ const sendEmailOTP = async (req, res) => {
         }
         if (!user) user = new userModel({ email, name: 'Temporary OTP User' });
         const code = await issueOtp(user, `email-${purpose}`);
-        const { error } = await resend.emails.send({ from: 'noreply@febeul.com', to: email, subject: 'Your Febeul verification code', html: `<p>Your code is <strong>${code}</strong>. It expires in 5 minutes.</p>` });
-        if (error) throw new Error('Email failed');
+        const result = await sendTemplateEmail('email-otp', email, { userName: user.name === 'Temporary OTP User' ? 'Customer' : user.name, otp: code });
+        if (!result.success) throw new Error('Email failed');
         res.json({ success: true, message: 'If eligible, a code has been sent to your email.' });
     } catch {
         res.status(500).json({ success: false, message: 'Unable to send email code.' });
