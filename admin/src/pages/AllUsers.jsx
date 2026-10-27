@@ -41,6 +41,7 @@ const AllUsers = ({ token }) => {
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useSearchPrefill();
   const [roleFilter, setRoleFilter] = useState('all');
+  const [membershipFilter, setMembershipFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -218,12 +219,14 @@ const AllUsers = ({ token }) => {
       roleFilter === 'all' ||
       (roleFilter === 'staff' && (user.role === 'staff' || user.role === 'admin')) ||
       (roleFilter === 'user' && user.role === 'user');
+    const matchesMembership = membershipFilter === 'all' ||
+      (membershipFilter === 'luxe' ? hasActiveLuxe(user) : !hasActiveLuxe(user));
 
     const joinedTime = user.createdAt ? new Date(user.createdAt).getTime() : null;
     const matchesStart = !startDate || (joinedTime !== null && joinedTime >= new Date(startDate).setHours(0, 0, 0, 0));
     const matchesEnd = !endDate || (joinedTime !== null && joinedTime <= new Date(endDate).setHours(23, 59, 59, 999));
 
-    return matchesSearch && matchesRole && matchesStart && matchesEnd;
+    return matchesSearch && matchesRole && matchesMembership && matchesStart && matchesEnd;
   });
 
   const clearDateFilter = () => {
@@ -237,17 +240,18 @@ const AllUsers = ({ token }) => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, roleFilter, startDate, endDate]);
+  }, [searchTerm, roleFilter, membershipFilter, startDate, endDate]);
 
 
   useEffect(() => {
     setCurrentPage(previous => Math.max(1, Math.min(previous, totalPages || 1)));
   }, [totalPages]);
 
-  const hasFilters = Boolean(searchTerm || roleFilter !== 'all' || startDate || endDate);
+  const hasFilters = Boolean(searchTerm || roleFilter !== 'all' || membershipFilter !== 'all' || startDate || endDate);
   const clearFilters = () => {
     setSearchTerm('');
     setRoleFilter('all');
+    setMembershipFilter('all');
     clearDateFilter();
   };
   const summary = [
@@ -324,7 +328,7 @@ const AllUsers = ({ token }) => {
           <span className="shrink-0 rounded-md border border-[#efdee7] bg-[#faf1f6] px-2 py-1 text-[10px] font-medium text-[#947184] sm:px-2.5 sm:text-[11px]">{loading || error ? '\u2014' : filteredUsers.length} users</span>
         </div>
         <div className="flex flex-col gap-3 px-4 pb-5 sm:px-6">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#eae5ed] px-3 text-[#9a849f] focus-within:border-[#ba8099] focus-within:ring-2 focus-within:ring-[#faf0f5] sm:max-w-[460px]">
               <Search size={17} className="shrink-0" aria-hidden="true" />
               <label htmlFor="users-search" className="sr-only">Search users</label>
@@ -335,6 +339,12 @@ const AllUsers = ({ token }) => {
               <SlidersHorizontal size={15} aria-hidden="true" /><span className="sr-only">Filter by role</span>
               <select className="min-w-0 flex-1 border-0 bg-white py-3 text-xs text-[#675571]" value={roleFilter} onChange={event => setRoleFilter(event.target.value)}>
                 <option value="all">All Roles</option><option value="staff">Staff/Admin</option><option value="user">Normal Users</option>
+              </select>
+            </label>
+            <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[#eae5ed] px-3 text-[#9983a2]">
+              <Crown size={15} aria-hidden="true" /><span className="sr-only">Filter by membership</span>
+              <select className="min-w-0 flex-1 border-0 bg-white py-3 text-xs text-[#675571]" value={membershipFilter} onChange={event => setMembershipFilter(event.target.value)}>
+                <option value="all">All Memberships</option><option value="luxe">Luxe Members</option><option value="standard">Standard Users</option>
               </select>
             </label>
             <button type="button" className={buttonClass + ' w-full shrink-0 sm:ml-auto sm:w-auto'} onClick={exportUsers} disabled={loading || Boolean(error) || filteredUsers.length === 0} aria-describedby="users-export-description">
@@ -357,7 +367,7 @@ const AllUsers = ({ token }) => {
             </div>
             {hasFilters && <button type="button" className="ml-auto inline-flex min-h-8 items-center gap-1 text-[11px] text-[#a85070] hover:text-[#73364e]" onClick={clearFilters}><X size={13} />Clear filters</button>}
           </div>
-          <p id="users-export-description" className="text-[10px] leading-relaxed text-[#897b92] sm:text-[11px]">Exports all matching users across every page using the current search, role and joined-date filters.</p>
+          <p id="users-export-description" className="text-[10px] leading-relaxed text-[#897b92] sm:text-[11px]">Exports all matching users across every page using the current search, role, membership and joined-date filters.</p>
         </div>
 
         {error ? (
@@ -450,7 +460,7 @@ const AllUsers = ({ token }) => {
           <div className={emptyClass}>
             <span className="mb-1 grid h-12 w-12 place-items-center rounded-xl bg-[#f8f2fa] text-[#af91bb]">{hasFilters ? <Search size={25} /> : <Users size={25} />}</span>
             <h3 className="text-base font-medium">{hasFilters ? 'No matching users' : 'Your directory is ready'}</h3>
-            <p className="max-w-[300px] text-xs text-[#947c9e]">{hasFilters ? 'Try a different name, role, or joined date range.' : 'Registered customers and team members will appear here.'}</p>
+            <p className="max-w-[300px] text-xs text-[#947c9e]">{hasFilters ? 'Try a different name, role, membership, or joined date range.' : 'Registered customers and team members will appear here.'}</p>
             {hasFilters && <button type="button" className={buttonClass + ' mt-1'} onClick={clearFilters}>Clear filters</button>}
           </div>
         )}
