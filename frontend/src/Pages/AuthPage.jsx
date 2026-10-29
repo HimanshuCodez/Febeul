@@ -37,7 +37,8 @@ const AuthPage = () => {
     getValues,
     reset,
     trigger,
-    setValue
+    setValue,
+    setError
   } = useForm();
 
   const password = watch("password");
@@ -151,7 +152,7 @@ const AuthPage = () => {
         await sendSignupOtp();
       } else if (step === 2) {
         try {
-          const email = getValues('email').toLowerCase();
+          const email = getValues('email').trim().toLowerCase();
           const otp = [0, 1, 2, 3, 4, 5].map(i => data[`signupOtp_${i}`]).join('');
 
           if (otp.length < 6) {
@@ -229,22 +230,34 @@ const AuthPage = () => {
   }
 
   const sendSignupOtp = async () => {
-    const email = getValues("email").toLowerCase();
-    try {
-      await withVerification(async turnstileToken => {
-        const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/send-email-otp`, { email, purpose: 'signup', turnstileToken });
-        if (response.data.success) {
+    const email = getValues("email").trim().toLowerCase();
+    setValue('email', email);
+    const showEmailConflict = data => {
+      if (data?.code !== 'EMAIL_ALREADY_REGISTERED') return false;
+      const message = data.message || 'This email is already registered. Please log in instead.';
+      setStep(1);
+      setSignupFormData(null);
+      setIsTimerActive(false);
+      setTimer(60);
+      setError('email', { type: 'server', message }, { shouldFocus: true });
+      toast.error(message);
+      return true;
+    };
+    await withVerification(async turnstileToken => {
+      try {
+        const { data } = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/otp/send-email-otp`, { email, purpose: 'signup', turnstileToken });
+        if (data.success) {
           toast.success(`OTP sent to ${email}`);
           setStep(2);
           setIsTimerActive(true);
           setTimer(60);
-        } else {
-          toast.error(response.data.message);
+        } else if (!showEmailConflict(data)) {
+          toast.error(data.message);
         }
-      });
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to send OTP');
-    }
+      } catch (error) {
+        if (!showEmailConflict(error.response?.data)) throw error;
+      }
+    });
   };
 
   const handleResendSignupOtp = async () => {
@@ -357,6 +370,7 @@ const AuthPage = () => {
                     placeholder="Email Address"
                     {...register("email", {
                       required: "Email is required",
+                      setValueAs: value => typeof value === 'string' ? value.trim().toLowerCase() : value,
                       pattern: {
                         value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
                         message: "Please enter a valid email address",

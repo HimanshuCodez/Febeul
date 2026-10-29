@@ -13,6 +13,7 @@ async function fixture(page, path = '/add', initialProduct = product) {
   await page.addInitScript(() => {
     if (location.origin !== 'http://127.0.0.1:5179') return;
     localStorage.setItem('token', 'local-upload-test'); localStorage.setItem('role', 'admin'); localStorage.setItem('permissions', '[]');
+    localStorage.setItem('userEmail', 'uploads@example.test');
   });
   page.on('pageerror', error => state.errors.push(error.message));
   await page.route('**/*', async route => {

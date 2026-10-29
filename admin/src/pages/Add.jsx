@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types -- Authentication props are supplied by the admin routes. */
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { backendUrl } from "../App";
@@ -7,6 +8,8 @@ import "react-quill-new/dist/quill.snow.css";
 import Loading from "../components/Loading";
 import EditableSelect from "../components/EditableSelect";
 import ProductImageGallery from "../components/ProductImageGallery";
+import useProductDraft from '../hooks/useProductDraft';
+import ProductDraftStatus from '../components/ProductDraftStatus';
 import { DEFAULT_TAXONOMY, fetchTaxonomy, saveTaxonomy } from "../utils/taxonomy";
 import { validateProductImageUploads } from '../../../shared/productUploads.js';
 import {
@@ -24,42 +27,20 @@ import {
 const inputClass = "w-full min-w-0 rounded-lg border border-[#e4dce9] bg-white px-3 py-2.5 text-sm text-[#514459] outline-none transition-shadow placeholder:text-[#a99bad] focus:border-[#b77997] focus:ring-2 focus:ring-[#f5e9f0]";
 const sectionClass = "min-w-0 rounded-2xl border border-[#eae5ed] bg-white p-4 shadow-sm sm:p-6";
 
-const Add = ({ token }) => {
-  const [type, setType] = useState("");
-  const [variations, setVariations] = useState([
-    { color: "", images: [], sizes: [], sku: "" },
-  ]);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("BABYDOLL");
+const Add = ({ token, draftOwner }) => {
+  const { values, setField, draft } = useProductDraft({ owner: draftOwner, namespace: backendUrl });
+  const {
+    name, description, category, type, variations, bestseller,
+    isLuxePrive, isActive, countryOfOrigin, manufacturer, packer, includedComponents,
+    fabric, pattern, sleeveStyle, sleeveLength, neck, hsn,
+    materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH,
+    netQuantity, genericName, keywords, newSizeInput,
+  } = values;
   const [taxonomy, setTaxonomy] = useState(DEFAULT_TAXONOMY);
 
-  const [bestseller, setBestseller] = useState(false);
-  const [isLuxePrive, setIsLuxePrive] = useState(false);
-  const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [countryOfOrigin, setCountryOfOrigin] = useState("");
-  const [manufacturer, setManufacturer] = useState("");
-  const [packer, setPacker] = useState("");
-  const [includedComponents, setIncludedComponents] = useState("");
-  const [fabric, setFabric] = useState("");
-  const [pattern, setPattern] = useState("");
-  const [sleeveStyle, setSleeveStyle] = useState("");
-  const [sleeveLength, setSleeveLength] = useState("");
-  const [neck, setNeck] = useState("");
-  const [hsn, setHsn] = useState("");
-  const [materialComposition, setMaterialComposition] = useState("");
-  const [careInstructions, setCareInstructions] = useState("");
-  const [closureType, setClosureType] = useState("");
-  const [materialType, setMaterialType] = useState("");
-  const [itemWeight, setItemWeight] = useState("");
-  const [itemDimensionsLxWxH, setItemDimensionsLxWxH] = useState("");
-  const [netQuantity, setNetQuantity] = useState("");
-  const [genericName, setGenericName] = useState("");
-  const [keywords, setKeywords] = useState("");
   const [existingSkus, setExistingSkus] = useState([]);
-  const [newSizeInput, setNewSizeInput] = useState("");
 
   useEffect(() => {
     const fetchExistingSkus = async () => {
@@ -87,15 +68,15 @@ const Add = ({ token }) => {
   }, []);
 
   const handleCategoryChange = (newCategory) => {
-    setCategory(newCategory);
+    setField('category', newCategory);
     const disabledTypes = taxonomy.disabledTypesByCategory?.[newCategory] || [];
     const validTypes = (taxonomy.typesByCategory[newCategory] || []).filter((t) => !disabledTypes.includes(t));
     if (type && !validTypes.includes(type)) {
-      setType("");
+      setField('type', "");
     }
     const disabledFabrics = taxonomy.disabledFabricsByCategory?.[newCategory] || [];
     if (fabric && disabledFabrics.includes(fabric)) {
-      setFabric("");
+      setField('fabric', "");
     }
   };
 
@@ -144,7 +125,7 @@ const Add = ({ token }) => {
       toast.error("Failed to save new size, but you can still use it for this product.");
       setTaxonomy(updated);
     }
-    setNewSizeInput("");
+    setField('newSizeInput', "");
   };
 
   const addType = async (newName) => {
@@ -181,14 +162,14 @@ const Add = ({ token }) => {
   const handleVariationChange = (index, event) => {
     const newVariations = [...variations];
     newVariations[index][event.target.name] = event.target.value;
-    setVariations(newVariations);
+    setField('variations', newVariations);
   };
 
   const handleSizeChange = (v_index, s_index, event) => {
     const newVariations = [...variations];
     newVariations[v_index].sizes[s_index][event.target.name] =
       event.target.value;
-    setVariations(newVariations);
+    setField('variations', newVariations);
   };
 
   const handleImageChange = (index, event) => {
@@ -196,38 +177,38 @@ const Add = ({ token }) => {
     event.target.value = '';
     const error = validateProductImageUploads([...variations.flatMap(variation => variation.images), ...files]);
     if (error) { toast.error(error); return; }
-    setVariations(previous => previous.map((variation, i) => i === index ? { ...variation, images: [...variation.images, ...files] } : variation));
+    setField('variations', previous => previous.map((variation, i) => i === index ? { ...variation, images: [...variation.images, ...files] } : variation));
   };
 
   const addVariation = () => {
-    setVariations([...variations, { color: "", images: [], sizes: [], sku: "" }]);
+    setField('variations', [...variations, { color: "", images: [], sizes: [], sku: "" }]);
   };
 
   const removeVariation = (index) => {
     const newVariations = [...variations];
     newVariations.splice(index, 1);
-    setVariations(newVariations);
+    setField('variations', newVariations);
   };
 
   const addSize = (v_index, size) => {
     const newVariations = [...variations];
     newVariations[v_index].sizes.push({ size: size, price: "", mrp: "", stock: "" });
-    setVariations(newVariations);
+    setField('variations', newVariations);
   };
 
   const removeSize = (v_index, s_index) => {
     const newVariations = [...variations];
     newVariations[v_index].sizes.splice(s_index, 1);
-    setVariations(newVariations);
+    setField('variations', newVariations);
   };
 
   const updateImages = (index, images) => {
-    setVariations(previous => previous.map((variation, i) => i === index ? { ...variation, images } : variation));
+    setField('variations', previous => previous.map((variation, i) => i === index ? { ...variation, images } : variation));
   };
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-    if (loading) return;
+    if (loading || !draft.ready || draft.status === 'clearing') return;
     const imageError = validateProductImageUploads(variations.flatMap(variation => variation.images));
     if (imageError) { toast.error(imageError); return; }
     setLoading(true);
@@ -274,6 +255,7 @@ const Add = ({ token }) => {
         }
       }
 
+      await draft.save();
       const formData = new FormData();
 
       formData.append("name", name);
@@ -334,32 +316,7 @@ const Add = ({ token }) => {
 
       if (response.data.success) {
         toast.success(response.data.message);
-        setName("");
-        setDescription("");
-        setVariations([{ color: "", images: [], sizes: [], sku: "" }]);
-        setBestseller(false);
-        setIsLuxePrive(false);
-        setIsActive(true);
-        setCountryOfOrigin("");
-        setManufacturer("");
-        setPacker("");
-        setIncludedComponents("");
-        setFabric("");
-        setType("");
-        setPattern("");
-        setSleeveStyle("");
-        setSleeveLength("");
-        setNeck("");
-        setHsn("");
-        setMaterialComposition("");
-        setCareInstructions("");
-        setClosureType("");
-        setMaterialType("");
-        setItemWeight("");
-        setItemDimensionsLxWxH("");
-        setNetQuantity("");
-        setGenericName("");
-        setKeywords("");
+        await draft.clear(true);
         setLoading(false);
         // Refresh existing SKUs after adding
         const updatedSkusResponse = await axios.get(backendUrl + "/api/product/list");
@@ -395,6 +352,9 @@ const Add = ({ token }) => {
         <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-[#e7dce8] bg-white px-3 py-2 text-[11px] font-medium text-[#96768c]"><PackagePlus size={15} aria-hidden="true" />New listing</span>
       </header>
 
+      <ProductDraftStatus draft={draft} disabled={loading} />
+      <fieldset disabled={!draft.ready || loading || draft.status === 'clearing'} className="min-w-0">
+
       <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
         <div className="min-w-0 space-y-5">
           <section id="product-basics" aria-labelledby="product-basics-title" className={sectionClass}>
@@ -407,7 +367,7 @@ const Add = ({ token }) => {
               <div className="w-full">
                 <label htmlFor="product-name" className="mb-2 block text-xs font-medium text-[#776580]">Product name</label>
                 <input id="product-name"
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => setField('name', e.target.value)}
                   value={name}
                   className={inputClass}
                   type="text"
@@ -419,9 +379,9 @@ const Add = ({ token }) => {
               <div className="w-full">
                 <p className="mb-2 block text-xs font-medium text-[#776580]">Product description</p>
                 <ReactQuill
-                  theme="snow"
+                  theme="snow" readOnly={!draft.ready || loading || draft.status === 'clearing'}
                   value={description}
-                  onChange={setDescription}
+                  onChange={(value, _delta, source) => { if (source === 'user') setField('description', value); }}
                   className="w-full [&_.ql-toolbar.ql-snow]:rounded-t-xl [&_.ql-toolbar.ql-snow]:border-[#e4dce9] [&_.ql-toolbar.ql-snow]:bg-[#fcfafd] [&_.ql-container.ql-snow]:rounded-b-xl [&_.ql-container.ql-snow]:border-[#e4dce9] [&_.ql-editor]:min-h-44 [&_.ql-editor]:text-sm [&_.ql-editor]:text-[#514459] [&_.ql-tooltip]:left-0 [&_.ql-tooltip]:max-w-full [&_.ql-tooltip]:whitespace-normal"
                 />
               </div>
@@ -429,7 +389,7 @@ const Add = ({ token }) => {
               <div className="w-full">
                 <label htmlFor="product-keywords" className="mb-2 block text-xs font-medium text-[#776580]">Product Keywords</label>
                 <input id="product-keywords"
-                  onChange={(e) => setKeywords(e.target.value)}
+                  onChange={(e) => setField('keywords', e.target.value)}
                   value={keywords}
                   className={inputClass}
                   type="text"
@@ -561,7 +521,7 @@ const Add = ({ token }) => {
                           <input
                             type="text"
                             value={newSizeInput}
-                            onChange={(e) => setNewSizeInput(e.target.value)}
+                            onChange={(e) => setField('newSizeInput', e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault();
@@ -583,7 +543,7 @@ const Add = ({ token }) => {
                       </div>
                     </div>
 
-                    <ProductImageGallery images={variation.images} variationIndex={v_index} disabled={loading}
+                    <ProductImageGallery images={variation.images} variationIndex={v_index} disabled={!draft.ready || loading || draft.status === 'clearing'}
                       onChange={images => updateImages(v_index, images)} onUpload={event => handleImageChange(v_index, event)} />
                   </div>
                   {variations.length > 1 && (
@@ -627,52 +587,52 @@ const Add = ({ token }) => {
                 label="Fabric"
                 options={fabricOptions}
                 value={fabric}
-                onChange={setFabric}
+                onChange={value => setField('fabric', value)}
                 onAddNew={addFabric}
               />
               <EditableSelect
                 label="Type"
                 options={typeOptions}
                 value={type}
-                onChange={setType}
+                onChange={value => setField('type', value)}
                 onAddNew={addType}
               />
 
               <div className="w-full">
                 <label htmlFor="product-pattern" className="mb-2 block text-xs font-medium text-[#776580]">Pattern</label>
-                <input id="product-pattern" onChange={(e) => setPattern(e.target.value)} value={pattern} className={inputClass} type="text" placeholder="indo western" />
+                <input id="product-pattern" onChange={(e) => setField('pattern', e.target.value)} value={pattern} className={inputClass} type="text" placeholder="indo western" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-sleeve-style" className="mb-2 block text-xs font-medium text-[#776580]">Sleeve Style</label>
-                <input id="product-sleeve-style" onChange={(e) => setSleeveStyle(e.target.value)} value={sleeveStyle} className={inputClass} type="text" placeholder="straight with cutwork" />
+                <input id="product-sleeve-style" onChange={(e) => setField('sleeveStyle', e.target.value)} value={sleeveStyle} className={inputClass} type="text" placeholder="straight with cutwork" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-sleeve-length" className="mb-2 block text-xs font-medium text-[#776580]">Sleeve Length</label>
-                <input id="product-sleeve-length" onChange={(e) => setSleeveLength(e.target.value)} value={sleeveLength} className={inputClass} type="text" placeholder="19.5" />
+                <input id="product-sleeve-length" onChange={(e) => setField('sleeveLength', e.target.value)} value={sleeveLength} className={inputClass} type="text" placeholder="19.5" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-neck" className="mb-2 block text-xs font-medium text-[#776580]">Neck</label>
-                <input id="product-neck" onChange={(e) => setNeck(e.target.value)} value={neck} className={inputClass} type="text" placeholder="round" />
+                <input id="product-neck" onChange={(e) => setField('neck', e.target.value)} value={neck} className={inputClass} type="text" placeholder="round" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-material-composition" className="mb-2 block text-xs font-medium text-[#776580]">Material Composition</label>
-                <input id="product-material-composition" onChange={(e) => setMaterialComposition(e.target.value)} value={materialComposition} className={inputClass} type="text" placeholder="92% Net, 8% Lace" />
+                <input id="product-material-composition" onChange={(e) => setField('materialComposition', e.target.value)} value={materialComposition} className={inputClass} type="text" placeholder="92% Net, 8% Lace" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-closure-type" className="mb-2 block text-xs font-medium text-[#776580]">Closure Type</label>
-                <input id="product-closure-type" onChange={(e) => setClosureType(e.target.value)} value={closureType} className={inputClass} type="text" placeholder="Tie" />
+                <input id="product-closure-type" onChange={(e) => setField('closureType', e.target.value)} value={closureType} className={inputClass} type="text" placeholder="Tie" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-material-type" className="mb-2 block text-xs font-medium text-[#776580]">Material Type</label>
-                <input id="product-material-type" onChange={(e) => setMaterialType(e.target.value)} value={materialType} className={inputClass} type="text" placeholder="Lace, Net" />
+                <input id="product-material-type" onChange={(e) => setField('materialType', e.target.value)} value={materialType} className={inputClass} type="text" placeholder="Lace, Net" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-care-instructions" className="mb-2 block text-xs font-medium text-[#776580]">Care Instructions</label>
-                <input id="product-care-instructions" onChange={(e) => setCareInstructions(e.target.value)} value={careInstructions} className={inputClass} type="text" placeholder="Machine Wash" />
+                <input id="product-care-instructions" onChange={(e) => setField('careInstructions', e.target.value)} value={careInstructions} className={inputClass} type="text" placeholder="Machine Wash" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-generic-name" className="mb-2 block text-xs font-medium text-[#776580]">Generic Name</label>
-                <input id="product-generic-name" onChange={(e) => setGenericName(e.target.value)} value={genericName} className={inputClass} type="text" placeholder="Nightgown" />
+                <input id="product-generic-name" onChange={(e) => setField('genericName', e.target.value)} value={genericName} className={inputClass} type="text" placeholder="Nightgown" />
               </div>
             </div>
           </section>
@@ -686,35 +646,35 @@ const Add = ({ token }) => {
             <div className="grid min-w-0 grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
               <div className="w-full">
                 <label htmlFor="product-country-of-origin" className="mb-2 block text-xs font-medium text-[#776580]">Country of Origin</label>
-                <input id="product-country-of-origin" onChange={(e) => setCountryOfOrigin(e.target.value)} value={countryOfOrigin} className={inputClass} type="text" placeholder="India" />
+                <input id="product-country-of-origin" onChange={(e) => setField('countryOfOrigin', e.target.value)} value={countryOfOrigin} className={inputClass} type="text" placeholder="India" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-manufacturer" className="mb-2 block text-xs font-medium text-[#776580]">Manufacturer</label>
-                <input id="product-manufacturer" onChange={(e) => setManufacturer(e.target.value)} value={manufacturer} className={inputClass} type="text" placeholder="King style knitwear" />
+                <input id="product-manufacturer" onChange={(e) => setField('manufacturer', e.target.value)} value={manufacturer} className={inputClass} type="text" placeholder="King style knitwear" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-packer" className="mb-2 block text-xs font-medium text-[#776580]">Packer</label>
-                <input id="product-packer" onChange={(e) => setPacker(e.target.value)} value={packer} className={inputClass} type="text" placeholder="King style knitwear" />
+                <input id="product-packer" onChange={(e) => setField('packer', e.target.value)} value={packer} className={inputClass} type="text" placeholder="King style knitwear" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-included-components" className="mb-2 block text-xs font-medium text-[#776580]">Included Components</label>
-                <input id="product-included-components" onChange={(e) => setIncludedComponents(e.target.value)} value={includedComponents} className={inputClass} type="text" placeholder="1 shirt, 1 pant" />
+                <input id="product-included-components" onChange={(e) => setField('includedComponents', e.target.value)} value={includedComponents} className={inputClass} type="text" placeholder="1 shirt, 1 pant" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-hsn" className="mb-2 block text-xs font-medium text-[#776580]">HSN</label>
-                <input id="product-hsn" onChange={(e) => setHsn(e.target.value)} value={hsn} className={inputClass} type="text" placeholder="6204" />
+                <input id="product-hsn" onChange={(e) => setField('hsn', e.target.value)} value={hsn} className={inputClass} type="text" placeholder="6204" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-item-weight" className="mb-2 block text-xs font-medium text-[#776580]">Item Weight</label>
-                <input id="product-item-weight" onChange={(e) => setItemWeight(e.target.value)} value={itemWeight} className={inputClass} type="text" placeholder="150 g" />
+                <input id="product-item-weight" onChange={(e) => setField('itemWeight', e.target.value)} value={itemWeight} className={inputClass} type="text" placeholder="150 g" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-item-dimensions-lxwxh" className="mb-2 block text-xs font-medium text-[#776580]">Item Dimensions LxWxH</label>
-                <input id="product-item-dimensions-lxwxh" onChange={(e) => setItemDimensionsLxWxH(e.target.value)} value={itemDimensionsLxWxH} className={inputClass} type="text" placeholder="22 x 20 x 2 Centimeters" />
+                <input id="product-item-dimensions-lxwxh" onChange={(e) => setField('itemDimensionsLxWxH', e.target.value)} value={itemDimensionsLxWxH} className={inputClass} type="text" placeholder="22 x 20 x 2 Centimeters" />
               </div>
               <div className="w-full">
                 <label htmlFor="product-net-quantity" className="mb-2 block text-xs font-medium text-[#776580]">Net Quantity</label>
-                <input id="product-net-quantity" onChange={(e) => setNetQuantity(e.target.value)} value={netQuantity} className={inputClass} type="text" placeholder="1.0 Count" />
+                <input id="product-net-quantity" onChange={(e) => setField('netQuantity', e.target.value)} value={netQuantity} className={inputClass} type="text" placeholder="1.0 Count" />
               </div>
             </div>
           </section>
@@ -728,7 +688,7 @@ const Add = ({ token }) => {
             <div className="space-y-3">
               <label htmlFor="isActive" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eae1ef] bg-[#fcfafd] p-3 transition-colors hover:border-[#d1b4c8] has-[:checked]:border-[#ddc4d4] has-[:checked]:bg-[#fbf1f7]">
                 <input
-                  onChange={() => setIsActive((prev) => !prev)}
+                  onChange={() => setField('isActive', (prev) => !prev)}
                   checked={isActive}
                   type="checkbox"
                   id="isActive"
@@ -739,7 +699,7 @@ const Add = ({ token }) => {
 
               <label htmlFor="isLuxePrive" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eae1ef] bg-[#fcfafd] p-3 transition-colors hover:border-[#d1b4c8] has-[:checked]:border-[#ddc4d4] has-[:checked]:bg-[#fbf1f7]">
                 <input
-                  onChange={() => setIsLuxePrive((prev) => !prev)}
+                  onChange={() => setField('isLuxePrive', (prev) => !prev)}
                   checked={isLuxePrive}
                   type="checkbox"
                   id="isLuxePrive"
@@ -750,7 +710,7 @@ const Add = ({ token }) => {
 
               <label htmlFor="isBestseller" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eae1ef] bg-[#fcfafd] p-3 transition-colors hover:border-[#d1b4c8] has-[:checked]:border-[#ddc4d4] has-[:checked]:bg-[#fbf1f7]">
                 <input
-                  onChange={() => setBestseller((prev) => !prev)}
+                  onChange={() => setField('bestseller', (prev) => !prev)}
                   checked={bestseller}
                   type="checkbox"
                   id="isBestseller"
@@ -776,6 +736,7 @@ const Add = ({ token }) => {
         <div><p className="text-sm font-medium text-[#59465f]">Ready to save?</p><p className="mt-1 text-xs leading-relaxed text-[#96859f]">Review your product details and publishing settings.</p></div>
         <button type="submit" disabled={loading} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#302735] px-6 py-3 text-xs font-medium text-white transition-colors hover:bg-[#48354e] disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} aria-hidden="true" />ADD PRODUCT</button>
       </div>
+      </fieldset>
       {loading && <Loading progress={uploadProgress} />}
     </form>
   );

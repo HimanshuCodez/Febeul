@@ -1,0 +1,1 @@
+import{c as t}from"./index-BTYU94-8.js";const e=[["path",{d:"M12 2v20",key:"t6zp3m"}],["path",{d:"m8 18 4 4 4-4",key:"bh5tu3"}],["path",{d:"m8 6 4-4 4 4",key:"ybng9g"}]],c=t("move-vertical",e);const a=[["path",{d:"M21 5H3",key:"1fi0y6"}],["path",{d:"M15 12H3",key:"6jk70r"}],["path",{d:"M17 19H3",key:"z6ezky"}]],n=t("text-align-start",a);export{c as M,n as T};

@@ -2,6 +2,8 @@ import { createHmac, randomInt } from 'node:crypto';
 import userModel from '../models/userModel.js';
 
 const digest = (id, purpose, code) => createHmac('sha256', process.env.JWT_SECRET).update(`${id}:${purpose}:${code}`).digest('hex');
+export const isPendingSignup = user => Boolean(user && user.name === 'Temporary OTP User' && user.role === 'user' && !user.password && !user.googleId && !user.isBlocked);
+
 export async function issueOtp(user, purpose) {
     const code = String(randomInt(100000, 1000000));
     user.otp = digest(user._id, purpose, code);

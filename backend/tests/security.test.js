@@ -49,6 +49,7 @@ before(async () => {
     nock.disableNetConnect(); nock.enableNetConnect(/127\.0\.0\.1/);
     database = await MongoMemoryServer.create();
     await mongoose.connect(database.getUri(), { dbName: 'security-tests' });
+    await userModel.init();
     const app = express(); installSecurity(app); app.use(express.json({ limit: '100kb' })); app.use(rejectUnsafeInput);
     app.post('/login', authInput, users.loginUser);
     app.post('/admin-login', authInput, users.adminLogin);
@@ -138,6 +139,61 @@ test('registration cannot overwrite existing accounts and requires a single-use 
     assert.equal(welcome.isDone(), true);
     assert.equal((await userModel.findById(pending._id)).role, 'user');
     assert.equal((await request('/register', registration)).data.success, false);
+});
+
+test('signup rejects existing emails without sending mail or changing their credentials and OTPs', async () => {
+    const google = await userModel.create({ email: 'google@security.test', name: 'Google buyer', googleId: 'google-existing' });
+    const reservedName = await userModel.create({ email: 'reserved@security.test', name: 'Temporary OTP User', password: 'existing-password-hash' });
+    const blocked = await userModel.create({ email: 'blocked@security.test', name: 'Temporary OTP User', isBlocked: true });
+    await issueOtp(customer, 'email-login');
+    const beforeSignup = await userModel.findById(customer._id).lean();
+    const delivery = nock('https://api.resend.com').post('/emails').reply(200, { id: 'must-not-send' });
+    for (const existing of [customer, google, reservedName, blocked, admin, staff]) {
+        const result = await request('/send-email', { email: `  ${existing.email.toUpperCase()}  `, purpose: 'signup' });
+        assert.equal(result.status, 409);
+        assert.equal(result.data.success, false);
+        assert.equal(result.data.code, 'EMAIL_ALREADY_REGISTERED');
+        assert.match(result.data.message, /already registered.*log in/i);
+        assert.equal(await userModel.countDocuments({ email: existing.email }), 1);
+    }
+    assert.equal(delivery.isDone(), false);
+    const afterSignup = await userModel.findById(customer._id).lean();
+    assert.equal(afterSignup.otp, beforeSignup.otp);
+    assert.equal(afterSignup.otpPurpose, 'email-login');
+    assert.equal(afterSignup.password, beforeSignup.password);
+});
+
+test('new signup and resends reuse one normalized pending account, and duplicate email writes are rejected', async () => {
+    const delivery = nock('https://api.resend.com').post('/emails', body => body.to === 'new.signup@security.test').twice().reply(200, { id: 'signup-code' });
+    for (const email of [' New.Signup@Security.Test ', 'new.signup@security.test']) {
+        const result = await request('/send-email', { email, purpose: 'signup' });
+        assert.equal(result.status, 200);
+        assert.equal(result.data.success, true);
+    }
+    assert.equal(delivery.isDone(), true);
+    assert.equal(await userModel.countDocuments({ email: 'new.signup@security.test' }), 1);
+    const pending = await userModel.findOne({ email: 'new.signup@security.test' });
+    assert.equal(pending.name, 'Temporary OTP User');
+    assert.equal(pending.otpPurpose, 'email-signup');
+    await assert.rejects(userModel.create({ email: ' NEW.SIGNUP@SECURITY.TEST ', name: 'Duplicate' }), error => error.code === 11000);
+});
+
+test('signup recognizes legacy mixed-case email addresses', async () => {
+    await userModel.collection.insertOne({ email: 'Legacy.Case+Tag@Security.Test', name: 'Legacy buyer', role: 'user' });
+    const result = await request('/send-email', { email: 'legacy.case+tag@security.test', purpose: 'signup' });
+    assert.equal(result.status, 409);
+    assert.equal(result.data.code, 'EMAIL_ALREADY_REGISTERED');
+    assert.equal(await userModel.collection.countDocuments({ email: 'legacy.case+tag@security.test' }), 0);
+});
+
+test('a completed account using the placeholder name cannot be verified or registered again', async () => {
+    const existing = await userModel.create({ email: 'placeholder@security.test', name: 'Temporary OTP User', password: 'existing-hash', registrationNonce: 'old-proof', registrationExpires: new Date(Date.now() + 60_000) });
+    const code = await issueOtp(existing, 'email-signup');
+    assert.equal((await request('/signup-otp', { email: existing.email, otp: code })).data.success, false);
+    const registrationToken = signToken({ id: String(existing._id), email: existing.email, nonce: 'old-proof' }, 'registration', '10m');
+    const result = await request('/register', { email: existing.email, name: 'Replacement', password: 'replacement-password', registrationToken });
+    assert.equal(result.data.success, false);
+    assert.equal((await userModel.findById(existing._id)).password, 'existing-hash');
 });
 
 test('password reset revokes sessions and login responses never serialize credentials', async () => {

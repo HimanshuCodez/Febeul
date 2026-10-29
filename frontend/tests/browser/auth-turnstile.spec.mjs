@@ -58,6 +58,9 @@ async function mockAuth(page, overrides = {}) {
       if (url.pathname === '/api/user/auth-config') return route.fulfill({ status: state.configFails ? 503 : 200, json: state.configFails
         ? { success: false } : { success: true, turnstile: { enabled: state.enabled, siteKey: state.enabled ? 'test-public-site-key' : null } } });
       if (url.pathname === '/api/analytics/config') return route.fulfill({ json: { success: true, enabled: false } });
+      if (url.pathname === '/api/otp/send-email-otp' && body?.purpose === 'signup' && state.signupExists) {
+        return route.fulfill({ status: 409, json: { success: false, code: 'EMAIL_ALREADY_REGISTERED', message: 'This email is already registered. Please log in instead.' } });
+      }
       if (url.pathname === '/api/user/login') {
         if (state.holdLogin) await new Promise(resolve => state.releases.push(resolve));
         return route.fulfill({ status: state.loginFails ? 400 : 200, json: state.loginFails
@@ -151,6 +154,57 @@ test('signup checks CAPTCHA on both OTP steps and forwards the signed proof to r
   expect(sent.purpose).toBe('signup');
   expect(verified.turnstileToken).not.toBe(sent.turnstileToken);
   expect(calls(state, '/api/user/register')[0].body).toEqual({ name: user.name, email: user.email, mobile: '9876543210', password: 'LocalPassword123!', registrationToken: 'signed-email-proof' });
+  expect(state.errors).toEqual([]);
+});
+
+test('duplicate signup email stays on the form with an error and a different email can continue', async ({ page }) => {
+  const state = await mockAuth(page, { signupExists: true });
+  await page.getByRole('button', { name: 'Create Account', exact: true }).click();
+  await page.getByPlaceholder('Full Name').fill(user.name);
+  await credentials(page);
+  await page.getByPlaceholder('Email Address', { exact: true }).fill(user.email.toUpperCase());
+  await page.getByPlaceholder('Mobile Number').fill('9876543210');
+  await page.getByPlaceholder('Confirm Password').fill('LocalPassword123!');
+  await solve(page);
+  await submit(page).click();
+  await expect(page.locator('form').getByText('This email is already registered. Please log in instead.', { exact: true })).toBeVisible();
+  await expect(page.locator('#signup-otp-0')).toHaveCount(0);
+  await expect(page.getByText(`OTP sent to ${user.email}`, { exact: true })).toHaveCount(0);
+  await expect(page.getByPlaceholder('Email Address', { exact: true })).toHaveValue(user.email);
+  await expect(page.getByRole('button', { name: 'Login Now' })).toBeVisible();
+  expect(calls(state, '/api/otp/send-email-otp')[0].body.email).toBe(user.email);
+  expect(calls(state, '/api/user/register')).toHaveLength(0);
+  state.signupExists = false;
+  await page.getByPlaceholder('Email Address', { exact: true }).fill('new.shopper@example.test');
+  await solve(page);
+  await submit(page).click();
+  await expect(page.locator('#signup-otp-0')).toBeVisible();
+  await expect(page.getByText('OTP sent to new.shopper@example.test', { exact: true }).first()).toBeVisible();
+  expect(calls(state, '/api/otp/send-email-otp')).toHaveLength(2);
+  expect(state.errors).toEqual([]);
+});
+
+test('signup resend returns to the form if the email was registered in the meantime', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = window.setInterval;
+    window.setInterval = (callback, delay, ...args) => original(callback, delay === 1000 ? 10 : delay, ...args);
+  });
+  const state = await mockAuth(page);
+  await page.getByRole('button', { name: 'Create Account', exact: true }).click();
+  await page.getByPlaceholder('Full Name').fill(user.name);
+  await credentials(page);
+  await page.getByPlaceholder('Mobile Number').fill('9876543210');
+  await page.getByPlaceholder('Confirm Password').fill('LocalPassword123!');
+  await solve(page);
+  await submit(page).click();
+  await expect(page.locator('#signup-otp-0')).toBeVisible();
+  state.signupExists = true;
+  await solve(page);
+  await page.getByRole('button', { name: 'Resend OTP', exact: true }).click();
+  await expect(page.locator('form').getByText('This email is already registered. Please log in instead.', { exact: true })).toBeVisible();
+  await expect(page.locator('#signup-otp-0')).toHaveCount(0);
+  await expect(page.getByPlaceholder('Full Name')).toHaveValue(user.name);
+  expect(calls(state, '/api/user/register')).toHaveLength(0);
   expect(state.errors).toEqual([]);
 });
 

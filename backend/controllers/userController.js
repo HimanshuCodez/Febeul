@@ -59,6 +59,7 @@ const registerUser = async (req, res) => {
         // Only a verified temporary signup record can be finalized, exactly once.
         const savedUser = await userModel.findOneAndUpdate({
             _id: proof.id, email, name: 'Temporary OTP User', role: 'user',
+            password: { $in: [null, ''] }, googleId: { $in: [null, ''] }, isBlocked: { $ne: true },
             registrationNonce: proof.nonce, registrationExpires: { $gt: new Date() },
         }, {
             $set: { name: name.trim(), password: hashedPassword, ...(mobile ? { mobile } : {}) },

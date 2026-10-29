@@ -135,14 +135,14 @@ const App = () => {
                 )}
 
                 {/* Other Routes protected by isAllowed */}
-                {isAllowed('/add') && <Route path='/add' element={<Add token={token} />} />}
+                {isAllowed('/add') && <Route path='/add' element={<Add token={token} draftOwner={userEmail} />} />}
                 {isAllowed('/list') && <Route path='/list' element={<List token={token} />} />}
                 {isAllowed('/luxelist') && <Route path='/luxelist' element={<LuxeList token={token} />} />}
                 {isAllowed('/orders') && <Route path='/orders' element={<Orders token={token} />} />}
                 {isAllowed('/refund-requests') && <Route path='/refund-requests' element={<RefundRequests token={token} />} />}
                 {isAllowed('/return-requests') && <Route path='/return-requests' element={<ReturnRequests token={token} />} />}
                 {isAllowed('/exchanges') && <Route path='/exchanges' element={<Exchanges token={token} />} />}
-                {isAllowed('/update') && <Route path='/update/:productId' element={<Update token={token} />} />}
+                {isAllowed('/update') && <Route path='/update/:productId' element={<Update token={token} draftOwner={userEmail} />} />}
                 {isAllowed('/allusers') && <Route path='/allusers' element={<AllUsers token={token} />} />}
                 {isAllowed('/gift-wraps') && <Route path='/gift-wraps' element={<ManageGiftWraps token={token} />} />}
                 {isAllowed('/policy-update') && <Route path='/policy-update' element={<PolicyUpdate token={token} />} />}
@@ -168,7 +168,7 @@ const App = () => {
                 {isAllowed('/user-tracking') && <Route path='/user-tracking' element={<UserTracking token={token} />} />}
                 
                 {/* Fallback for update if /list is allowed */}
-                {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} />} />}
+                {isAllowed('/list') && <Route path='/update/:productId' element={<Update token={token} draftOwner={userEmail} />} />}
               </Routes>
               </Suspense>
             </div>
