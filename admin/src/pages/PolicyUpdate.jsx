@@ -749,11 +749,11 @@ const PolicyUpdate = ({ token }) => {
             </form>
           ) : (
             /* Live Preview Rendering */
-            <div className="rounded-3xl bg-gradient-to-br from-[#fde2e4] to-[#f9d1d1] py-12 px-6 sm:px-12 border border-white/20 shadow-inner">
+            <div className="rounded-3xl bg-gradient-to-br from-theme-fde2e4 to-theme-f9d1d1 py-12 px-6 sm:px-12 border border-white/20 shadow-inner">
               <div className="max-w-3xl mx-auto space-y-8">
                 {/* Title */}
                 <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-xl p-8 border border-white/40 mb-8">
-                  <h1 className="text-3xl md:text-5xl font-bold text-center text-[#f47b7d] tracking-wide">
+                  <h1 className="text-3xl md:text-5xl font-bold text-center text-theme-f47b7d tracking-wide">
                     {pageTitle || 'Untitled Policy'}
                   </h1>
                 </div>
@@ -763,7 +763,7 @@ const PolicyUpdate = ({ token }) => {
                   <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-xl p-8 md:p-12 border border-white/40 space-y-8">
                     {sections.map((section, sIdx) => (
                       <div key={sIdx} className="space-y-4">
-                        <h2 className="text-2xl font-bold text-[#f68a8b] border-b border-[#fbc4c5] pb-2">{section.title}</h2>
+                        <h2 className="text-2xl font-bold text-theme-f68a8b border-b border-theme-fbc4c5 pb-2">{section.title}</h2>
                         <div className="space-y-4">
                           {section.content && section.content.map((item, idx) => {
                             if (item.type === 'subheading') {
@@ -783,7 +783,7 @@ const PolicyUpdate = ({ token }) => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-[#f47b7d] font-semibold">
+                  <div className="text-center py-12 text-theme-f47b7d font-semibold">
                     No content added yet. Switch to Edit Mode to add sections.
                   </div>
                 )}

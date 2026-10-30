@@ -10,6 +10,15 @@ const addProduct = async (req, res) => {
         const variations = JSON.parse(variationsJSON);
         const files = req.files;
 
+        // Reject invalid pricing before uploading images or creating a product.
+        for (const variation of variations) {
+            for (const size of variation.sizes) {
+                if (Number(size.price) > Number(size.mrp)) {
+                    return res.status(400).json({ success: false, message: `Price cannot be greater than MRP for size '${size.size}' in variation with color '${variation.color || 'N/A'}'.` });
+                }
+            }
+        }
+
         // Step 1: Group files by variation index
         const filesGroupedByVariation = {};
         files.forEach(file => {

@@ -48,6 +48,55 @@ async function openEditor(page) {
   return state;
 }
 
+test('guide variables insert and repeating products preview and persist for every item', async ({ page }) => {
+  const state = await openEditor(page);
+  await page.getByRole('button', { name: 'HTML code', exact: true }).click();
+  const html = page.locator('textarea');
+  await html.fill('<p>Customer: </p>');
+  await html.evaluate(element => element.setSelectionRange(13, 13));
+  await page.getByRole('button', { name: 'Insert variable', exact: true }).click();
+  await page.getByRole('button', { name: /^Customer email/ }).click();
+  await expect(html).toHaveValue('<p>Customer: {{customerEmail}}</p>');
+  await html.press('Control+End');
+  await page.getByRole('button', { name: 'Insert variable', exact: true }).click();
+  await page.getByRole('button', { name: /^Repeating products block/ }).click();
+  const preview = page.frameLocator('iframe[title="Email preview"]');
+  await expect(preview.getByText('Customer: priya@example.test')).toBeVisible();
+  await expect(preview.getByText('Silk Satin Night Dress - Blush', { exact: true })).toBeVisible();
+  await expect(preview.getByText('Lace Trim Bralette Set - Ivory', { exact: true })).toBeVisible();
+  await expect(preview.getByText('Quantity: 2 · Unit price: ₹899.00')).toBeVisible();
+  await expect(preview.getByRole('link', { name: 'View product' })).toHaveCount(2);
+  await expect(preview.getByRole('link', { name: 'View product' }).nth(1)).toHaveAttribute('href', 'https://www.febeul.com/product/000000000000000000000002');
+  await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+  await expect(preview.getByText('Size: S', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Save template', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Save template', exact: true })).toBeDisabled();
+  expect(state.saved.get('order-confirmation').html).toContain('{{#items}}');
+  await page.reload();
+  await expect(page.locator('textarea')).toHaveValue(state.saved.get('order-confirmation').html);
+  expect(state.errors).toEqual([]);
+});
+
+test('refund tags are available on refund templates while welcome keeps customer and brand tags', async ({ page }) => {
+  const state = await openEditor(page);
+  const select = page.getByLabel('Email template', { exact: true });
+  await select.selectOption('refund-processed');
+  await page.locator('textarea').fill('<p>{{refundStatus}} / {{refundTransactionId}} / {{refundAmount}} / {{customerEmail}}</p>{{#if shippingAddressLandmark}}<p>{{shippingAddressLandmark}}</p>{{/if}}');
+  const preview = page.frameLocator('iframe[title="Email preview"]');
+  await expect(preview.getByText('completed / rfnd_SAMPLE123 / 1299.00 / priya@example.test')).toBeVisible();
+  await expect(preview.getByText('Near Carter Road')).toBeVisible();
+  await page.getByRole('button', { name: 'Insert variable', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^Refund transaction ID/ })).toBeVisible();
+  await page.getByRole('button', { name: /^Refund transaction ID/ }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await select.selectOption('welcome');
+  await page.getByRole('button', { name: 'Insert variable', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^Customer email/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Brand tagline/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Refund transaction ID/ })).toHaveCount(0);
+  expect(state.errors).toEqual([]);
+});
+
 test('dropdown edits, previews, saves, reloads and resets each template independently', async ({ page }) => {
   test.setTimeout(EMAIL_TEMPLATE_OPTIONS.length * 8000);
   const state = await openEditor(page);

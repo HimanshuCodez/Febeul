@@ -25,8 +25,8 @@ import {
   Save,
 } from 'lucide-react';
 
-const inputClass = "w-full min-w-0 rounded-lg border border-[#e4dce9] bg-white px-3 py-2.5 text-sm text-[#514459] outline-none transition-shadow placeholder:text-[#a99bad] focus:border-[#b77997] focus:ring-2 focus:ring-[#f5e9f0]";
-const sectionClass = "min-w-0 rounded-2xl border border-[#eae5ed] bg-white p-4 shadow-sm sm:p-6";
+const inputClass = "w-full min-w-0 rounded-lg border border-theme-e4dce9 bg-white px-3 py-2.5 text-sm text-theme-514459 outline-none transition-shadow placeholder:text-theme-a99bad focus:border-theme-b77997 focus:ring-2 focus:ring-theme-f5e9f0";
+const sectionClass = "min-w-0 rounded-2xl border border-theme-eae5ed bg-white p-4 shadow-sm sm:p-6";
 
 async function loadProduct(productId, signal) {
   const response = await axios.post(backendUrl + '/api/product/single', { productId }, { signal });
@@ -355,14 +355,14 @@ const Update = ({ token, draftOwner }) => {
     const fabricOptions = taxonomy.fabrics.filter((f) => !disabledFabrics.includes(f));
 
     return (
-        <form onSubmit={onSubmitHandler} className="mx-auto w-full max-w-[1500px] pb-6 font-[Outfit,sans-serif] text-[#342a3c] [&_*]:[font-family:inherit] [&_input]:min-w-0 [&_select]:min-w-0 [&_button:focus-visible]:outline [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-[#ad708f] motion-reduce:[&_*]:transition-none">
+        <form onSubmit={onSubmitHandler} className="mx-auto w-full max-w-[1500px] pb-6 font-[Outfit,sans-serif] text-theme-342a3c [&_*]:[font-family:inherit] [&_input]:min-w-0 [&_select]:min-w-0 [&_button:focus-visible]:outline [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-theme-ad708f motion-reduce:[&_*]:transition-none">
           <header className="mb-6 flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="mb-2.5 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em] text-[#947c8c]"><span className="h-1.5 w-1.5 rotate-45 rounded-sm bg-[#c77893]" />FEBEUL / CATALOG</p>
-              <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.04em] sm:text-[34px]">Update product<span className="text-[#c77893]">.</span></h1>
-              <p className="mt-2 max-w-xl text-xs leading-relaxed text-[#8b7b93] sm:text-[13px]">Keep your product details, images, and inventory up to date.</p>
+              <p className="mb-2.5 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em] text-theme-947c8c"><span className="h-1.5 w-1.5 rotate-45 rounded-sm bg-theme-c77893" />FEBEUL / CATALOG</p>
+              <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.04em] sm:text-[34px]">Update product<span className="text-theme-c77893">.</span></h1>
+              <p className="mt-2 max-w-xl text-xs leading-relaxed text-theme-8b7b93 sm:text-[13px]">Keep your product details, images, and inventory up to date.</p>
             </div>
-            <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-[#e7dce8] bg-white px-3 py-2 text-[11px] font-medium text-[#96768c]"><PackageSearch size={15} aria-hidden="true" />Editing product</span>
+            <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-theme-e7dce8 bg-white px-3 py-2 text-[11px] font-medium text-theme-96768c"><PackageSearch size={15} aria-hidden="true" />Editing product</span>
           </header>
 
       <ProductDraftStatus draft={draft} disabled={loading} />
@@ -372,23 +372,23 @@ const Update = ({ token, draftOwner }) => {
             <div className="min-w-0 space-y-5">
               <section id="product-basics" aria-labelledby="product-basics-title" className={sectionClass}>
                   <div className="mb-6 flex items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#faf0f5] text-[#ae708b]"><ScrollText size={18} aria-hidden="true" /></span>
-                    <div><h2 id="product-basics-title" className="text-base font-semibold tracking-tight text-[#342a3c]">Basic Info</h2><p className="mt-1 text-xs leading-relaxed text-[#8b7b93]">The name and description customers see on your product page.</p></div>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-theme-faf0f5 text-theme-ae708b"><ScrollText size={18} aria-hidden="true" /></span>
+                    <div><h2 id="product-basics-title" className="text-base font-semibold tracking-tight text-theme-342a3c">Basic Info</h2><p className="mt-1 text-xs leading-relaxed text-theme-8b7b93">The name and description customers see on your product page.</p></div>
                   </div>
 
                   <div className='space-y-6'>
                       <div className='w-full'>
-                          <label htmlFor="product-name" className="mb-2 block text-xs font-medium text-[#776580]">Product name</label>
+                          <label htmlFor="product-name" className="mb-2 block text-xs font-medium text-theme-776580">Product name</label>
                           <input id="product-name" onChange={(e) => setField('name', e.target.value)} value={name} className={inputClass} type="text" placeholder='Type here' required />
                       </div>
 
                       <div className='w-full'>
-                          <p className="mb-2 block text-xs font-medium text-[#776580]">Product description</p>
-                          <ReactQuill theme="snow" readOnly={!draft.ready || loading || draft.status === 'clearing'} value={description} onChange={(value, _delta, source) => { if (source === 'user') setField('description', value); }} className="w-full [&_.ql-toolbar.ql-snow]:rounded-t-xl [&_.ql-toolbar.ql-snow]:border-[#e4dce9] [&_.ql-toolbar.ql-snow]:bg-[#fcfafd] [&_.ql-container.ql-snow]:rounded-b-xl [&_.ql-container.ql-snow]:border-[#e4dce9] [&_.ql-editor]:min-h-44 [&_.ql-editor]:text-sm [&_.ql-editor]:text-[#514459] [&_.ql-tooltip]:left-0 [&_.ql-tooltip]:max-w-full [&_.ql-tooltip]:whitespace-normal"/>
+                          <p className="mb-2 block text-xs font-medium text-theme-776580">Product description</p>
+                          <ReactQuill theme="snow" readOnly={!draft.ready || loading || draft.status === 'clearing'} value={description} onChange={(value, _delta, source) => { if (source === 'user') setField('description', value); }} className="w-full [&_.ql-toolbar.ql-snow]:rounded-t-xl [&_.ql-toolbar.ql-snow]:border-theme-e4dce9 [&_.ql-toolbar.ql-snow]:bg-theme-fcfafd [&_.ql-container.ql-snow]:rounded-b-xl [&_.ql-container.ql-snow]:border-theme-e4dce9 [&_.ql-editor]:min-h-44 [&_.ql-editor]:text-sm [&_.ql-editor]:text-theme-514459 [&_.ql-tooltip]:left-0 [&_.ql-tooltip]:max-w-full [&_.ql-tooltip]:whitespace-normal"/>
                       </div>
 
                       <div className='w-full'>
-                          <label htmlFor="product-keywords" className="mb-2 block text-xs font-medium text-[#776580]">Product Keywords</label>
+                          <label htmlFor="product-keywords" className="mb-2 block text-xs font-medium text-theme-776580">Product Keywords</label>
                           <input id="product-keywords"
                               onChange={(e) => setField('keywords', e.target.value)}
                               value={keywords}
@@ -402,55 +402,55 @@ const Update = ({ token, draftOwner }) => {
 
               <section id="product-variations" aria-labelledby="product-variations-title" className={sectionClass}>
                   <div className="mb-6 flex items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#faf0f5] text-[#ae708b]"><Palette size={18} aria-hidden="true" /></span>
-                    <div><h2 id="product-variations-title" className="text-base font-semibold tracking-tight text-[#342a3c]">Variations</h2><p className="mt-1 text-xs leading-relaxed text-[#8b7b93]">Manage colors, SKUs, sizes, prices, and images in one place.</p></div>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-theme-faf0f5 text-theme-ae708b"><Palette size={18} aria-hidden="true" /></span>
+                    <div><h2 id="product-variations-title" className="text-base font-semibold tracking-tight text-theme-342a3c">Variations</h2><p className="mt-1 text-xs leading-relaxed text-theme-8b7b93">Manage colors, SKUs, sizes, prices, and images in one place.</p></div>
                   </div>
 
                   <div className='space-y-4'>
                       {variations.map((variation, v_index) => (
-                          <div key={v_index} role="group" aria-label={"Variation " + (v_index + 1)} className="relative flex w-full min-w-0 flex-col gap-5 rounded-xl border border-[#e9e0ed] bg-[#fcfafd] p-3 sm:p-5">
-                              <p className="w-full border-b border-[#eee6f1] pb-3 text-xs font-semibold uppercase tracking-wider text-[#9b718b]">Variation {v_index + 1}</p>
+                          <div key={v_index} role="group" aria-label={"Variation " + (v_index + 1)} className="relative flex w-full min-w-0 flex-col gap-5 rounded-xl border border-theme-e9e0ed bg-theme-fcfafd p-3 sm:p-5">
+                              <p className="w-full border-b border-theme-eee6f1 pb-3 text-xs font-semibold uppercase tracking-wider text-theme-9b718b">Variation {v_index + 1}</p>
 
                               <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                                   <div className="min-w-0">
-                                      <label htmlFor={"product-color-" + v_index} className="mb-2 block text-xs font-medium text-[#776580]">Color</label>
+                                      <label htmlFor={"product-color-" + v_index} className="mb-2 block text-xs font-medium text-theme-776580">Color</label>
                                       <input id={"product-color-" + v_index} name='color' onChange={(e)=>handleVariationChange(v_index,e)} value={variation.color} className={inputClass} type="text" placeholder='e.g. Red' required/>
                                   </div>
 
                                   <div className="min-w-0">
-                                      <p className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-[#776580]">
+                                      <p className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-theme-776580">
                                           SKU
                                           {isSkuDuplicate(variation.sku, v_index) && (
                                               <span className="text-[10px] font-medium text-rose-600">SKU already exists. Please use another.</span>
                                           )}
                                       </p>
-                                      <input aria-label={"SKU for variation " + (v_index + 1)} name='sku' onChange={(e)=>handleVariationChange(v_index,e)} value={variation.sku} className={`w-full min-w-0 px-3 py-2.5 border rounded-lg text-sm text-[#514459] outline-none focus:ring-2 focus:ring-[#f5e9f0] ${isSkuDuplicate(variation.sku, v_index) ? 'border-red-500 bg-red-50' : 'border-[#e4dce9] bg-white'}`} type="text" placeholder='e.g. S-110'/>
+                                      <input aria-label={"SKU for variation " + (v_index + 1)} name='sku' onChange={(e)=>handleVariationChange(v_index,e)} value={variation.sku} className={`w-full min-w-0 px-3 py-2.5 border rounded-lg text-sm text-theme-514459 outline-none focus:ring-2 focus:ring-theme-f5e9f0 ${isSkuDuplicate(variation.sku, v_index) ? 'border-red-500 bg-red-50' : 'border-theme-e4dce9 bg-white'}`} type="text" placeholder='e.g. S-110'/>
                                   </div>
                               </div>
 
                               <div className="flex w-full min-w-0 flex-col gap-5">
                                   <div className="min-w-0">
-                                      <p className="mb-2 block text-xs font-medium text-[#776580]">Sizes & Pricing</p>
+                                      <p className="mb-2 block text-xs font-medium text-theme-776580">Sizes & Pricing</p>
                                       {variation.sizes.map((sizeData, s_index) => (
-                                          <div key={s_index} className="mb-3 grid min-w-0 grid-cols-2 items-end gap-2 rounded-xl border border-[#ece4f0] bg-white p-3 min-[900px]:grid-cols-[minmax(64px,0.8fr)_repeat(3,minmax(0,1fr))_36px]">
+                                          <div key={s_index} className="mb-3 grid min-w-0 grid-cols-2 items-end gap-2 rounded-xl border border-theme-ece4f0 bg-white p-3 min-[900px]:grid-cols-[minmax(64px,0.8fr)_repeat(3,minmax(0,1fr))_36px]">
                                               <div className="min-w-0">
-                                                  <label htmlFor={"product-size-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-[#927d9d]">Size</label>
-                                                  <input id={"product-size-" + v_index + "-" + s_index} name='size' value={sizeData.size} readOnly className="w-full min-w-0 rounded-lg border border-[#e4dce9] bg-[#f8f4fa] px-3 py-2.5 text-sm font-medium text-[#7d6688]" />
+                                                  <label htmlFor={"product-size-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-theme-927d9d">Size</label>
+                                                  <input id={"product-size-" + v_index + "-" + s_index} name='size' value={sizeData.size} readOnly className="w-full min-w-0 rounded-lg border border-theme-e4dce9 bg-theme-f8f4fa px-3 py-2.5 text-sm font-medium text-theme-7d6688" />
                                               </div>
                                               <div>
-                                                  <label htmlFor={"product-mrp-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-[#927d9d]">MRP</label>
+                                                  <label htmlFor={"product-mrp-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-theme-927d9d">MRP</label>
                                                   <input id={"product-mrp-" + v_index + "-" + s_index} name='mrp' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.mrp} className={inputClass} type="number" placeholder='MRP' required/>
                                               </div>
                                               <div>
-                                                  <label htmlFor={"product-price-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-[#927d9d]">Price</label>
+                                                  <label htmlFor={"product-price-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-theme-927d9d">Price</label>
                                                   <input id={"product-price-" + v_index + "-" + s_index} name='price' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.price} className={inputClass} type="number" placeholder='Price' required/>
                                               </div>
                                               <div>
-                                                  <label htmlFor={"product-stock-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-[#927d9d]">Stock</label>
+                                                  <label htmlFor={"product-stock-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-theme-927d9d">Stock</label>
                                                   <input id={"product-stock-" + v_index + "-" + s_index} name='stock' onChange={(e)=>handleSizeChange(v_index, s_index, e)} value={sizeData.stock} className={inputClass} type="number" placeholder='Stock' required/>
                                               </div>
                                               {role !== 'staff' && (
-                                                  <button type='button' aria-label={"Remove size " + sizeData.size + " from variation " + (v_index + 1)} onClick={()=>removeSize(v_index, s_index)} className="col-span-2 grid h-10 w-9 place-items-center justify-self-end rounded-lg text-[#b47a90] transition-colors hover:bg-rose-50 hover:text-rose-600 min-[900px]:col-span-1"><Trash2 size={14} /></button>
+                                                  <button type='button' aria-label={"Remove size " + sizeData.size + " from variation " + (v_index + 1)} onClick={()=>removeSize(v_index, s_index)} className="col-span-2 grid h-10 w-9 place-items-center justify-self-end rounded-lg text-theme-b47a90 transition-colors hover:bg-rose-50 hover:text-rose-600 min-[900px]:col-span-1"><Trash2 size={14} /></button>
                                               )}
                                           </div>
                                       ))}
@@ -460,7 +460,7 @@ const Update = ({ token, draftOwner }) => {
                                                   key={size}
                                                   type='button'
                                                   onClick={() => addSize(v_index, size)}
-                                                  className="min-h-9 rounded-lg border border-[#e5dbe9] bg-white px-3 py-2 text-xs font-medium text-[#897094] transition-colors hover:border-[#c69ab1] hover:bg-[#faf1f6] hover:text-[#a4587b]"
+                                                  className="min-h-9 rounded-lg border border-theme-e5dbe9 bg-white px-3 py-2 text-xs font-medium text-theme-897094 transition-colors hover:border-theme-c69ab1 hover:bg-theme-faf1f6 hover:text-theme-a4587b"
                                               >
                                                   + {size}
                                               </button>
@@ -478,7 +478,7 @@ const Update = ({ token, draftOwner }) => {
                                                           }
                                                       }}
                                                       placeholder='New size e.g. 3XL'
-                                                      className="w-32 min-w-0 rounded-lg border border-dashed border-[#d6c5de] bg-white px-2 py-2 text-xs outline-none focus:border-[#b77997] focus:ring-2 focus:ring-[#f5e9f0]"
+                                                      className="w-32 min-w-0 rounded-lg border border-dashed border-theme-d6c5de bg-white px-2 py-2 text-xs outline-none focus:border-theme-b77997 focus:ring-2 focus:ring-theme-f5e9f0"
                                                   />
                                                   <button
                                                       type='button'
@@ -497,18 +497,18 @@ const Update = ({ token, draftOwner }) => {
                                     onChange={images => updateImages(v_index, images)} onUpload={event => handleImageChange(v_index, event)} />
                               </div>
                               {variations.length > 1 && role !== 'staff' && (
-                                <button type='button' onClick={()=>removeVariation(v_index)} className="self-end rounded-lg px-3 py-2 text-xs font-medium text-[#b4758d] transition-colors hover:bg-rose-50 hover:text-rose-600">Remove Variation</button>
+                                <button type='button' onClick={()=>removeVariation(v_index)} className="self-end rounded-lg px-3 py-2 text-xs font-medium text-theme-b4758d transition-colors hover:bg-rose-50 hover:text-rose-600">Remove Variation</button>
                               )}
                           </div>
                       ))}
                   </div>
-                  <button type='button' onClick={addVariation} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#d6c5de] bg-[#fcf8fd] px-4 py-3 text-xs font-medium text-[#93729e] transition-colors hover:border-[#b77997] hover:bg-[#faf0f6]">+ Add Variation</button>
+                  <button type='button' onClick={addVariation} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-theme-d6c5de bg-theme-fcf8fd px-4 py-3 text-xs font-medium text-theme-93729e transition-colors hover:border-theme-b77997 hover:bg-theme-faf0f6">+ Add Variation</button>
               </section>
 
               <section id="product-attributes" aria-labelledby="product-attributes-title" className={sectionClass}>
                   <div className="mb-6 flex items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#faf0f5] text-[#ae708b]"><Tags size={18} aria-hidden="true" /></span>
-                    <div><h2 id="product-attributes-title" className="text-base font-semibold tracking-tight text-[#342a3c]">Category & Attributes</h2><p className="mt-1 text-xs leading-relaxed text-[#8b7b93]">Organize the product and describe its fit, fabric, and finish.</p></div>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-theme-faf0f5 text-theme-ae708b"><Tags size={18} aria-hidden="true" /></span>
+                    <div><h2 id="product-attributes-title" className="text-base font-semibold tracking-tight text-theme-342a3c">Category & Attributes</h2><p className="mt-1 text-xs leading-relaxed text-theme-8b7b93">Organize the product and describe its fit, fabric, and finish.</p></div>
                   </div>
 
                   <div className="grid min-w-0 grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
@@ -536,39 +536,39 @@ const Update = ({ token, draftOwner }) => {
                       />
 
                       <div className='w-full'>
-                          <label htmlFor="product-pattern" className="mb-2 block text-xs font-medium text-[#776580]">Pattern</label>
+                          <label htmlFor="product-pattern" className="mb-2 block text-xs font-medium text-theme-776580">Pattern</label>
                           <input id="product-pattern" onChange={(e) => setField('pattern', e.target.value)} value={pattern} className={inputClass} type="text" placeholder='indo western' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-sleeve-style" className="mb-2 block text-xs font-medium text-[#776580]">Sleeve Style</label>
+                          <label htmlFor="product-sleeve-style" className="mb-2 block text-xs font-medium text-theme-776580">Sleeve Style</label>
                           <input id="product-sleeve-style" onChange={(e) => setField('sleeveStyle', e.target.value)} value={sleeveStyle} className={inputClass} type="text" placeholder='straight with cutwork' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-sleeve-length" className="mb-2 block text-xs font-medium text-[#776580]">Sleeve Length</label>
+                          <label htmlFor="product-sleeve-length" className="mb-2 block text-xs font-medium text-theme-776580">Sleeve Length</label>
                           <input id="product-sleeve-length" onChange={(e) => setField('sleeveLength', e.target.value)} value={sleeveLength} className={inputClass} type="text" placeholder='19.5' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-neck" className="mb-2 block text-xs font-medium text-[#776580]">Neck</label>
+                          <label htmlFor="product-neck" className="mb-2 block text-xs font-medium text-theme-776580">Neck</label>
                           <input id="product-neck" onChange={(e) => setField('neck', e.target.value)} value={neck} className={inputClass} type="text" placeholder='round' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-material-composition" className="mb-2 block text-xs font-medium text-[#776580]">Material Composition</label>
+                          <label htmlFor="product-material-composition" className="mb-2 block text-xs font-medium text-theme-776580">Material Composition</label>
                           <input id="product-material-composition" onChange={(e) => setField('materialComposition', e.target.value)} value={materialComposition} className={inputClass} type="text" placeholder='92% Net, 8% Lace' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-closure-type" className="mb-2 block text-xs font-medium text-[#776580]">Closure Type</label>
+                          <label htmlFor="product-closure-type" className="mb-2 block text-xs font-medium text-theme-776580">Closure Type</label>
                           <input id="product-closure-type" onChange={(e) => setField('closureType', e.target.value)} value={closureType} className={inputClass} type="text" placeholder='Tie' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-material-type" className="mb-2 block text-xs font-medium text-[#776580]">Material Type</label>
+                          <label htmlFor="product-material-type" className="mb-2 block text-xs font-medium text-theme-776580">Material Type</label>
                           <input id="product-material-type" onChange={(e) => setField('materialType', e.target.value)} value={materialType} className={inputClass} type="text" placeholder='Lace, Net' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-care-instructions" className="mb-2 block text-xs font-medium text-[#776580]">Care Instructions</label>
+                          <label htmlFor="product-care-instructions" className="mb-2 block text-xs font-medium text-theme-776580">Care Instructions</label>
                           <input id="product-care-instructions" onChange={(e) => setField('careInstructions', e.target.value)} value={careInstructions} className={inputClass} type="text" placeholder='Machine Wash' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-generic-name" className="mb-2 block text-xs font-medium text-[#776580]">Generic Name</label>
+                          <label htmlFor="product-generic-name" className="mb-2 block text-xs font-medium text-theme-776580">Generic Name</label>
                           <input id="product-generic-name" onChange={(e) => setField('genericName', e.target.value)} value={genericName} className={inputClass} type="text" placeholder='Nightgown' />
                       </div>
                   </div>
@@ -576,41 +576,41 @@ const Update = ({ token, draftOwner }) => {
 
               <section id="product-shipping" aria-labelledby="product-shipping-title" className={sectionClass}>
                   <div className="mb-6 flex items-start gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#faf0f5] text-[#ae708b]"><Truck size={18} aria-hidden="true" /></span>
-                    <div><h2 id="product-shipping-title" className="text-base font-semibold tracking-tight text-[#342a3c]">Compliance & Shipping Details</h2><p className="mt-1 text-xs leading-relaxed text-[#8b7b93]">Add origin, packaging, and shipping information.</p></div>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-theme-faf0f5 text-theme-ae708b"><Truck size={18} aria-hidden="true" /></span>
+                    <div><h2 id="product-shipping-title" className="text-base font-semibold tracking-tight text-theme-342a3c">Compliance & Shipping Details</h2><p className="mt-1 text-xs leading-relaxed text-theme-8b7b93">Add origin, packaging, and shipping information.</p></div>
                   </div>
 
                   <div className="grid min-w-0 grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
                       <div className='w-full'>
-                          <label htmlFor="product-country-of-origin" className="mb-2 block text-xs font-medium text-[#776580]">Country of Origin</label>
+                          <label htmlFor="product-country-of-origin" className="mb-2 block text-xs font-medium text-theme-776580">Country of Origin</label>
                           <input id="product-country-of-origin" onChange={(e) => setField('countryOfOrigin', e.target.value)} value={countryOfOrigin} className={inputClass} type="text" placeholder='India' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-manufacturer" className="mb-2 block text-xs font-medium text-[#776580]">Manufacturer</label>
+                          <label htmlFor="product-manufacturer" className="mb-2 block text-xs font-medium text-theme-776580">Manufacturer</label>
                           <input id="product-manufacturer" onChange={(e) => setField('manufacturer', e.target.value)} value={manufacturer} className={inputClass} type="text" placeholder='King style knitwear' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-packer" className="mb-2 block text-xs font-medium text-[#776580]">Packer</label>
+                          <label htmlFor="product-packer" className="mb-2 block text-xs font-medium text-theme-776580">Packer</label>
                           <input id="product-packer" onChange={(e) => setField('packer', e.target.value)} value={packer} className={inputClass} type="text" placeholder='King style knitwear' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-included-components" className="mb-2 block text-xs font-medium text-[#776580]">Included Components</label>
+                          <label htmlFor="product-included-components" className="mb-2 block text-xs font-medium text-theme-776580">Included Components</label>
                           <input id="product-included-components" onChange={(e) => setField('includedComponents', e.target.value)} value={includedComponents} className={inputClass} type="text" placeholder='1 shirt, 1 pant' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-hsn" className="mb-2 block text-xs font-medium text-[#776580]">HSN</label>
+                          <label htmlFor="product-hsn" className="mb-2 block text-xs font-medium text-theme-776580">HSN</label>
                           <input id="product-hsn" onChange={(e) => setField('hsn', e.target.value)} value={hsn} className={inputClass} type="text" placeholder='6204' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-item-weight" className="mb-2 block text-xs font-medium text-[#776580]">Item Weight</label>
+                          <label htmlFor="product-item-weight" className="mb-2 block text-xs font-medium text-theme-776580">Item Weight</label>
                           <input id="product-item-weight" onChange={(e) => setField('itemWeight', e.target.value)} value={itemWeight} className={inputClass} type="text" placeholder='150 g' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-item-dimensions-lxwxh" className="mb-2 block text-xs font-medium text-[#776580]">Item Dimensions LxWxH</label>
+                          <label htmlFor="product-item-dimensions-lxwxh" className="mb-2 block text-xs font-medium text-theme-776580">Item Dimensions LxWxH</label>
                           <input id="product-item-dimensions-lxwxh" onChange={(e) => setField('itemDimensionsLxWxH', e.target.value)} value={itemDimensionsLxWxH} className={inputClass} type="text" placeholder='22 x 20 x 2 Centimeters' />
                       </div>
                       <div className='w-full'>
-                          <label htmlFor="product-net-quantity" className="mb-2 block text-xs font-medium text-[#776580]">Net Quantity</label>
+                          <label htmlFor="product-net-quantity" className="mb-2 block text-xs font-medium text-theme-776580">Net Quantity</label>
                           <input id="product-net-quantity" onChange={(e) => setField('netQuantity', e.target.value)} value={netQuantity} className={inputClass} type="text" placeholder='1.0 Count' />
                       </div>
                   </div>
@@ -619,41 +619,41 @@ const Update = ({ token, draftOwner }) => {
 
             <aside className="min-w-0 space-y-5 xl:sticky xl:top-6">
               <section className={sectionClass} aria-labelledby="product-publishing-title"><div className="mb-6 flex items-start gap-3">
-                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#faf0f5] text-[#ae708b]"><Sparkles size={18} aria-hidden="true" /></span>
-                            <div><h2 id="product-publishing-title" className="text-base font-semibold tracking-tight text-[#342a3c]">Publishing</h2><p className="mt-1 text-xs leading-relaxed text-[#8b7b93]">Choose how this product appears in your store.</p></div>
+                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-theme-faf0f5 text-theme-ae708b"><Sparkles size={18} aria-hidden="true" /></span>
+                            <div><h2 id="product-publishing-title" className="text-base font-semibold tracking-tight text-theme-342a3c">Publishing</h2><p className="mt-1 text-xs leading-relaxed text-theme-8b7b93">Choose how this product appears in your store.</p></div>
                           </div>
                   <div className="space-y-3">
-                      <label htmlFor="isActive" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eae1ef] bg-[#fcfafd] p-3 transition-colors hover:border-[#d1b4c8] has-[:checked]:border-[#ddc4d4] has-[:checked]:bg-[#fbf1f7]">
+                      <label htmlFor="isActive" className="flex cursor-pointer items-start gap-3 rounded-xl border border-theme-eae1ef bg-theme-fcfafd p-3 transition-colors hover:border-theme-d1b4c8 has-[:checked]:border-theme-ddc4d4 has-[:checked]:bg-theme-fbf1f7">
                           <input onChange={() => setField('isActive', prev => !prev)} checked={isActive} type="checkbox" id='isActive' className="mt-0.5 h-4 w-4 shrink-0 accent-[#a86386]" />
-                          <span className="text-xs font-medium leading-relaxed text-[#725e7f]">Visible on Website</span>
+                          <span className="text-xs font-medium leading-relaxed text-theme-725e7f">Visible on Website</span>
                       </label>
 
-                      <label htmlFor="isLuxePrive" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eae1ef] bg-[#fcfafd] p-3 transition-colors hover:border-[#d1b4c8] has-[:checked]:border-[#ddc4d4] has-[:checked]:bg-[#fbf1f7]">
+                      <label htmlFor="isLuxePrive" className="flex cursor-pointer items-start gap-3 rounded-xl border border-theme-eae1ef bg-theme-fcfafd p-3 transition-colors hover:border-theme-d1b4c8 has-[:checked]:border-theme-ddc4d4 has-[:checked]:bg-theme-fbf1f7">
                           <input onChange={() => setField('isLuxePrive', prev => !prev)} checked={isLuxePrive} type="checkbox" id='isLuxePrive' className="mt-0.5 h-4 w-4 shrink-0 accent-[#a86386]" />
-                          <span className="text-xs font-medium leading-relaxed text-[#725e7f]">Add to Luxe Prive Sale</span>
+                          <span className="text-xs font-medium leading-relaxed text-theme-725e7f">Add to Luxe Prive Sale</span>
                       </label>
 
-                      <label htmlFor="isBestseller" className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#eae1ef] bg-[#fcfafd] p-3 transition-colors hover:border-[#d1b4c8] has-[:checked]:border-[#ddc4d4] has-[:checked]:bg-[#fbf1f7]">
+                      <label htmlFor="isBestseller" className="flex cursor-pointer items-start gap-3 rounded-xl border border-theme-eae1ef bg-theme-fcfafd p-3 transition-colors hover:border-theme-d1b4c8 has-[:checked]:border-theme-ddc4d4 has-[:checked]:bg-theme-fbf1f7">
                           <input onChange={() => setField('bestseller', prev => !prev)} checked={bestseller} type="checkbox" id='isBestseller' className="mt-0.5 h-4 w-4 shrink-0 accent-[#a86386]" />
-                          <span className="text-xs font-medium leading-relaxed text-[#725e7f]">Add to Bestseller</span>
+                          <span className="text-xs font-medium leading-relaxed text-theme-725e7f">Add to Bestseller</span>
                       </label>
                   </div>
-              <p className="mt-4 text-[11px] leading-relaxed text-[#96859f]">These settings take effect when you update the product.</p></section>
-              <section className="rounded-2xl bg-[#302735] p-5 text-white" aria-labelledby="product-summary-title">
-                <div className="mb-4 flex items-center justify-between gap-2"><h2 id="product-summary-title" className="text-sm font-medium">In this form</h2><Package size={17} className="text-[#d8a3bb]" aria-hidden="true" /></div>
+              <p className="mt-4 text-[11px] leading-relaxed text-theme-96859f">These settings take effect when you update the product.</p></section>
+              <section className="rounded-2xl bg-theme-302735 p-5 text-white" aria-labelledby="product-summary-title">
+                <div className="mb-4 flex items-center justify-between gap-2"><h2 id="product-summary-title" className="text-sm font-medium">In this form</h2><Package size={17} className="text-theme-d8a3bb" aria-hidden="true" /></div>
                 <dl className="space-y-3 text-xs">
-                  <div className="flex items-center justify-between gap-3"><dt className="text-[#cbbdd1]">Variations</dt><dd className="font-medium tabular-nums">{variations.length}</dd></div>
-                  <div className="flex items-center justify-between gap-3"><dt className="text-[#cbbdd1]">Size entries</dt><dd className="font-medium tabular-nums">{variations.reduce((count, variation) => count + variation.sizes.length, 0)}</dd></div>
-                  <div className="flex items-center justify-between gap-3"><dt className="text-[#cbbdd1]">Images</dt><dd className="font-medium tabular-nums">{variations.reduce((count, variation) => count + variation.images.length, 0)}</dd></div>
+                  <div className="flex items-center justify-between gap-3"><dt className="text-theme-cbbdd1">Variations</dt><dd className="font-medium tabular-nums">{variations.length}</dd></div>
+                  <div className="flex items-center justify-between gap-3"><dt className="text-theme-cbbdd1">Size entries</dt><dd className="font-medium tabular-nums">{variations.reduce((count, variation) => count + variation.sizes.length, 0)}</dd></div>
+                  <div className="flex items-center justify-between gap-3"><dt className="text-theme-cbbdd1">Images</dt><dd className="font-medium tabular-nums">{variations.reduce((count, variation) => count + variation.images.length, 0)}</dd></div>
                 </dl>
-                <p className="mt-5 border-t border-white/10 pt-4 text-[11px] leading-relaxed text-[#cbbdd1]">Review each variation&apos;s pricing and stock before saving.</p>
+                <p className="mt-5 border-t border-white/10 pt-4 text-[11px] leading-relaxed text-theme-cbbdd1">Review each variation&apos;s pricing and stock before saving.</p>
               </section>
             </aside>
           </div>
 
-          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-[#eae5ed] bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div><p className="text-sm font-medium text-[#59465f]">Ready to save?</p><p className="mt-1 text-xs leading-relaxed text-[#96859f]">Review your product details and publishing settings.</p></div>
-            <button type="submit" disabled={loading} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#302735] px-6 py-3 text-xs font-medium text-white transition-colors hover:bg-[#48354e] disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} aria-hidden="true" />UPDATE PRODUCT</button>
+          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-theme-eae5ed bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div><p className="text-sm font-medium text-theme-59465f">Ready to save?</p><p className="mt-1 text-xs leading-relaxed text-theme-96859f">Review your product details and publishing settings.</p></div>
+            <button type="submit" disabled={loading} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-theme-302735 px-6 py-3 text-xs font-medium text-white transition-colors hover:bg-theme-48354e disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} aria-hidden="true" />UPDATE PRODUCT</button>
           </div>
           </fieldset>
       {loading && <Loading progress={uploadProgress} />}

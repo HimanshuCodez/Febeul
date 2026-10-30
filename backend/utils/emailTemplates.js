@@ -1,19 +1,19 @@
 import { readFileSync } from 'node:fs';
 import cmsModel from '../models/cmsModel.js';
-import { EMAIL_TEMPLATE_OPTIONS } from '../../shared/emailTemplates.js';
+import { EMAIL_TEMPLATE_OPTIONS, EMAIL_BRAND_TOKENS, EMAIL_PRODUCT_TOKENS, EMAIL_PRODUCT_LOOP } from '../../shared/emailTemplates.js';
+import { EMAIL_BRAND_VALUES, buildOrderTextTokens, buildProductEmailTokens, escapeEmailHtml, fillEmailTokens, safeEmailUrl } from './emailTokens.js';
 import { REQUEST_TYPE_LABEL, RETURN_REQUEST_CREATED_HTML, REFUND_PROCESSED_HTML } from '../templates/returnEmail.js';
 import { LUXE_EXPIRED_HTML } from '../templates/luxeExpiredEmail.js';
 import { LUXE_ACTIVATED_HTML } from '../templates/luxemail.js';
 import {
     ORDER_EMAIL_CMS_NAME, ORDER_BLOCK_TYPES, BLOCK_DEFAULTS,
     getDefaultOrderEmailContent, getTemplateMeta, normalizeContent,
-    renderOrderEmail, renderTemplateHtml,
+    renderOrderEmail, renderTemplateHtml, TEMPLATE_TOKENS, buildSampleOrder,
 } from './orderEmailTemplate.js';
 
 const textToken = (key, label) => ({ key, label, group: 'text' });
-const customerTokens = [textToken('userName', 'Customer name'), textToken('currentYear', 'Current year')];
-const orderToken = textToken('orderId', 'Order ID');
-const orderTokens = [...customerTokens, orderToken, textToken('orderUrl', 'Order details link')];
+const customerTokens = [textToken('userName', 'Customer name'), textToken('customerEmail', 'Customer email'), textToken('currentYear', 'Current year'), ...EMAIL_BRAND_TOKENS];
+const orderTokens = [...TEMPLATE_TOKENS.filter(token => token.group === 'text'), EMAIL_PRODUCT_LOOP, ...EMAIL_PRODUCT_TOKENS];
 const otpDefinition = (cmsName, subject, purpose) => ({
     cmsName, subject, title: subject,
     body: `<p>Hello {{userName}},</p><p>Your ${purpose} code is:</p><h2>{{otp}}</h2><p>This code expires in {{expiryMinutes}} minutes. Do not share it with anyone.</p>`,
@@ -42,9 +42,9 @@ const DEFINITIONS = {
     'admin-login-otp': otpDefinition('adminLoginOtpEmail', 'Your Admin Login OTP', 'admin login'),
     'order-shipped': {
         cmsName: 'orderShippedEmail', subject: 'Your Febeul Order #{{orderId}} Has Shipped', title: 'Your Order Has Shipped',
-        body: '<p>Hello {{userName}},</p><p>Your order <strong>#{{orderId}}</strong> is on its way.</p><p>Courier: {{courierName}}<br>Tracking number: {{trackingNumber}}</p><p><a href="{{trackingUrl}}">Track your order</a></p>',
+        body: '<p>Hello {{userName}},</p><p>Your order <strong>#{{orderId}}</strong> is on its way.</p>{{#if courierName}}<p>Courier: {{courierName}}</p>{{/if}}{{#if trackingNumber}}<p>Tracking number: {{trackingNumber}}</p>{{/if}}{{#if estimatedDeliveryDate}}<p>Estimated delivery: {{estimatedDeliveryDate}}</p>{{/if}}<p><a href="{{trackingUrl}}">Track your order</a></p>',
         button: { text: 'View Order', url: '{{orderUrl}}' },
-        tokens: [...orderTokens, textToken('courierName', 'Courier name'), textToken('trackingNumber', 'Tracking / AWB number'), textToken('trackingUrl', 'Tracking link')],
+        tokens: orderTokens,
         requiredHtmlTokens: ['orderId', 'trackingUrl'],
     },
     'order-delivered': {
@@ -56,7 +56,7 @@ const DEFINITIONS = {
         cmsName: 'orderCancelledEmail', subject: 'Your Febeul Order #{{orderId}} Has Been Cancelled', title: 'Order Cancelled',
         body: '<p>Hello {{userName}},</p><p>Your order <strong>#{{orderId}}</strong> has been cancelled.</p><p>{{cancellationReason}}</p><p>Check your order details for the latest payment and refund status.</p>',
         button: { text: 'View Order', url: '{{orderUrl}}' },
-        tokens: [...orderTokens, textToken('cancellationReason', 'Cancellation reason')], requiredHtmlTokens: ['orderId'],
+        tokens: orderTokens, requiredHtmlTokens: ['orderId'],
     },
     'return-request': {
         cmsName: 'returnRequestEmail',
@@ -64,7 +64,7 @@ const DEFINITIONS = {
         html: RETURN_REQUEST_CREATED_HTML,
         title: '{{requestLabel}} Received',
         body: '<p>Hello {{userName}},</p><p>We\'ve received your {{requestLabelLower}} and it\'s now under review.</p><p><strong>Order #{{orderId}}</strong></p><p>We\'ll email you again as soon as this is processed. You can also track its progress anytime from your Order History.</p>',
-        tokens: [...customerTokens, orderToken, textToken('requestLabel', 'Request type'), textToken('requestLabelLower', 'Request type (lowercase)')],
+        tokens: [...orderTokens, textToken('requestLabel', 'Request type'), textToken('requestLabelLower', 'Request type (lowercase)')],
         requiredHtmlTokens: ['orderId', 'requestLabelLower'],
     },
     'refund-processed': {
@@ -73,7 +73,7 @@ const DEFINITIONS = {
         html: REFUND_PROCESSED_HTML,
         title: 'Refund Processed',
         body: '<p>Hello {{userName}},</p><p>Your refund has been processed to {{methodLabel}}.</p><h2>₹{{refundAmount}}</h2><p><strong>Order #{{orderId}}</strong></p><p>Refunds to a bank/UPI account may take a few business days to reflect. Prepaid gateway refunds are usually visible within 5-7 business days depending on your bank.</p>',
-        tokens: [...customerTokens, orderToken, textToken('refundAmount', 'Refund amount'), textToken('methodLabel', 'Refund destination'), textToken('paymentMethod', 'Payment method')],
+        tokens: [...orderTokens, textToken('methodLabel', 'Refund destination')],
         requiredHtmlTokens: ['orderId', 'refundAmount', 'methodLabel'],
     },
     'support-ticket-received': {
@@ -155,25 +155,23 @@ export const getEmailTemplateMeta = (type) => {
     };
 };
 
-const escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-const fillTokens = (template, tokens) => template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
-    (match, key) => Object.hasOwn(tokens, key) ? String(tokens[key] ?? '') : match);
-
-const safeLink = (value, fallback) => {
-    try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : fallback; }
-    catch { return fallback; }
-};
-
 export const buildEmailTokens = (type, data = {}) => {
-    const tokens = { userName: data.userName || (type.startsWith('luxe-') ? 'Luxe Member' : 'Customer'), currentYear: String(new Date().getFullYear()) };
+    const hasOrder = type.startsWith('order-') || type === 'return-request' || type === 'refund-processed';
+    const tokens = {
+        ...EMAIL_BRAND_VALUES,
+        ...(hasOrder && data.order ? buildOrderTextTokens(data.order) : {}),
+        userName: data.userName || data.order?.userId?.name || data.order?.address?.name || (type.startsWith('luxe-') ? 'Luxe Member' : 'Customer'),
+        customerEmail: data.customerEmail || data.order?.userId?.email || data.order?.address?.email || '',
+        currentYear: String(new Date().getFullYear()),
+    };
     if (type.endsWith('-otp')) Object.assign(tokens, { otp: String(data.otp || ''), expiryMinutes: '5' });
-    if (type.startsWith('order-') || type === 'return-request' || type === 'refund-processed') tokens.orderId = String(data.orderId || '').slice(-8).toUpperCase();
-    if (type.startsWith('order-')) tokens.orderUrl = safeLink(data.orderUrl, 'https://febeul.onrender.com/myorders');
+    if (hasOrder) tokens.orderId = String(data.orderId || tokens.orderId || '').slice(-8).toUpperCase();
+    if (hasOrder) tokens.orderUrl = safeEmailUrl(data.orderUrl || tokens.orderUrl, 'https://febeul.onrender.com/myorders');
     if (type === 'order-shipped') Object.assign(tokens, {
-        courierName: data.courierName || 'See order details', trackingNumber: data.trackingNumber || 'See order details',
-        trackingUrl: safeLink(data.trackingUrl, tokens.orderUrl),
+        courierName: data.courierName || tokens.courierName || '', trackingNumber: data.trackingNumber || tokens.trackingNumber || '',
+        trackingUrl: safeEmailUrl(data.trackingUrl || tokens.trackingUrl, tokens.orderUrl),
     });
-    if (type === 'order-cancelled') tokens.cancellationReason = data.cancellationReason || 'Your order was cancelled.';
+    if (type === 'order-cancelled') tokens.cancellationReason = data.cancellationReason || tokens.cancellationReason || 'Your order was cancelled.';
     if (type === 'support-ticket-received') Object.assign(tokens, { ticketNumber: String(data.ticketNumber || ''), ticketSubject: data.ticketSubject || 'Support request' });
     if (type === 'luxe-activated') {
         const expiry = new Date(data.expiryDate);
@@ -184,15 +182,19 @@ export const buildEmailTokens = (type, data = {}) => {
         tokens.requestLabelLower = tokens.requestLabel.toLowerCase();
     }
     if (type === 'refund-processed') {
-        tokens.refundAmount = Number(data.amount || 0).toFixed(2);
-        tokens.paymentMethod = data.method || '';
-        tokens.methodLabel = ['Razorpay', 'Stripe'].includes(data.method) ? 'your original payment source' : 'your provided payout details';
+        tokens.refundAmount = data.amount != null ? Number(data.amount).toFixed(2) : tokens.refundAmount || '0.00';
+        tokens.paymentMethod = data.method || tokens.paymentMethod || '';
+        tokens.refundStatus = data.refundStatus || tokens.refundStatus || '';
+        tokens.refundTransactionId = data.refundTransactionId || tokens.refundTransactionId || '';
+        tokens.methodLabel = ['Razorpay', 'Stripe'].includes(tokens.paymentMethod) ? 'your original payment source' : 'your provided payout details';
     }
     if (type === 'luxe-expired') tokens.renewalUrl = 'https://febeul.onrender.com/luxe';
     return tokens;
 };
 
 export const buildSampleEmailData = () => ({
+    order: { ...buildSampleOrder(), cancellation: { reason: 'Customer requested cancellation' }, refundDetails: { status: 'completed', amount: 1299, id: 'rfnd_SAMPLE123' } },
+    customerEmail: 'priya@example.test',
     userName: 'Priya Sharma', orderId: '000000000000000A1B2C3D4E', requestType: 'return', amount: 1299, method: 'Razorpay',
     otp: '123456', courierName: 'Sample Courier', trackingNumber: 'SAMPLE123456', trackingUrl: 'https://febeul.onrender.com/myorders',
     orderUrl: 'https://febeul.onrender.com/order-detail/000000000000000A1B2C3D4E', cancellationReason: 'Customer requested cancellation',
@@ -203,10 +205,11 @@ export const renderEmailTemplate = (type, rawContent, data) => {
     const content = normalizeEmailContent(type, rawContent);
     if (type === 'order-confirmation') return renderOrderEmail(content, data);
     const tokens = buildEmailTokens(type, data);
-    const htmlTokens = Object.fromEntries(Object.entries(tokens).map(([key, value]) => [key, escapeHtml(value)]));
+    const htmlTokens = Object.fromEntries(Object.entries(tokens).map(([key, value]) => [key, escapeEmailHtml(value)]));
+    const items = (data?.order?.items || []).map(item => Object.fromEntries(Object.entries(buildProductEmailTokens(item)).map(([key, value]) => [key, escapeEmailHtml(value)])));
     const template = content.mode === 'html' && content.html.trim() ? content.html : renderTemplateHtml(content);
-    const subject = fillTokens(content.subject, tokens).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-    return { subject: subject || getEmailTemplateDefinition(type).subject, html: fillTokens(template, htmlTokens) };
+    const subject = fillEmailTokens(content.subject, tokens).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    return { subject: subject || fillEmailTokens(getEmailTemplateDefinition(type).subject, tokens), html: fillEmailTokens(template, htmlTokens, items) };
 };
 
 export const loadEmailContent = async (type) => {

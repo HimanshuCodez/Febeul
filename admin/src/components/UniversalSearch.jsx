@@ -77,8 +77,8 @@ export default function UniversalSearch({ token, backendUrl, role, permissions }
       if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
     }}>
       <label htmlFor={`${listId}-input`} className="mb-2 block text-sm font-semibold text-gray-700">Search the admin</label>
-      <div className="flex items-center gap-3 rounded-2xl border border-pink-200 bg-white px-3 py-2 shadow-sm focus-within:border-[#d66a6c] focus-within:ring-4 focus-within:ring-pink-100 sm:px-4">
-        <Search size={20} className="shrink-0 text-[#c44a4d]" aria-hidden="true" />
+      <div className="flex items-center gap-3 rounded-2xl border border-pink-200 bg-white px-3 py-2 shadow-sm focus-within:border-theme-d66a6c focus-within:ring-4 focus-within:ring-pink-100 sm:px-4">
+        <Search size={20} className="shrink-0 text-theme-c44a4d" aria-hidden="true" />
         <input ref={inputRef} id={`${listId}-input`} role="combobox" aria-autocomplete="list"
           aria-expanded={open} aria-controls={open ? listId : undefined}
           aria-activedescendant={open && active >= 0 && items[active] ? `${listId}-${active}` : undefined}
@@ -95,7 +95,7 @@ export default function UniversalSearch({ token, backendUrl, role, permissions }
             }
             if (event.key === 'Enter' && open && items.length) { event.preventDefault(); select(items[active] || items[0]); }
           }} />
-        {loading && <LoaderCircle size={18} className="shrink-0 animate-spin text-[#c44a4d]" aria-label="Searching records" />}
+        {loading && <LoaderCircle size={18} className="shrink-0 animate-spin text-theme-c44a4d" aria-label="Searching records" />}
         {query ? <button type="button" aria-label="Clear universal search" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" onClick={() => { setQuery(''); setActive(-1); inputRef.current?.focus(); }}><X size={18} /></button>
           : <kbd className="hidden shrink-0 rounded border border-gray-200 px-2 py-1 text-xs text-gray-400 sm:inline">Ctrl K</kbd>}
       </div>
@@ -114,7 +114,7 @@ export default function UniversalSearch({ token, backendUrl, role, permissions }
                   return <button key={item.id} type="button" id={`${listId}-${itemIndex}`} role="option" aria-selected={active === itemIndex}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors ${active === itemIndex ? 'bg-pink-50' : 'hover:bg-gray-50'}`}
                     onMouseDown={event => event.preventDefault()} onClick={() => select(item)}>
-                    <span className="rounded-lg bg-pink-50 p-2 text-[#b33a3d]"><Icon size={17} aria-hidden="true" /></span>
+                    <span className="rounded-lg bg-pink-50 p-2 text-theme-b33a3d"><Icon size={17} aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-gray-800">{item.title}</span><span className="block truncate text-xs text-gray-500">{item.subtitle}</span></span>
                     <ArrowUpRight size={16} className="shrink-0 text-gray-400" aria-hidden="true" />
                   </button>;

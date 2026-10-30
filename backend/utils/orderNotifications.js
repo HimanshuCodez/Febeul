@@ -15,9 +15,9 @@ const sendOrderEventEmail = async (orderId, type, eligibility) => {
         if (claimed.userId?.email) {
             const { sendTemplateEmail } = await import('./sendTemplateEmail.js');
             result = await sendTemplateEmail(type, claimed.userId.email, {
+                order: claimed,
                 userName: claimed.userId.name || claimed.address?.name,
                 orderId: claimed.orderItemId || String(claimed._id),
-                orderUrl: `https://febeul.onrender.com/order-detail/${claimed._id}`,
                 courierName: claimed.shiprocket?.courier,
                 trackingNumber: claimed.shiprocket?.awb,
                 trackingUrl: claimed.shiprocket?.trackingUrl,

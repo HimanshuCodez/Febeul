@@ -11,7 +11,7 @@ function ImagePreview({ image, alt }) {
     setSource(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [image]);
-  return <img src={source || undefined} alt={alt} draggable={false} className="h-24 w-24 select-none rounded-xl border border-[#e5dbe9] bg-white object-cover" />;
+  return <img src={source || undefined} alt={alt} draggable={false} className="h-24 w-24 select-none rounded-xl border border-theme-e5dbe9 bg-white object-cover" />;
 }
 
 export default function ProductImageGallery({ images, onChange, onUpload, variationIndex, canRemove = true, disabled = false }) {
@@ -42,15 +42,15 @@ export default function ProductImageGallery({ images, onChange, onUpload, variat
     onChange(reordered);
     setAnnouncement(`Image ${from + 1} moved to position ${to + 1}${to === 0 ? ', the cover image' : ''}.`);
   };
-  const controlClass = 'flex h-7 w-8 items-center justify-center rounded-md text-[#776580] hover:bg-[#f5e9f0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b77997] disabled:cursor-not-allowed disabled:opacity-30';
+  const controlClass = 'flex h-7 w-8 items-center justify-center rounded-md text-theme-776580 hover:bg-theme-f5e9f0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-theme-b77997 disabled:cursor-not-allowed disabled:opacity-30';
 
   return <div className="min-w-0">
-    <p className="mb-2 text-xs font-medium text-[#776580]">Images</p>
-    <p id={`${galleryId}-help`} className="mb-3 text-[11px] leading-relaxed text-[#8b7b93]">Drag images to reorder, or use the arrows. The first image is the cover.</p>
+    <p className="mb-2 text-xs font-medium text-theme-776580">Images</p>
+    <p id={`${galleryId}-help`} className="mb-3 text-[11px] leading-relaxed text-theme-8b7b93">Drag images to reorder, or use the arrows. The first image is the cover.</p>
     <div className="flex flex-wrap items-start gap-3" role="list" aria-label={`Images for variation ${variationNumber}`}>
       {images.map((image, index) => <div
         key={imageKey(image)} role="listitem" data-image-index={index}
-        className={`relative w-24 rounded-xl transition-shadow ${dragging === index ? 'opacity-50' : ''} ${dropTarget === index && dragging !== index ? 'ring-2 ring-[#b77997] ring-offset-2' : ''}`}
+        className={`relative w-24 rounded-xl transition-shadow ${dragging === index ? 'opacity-50' : ''} ${dropTarget === index && dragging !== index ? 'ring-2 ring-theme-b77997 ring-offset-2' : ''}`}
         onDragOver={event => {
           if (disabled || dragSource.current === null) return;
           event.preventDefault();
@@ -69,7 +69,7 @@ export default function ProductImageGallery({ images, onChange, onUpload, variat
           aria-label={`Reorder image ${index + 1} in variation ${variationNumber}`}
           aria-describedby={`${galleryId}-help`}
           draggable={!disabled && images.length > 1}
-          className={`relative rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#b77997] ${disabled ? '' : 'cursor-grab active:cursor-grabbing'}`}
+          className={`relative rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-theme-b77997 ${disabled ? '' : 'cursor-grab active:cursor-grabbing'}`}
           onDragStart={event => {
             if (disabled) { event.preventDefault(); return; }
             dragSource.current = index;
@@ -84,12 +84,12 @@ export default function ProductImageGallery({ images, onChange, onUpload, variat
           }}
         >
           <ImagePreview image={image} alt={`Variation ${variationNumber}, image ${index + 1}`} />
-          <span className={`pointer-events-none absolute bottom-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${index === 0 ? 'bg-[#514459] text-white' : 'bg-white/95 text-[#514459]'}`}>{index === 0 ? 'Cover' : index + 1}</span>
-          <span className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-white/90 p-0.5 text-[#776580]"><GripVertical size={13} aria-hidden="true" /></span>
+          <span className={`pointer-events-none absolute bottom-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${index === 0 ? 'bg-theme-514459 text-white' : 'bg-white/95 text-theme-514459'}`}>{index === 0 ? 'Cover' : index + 1}</span>
+          <span className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-white/90 p-0.5 text-theme-776580"><GripVertical size={13} aria-hidden="true" /></span>
         </div>
         {canRemove && <button type="button" disabled={disabled} aria-label={`Remove image ${index + 1} from variation ${variationNumber}`}
           onClick={() => { finishDrag(); onChange(images.filter((_, i) => i !== index)); }}
-          className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-[#e9d9e3] bg-white text-[#a96483] shadow-sm hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40">
+          className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-theme-e9d9e3 bg-white text-theme-a96483 shadow-sm hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40">
           <X size={14} aria-hidden="true" />
         </button>}
         <div className="mt-1 flex justify-between">
@@ -98,13 +98,13 @@ export default function ProductImageGallery({ images, onChange, onUpload, variat
         </div>
       </div>)}
       <div role="listitem">
-        <label className={`relative flex h-24 w-24 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#cfb8d7] bg-white text-[#a27695] transition-colors focus-within:ring-2 focus-within:ring-[#b77997] ${disabled ? 'opacity-40' : 'cursor-pointer hover:border-[#b77997] hover:bg-[#faf0f6]'}`}>
+        <label className={`relative flex h-24 w-24 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-theme-cfb8d7 bg-white text-theme-a27695 transition-colors focus-within:ring-2 focus-within:ring-theme-b77997 ${disabled ? 'opacity-40' : 'cursor-pointer hover:border-theme-b77997 hover:bg-theme-faf0f6'}`}>
           <ImagePlus size={22} aria-hidden="true" /><span className="text-[11px] font-medium">Upload images</span>
           <input aria-label={`Upload images for variation ${variationNumber}`} accept={PRODUCT_IMAGE_ACCEPT} onChange={onUpload} disabled={disabled} type="file" multiple className="sr-only" />
         </label>
       </div>
     </div>
     <p role="status" aria-live="polite" className="sr-only">{announcement}</p>
-    <p className="mt-2 text-[11px] leading-relaxed text-[#8b7b93]">{PRODUCT_UPLOAD_HINT}</p>
+    <p className="mt-2 text-[11px] leading-relaxed text-theme-8b7b93">{PRODUCT_UPLOAD_HINT}</p>
   </div>;
 }

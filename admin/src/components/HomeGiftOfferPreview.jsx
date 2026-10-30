@@ -51,7 +51,7 @@ export default function HomeGiftOfferPreview({ content }) {
     }
   };
 
-  return <div className="home-gift-preview">
+  return <div className="home-gift-preview" data-theme="light">
     <div className="home-gift-preview-launcher-stage">
       <p className="home-gift-preview-label">Floating gift</p>
       <div style={colors} className="gift-offer-launcher" data-motion={paused ? 'paused' : 'playing'}>

@@ -73,6 +73,71 @@ async function completeNewProduct(page) {
   await saved(page);
 }
 
+test('Add blocks price above MRP, keeps invalid drafts, and allows an equal price after correction', async ({ context }) => {
+  const state = await fixture(context);
+  const page = await context.newPage();
+  await open(page);
+  await completeNewProduct(page);
+  const price = page.getByLabel('Price', { exact: true });
+  const mrp = page.getByLabel('MRP', { exact: true });
+  const submit = page.getByRole('button', { name: /^Add Product$/i });
+  await price.fill('500');
+  await expect(price).toHaveAttribute('aria-invalid', 'true');
+  await expect(price).toHaveAccessibleDescription('Price cannot be greater than MRP.');
+  await submit.click();
+  expect(state.writes).toHaveLength(0);
+  await draftPanel(page).getByRole('button', { name: 'Save as draft' }).click();
+  await saved(page);
+  await page.reload();
+  await expect(price).toHaveValue('500');
+  await expect(price).toHaveAttribute('aria-invalid', 'true');
+  await price.fill('399');
+  await expect(price).toHaveAttribute('aria-invalid', 'false');
+  await mrp.fill('398');
+  await expect(price).toHaveAttribute('aria-invalid', 'true');
+  await submit.click();
+  expect(state.writes).toHaveLength(0);
+  // The submit handler must also protect restored values if native validation is bypassed.
+  await page.locator('form').evaluate(form => form.noValidate = true);
+  await submit.click();
+  await expect(page.getByRole('alert')).toContainText("Price cannot be greater than MRP for size 'M'");
+  expect(state.writes).toHaveLength(0);
+  await mrp.fill('399');
+  await expect(price).toHaveAttribute('aria-invalid', 'false');
+  await page.locator('form').evaluate(form => form.noValidate = false);
+  await submit.click();
+  await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('');
+  expect(state.writes).toHaveLength(1);
+  expect(state.writes[0].variations[0].sizes[0]).toMatchObject({ price: '399', mrp: '399' });
+  expect(state.errors).toEqual([]);
+});
+
+test('Add checks pricing on later variations and sizes and allows prices below MRP', async ({ context }) => {
+  const state = await fixture(context);
+  const page = await context.newPage();
+  await open(page);
+  await completeNewProduct(page);
+  await page.getByRole('button', { name: '+ Add Variation', exact: true }).click();
+  const variation = page.getByRole('group', { name: 'Variation 2', exact: true });
+  await variation.getByLabel('Color', { exact: true }).fill('Red');
+  for (const size of ['M', 'L']) await variation.getByRole('button', { name: `+ ${size}`, exact: true }).click();
+  for (let index = 0; index < 2; index++) {
+    await variation.getByLabel('MRP', { exact: true }).nth(index).fill('499');
+    await variation.getByLabel('Price', { exact: true }).nth(index).fill(index ? '500' : '399');
+    await variation.getByLabel('Stock', { exact: true }).nth(index).fill('10');
+  }
+  const submit = page.getByRole('button', { name: /^Add Product$/i });
+  await submit.click();
+  await expect(variation.getByLabel('Price', { exact: true }).nth(1)).toHaveAttribute('aria-invalid', 'true');
+  expect(state.writes).toHaveLength(0);
+  await variation.getByLabel('Price', { exact: true }).nth(1).fill('398');
+  await submit.click();
+  await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('');
+  expect(state.writes).toHaveLength(1);
+  expect(state.writes[0].variations[1].sizes[1]).toMatchObject({ price: '398', mrp: '499' });
+  expect(state.errors).toEqual([]);
+});
+
 test('incomplete drafts save offline and restore every field, variations and image order after closing the tab', async ({ context }) => {
   const state = await fixture(context);
   let page = await context.newPage();

@@ -76,6 +76,30 @@ for (const counts of [[5, 5, 5, 5], [6, 5, 5, 5, 5]]) test(`adds ${counts.length
     assert.equal(saved.creator.name, 'Editor');
 });
 
+test('add rejects price above MRP in any variation or size before uploading images', async () => {
+    const variations = variationsFor(2);
+    variations[1].sizes.push({ size: 'L', price: '499.01', mrp: '499', stock: 10 });
+    const result = await send('/api/product/add', bodyFor([1, 1], { variations }));
+    assert.equal(result.status, 400);
+    assert.equal(result.data.success, false);
+    assert.match(result.data.message, /Price cannot be greater than MRP.*'L'.*'Color 1'/);
+    assert.equal(await productModel.countDocuments(), 0);
+    assert.equal(calls.length, 0);
+});
+
+test('add accepts prices equal to or below MRP', async () => {
+    const variations = variationsFor(1);
+    variations[0].sizes = [
+        { size: 'M', price: '499.99', mrp: '499.99', stock: 10 },
+        { size: 'L', price: '399.50', mrp: '499.99', stock: 10 },
+    ];
+    const result = await send('/api/product/add', bodyFor([1], { variations }));
+    assert.equal(result.status, 200);
+    assert.equal(result.data.success, true);
+    const saved = await productModel.findOne();
+    assert.deepEqual(saved.variations[0].sizes.map(size => size.price), [499.99, 399.5]);
+});
+
 test('update accepts 26 new images while retaining existing variation images', async () => {
     const variations = variationsFor(5); variations[0].images = ['https://res.cloudinary.com/local/image/upload/existing.png'];
     const product = await productModel.create({ name: 'Existing', description: 'Existing', category: 'BABYDOLL', date: Date.now(), variations });

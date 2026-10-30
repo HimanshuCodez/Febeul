@@ -7,7 +7,7 @@
 }
 
 .admin-sidebar-item-idle {
-  color: #6b7280;
+  color: rgb(var(--admin-text-6b7280, 107 114 128));
 }
 
 .admin-sidebar-icon,
@@ -16,13 +16,13 @@
 }
 
 .admin-sidebar-item-current {
-  color: #fff;
-  background: linear-gradient(115deg, #151515, #33232c);
+  color: rgb(var(--admin-text-ffffff, 255 255 255));
+  background: linear-gradient(115deg, rgb(var(--admin-bg-151515, 21 21 21)), rgb(var(--admin-bg-33232c, 51 35 44)));
   box-shadow: 0 7px 16px -6px rgb(83 30 55 / 38%), inset 0 0 0 1px rgb(249 174 175 / 20%);
 }
 
 .admin-sidebar-item-current .admin-sidebar-icon {
-  color: #f9c0cd;
+  color: rgb(var(--admin-text-f9c0cd, 249 192 205));
 }
 
 .admin-sidebar-current-marker {
@@ -32,7 +32,7 @@
   bottom: 25%;
   width: 3px;
   border-radius: 0 4px 4px 0;
-  background: #f9aeaf;
+  background: rgb(var(--admin-bg-f9aeaf, 249 174 175));
   box-shadow: 0 0 10px rgb(249 174 175 / 45%);
   animation: admin-sidebar-marker-in 240ms ease-out both;
 }
@@ -42,7 +42,7 @@
   place-items: center;
   width: 25px;
   height: 25px;
-  color: #ffd5df;
+  color: rgb(var(--admin-text-ffd5df, 255 213 223));
   border-radius: 8px;
   background: rgb(249 174 175 / 15%);
   animation: admin-sidebar-arrow-in 280ms ease-out both;
@@ -55,16 +55,16 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #f9aeaf;
+  background: rgb(var(--admin-bg-f9aeaf, 249 174 175));
 }
 
 .admin-sidebar-section[data-current] > .admin-sidebar-toggle {
-  color: #a53f60;
-  background-color: #fff5f7;
+  color: rgb(var(--admin-text-a53f60, 165 63 96));
+  background-color: rgb(var(--admin-bg-fff5f7, 255 245 247));
 }
 
 .admin-sidebar-item:focus-visible {
-  outline: 2px solid #c586a5;
+  outline: 2px solid rgb(var(--admin-border-c586a5, 197 134 165));
   outline-offset: 3px;
 }
 
@@ -75,8 +75,8 @@
   }
 
   .admin-sidebar-item-idle:hover {
-    background-color: #fff2f5;
-    color: #9f3756;
+    background-color: rgb(var(--admin-bg-fff2f5, 255 242 245));
+    color: rgb(var(--admin-text-9f3756, 159 55 86));
   }
 
   .admin-sidebar-item:hover .admin-sidebar-icon {

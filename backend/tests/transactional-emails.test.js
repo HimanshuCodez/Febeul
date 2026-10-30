@@ -27,6 +27,7 @@ const { default: ticketRouter } = await import('../routes/ticketRoute.js');
 const { default: adminRouter } = await import('../routes/adminRoute.js');
 const { default: emailRouter } = await import('../routes/emailTemplateRoute.js');
 const { default: cmsRouter } = await import('../routes/cmsRoute.js');
+const { default: refundRouter } = await import('../routes/refundRoute.js');
 const { sendEmailOTP } = await import('../controllers/otpController.js');
 let database, server, base, customer, admin, messages, rejectEmail;
 
@@ -57,6 +58,7 @@ before(async () => {
     const app = express(); app.use(express.json());
     app.use('/api/order', orderRouter); app.use('/api/user', userRouter); app.use('/api/ticket', ticketRouter);
     app.use('/api/admin', adminRouter); app.use('/api/email-template', emailRouter); app.use('/api/cms', cmsRouter);
+    app.use('/api/refund', refundRouter);
     app.post('/email-otp', sendEmailOTP);
     server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
     base = `http://127.0.0.1:${server.address().port}`;
@@ -85,11 +87,12 @@ test('customer, reset and admin OTP routes send edited templates with valid priv
         ['admin-login-otp', '/api/user/admin-send-otp', { email: admin.email }, admin, 'admin-login'],
     ];
     for (const [type, path, body, user, purpose] of cases) {
-        await saveTemplate(type, '<p>Hello {{userName}}. Code: {{otp}}. Expires in {{expiryMinutes}} minutes.</p>');
+        await saveTemplate(type, '<p>Hello {{userName}} ({{customerEmail}}). Code: {{otp}}. Expires in {{expiryMinutes}} minutes.</p>');
         const result = await request(path, body, '');
         assert.equal(result.data.success, true, result.data.message);
         const email = messages.at(-1);
         assert.equal(email.to, user.email); assert.equal(email.subject, `Edited ${type}`);
+        assert.ok(email.html.includes(user.email));
         const code = email.html.match(/Code: (\d{6})/)[1];
         assert.match(email.html, /Expires in 5 minutes/);
         assert.equal(await checkOtp(await userModel.findById(user._id), code, purpose), true);
@@ -99,14 +102,16 @@ test('customer, reset and admin OTP routes send edited templates with valid priv
 });
 
 test('shipment admin updates and courier webhooks use saved templates only once per event', async () => {
-    await saveTemplate('order-shipped', '<p>{{userName}}: {{orderId}} / {{courierName}} / {{trackingNumber}} / {{trackingUrl}}</p>');
+    await saveTemplate('order-shipped', '<p>{{userName}}: {{orderId}} / {{courierName}} / {{trackingNumber}} / {{trackingUrl}}</p><p>{{customerEmail}} / {{paymentStatus}} / {{orderStatus}} / {{estimatedDeliveryDate}}</p>{{#items}}<b>{{productName}} / {{productPrice}}</b>{{/items}}');
     await saveTemplate('order-delivered', '<p>Delivered {{orderId}} to {{userName}}</p>');
-    const order = await makeOrder({ shiprocket: { awb: 'LOCAL-AWB', courier: 'Test Courier', trackingUrl: 'https://example.test/track' } });
+    const order = await makeOrder({ shiprocket: { awb: 'LOCAL-AWB', courier: 'Test Courier', trackingUrl: 'https://example.test/track', edd: '2030-12-31T12:00:00.000Z' } });
     const updates = await Promise.all([1, 2].map(() => request('/api/order/status', { orderId: order._id, orderStatus: 'Shipped' })));
     assert.ok(updates.every(result => result.data.success));
     assert.equal(messages.length, 1);
     assert.equal(messages[0].subject, 'Edited order-shipped');
     assert.match(messages[0].html, /Buyer: .*Test Courier \/ LOCAL-AWB \/ https:\/\/example.test\/track/);
+    assert.match(messages[0].html, /buyer@notifications.test \/ Cash on delivery \/ Shipped \/ 31 Dec 2030/);
+    assert.match(messages[0].html, /Test garment \/ 500.00/);
     assert.equal((await webhook(order, 'SHIPPED')).data.success, true);
     assert.equal(messages.length, 1);
     assert.equal((await webhook(order, 'DELIVERED')).data.success, true);
@@ -132,7 +137,7 @@ test('tracking polling sends the same edited shipment notifications without dupl
 
 test('cancelled order and completed refund emails are distinct and wait for provider completion', async () => {
     await saveTemplate('order-cancelled', '<p>{{userName}}: cancelled {{orderId}}. {{cancellationReason}}</p>');
-    await saveTemplate('refund-processed', '<p>{{userName}}: refund {{refundAmount}} for {{orderId}}</p>');
+    await saveTemplate('refund-processed', '<p>{{userName}}: refund {{refundAmount}} for {{orderId}} / {{refundStatus}} / {{refundTransactionId}} / {{customerEmail}}</p>');
     const order = await makeOrder({ payment: true, paymentMethod: 'Razorpay', razorpayPaymentId: 'pay_local' });
     nock('https://api.razorpay.com').post('/v1/payments/pay_local/refund').reply(200, { id: 'rfnd_local', status: 'pending', amount: 50000, payment_id: 'pay_local' });
     const cancelled = await request('/api/order/cancel', { orderId: order._id, reason: 'Changed plans' }, userToken(customer));
@@ -146,8 +151,20 @@ test('cancelled order and completed refund emails are distinct and wait for prov
     assert.equal(messages.length, 2);
     assert.equal(messages[1].subject, 'Edited refund-processed');
     assert.match(messages[1].html, /refund 500.00/);
+    assert.match(messages[1].html, /completed \/ rfnd_local \/ buyer@notifications.test/);
     assert.equal((await request('/api/order/cancel', { orderId: order._id }, userToken(customer))).status, 409);
     assert.equal(messages.length, 2);
+});
+
+test('return request emails receive the updated order and pending refund state', async () => {
+    await saveTemplate('return-request', '<p>{{customerEmail}} / {{orderStatus}} / {{refundStatus}}</p>{{#items}}<b>{{productName}}</b>{{/items}}');
+    const order = await makeOrder({ paymentMethod: 'Razorpay', payment: true, orderStatus: 'Delivered', deliveredAt: new Date() });
+    const result = await request('/api/refund/request', { orderId: order._id, reason: 'Size issue', requestType: 'return' }, userToken(customer));
+    assert.equal(result.data.success, true);
+    for (let attempt = 0; attempt < 30 && !messages.length; attempt++) await new Promise(resolve => setTimeout(resolve, 10));
+    assert.equal(messages.length, 1);
+    assert.match(messages[0].html, /buyer@notifications.test \/ Refund Initiated \/ pending/);
+    assert.match(messages[0].html, /Test garment/);
 });
 
 test('customer and admin ticket creation send saved receipts to the customer', async () => {

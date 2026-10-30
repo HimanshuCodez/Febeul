@@ -555,11 +555,17 @@ const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
               />
               <p className='text-[11px] text-gray-400'>
                 {isOrderTemplate ? <>
-                  Required: <code>{'{{itemRows}}'}</code> inside a <code>&lt;tbody&gt;</code>, and <code>{'{{totalAmount}}'}</code>. Row variables such as <code>{'{{gstRows}}'}</code> output <code>&lt;tr&gt;</code> elements, so place them inside a table.
+                  Include all products using <code>{'{{itemRows}}'}</code> inside a <code>&lt;tbody&gt;</code> or a repeating products block, plus <code>{'{{totalAmount}}'}</code>. Row variables such as <code>{'{{gstRows}}'}</code> output <code>&lt;tr&gt;</code> elements, so place them inside a table.
                 </> : <>
                   Keep these placeholders for recipient details: <code>{(meta.requiredHtmlTokens || []).map(key => `{{${key}}}`).join(', ')}</code>.
                 </>}{' '}
                 Switching back to the visual builder keeps this HTML saved, but the builder design is what gets sent.
+              </p>
+              {meta.tokens.some(tag => tag.group === 'product') && <p className='text-xs leading-relaxed text-gray-600'>
+                Choose “Repeating products block” from Insert variable to show every item. Product tags such as <code>{'{{productName}}'}</code>, <code>{'{{productImage}}'}</code> and <code>{'{{productPrice}}'}</code> work inside <code>{'{{#items}} … {{/items}}'}</code>. Product price is the unit price before order discounts.
+              </p>}
+              <p className='text-xs leading-relaxed text-gray-600'>
+                Optional details can be wrapped in <code>{'{{#if trackingNumber}}Tracking: {{trackingNumber}}{{/if}}'}</code> to hide the whole section when empty. Delivery estimates, tracking and refund references appear only when recorded. Unknown or unavailable tags render blank.
               </p>
             </div>
           )}

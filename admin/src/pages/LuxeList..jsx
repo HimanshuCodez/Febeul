@@ -216,7 +216,7 @@ const LuxeList = ({ token }) => {
           data={csvData}
           headers={headers}
           filename={"luxe_products.csv"}
-          className={`bg-[#b87a7b] hover:bg-[#a56a6b] text-white font-bold py-2 px-4 rounded whitespace-nowrap ${selectedSkus.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`bg-theme-b87a7b hover:bg-theme-a56a6b text-white font-bold py-2 px-4 rounded whitespace-nowrap ${selectedSkus.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={() => {
             if (selectedSkus.length === 0) {
               toast.info("Please select SKUs to export");
@@ -235,7 +235,7 @@ const LuxeList = ({ token }) => {
         </div>
 
         {/* ------- List Table Header ---------- */}
-        <div className={`grid ${columnLayout} items-center gap-2 py-2 px-3 border bg-[#fff5f5] text-xs font-bold text-[#b87a7b] rounded-t-lg`}>
+        <div className={`grid ${columnLayout} items-center gap-2 py-2 px-3 border bg-theme-fff5f5 text-xs font-bold text-theme-b87a7b rounded-t-lg`}>
           <div className='flex items-center justify-center'>
             <input
               type="checkbox"
@@ -301,7 +301,7 @@ const LuxeList = ({ token }) => {
                       <div className='flex flex-col gap-0.5'>
                         <p 
                           onClick={() => { if(item.creator.role === 'staff') { setSelectedStaff(item.creator); setShowStaffModal(true); } }}
-                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-[#fff5f5] text-[#b87a7b] cursor-pointer hover:bg-rose-100' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-theme-fff5f5 text-theme-b87a7b cursor-pointer hover:bg-rose-100' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
                         >
                           {item.creator.role || 'Admin'}
                         </p>
@@ -444,7 +444,7 @@ const LuxeList = ({ token }) => {
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`w-10 h-10 border rounded-md text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-[#b87a7b] text-white border-[#b87a7b]' : 'hover:bg-gray-50'}`}
+                  className={`w-10 h-10 border rounded-md text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-theme-b87a7b text-white border-theme-b87a7b' : 'hover:bg-gray-50'}`}
                 >
                   {pageNum}
                 </button>
@@ -513,7 +513,7 @@ const LuxeList = ({ token }) => {
             <div className='mt-6 flex justify-end'>
               <button
                 onClick={() => setShowStaffModal(false)}
-                className='px-6 py-2 bg-[#b87a7b] text-white rounded-md hover:bg-[#a56a6b] transition-colors font-medium text-sm'
+                className='px-6 py-2 bg-theme-b87a7b text-white rounded-md hover:bg-theme-a56a6b transition-colors font-medium text-sm'
               >
                 Close
               </button>

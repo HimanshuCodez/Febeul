@@ -265,7 +265,7 @@ const requestRefund = async (req, res) => {
         if (isDelivered) updateData.orderStatus = 'Refund Initiated';
         if (order.paymentMethod === 'COD' && payoutDetails) updateData['refundDetails.customerPayoutDetails'] = JSON.parse(payoutDetails);
 
-        await orderModel.findByIdAndUpdate(orderId, updateData);
+        const updatedOrder = await orderModel.findByIdAndUpdate(orderId, updateData, { new: true });
 
         const returnCount = await orderModel.countDocuments({ userId, 'refundDetails.status': { $ne: 'none' } });
         if (returnCount > MAX_RETURNS_BEFORE_BLOCK) {
@@ -277,7 +277,7 @@ const requestRefund = async (req, res) => {
             sendTemplateEmail(
                 'return-request',
                 user.email,
-                { userName: user.name, orderId: order._id, requestType: updateData['refundDetails.requestType'] }
+                { userName: user.name, order: updatedOrder, orderId: updatedOrder.orderItemId || order._id, requestType: updateData['refundDetails.requestType'] }
             );
         }
 

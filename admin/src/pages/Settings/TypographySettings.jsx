@@ -383,7 +383,7 @@ const TypographySettings = ({ token }) => {
                             </div>
                         </div>
 
-                        <div className={`mx-auto transition-all duration-500 border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-2xl shadow-black/5 ${previewMode === 'mobile' ? 'max-w-[375px]' : 'max-w-full'}`}>
+                        <div data-theme="light" className={`mx-auto transition-all duration-500 border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-2xl shadow-black/5 ${previewMode === 'mobile' ? 'max-w-[375px]' : 'max-w-full'}`}>
                             <div className="p-8 space-y-8" style={{ 
                                 fontSize: `${previewMode === 'mobile' ? settings.mobileBaseFontSize : settings.baseFontSize}px`,
                                 fontFamily: settings.primaryFont,

@@ -3,18 +3,96 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    :root, [data-theme="light"] {
+        color-scheme: light;
+        --admin-canvas: #f9fafb;
+        --admin-surface: #ffffff;
+        --admin-foreground: #25212b;
+        --admin-muted: #77727e;
+        --admin-line: #e5e7eb;
+        --admin-hover: #f5f3f7;
+    }
+    :root[data-theme="dark"] {
+        color-scheme: dark;
+        --admin-canvas: #11151e;
+        --admin-surface: #191f2b;
+        --admin-foreground: #edf1f8;
+        --admin-muted: #a5b4c7;
+        --admin-line: #374153;
+        --admin-hover: #2b3343;
+    }
+    body { background: var(--admin-canvas); color: var(--admin-foreground); }
+    *, ::before, ::after { border-color: var(--admin-line); }
+    :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea, select) {
+        background-color: var(--admin-surface);
+        color: inherit;
+    }
+    :where(input, textarea)::placeholder { color: var(--admin-muted); opacity: 1; }
+}
+
+.admin-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 9px 12px;
+    border: 1px solid var(--admin-line);
+    border-radius: 12px;
+    background: var(--admin-surface);
+    color: var(--admin-foreground);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.admin-theme-toggle:hover { background: var(--admin-hover); }
+.admin-theme-toggle:focus-visible { outline: 2px solid #d991a6; outline-offset: 3px; }
+.admin-navbar .admin-theme-toggle { background: #ffffff10; color: #f8fafc; border-color: #ffffff35; }
+.admin-navbar .admin-theme-toggle:hover { background: #ffffff20; }
+
+/* Editors and chart widgets supply their own CSS or inline styles. */
+:root[data-theme="dark"] .admin-app .ql-toolbar,
+:root[data-theme="dark"] .admin-app .ql-container,
+:root[data-theme="dark"] .admin-app .ql-picker-options,
+:root[data-theme="dark"] .admin-app .ql-tooltip {
+    background: var(--admin-surface);
+    color: var(--admin-foreground);
+    border-color: var(--admin-line);
+}
+:root[data-theme="dark"] .admin-app .ql-snow .ql-picker { color: var(--admin-muted); }
+:root[data-theme="dark"] .admin-app .ql-snow .ql-stroke { stroke: var(--admin-muted); }
+:root[data-theme="dark"] .admin-app .ql-snow .ql-fill { fill: var(--admin-muted); }
+:root[data-theme="dark"] .admin-app .ql-editor.ql-blank::before { color: var(--admin-muted); }
+:root[data-theme="dark"] .admin-app .ql-snow button:hover .ql-stroke,
+:root[data-theme="dark"] .admin-app .ql-snow .ql-active .ql-stroke { stroke: #e4b0c4; }
+:root[data-theme="dark"] .admin-app .recharts-cartesian-grid line { stroke: var(--admin-line); }
+:root[data-theme="dark"] .admin-app .recharts-cartesian-axis-tick-value,
+:root[data-theme="dark"] .admin-app .recharts-pie-label-text { fill: var(--admin-muted); }
+:root[data-theme="dark"] .admin-app .recharts-default-tooltip {
+    background-color: var(--admin-surface) !important;
+    border-color: var(--admin-line) !important;
+    color: var(--admin-foreground) !important;
+}
+:root[data-theme="dark"] .admin-app .recharts-tooltip-label,
+:root[data-theme="dark"] .admin-app .recharts-tooltip-item { color: var(--admin-foreground) !important; }
+:root[data-theme="dark"] .admin-app .recharts-tooltip-cursor { fill: var(--admin-hover); }
+[data-theme="light"] { color: var(--admin-foreground); }
+iframe { color-scheme: light; }
+
 *{
     font-family: 'Outfit', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 select,input,textarea{
-    border: 1px solid #c2c2c2;
+    border: 1px solid var(--admin-line);
     outline-color: #C586A5;
     border-radius: 4px;
 }
 
 .active{
-    background-color: #ffebf5;
+    background-color: rgb(var(--admin-bg-pink-50, 255 235 245));
     border-color: #C586A5;
 }
 

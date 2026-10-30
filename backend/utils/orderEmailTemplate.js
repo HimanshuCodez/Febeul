@@ -1,4 +1,6 @@
 import cmsModel from '../models/cmsModel.js';
+import { EMAIL_BRAND_TOKENS, EMAIL_PRODUCT_TOKENS, EMAIL_PRODUCT_LOOP } from '../../shared/emailTemplates.js';
+import { buildOrderTextTokens, buildProductEmailTokens, fillEmailTokens } from './emailTokens.js';
 
 export const ORDER_EMAIL_CMS_NAME = 'orderConfirmationEmail';
 
@@ -46,6 +48,20 @@ export const TEMPLATE_TOKENS = [
     { key: 'shippingAddressLandmarkRow', label: 'Landmark line', group: 'layout' },
     { key: 'shippingAddressZip', label: 'Shipping PIN code', group: 'layout' },
     { key: 'shippingAddressCountry', label: 'Shipping country', group: 'layout' },
+    ...[
+        ['userName', 'Customer name'], ['customerEmail', 'Customer email'],
+        ['shippingAddress', 'Complete shipping address'], ['shippingAddressLine1', 'Address line 1'],
+        ['shippingAddressLandmark', 'Landmark'], ['shippingAddressPincode', 'PIN / postal code'],
+        ['paymentStatus', 'Payment status'], ['discount', 'Discount amount'], ['couponCode', 'Coupon code'],
+        ['taxAmount', 'Tax / GST amount'], ['estimatedDeliveryDate', 'Estimated delivery date'],
+        ['courierName', 'Courier name'], ['trackingNumber', 'Tracking / AWB number'],
+        ['trackingUrl', 'Tracking URL'], ['orderStatus', 'Order status'], ['orderUrl', 'Order details link'],
+        ['cancellationReason', 'Cancellation reason'], ['refundAmount', 'Refund amount'],
+        ['refundStatus', 'Refund status'], ['refundTransactionId', 'Refund transaction ID'],
+    ].map(([key, label]) => ({ key, label, group: 'text' })),
+    ...EMAIL_BRAND_TOKENS,
+    EMAIL_PRODUCT_LOOP,
+    ...EMAIL_PRODUCT_TOKENS,
 ];
 
 // ---------- Defaults ----------
@@ -151,7 +167,8 @@ const esc = (v = '') => String(v ?? '')
 
 const safeUrl = (url, fallback = '') => {
     const u = String(url || '').trim();
-    if (/^\{\{\s*(orderUrl|trackingUrl|renewalUrl)\s*\}\}$/.test(u)) return u;
+    if (/^\{\{\s*(orderUrl|trackingUrl|renewalUrl|productUrl|productImage|supportUrl|instagramUrl|facebookUrl)\s*\}\}$/.test(u)) return u;
+    if (/^mailto:\{\{\s*supportEmail\s*\}\}$/.test(u)) return u;
     if (/^(https?:|mailto:|tel:)/i.test(u)) return esc(u);
     return fallback;
 };
@@ -416,6 +433,7 @@ ${rows}
 
 export const buildOrderEmailTokens = (order) => {
     const address = order.address || {};
+    const textTokens = buildOrderTextTokens(order);
     const subtotalBeforeCoupon = order.items.reduce((sum, i) => sum + (parseFloat(i.price) * parseFloat(i.quantity)), 0);
     const couponDiscount = parseFloat(order.couponDiscount || 0);
 
@@ -428,14 +446,19 @@ export const buildOrderEmailTokens = (order) => {
         // Pro-rate the coupon discount for consistent net reporting per item
         const itemProportion = subtotalBeforeCoupon > 0 ? (itemGross / subtotalBeforeCoupon) : 0;
         const itemCouponDiscount = itemProportion * couponDiscount;
-        const netTotal = itemGross - itemCouponDiscount - (parseFloat(item.discountAmount || 0));
+        const netTotal = itemGross - itemCouponDiscount;
+        const productTokens = buildProductEmailTokens(item);
 
         itemRowsHtml += `
             <tr>
                 <td style="padding: 20px 0; border-bottom: 1px solid #f5f5f5;">
+                    ${productTokens.productImage ? `<img src="${esc(productTokens.productImage)}" alt="${esc(item.name)}" width="64" style="display:block;max-width:100%;height:auto;margin-bottom:8px;">` : ''}
                     <div style="font-size: 14px; font-weight: 600; color: #333333;">${esc(item.name)}</div>
+                    ${item.size ? `<div style="font-size:11px;color:#666666;margin-top:4px;">Size: ${esc(item.size)}</div>` : ''}
+                    ${item.color ? `<div style="font-size:11px;color:#666666;margin-top:4px;">Colour: ${esc(item.color)}</div>` : ''}
                     ${item.sku ? `<div style="font-size: 11px; color: #999999; margin-top: 4px;">SKU: ${esc(item.sku)}</div>` : ''}
                     ${item.hsn ? `<div style="font-size: 11px; color: #999999; margin-top: 2px;">HSN: ${esc(item.hsn)}</div>` : ''}
+                    ${productTokens.productUrl ? `<a href="${esc(productTokens.productUrl)}" style="font-size:11px;color:#666666;">View product</a>` : ''}
                 </td>
                 <td align="center" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; color: #666666;">${itemQuantity} pcs</td>
                 <td align="right" style="padding: 20px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; font-weight: 700; color: #333333;">₹${netTotal.toFixed(2)}</td>
@@ -443,19 +466,11 @@ export const buildOrderEmailTokens = (order) => {
         `;
     });
 
-    const emailShippingCharge = parseFloat(order.shippingCharge || 0);
     const emailCodCharge = parseFloat(order.codCharge || 0);
     const emailGiftWrapPrice = parseFloat((order.giftWrap && order.giftWrap.price) || 0);
-    const emailOrderTotal = parseFloat(order.orderTotal || 0);
 
-    // Tax calculation following Indian Composite Supply rules (consistent with invoiceGenerator.js)
-    const netProductValue = subtotalBeforeCoupon - couponDiscount;
-    const ancillaryCharges = emailShippingCharge + emailCodCharge + emailGiftWrapPrice;
-    const totalInclusiveAmount = netProductValue + ancillaryCharges;
-
-    // Use a fixed 5% calculation for simple reporting in email (Detailed breakdown in PDF invoice)
-    const totalTaxableValue = totalInclusiveAmount / 1.05;
-    const totalTaxAmount = totalInclusiveAmount - totalTaxableValue;
+    // Recorded tax is shared with the scalar {{taxAmount}} tag.
+    const totalTaxAmount = Number(textTokens.taxAmount);
 
     const isDelhi = address.state && address.state.trim().toLowerCase() === 'delhi';
     const taxRow = (label, amount) => `
@@ -463,7 +478,11 @@ export const buildOrderEmailTokens = (order) => {
                 <td style="padding: 6px 0; font-size: 14px; color: #666666;">${label}</td>
                 <td align="right" style="padding: 6px 0; font-size: 14px; color: #666666;">₹${amount.toFixed(2)}</td>
             </tr>`;
-    const gstRowsHtml = isDelhi
+    const hasRecordedTax = ['cgstAmount', 'sgstAmount', 'igstAmount'].some(key => order[key] != null);
+    const gstRowsHtml = hasRecordedTax
+        ? [['CGST', order.cgstAmount], ['SGST', order.sgstAmount], ['IGST', order.igstAmount]]
+            .filter(([, amount]) => Number(amount) > 0).map(([label, amount]) => taxRow(label, Number(amount))).join('')
+        : isDelhi
         ? taxRow('CGST (2.5%)', totalTaxAmount / 2) + taxRow('SGST (2.5%)', totalTaxAmount / 2)
         : taxRow('IGST (5%)', totalTaxAmount);
 
@@ -484,10 +503,6 @@ export const buildOrderEmailTokens = (order) => {
     const codChargeRow = emailCodCharge > 0 ? taxRow('COD Charges', emailCodCharge) : '';
     const giftWrapRow = emailGiftWrapPrice > 0 ? taxRow(`Gift Wrap (${esc(order.giftWrap.name)})`, emailGiftWrapPrice) : '';
 
-    const orderDateFormatted = new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-    const shortId = order._id.toString().slice(-8).toUpperCase();
-    const sequentialInvoice = order.invoiceNumber ? order.invoiceNumber.toString().padStart(4, '0') : shortId;
-
     const luxeMemberBadge = (order.isLuxeMemberAtTimeOfOrder || order.userId?.isLuxeMember)
         ? '<span class="luxe-member-badge">✨ Luxe Member</span>'
         : '';
@@ -500,48 +515,24 @@ export const buildOrderEmailTokens = (order) => {
         ? `<strong>Bank RRN:</strong> ${esc(order.bankRRN)}<br>`
         : '';
     const shippingAddressLandmarkRow = address.landmark ? `Landmark: ${esc(address.landmark)}<br>` : '';
-    const shippingAddressFullLine = address.locality ? `${address.address}, ${address.locality}` : address.address;
-    const shippingAddressPhoneLine = address.alternatePhone ? `${address.phone}, ${address.alternatePhone}` : address.phone;
-
     return {
-        orderId: shortId,
-        orderDate: orderDateFormatted,
-        invoiceNumber: `INV-${sequentialInvoice}`,
-        invoiceDate: orderDateFormatted,
-        paymentMethod: esc(order.paymentMethod),
+        ...Object.fromEntries(Object.entries(textTokens).map(([key, value]) => [key, esc(value)])),
+        invoiceDate: textTokens.orderDate,
         razorpayReferenceRow,
         bankRrnRow,
         luxeMemberBadge,
-        billingAddressName: esc(address.name),
         billingAddressAddress: esc(address.address),
         billingAddressCity: esc(address.city),
         billingAddressZip: esc(address.zip),
         billingAddressCountry: 'India',
-        shippingAddressName: esc(address.name),
-        shippingAddressAddress: esc(shippingAddressFullLine),
         shippingAddressLandmarkRow,
-        shippingAddressCity: esc(address.city),
-        shippingAddressState: esc(address.state || ''),
-        shippingAddressZip: esc(address.zip),
-        shippingAddressCountry: esc(address.country || 'India'),
-        shippingAddressPhone: esc(shippingAddressPhoneLine),
         itemRows: itemRowsHtml,
-        subtotal: subtotalBeforeCoupon.toFixed(2),
         couponDiscountRow,
-        shipping: emailShippingCharge > 0 ? `₹${emailShippingCharge.toFixed(2)}` : 'FREE',
         codChargeRow,
         giftWrapRow,
         gstRows: gstRowsHtml,
-        totalAmount: emailOrderTotal.toFixed(2),
-        currentYear: String(new Date().getFullYear()),
     };
 };
-
-// Replaces every occurrence (not just the first); unknown tokens are left untouched.
-const fillTokens = (template, tokens) => template.replace(
-    /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
-    (match, key) => (Object.prototype.hasOwnProperty.call(tokens, key) ? String(tokens[key] ?? '') : match),
-);
 
 const decodeEntities = (s) => s
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
@@ -549,9 +540,10 @@ const decodeEntities = (s) => s
 export const renderOrderEmail = (rawContent, order) => {
     const content = normalizeContent(rawContent);
     const tokens = buildOrderEmailTokens(order);
+    const items = (order.items || []).map(item => Object.fromEntries(Object.entries(buildProductEmailTokens(item)).map(([key, value]) => [key, esc(value)])));
     const template = content.mode === 'html' && content.html.trim() ? content.html : renderTemplateHtml(content);
-    const subject = decodeEntities(fillTokens(content.subject, tokens).replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
-    return { subject: subject || fillTokens(DEFAULT_SUBJECT, tokens), html: fillTokens(template, tokens) };
+    const subject = decodeEntities(fillEmailTokens(content.subject, tokens).replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    return { subject: subject || fillEmailTokens(DEFAULT_SUBJECT, tokens), html: fillEmailTokens(template, tokens, items) };
 };
 
 export const loadOrderEmailContent = async () => {
@@ -570,8 +562,8 @@ export const getOrderConfirmationEmail = async (order) => renderOrderEmail(await
 
 export const buildSampleOrder = () => {
     const items = [
-        { name: 'Silk Satin Night Dress - Blush', sku: 'FB-SND-BL-M', hsn: '6208', price: 1299, quantity: 1, discountAmount: 0 },
-        { name: 'Lace Trim Bralette Set - Ivory', sku: 'FB-LBS-IV-S', hsn: '6212', price: 899, quantity: 2, discountAmount: 0 },
+        { productId: '000000000000000000000001', name: 'Silk Satin Night Dress - Blush', image: 'https://www.febeul.com/removebgLogo.png', sku: 'FB-SND-BL-M', size: 'M', color: 'Blush', hsn: '6208', price: 1299, quantity: 1, discountAmount: 0 },
+        { productId: '000000000000000000000002', name: 'Lace Trim Bralette Set - Ivory', image: 'https://www.febeul.com/removebgLogo.png', sku: 'FB-LBS-IV-S', size: 'S', color: 'Ivory', hsn: '6212', price: 899, quantity: 2, discountAmount: 0 },
     ];
     const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
     const couponDiscount = 200;
@@ -580,6 +572,7 @@ export const buildSampleOrder = () => {
         _id: '000000000000000A1B2C3D4E',
         items,
         couponDiscount,
+        couponCode: 'WELCOME200',
         couponOfferType: 'prepaid',
         shippingCharge: 0,
         codCharge: 0,
@@ -589,6 +582,10 @@ export const buildSampleOrder = () => {
         date: Date.now(),
         invoiceNumber: 1024,
         paymentMethod: 'Razorpay',
+        payment: true,
+        orderStatus: 'Confirmed',
+        userId: { name: 'Priya Sharma', email: 'priya@example.test' },
+        shiprocket: { courier: 'Sample Courier', awb: 'SAMPLE123456', trackingUrl: 'https://www.febeul.com/myorders', edd: '2030-12-31T12:00:00.000Z' },
         razorpayPaymentId: 'pay_SAMPLE12345678',
         bankRRN: '412345678901',
         isLuxeMemberAtTimeOfOrder: true,

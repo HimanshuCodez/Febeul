@@ -10,6 +10,8 @@ import ForgetPass from './pages/ForgetPass'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { isOrderTrackingMutation, notifyOrderTrackingChanged } from './utils/orderTrackingEvents';
+import useAdminTheme from './hooks/useAdminTheme';
+import ThemeToggle from './components/ThemeToggle';
 
 // Route-level code splitting: each admin page (and its data fetching) only
 // loads once its route is actually visited, instead of all pages being
@@ -57,6 +59,7 @@ export const backendUrl = import.meta.env.VITE_BACKEND_URL
 export const currency = '₹'
 
 const App = () => {
+  const { theme, toggleTheme } = useAdminTheme();
 
   const [token, setToken] = useState(localStorage.getItem('token')?localStorage.getItem('token'):'');
   const [role, setRole] = useState(localStorage.getItem('role')?localStorage.getItem('role'):'');
@@ -108,17 +111,17 @@ const App = () => {
   },[token, role, userEmail, permissions])
 
   return (
-    <div className='bg-gray-50 min-h-screen'>
+    <div className='admin-app bg-gray-50 min-h-screen'>
       <ScrollToTop />
-      <ToastContainer />
+      <ToastContainer theme={theme} />
       <PageRefreshOverlay show={isPageRefreshing} />
       {token === ""
-        ? <Routes>
+        ? <><div className="fixed right-4 top-4 z-50"><ThemeToggle theme={theme} onToggle={toggleTheme} /></div><Routes>
             <Route path='/forgot-password' element={<ForgetPass />} />
             <Route path='*' element={<Login setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} setPermissions={setPermissions} />} />
-          </Routes>
+          </Routes></>
         : <>
-          <Navbar setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} role={role} email={userEmail} setPermissions={setPermissions} />
+          <Navbar setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} role={role} email={userEmail} setPermissions={setPermissions} theme={theme} onToggleTheme={toggleTheme} />
           <hr />
           <div className='flex w-full'>
             <Sidebar role={role} permissions={permissions} onNavigate={handleSidebarNavigate} />

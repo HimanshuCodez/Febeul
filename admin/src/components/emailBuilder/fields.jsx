@@ -226,11 +226,12 @@ export const TokenMenu = ({ tokens, onPick, label = 'Insert variable' }) => {
               <button
                 key={t.key}
                 type='button'
-                onClick={() => { onPick(`{{${t.key}}}`); setOpen(false) }}
+                onClick={() => { onPick(t.insertText || `{{${t.key}}}`); setOpen(false) }}
                 className='w-full text-left px-3 py-2 hover:bg-gray-50 flex flex-col'
               >
                 <span className='text-sm text-gray-800'>{t.label}</span>
-                <span className='text-[11px] font-mono text-gray-400'>{`{{${t.key}}}`}</span>
+                <span className='text-[11px] font-mono text-gray-400'>{t.insertText ? '{{#items}} … {{/items}}' : `{{${t.key}}}`}</span>
+                {t.hint && <span className='mt-1 text-[11px] text-gray-500'>{t.hint}</span>}
               </button>
             ))}
           </div>

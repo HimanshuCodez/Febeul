@@ -4,9 +4,11 @@ import { backendUrl, currency } from '../App'
 import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
 import { CSVLink } from 'react-csv'
+import { ExternalLink } from 'lucide-react'
 import useSearchPrefill from '../search/useSearchPrefill'
 
 const LOW_STOCK_THRESHOLD = 15;
+const storefrontUrl = (import.meta.env.VITE_FRONTEND_URL || (import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:5173` : 'https://febeul.com')).replace(/\/+$/, '');
 
 const List = ({ token }) => {
 
@@ -324,6 +326,7 @@ const List = ({ token }) => {
         {
           paginatedList.map(item => {
             const displayVariation = getDisplayVariation(item);
+            const productUrl = `${storefrontUrl}/product/${encodeURIComponent(item._id)}`;
             const pKeys = getProductSkuKeys(item);
             const selectedPKeys = pKeys.filter(k => selectedSkus.includes(k));
             const isProductFullySelected = pKeys.length > 0 && selectedPKeys.length === pKeys.length;
@@ -346,8 +349,28 @@ const List = ({ token }) => {
                       }}
                     />
                   </div>
-                  <img className='w-10 h-10 object-cover rounded shadow-sm' src={displayVariation?.images?.[0]} alt="" />
-                  <p className='text-xs font-medium text-gray-800 truncate'>{item.name}</p>
+                  <a
+                    href={productUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`View ${item.name} on website (opens in a new tab)`}
+                    className='w-fit rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                  >
+                    <img className='w-10 h-10 object-cover rounded shadow-sm' src={displayVariation?.images?.[0]} alt="" />
+                  </a>
+                  <a
+                    href={productUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    title="View on website (opens in a new tab)"
+                    className='flex min-w-0 items-center gap-1 rounded text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                  >
+                    <span className='truncate'>{item.name}</span>
+                    <ExternalLink size={12} className='shrink-0' aria-hidden="true" />
+                    <span className='sr-only'> (opens in a new tab)</span>
+                  </a>
                   <p className='hidden md:block text-xs text-gray-600 truncate'>{item.category}</p>
                   <p className='hidden md:block text-xs text-gray-600 truncate'>{displayVariation?.sku}</p>
                   <p className='text-xs font-bold text-gray-900'>{currency}{displayVariation?.sizes?.[0]?.price}</p>
