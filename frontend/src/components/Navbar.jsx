@@ -245,7 +245,12 @@ export default function Header() {
               <span className="relative">
                 <HeadphonesIcon />
                 {unreadTicketsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-pink-500 border border-black animate-pulse" title="New reply" />
+                  <span
+                    className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full border border-black bg-pink-500 px-1 text-[10px] font-semibold leading-none text-white"
+                    aria-label={unreadTicketsCount + ' unread ticket replies'}
+                  >
+                    {unreadTicketsCount}
+                  </span>
                 )}
               </span>
               <span>Help</span>

@@ -5,6 +5,7 @@ import { backendUrl } from '../../App';
 import { toast } from 'react-toastify';
 import Loading from '../../components/Loading';
 import { CMS_BANNER_TYPES, CMS_BANNER_UPLOAD_HINT, validateCmsUpload } from '../../../../shared/cmsUploads.js';
+import { DEFAULT_HERO_INTERVAL_SECONDS, MIN_HERO_INTERVAL_SECONDS, MAX_HERO_INTERVAL_SECONDS, isValidHeroIntervalSeconds, normalizeHeroCarousel } from '../../../../shared/heroCarousel.js';
 
 const FONT_GROUPS = {
   'Sans-Serif (Modern)': ['Inter', 'Roboto', 'Montserrat', 'Poppins', 'Open Sans', 'Lato', 'Raleway', 'Nunito', 'Ubuntu'],
@@ -37,6 +38,7 @@ const FontSelect = ({ value, onChange }) => (
 
 const Images = ({ token }) => {
   const [slides, setSlides] = useState([{ desktop: '', mobile: '', link: '' }]);
+  const [slideIntervalSeconds, setSlideIntervalSeconds] = useState(DEFAULT_HERO_INTERVAL_SECONDS);
   const [spotlight, setSpotlight] = useState([{ image: '', label: '', link: '' }]);
   const [shows, setShows] = useState([
     { desktopVideo: '', mobileVideo: '', desktopYoutubeLink: '', mobileYoutubeLink: '', thumbnail: '', title: '', subtitle: '', productLink: '' }
@@ -67,7 +69,11 @@ const Images = ({ token }) => {
         axios.get(`${backendUrl}/api/cms/style_categories`)
       ]);
 
-      if (hero.data.success) setSlides(hero.data.content || [{ desktop: '', mobile: '', link: '' }]);
+      if (hero.data.success) {
+        const carousel = normalizeHeroCarousel(hero.data.content);
+        setSlides(carousel.slides.length ? carousel.slides : [{ desktop: '', mobile: '', link: '' }]);
+        setSlideIntervalSeconds(carousel.intervalSeconds);
+      }
       if (spot.data.success) setSpotlight(spot.data.content || []);
       if (styles.data.success) {
         const content = styles.data.content;
@@ -189,6 +195,15 @@ const Images = ({ token }) => {
     }
   };
 
+  const saveCarousel = () => {
+    const intervalSeconds = Number(slideIntervalSeconds);
+    if (!isValidHeroIntervalSeconds(intervalSeconds)) {
+      toast.error(`Enter a slide interval between ${MIN_HERO_INTERVAL_SECONDS} and ${MAX_HERO_INTERVAL_SECONDS} seconds.`);
+      return;
+    }
+    saveContent('hero_carousel', { slides, intervalSeconds });
+  };
+
   return (
     <div className="p-4 max-w-6xl mx-auto pb-24 text-gray-800">
       <h2 className="text-3xl font-bold mb-8 border-b pb-4">Visual Content Management (Responsive)</h2>
@@ -203,6 +218,22 @@ const Images = ({ token }) => {
           <div className="p-6 bg-white space-y-8">
             <p className="text-sm text-gray-600">Upload JPG, PNG, WebP or animated GIF banners in any dimensions. Each slide fills the available width and adjusts its height to show the full image without cropping. Add a mobile version if you want different artwork on phones; otherwise the desktop version is used.</p>
             <p className="text-xs text-gray-500">{CMS_BANNER_UPLOAD_HINT}</p>
+            <div className="max-w-sm space-y-2">
+              <label htmlFor="hero-slide-interval" className="block text-sm font-medium">Slide interval (seconds)</label>
+              <input
+                id="hero-slide-interval"
+                type="number"
+                min={MIN_HERO_INTERVAL_SECONDS}
+                max={MAX_HERO_INTERVAL_SECONDS}
+                step="any"
+                required
+                value={slideIntervalSeconds}
+                onChange={event => setSlideIntervalSeconds(event.target.value)}
+                aria-describedby="hero-slide-interval-hint"
+                className="w-full px-3 py-2 border rounded outline-none bg-white text-sm"
+              />
+              <p id="hero-slide-interval-hint" className="text-xs text-gray-500">Time between slides on desktop and mobile, from 1 to 60 seconds. Lower values change slides faster. Click Save Carousel to apply.</p>
+            </div>
             {slides.map((slide, index) => (
               <div key={index} className="border p-4 rounded-md relative bg-gray-50 shadow-inner">
                 <button onClick={() => setSlides(slides.filter((_, i) => i !== index))} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">X</button>
@@ -245,7 +276,7 @@ const Images = ({ token }) => {
             ))}
             <div className="flex gap-4">
               <button onClick={() => setSlides([...slides, { desktop: '', mobile: '', link: '' }])} className="bg-blue-600 text-white px-6 py-2 rounded text-sm font-medium">Add New Slide</button>
-              <button onClick={() => saveContent('hero_carousel', slides)} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Carousel</button>
+              <button onClick={saveCarousel} className="bg-black text-white px-10 py-2 rounded font-bold text-sm">Save Carousel</button>
             </div>
           </div>
         )}

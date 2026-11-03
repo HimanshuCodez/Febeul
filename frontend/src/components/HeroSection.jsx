@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { DEFAULT_HERO_INTERVAL_SECONDS, normalizeHeroCarousel } from "../../../shared/heroCarousel.js";
 
 const FALLBACK_IMAGE = "/purple.jpg";
 const FALLBACK_SLIDES = [{ desktop: FALLBACK_IMAGE, mobile: FALLBACK_IMAGE, link: "" }];
@@ -8,6 +9,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Hero = () => {
   const [slides, setSlides] = useState(FALLBACK_SLIDES);
+  const [intervalSeconds, setIntervalSeconds] = useState(DEFAULT_HERO_INTERVAL_SECONDS);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -20,10 +22,12 @@ const Hero = () => {
       try {
         const response = await axios.get(`${backendUrl}/api/cms/hero_carousel`, { signal: controller.signal });
         const content = response.data.success && response.data.content;
-        const validSlides = Array.isArray(content) ? content.filter(slide =>
+        const carousel = normalizeHeroCarousel(content);
+        const validSlides = carousel.slides.filter(slide =>
           slide && [slide.desktop, slide.mobile].some(source => typeof source === "string" && source.trim())
-        ) : [];
+        );
         setSlides(validSlides.length ? validSlides : FALLBACK_SLIDES);
+        setIntervalSeconds(carousel.intervalSeconds);
       } catch (error) {
         if (!axios.isCancel(error)) console.error("Error fetching carousel data:", error);
       } finally {
@@ -44,9 +48,9 @@ const Hero = () => {
     if (slides.length < 2) return;
     const interval = window.setInterval(() => {
       setCurrentSlide(previous => (previous + 1) % slides.length);
-    }, 3000);
+    }, intervalSeconds * 1000);
     return () => window.clearInterval(interval);
-  }, [slides.length]);
+  }, [slides.length, intervalSeconds]);
 
   const getSource = (slide) => {
     const sources = isMobile ? [slide.mobile, slide.desktop] : [slide.desktop, slide.mobile];

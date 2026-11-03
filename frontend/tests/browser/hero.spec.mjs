@@ -229,11 +229,65 @@ test('admin accepts GIFs, previews their complete dimensions and saves them for 
   }
   await page.getByRole('button', { name: 'Save Carousel', exact: true }).click();
   await expect.poll(() => state.saves.length).toBe(1);
-  expect(state.saves[0]).toEqual({ name: 'hero_carousel', content: [{ desktop: '/media/animated.gif', mobile: '/media/animated.gif', link: '/products' }] });
+  expect(state.saves[0]).toEqual({ name: 'hero_carousel', content: { slides: [{ desktop: '/media/animated.gif', mobile: '/media/animated.gif', link: '/products' }], intervalSeconds: 3 } });
   await page.goto(shop);
   await expectNaturalSize(page, '/media/animated.gif', 2);
   await page.setViewportSize({ width: 390, height: 844 });
   await expectNaturalSize(page, '/media/animated.gif', 2);
+  expect(state.errors).toEqual([]);
+});
+
+test('admin saves the slide interval and the storefront uses it on desktop and mobile', async ({ page }) => {
+  const state = await fixture(page);
+  await page.goto(admin + '/images');
+  const interval = page.getByLabel('Slide interval (seconds)');
+  await expect(interval).toHaveValue('3');
+  await interval.fill('6.5');
+  await page.getByRole('button', { name: 'Save Carousel', exact: true }).click();
+  await expect.poll(() => state.saves.length).toBe(1);
+  expect(state.saves[0]).toEqual({ name: 'hero_carousel', content: { slides: defaults, intervalSeconds: 6.5 } });
+  await page.reload();
+  await expect(interval).toHaveValue('6.5');
+  for (const [width, height, source, ratio] of [
+    [1280, 900, '/media/wide.svg', 4],
+    [390, 844, '/media/portrait.svg', 2 / 3],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.goto(shop);
+    await expectNaturalSize(page, source, ratio);
+    await page.clock.fastForward(6499);
+    await expectNaturalSize(page, source, ratio);
+    await page.clock.fastForward(1);
+    await expectNaturalSize(page, '/media/animated.gif', 2);
+    await page.clock.fastForward(6500);
+    await expectNaturalSize(page, source, ratio);
+  }
+  expect(state.errors).toEqual([]);
+});
+
+test('admin rejects empty or out-of-range slide intervals without saving', async ({ page }) => {
+  const state = await fixture(page);
+  await page.goto(admin + '/images');
+  for (const value of ['', '0', '-1', '61']) {
+    await page.getByLabel('Slide interval (seconds)').fill(value);
+    await page.getByRole('button', { name: 'Save Carousel', exact: true }).click();
+    await expect(page.getByText('Enter a slide interval between 1 and 60 seconds.').first()).toBeVisible();
+    expect(state.saves).toHaveLength(0);
+  }
+  expect(state.errors).toEqual([]);
+});
+
+test('invalid saved timing falls back to three seconds without losing the slides', async ({ page }) => {
+  const state = await fixture(page, { slides: defaults, intervalSeconds: 0 });
+  await page.goto(shop);
+  await expectNaturalSize(page, '/media/wide.svg', 4);
+  await page.clock.fastForward(2999);
+  await expectNaturalSize(page, '/media/wide.svg', 4);
+  await page.clock.fastForward(1);
+  await expectNaturalSize(page, '/media/animated.gif', 2);
+  await page.goto(admin + '/images');
+  await expect(page.getByLabel('Slide interval (seconds)')).toHaveValue('3');
+  await expect(page.getByAltText('Desktop preview for slide 1')).toHaveAttribute('src', '/media/wide.svg');
   expect(state.errors).toEqual([]);
 });
 
