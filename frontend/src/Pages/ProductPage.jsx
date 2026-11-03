@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify';
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,6 +28,19 @@ import AddressModal from "../components/AddressModal";
 import CouponShows from "../components/CouponShows";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+const sanitizeProductDescription = (description) => {
+  const content = DOMPurify.sanitize(description || '', {
+    USE_PROFILES: { html: true },
+    RETURN_DOM: true,
+  });
+  // Quill's semantic HTML uses nonbreaking spaces even between ordinary words.
+  const textNodes = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+  while (textNodes.nextNode()) {
+    textNodes.currentNode.textContent = textNodes.currentNode.textContent.replace(/\u00a0/g, ' ');
+  }
+  return content.innerHTML;
+};
 
 const ImageZoom = ({ src, alt, isOutOfStock, onMobileClick, settings, onSwipeLeft, onSwipeRight, currentIndex, totalImages }) => {
   const containerRef = useRef(null);
@@ -287,6 +300,7 @@ const ProductDetailPage = () => {
   const goToAuth = useCallback(() => navigate("/auth", { state: { from: `${location.pathname}${location.search}` } }), [navigate, location.pathname, location.search]);
 
   const [product, setProduct] = useState(null);
+  const descriptionHtml = useMemo(() => sanitizeProductDescription(product?.description), [product?.description]);
   const [loading, setLoading] = useState(true);
   const [imageSettings, setImageSettings] = useState(null);
   const [siteSettings, setSiteSettings] = useState(null);
@@ -1069,7 +1083,7 @@ const ProductDetailPage = () => {
                 </h2>
                 <div
                   className="product-description min-w-0 max-w-full text-sm text-black leading-relaxed font-medium"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description, { USE_PROFILES: { html: true } }) }}
+                  dangerouslySetInnerHTML={{ __html: descriptionHtml }}
                 />
               </div>
             </div>

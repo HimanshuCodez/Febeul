@@ -68,7 +68,8 @@ button, nav, .ui-element {
 .product-description,
 .product-description * {
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
   /* Pasted rich text may include inline styles that prevent wrapping. */
   white-space: normal !important;
 }

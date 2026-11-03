@@ -168,3 +168,40 @@ test('product HTML preserves formatting while removing scripts and executable at
   expect(await page.evaluate(() => window.securityXss)).toBeUndefined();
   expect(state.errors).toEqual([]);
 });
+
+test('product descriptions wrap whole words from rich-text HTML on mobile and desktop', async ({ page }) => {
+  const state = await mockShop(page, { description: `
+    <p style="white-space: nowrap; word-break: break-all; overflow-wrap: anywhere">This&nbsp;beautiful&#160;lingerie&#xa0;features\u00a0a&nbsp;<strong>comfortable</strong>&nbsp;fit&nbsp;with&nbsp;delicate&nbsp;detailing&nbsp;for&nbsp;everyday&nbsp;comfort.</p>
+    <ul><li><em>Thoughtfully&nbsp;designed&nbsp;with&nbsp;soft&nbsp;fabric&nbsp;and&nbsp;elegant&nbsp;finishing.</em></li></ul>
+    <p><a href="/products" title="Soft&nbsp;fabric">Find&nbsp;your&nbsp;style</a></p>
+    <p data-long-reference>${'LongProductReference'.repeat(20)}</p>
+  ` });
+  await openProduct(page);
+  const description = page.locator('.product-description');
+  await expect(description.locator('strong')).toHaveText('comfortable');
+  await expect(description.locator('a')).toHaveAttribute('href', '/products');
+  await expect(description.locator('a')).toHaveAttribute('title', 'Soft\u00a0fabric');
+  expect(await description.textContent()).not.toContain('\u00a0');
+
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    const layout = await description.evaluate(element => {
+      const splitWords = [];
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (node.parentElement.closest('[data-long-reference]')) continue;
+        for (const match of node.textContent.matchAll(/\S+/g)) {
+          const range = document.createRange();
+          range.setStart(node, match.index);
+          range.setEnd(node, match.index + match[0].length);
+          const lines = new Set([...range.getClientRects()].map(rect => Math.round(rect.top)));
+          if (lines.size > 1) splitWords.push(match[0]);
+        }
+      }
+      return { splitWords, overflow: element.scrollWidth > element.clientWidth + 1 };
+    });
+    expect(layout, `Description wrapping at ${width}px`).toEqual({ splitWords: [], overflow: false });
+  }
+  expect(state.errors).toEqual([]);
+});
