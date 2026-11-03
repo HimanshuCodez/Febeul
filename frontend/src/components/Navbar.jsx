@@ -232,7 +232,7 @@ export default function Header() {
     },
   ];
   return (
-    <header className="w-full  sticky top-0 z-40 bg-white shadow-md">
+    <header className="w-full  sticky top-0 z-40 border-t border-white bg-white shadow-md md:border-t-0">
       {/* Top Banner */}
       <div className="bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between text-sm">

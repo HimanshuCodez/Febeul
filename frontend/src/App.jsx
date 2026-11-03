@@ -180,7 +180,7 @@ const AppContent = () => {
     <div>
       <ScrollToTop />
       <Toaster />
-      <SwipingMessages className="mobile-only border-b border-white" showSocials={false}/>
+      <SwipingMessages className="mobile-only" showSocials={false}/>
       {showHeaderFooter && <Header />}
       <Routes>
         {/* Default route - Home */}
