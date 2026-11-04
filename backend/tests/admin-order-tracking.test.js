@@ -9,6 +9,9 @@ import exchangeModel from '../models/exchangeModel.js';
 import userModel from '../models/userModel.js';
 import { userToken } from '../utils/authTokens.js';
 import { buildAdminOrderTracking } from '../utils/adminOrderTracking.js';
+import { syncOrderTracking } from '../utils/orderTrackingSync.js';
+import { syncReturnTracking } from '../utils/returnTrackingSync.js';
+import { getAftercareEligibility } from '../../frontend/src/utils/orderAftercare.js';
 
 // Real controllers, a disposable database, test-only keys and no external traffic.
 Object.assign(process.env, { JWT_SECRET: 'admin-tracking-tests-only-secret-32-bytes', RAZORPAY_KEY_ID: 'rzp_test_local', RAZORPAY_KEY_SECRET: 'local-secret', STRIPE_SECRET_KEY: 'sk_test_local', RESEND_API_KEY: 're_local', SHIPROCKET_WEBHOOK_SECRET: 'local-hook', ANALYTICS_ENABLED: 'false', NODE_ENV: 'test' });
@@ -149,6 +152,43 @@ test('manual delivery updates are visible, and an open item exchange takes prior
   ]);
   assert.match(tracked.label, /Exchange.*Verified/);
   assert.equal(tracked.journeys.filter(row => row.key.startsWith('exchange-')).length, 2);
+});
+
+test('delivery webhooks save India scan times and immediately enable return and exchange', async () => {
+  const order = await makeOrder({ orderStatus: 'Shipped', shiprocketStatus: 'IN_TRANSIT', deliveredAt: undefined });
+  await userModel.updateOne({ _id: customer._id }, { $unset: { email: 1 } });
+  await request('/api/order/shiprocket-webhook', {
+    order_id: String(order._id), current_status: 'DELIVERED', current_timestamp: '04 11 2026 14:15:59',
+  }, { 'x-api-key': 'local-hook' });
+  const detail = (await request(`/api/order/${order._id}`, undefined, { token: userToken(customer) })).order;
+  assert.equal(detail.deliveredAt, '2026-11-04T08:45:59.000Z');
+  assert.equal(detail.shiprocket.trackingHistory.find(scan => scan.status === 'DELIVERED').date, detail.deliveredAt);
+  const eligibility = getAftercareEligibility(detail, 'Delivered', Date.parse('2026-11-04T08:46:00Z'));
+  assert.equal(eligibility.return.allowed, true);
+  assert.equal(eligibility.exchange.allowed, true);
+});
+
+test('forward and return tracking polls use the same India scan timezone as webhooks', async () => {
+  await userModel.updateOne({ _id: customer._id }, { $unset: { email: 1 } });
+  const forward = await makeOrder({ orderStatus: 'Shipped', shiprocketStatus: 'SHIPPED', deliveredAt: undefined,
+    shiprocket: { awb: 'FORWARD-TIMEZONE-TEST' } });
+  const returned = await makeOrder({ refundDetails: { requestType: 'return', status: 'pending',
+    pickup: { status: 'scheduled', awb: 'RETURN-TIMEZONE-TEST' } } });
+  const auth = nock('https://apiv2.shiprocket.in').post('/v1/external/auth/login').reply(200, { token: 'local-tracking-token' });
+  const forwardTracking = nock('https://apiv2.shiprocket.in').get('/v1/external/courier/track/awb/FORWARD-TIMEZONE-TEST')
+    .reply(200, { tracking_data: { shipment_track: [{ current_status: 'IN TRANSIT' }],
+      shipment_track_activities: [{ status: 'IN TRANSIT', date: '2026-11-03 17:22:00' }] } });
+  const returnTracking = nock('https://apiv2.shiprocket.in').get('/v1/external/courier/track/awb/RETURN-TIMEZONE-TEST')
+    .reply(200, { tracking_data: { shipment_track: [{ current_status: 'PICKED UP' }],
+      shipment_track_activities: [{ status: 'PICKED UP', date: '2026-11-04 14:15:59' }] } });
+  await syncOrderTracking(forward, { force: true });
+  await syncReturnTracking(returned, { force: true });
+  assert.ok(auth.isDone() && forwardTracking.isDone() && returnTracking.isDone());
+  const savedForward = await orderModel.findById(forward._id);
+  const savedReturn = await orderModel.findById(returned._id);
+  assert.equal(savedForward.shiprocket.trackingHistory[0].date.toISOString(), '2026-11-03T11:52:00.000Z');
+  assert.equal(savedReturn.refundDetails.pickup.trackingHistory[0].date.toISOString(), '2026-11-04T08:45:59.000Z');
+  assert.equal(savedReturn.refundDetails.returnTracking.pickupDate.toISOString(), '2026-11-04T08:45:59.000Z');
 });
 
 test('RefundRequests rejection is reflected in Orders with its decision date and reason', async () => {

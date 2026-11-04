@@ -11,7 +11,7 @@
 // every critical/lost/refund-deadline calculation downstream is wrong with it.
 
 import { trackShipment, extractTrackingData } from './shiprocket.js';
-import { mapShiprocketStatus, mergeTrackingHistory } from './shiprocketStatusMap.js';
+import { mapShiprocketStatus, mergeTrackingHistory, parseShiprocketTimestamp } from './shiprocketStatusMap.js';
 import { appendReturnHistory } from './returnStatus.js';
 
 // Shiprocket's shipment vocabulary → our reverse-pickup vocabulary.
@@ -113,7 +113,7 @@ export const syncReturnTracking = async (order, { force = false, staleMs = TRACK
                 status: mapShiprocketStatus(act.status || act.activity)?.shiprocketStatus || 'UNKNOWN',
                 activity: act.activity || act.status || '',
                 location: act.location || '',
-                date: act.date
+                date: parseShiprocketTimestamp(act.date)
             })));
         }
 
@@ -125,8 +125,7 @@ export const syncReturnTracking = async (order, { force = false, staleMs = TRACK
             // so pickupDate lands on when the parcel was actually collected
             // rather than whenever this poll happened to run.
             const scan = activities.find(act => mapShiprocketStatus(act.status || act.activity)?.shiprocketStatus === mapped.shiprocketStatus);
-            const scanDate = scan?.date ? new Date(scan.date) : new Date();
-            applyReturnPickupStatus(order, mapped.shiprocketStatus, isNaN(scanDate.getTime()) ? new Date() : scanDate);
+            applyReturnPickupStatus(order, mapped.shiprocketStatus, parseShiprocketTimestamp(scan?.date));
         }
 
         await order.save();

@@ -17,6 +17,7 @@ import {
 } from './shiprocket.js';
 import {
     mapShiprocketStatus,
+    parseShiprocketTimestamp,
     mergeTrackingHistory,
     isStatusProgression
 } from './shiprocketStatusMap.js';
@@ -69,7 +70,7 @@ const applyActivities = (order, activities = []) => {
         status: mapShiprocketStatus(act.status || act.activity)?.shiprocketStatus || 'UNKNOWN',
         activity: act.activity || act.status || '',
         location: act.location || '',
-        date: act.date
+        date: parseShiprocketTimestamp(act.date)
     }));
     order.shiprocket.trackingHistory = mergeTrackingHistory(order.shiprocket.trackingHistory, newEntries);
     return true;

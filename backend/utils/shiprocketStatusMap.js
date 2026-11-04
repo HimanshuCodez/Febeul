@@ -101,16 +101,21 @@ export const isStatusProgression = (currentStatus, nextStatus) => {
 };
 
 // Parses Shiprocket's various timestamp formats ('DD MM YYYY HH:MM:SS' from
-// webhooks, or ISO-ish strings from the tracking API) into a valid Date,
-// falling back to now if parsing fails.
+// webhooks, or ISO-ish strings from the tracking API) into a valid Date.
+// Unzoned courier timestamps are India local time, regardless of the server's
+// timezone. Preserve explicit offsets and fall back to now if parsing fails.
 export const parseShiprocketTimestamp = (rawTimestamp) => {
     if (rawTimestamp) {
-        const parts = rawTimestamp.toString().match(/(\d{2}) (\d{2}) (\d{4}) (\d{2}):(\d{2}):(\d{2})/);
-        if (parts) {
-            const parsed = new Date(`${parts[3]}-${parts[2]}-${parts[1]} ${parts[4]}:${parts[5]}:${parts[6]}`);
-            if (!isNaN(parsed.getTime())) return parsed;
+        let timestamp = rawTimestamp;
+        if (typeof timestamp === 'string') {
+            timestamp = timestamp.trim();
+            const parts = timestamp.match(/^(\d{2}) (\d{2}) (\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
+            if (parts) timestamp = `${parts[3]}-${parts[2]}-${parts[1]}T${parts[4]}:${parts[5]}:${parts[6]}`;
+            if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(timestamp)) {
+                timestamp = `${timestamp.replace(' ', 'T')}+05:30`;
+            }
         }
-        const direct = new Date(rawTimestamp);
+        const direct = new Date(timestamp);
         if (!isNaN(direct.getTime())) return direct;
     }
     return new Date();
