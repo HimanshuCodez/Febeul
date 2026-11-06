@@ -1,13 +1,14 @@
 import axios from 'axios';
-import { processPrepaidRefund } from '../utils/paymentRefunds.js';
+import { processPrepaidRefund, processStripeRefund } from '../utils/paymentRefunds.js';
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Razorpay from "razorpay";
 import { v2 as cloudinary } from "cloudinary";
-import { createReturnOrder, buildShiprocketOrderPayload, cancelShiprocketOrder } from "../utils/shiprocket.js";
+import { cancelShiprocketOrder } from "../utils/shiprocket.js";
 import { sendTemplateEmail } from "../utils/sendTemplateEmail.js";
 import { sendRefundCompletedEmail } from '../utils/orderNotifications.js';
 import { appendReturnHistory, INTERNAL_STATUS } from "../utils/returnStatus.js";
+import { getReturnRefundBlockReason } from '../../shared/returnWorkflow.js';
 
 const razorpayInstance = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -102,7 +103,16 @@ const approveRefund = async (req, res) => {
         }
         if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails.requestType === 'cancellation') return res.status(409).json({ success: false, message: 'Use the cancellation refund retry action. Cancellation refunds must match the full paid amount.' });
 
-        let refundAmount = manualRefundAmount !== undefined ? parseFloat(manualRefundAmount) : await calculateRefundAmount(order, returnReason || order.refundDetails.reason, order.shiprocketStatus || 'UNKNOWN');
+        if (order.refundDetails.requestType === 'return') {
+            const blockReason = getReturnRefundBlockReason(order);
+            if (blockReason) return res.status(409).json({ success: false, message: blockReason });
+            if (order.paymentMethod === 'COD') return res.status(409).json({ success: false, message: 'Pay the COD refund and record its bank reference from the return settlement action.' });
+        }
+
+        const reason = returnReason || order.refundDetails.reason;
+        const calculationReason = ['buyer_fault', 'seller_fault', 'courier_fault'].includes(reason) ? reason : undefined;
+        const refundAmount = manualRefundAmount !== undefined ? Number(manualRefundAmount)
+            : order.refundRequestAmount ?? await calculateRefundAmount(order, calculationReason, order.shiprocketStatus || 'UNKNOWN');
 
         if (!Number.isFinite(refundAmount) || refundAmount < 0 || refundAmount > order.orderTotal) return res.status(400).json({ success: false, message: 'Invalid refund amount.' });
         let refundResult = { success: false };
@@ -111,6 +121,8 @@ const approveRefund = async (req, res) => {
             const paymentId = order.razorpayPaymentId || order.paymentDetails?.razorpay_payment_id;
             if (!paymentId) return res.json({ success: false, message: "Razorpay Payment ID not found." });
             refundResult = await processPrepaidRefund(orderId, paymentId, refundAmount);
+        } else if (order.paymentMethod === 'Stripe' && order.refundDetails.requestType === 'return') {
+            refundResult = await processStripeRefund(orderId, refundAmount);
         } else if (order.paymentMethod === 'COD') {
             refundResult = await processCodRefund(orderId, refundAmount, order.refundDetails.customerPayoutDetails);
         } else {
@@ -118,12 +130,14 @@ const approveRefund = async (req, res) => {
         }
 
         if (refundResult.success) {
-            order.orderStatus = 'Refunded';
-            order.refundDetails.status = 'completed';
+            const completed = !refundResult.status || refundResult.status === 'completed';
+            order.orderStatus = completed ? 'Refunded' : 'Refund Initiated';
+            order.refundDetails.status = completed ? 'completed' : 'processing';
             order.refundDetails.amount = refundAmount;
             order.refundDetails.id = refundResult.refundId;
-            order.refundDetails.processedAt = new Date();
-            order.refundDetails.adminRefundComment = adminRefundComment || "";
+            if (refundResult.gatewayStatus) order.refundDetails.gatewayStatus = refundResult.gatewayStatus;
+            if (completed) order.refundDetails.processedAt = new Date();
+            if (adminRefundComment !== undefined) order.refundDetails.adminRefundComment = adminRefundComment || "";
             order.refundDetails.isPartialRefund = isPartialRefund || (refundAmount < order.orderTotal);
             order.isRefundable = false;
 
@@ -132,62 +146,20 @@ const approveRefund = async (req, res) => {
             // produce the same audit trail.
             if (!order.refundDetails.returnTracking) order.refundDetails.returnTracking = {};
             order.refundDetails.returnTracking.refundInitiatedAt = order.refundDetails.returnTracking.refundInitiatedAt || new Date();
-            order.refundDetails.returnTracking.refundPaidAt = new Date();
+            if (completed) order.refundDetails.returnTracking.refundPaidAt = new Date();
             order.refundDetails.returnTracking.refundDecidedBy = req.userName || req.userEmail || 'admin';
             if (adminRefundComment) order.refundDetails.returnTracking.refundDecisionReason = adminRefundComment;
             appendReturnHistory(order, {
-                status: INTERNAL_STATUS.REFUND_COMPLETED,
+                status: completed ? INTERNAL_STATUS.REFUND_COMPLETED : 'REFUND_INITIATED',
                 note: `Refund of ₹${refundAmount} approved via ${order.paymentMethod}${refundResult.refundId ? ` (ref ${refundResult.refundId})` : ''}${adminRefundComment ? ` — ${adminRefundComment}` : ''}`,
                 by: req.userName || req.userEmail || 'admin'
             });
-
-            // Only a physical-item "return" (as opposed to a money-only "refund"
-            // claim, e.g. item never arrived) has anything for the courier to
-            // collect. Best-effort: refund still succeeds even if scheduling
-            // fails, but the failure reason is recorded so admin can arrange
-            // pickup manually.
-            const needsPickup = order.refundDetails.requestType === 'return' && order.refundDetails.pickup.status === 'none';
-            if (needsPickup) {
-                try {
-                    const payload = buildShiprocketOrderPayload(order);
-                    const returnResponse = await createReturnOrder(payload);
-
-                    if (returnResponse && returnResponse.order_id) {
-                        order.refundDetails.pickup.status = 'scheduled';
-                        order.refundDetails.pickup.shiprocketReturnOrderId = returnResponse.order_id;
-                        order.refundDetails.pickup.shipmentId = returnResponse.shipment_id;
-                        order.refundDetails.pickup.scheduledDate = new Date();
-                        appendReturnHistory(order, {
-                            status: INTERNAL_STATUS.PICKUP_SCHEDULED,
-                            note: 'Reverse pickup scheduled with the courier',
-                            by: 'system'
-                        });
-                    } else {
-                        order.refundDetails.pickup.status = 'failed';
-                        order.refundDetails.pickup.failureReason = 'Shiprocket did not return a valid return order.';
-                        appendReturnHistory(order, {
-                            status: 'PICKUP_SCHEDULING_FAILED',
-                            note: 'Courier did not accept the reverse pickup — arrange collection manually',
-                            by: 'system'
-                        });
-                    }
-                } catch (pickupError) {
-                    console.log("Error scheduling Shiprocket reverse pickup:", pickupError.message);
-                    order.refundDetails.pickup.status = 'failed';
-                    order.refundDetails.pickup.failureReason = pickupError.message;
-                    appendReturnHistory(order, {
-                        status: 'PICKUP_SCHEDULING_FAILED',
-                        note: `Reverse pickup could not be scheduled — ${pickupError.message}`,
-                        by: 'system'
-                    });
-                }
-            }
 
             await order.save();
 
             await sendRefundCompletedEmail(order._id);
 
-            return res.json({ success: true, message: `Refund successful. Amount: ₹${refundAmount}` });
+            return res.json({ success: true, message: completed ? `Refund successful. Amount: ₹${refundAmount}` : 'Refund accepted by the gateway and processing. Check its status before closing the return.' });
         }
         res.json({ success: false, message: refundResult.message });
     } catch (error) {
@@ -262,7 +234,7 @@ const requestRefund = async (req, res) => {
                 date: requestedAt
             }]
         };
-        if (isDelivered) updateData.orderStatus = 'Refund Initiated';
+        if (isDelivered && updateData['refundDetails.requestType'] !== 'return') updateData.orderStatus = 'Refund Initiated';
         if (order.paymentMethod === 'COD' && payoutDetails) updateData['refundDetails.customerPayoutDetails'] = JSON.parse(payoutDetails);
 
         const updatedOrder = await orderModel.findByIdAndUpdate(orderId, updateData, { new: true });

@@ -1,5 +1,7 @@
 import express from 'express';
 import {
+    approveReturn,
+    refundReturn,
     listReturns,
     getReturn,
     markPickedUp,
@@ -25,6 +27,8 @@ returnRouter.get('/list', adminAuth, listReturns);
 returnRouter.get('/:id', adminAuth, getReturn);
 
 returnRouter.post('/mark-picked-up', adminAuth, markPickedUp);
+returnRouter.post('/approve', adminAuth, approveReturn);
+returnRouter.post('/refund', adminAuth, refundReturn);
 returnRouter.post('/mark-received', adminAuth, markReceived);
 returnRouter.post('/mark-late-received', adminAuth, markLateReceived);
 returnRouter.post('/quality-check', adminAuth, upload.array('photos', 6), submitQualityCheck);

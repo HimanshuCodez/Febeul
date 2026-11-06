@@ -20,7 +20,7 @@ import cmsModel from '../models/cmsModel.js';
 export const RETURN_SETTINGS_DEFAULTS = {
     returnCriticalDays: 10,  // Parcel not received by now → flagged for investigation
     returnLostDays: 50,      // Parcel not received by now → written off as lost
-    returnMaxRefundDays: 15, // Refund must be settled by now, received or not
+    returnMaxRefundDays: 15, // Settlement target; receipt and QC still gate refunds
     returnSupportEmail: ''
 };
 

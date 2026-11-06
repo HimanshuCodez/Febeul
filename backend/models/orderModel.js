@@ -101,6 +101,8 @@ const orderSchema = new mongoose.Schema({
         // existing order instantly. Everything else here is evidence and audit
         // trail, not state.
         returnTracking: {
+            approvedAt: { type: Date },
+            approvedBy: { type: String },
             pickupDate: { type: Date },   // Day 0 — courier collected the parcel. Every day-count is measured from here.
             receivedDate: { type: Date }, // Warehouse receipt. Setting this stops the clock permanently.
             manualStatus: {               // Admin override. Wins over the computed status (see returnStatus.js for the one exception).

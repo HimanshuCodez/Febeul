@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   X, User, MessageSquare, Truck, PackageCheck, ClipboardCheck, Banknote,
   Search, ShieldAlert, History, Camera, Upload, AlertTriangle, CheckCircle2,
   XCircle, Clock, CalendarDays, Info, PhoneCall, Landmark, Undo2, Lock
 } from 'lucide-react';
 import { currency } from '../../App';
+import { getReturnRefundBlockReason, isReturnAwaitingApproval } from '../../../../shared/returnWorkflow';
 import {
   toneOf, labelOf, MANUAL_STATUS_OPTIONS, STATUS_META, fmtDate, fmtDateTime, toDateInputValue
 } from '../../utils/returnStatus';
@@ -59,7 +60,7 @@ const Stat = ({ label, value, sub, tone = 'text-white' }) => (
   </div>
 );
 
-const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy }) => {
+const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onReject, busy }) => {
   const view = request.view || {};
   const refund = request.refundDetails || {};
   const rt = refund.returnTracking || {};
@@ -76,7 +77,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
   const [settleAmount, setSettleAmount] = useState('');
   const [settleReason, setSettleReason] = useState('');
   const [ticket, setTicket] = useState(rt.investigationTicket || '');
-  const [investigationNote, setInvestigationNote] = useState('');
+  const [investigationNote] = useState('');
   const [followup, setFollowup] = useState('');
   const [claimStatus, setClaimStatus] = useState(rt.claimStatus && rt.claimStatus !== 'none' ? rt.claimStatus : 'filed');
   const [claimAmount, setClaimAmount] = useState(rt.claimAmount || '');
@@ -85,15 +86,17 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
   const [overrideStatus, setOverrideStatus] = useState('');
   const [overrideNote, setOverrideNote] = useState('');
   const [lateNote, setLateNote] = useState('');
-  const [approvalMode, setApprovalMode] = useState('full');
-  const [approvalAmount, setApprovalAmount] = useState('');
-  const [approvalReason, setApprovalReason] = useState('');
-  const [approvalComment, setApprovalComment] = useState('');
+  const [refundMode, setRefundMode] = useState('full');
+  const [gatewayAmount, setGatewayAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [refundComment, setRefundComment] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [showReject, setShowReject] = useState(false);
   const photoInputRef = useRef(null);
 
-  const awaitingApproval = refund.status === 'pending';
+  const awaitingApproval = isReturnAwaitingApproval(request);
+  const refundBlockReason = getReturnRefundBlockReason(request);
+  const gatewayRefund = ['Razorpay', 'Stripe'].includes(request.paymentMethod);
 
   const settled = refund.status === 'completed';
   const received = !!rt.receivedDate;
@@ -121,7 +124,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
     <div className="fixed inset-0 z-[100] flex justify-end">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl bg-slate-50 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      <div role="dialog" aria-modal="true" aria-label={`Return details ${request.orderItemId || request._id}`} className="relative w-full max-w-2xl bg-slate-50 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="px-7 py-5 bg-white border-b border-slate-100 flex items-start justify-between gap-4 shrink-0">
           <div className="min-w-0">
@@ -141,7 +144,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
             </h3>
             <p className="text-[11px] text-slate-400 font-bold truncate">{request._id}</p>
           </div>
-          <button onClick={onClose} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-400 shrink-0">
+          <button aria-label="Close return details" onClick={onClose} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-400 shrink-0">
             <X size={18} />
           </button>
         </div>
@@ -170,8 +173,8 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
             <div className="mt-4 flex items-start gap-2.5 bg-red-500/15 border border-red-400/30 rounded-xl px-3.5 py-2.5">
               <AlertTriangle size={14} className="text-red-400 mt-0.5 shrink-0" />
               <p className="text-[11px] font-bold text-red-100 leading-relaxed">
-                Past the {view.thresholds?.returnMaxRefundDays ?? 15}-day settlement promise. Pay the customer now and recover from the courier
-                separately — a chargeback costs more than the parcel.
+                Past the {view.thresholds?.returnMaxRefundDays ?? 15}-day settlement target. Follow up with the courier.
+                Refund remains locked until warehouse receipt and a passed quality check.
               </p>
             </div>
           )}
@@ -179,59 +182,18 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-7 py-6 space-y-8">
-          {/* Approval gate — the decision that starts the journey. Approving
-              schedules the reverse pickup and pushes the money for prepaid
-              orders; everything below only becomes relevant afterwards. */}
+          {/* Approval arranges collection; settlement follows warehouse QC. */}
           {awaitingApproval && (
-            <Section icon={ClipboardCheck} title="Approval Decision" subtitle="Approving schedules the courier pickup and settles prepaid orders through the gateway.">
+            <Section icon={ClipboardCheck} title="Approval Decision" subtitle="Approving schedules courier pickup. Refund is the final step, after warehouse receipt and a passed quality check.">
               <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 space-y-4 shadow-lg shadow-slate-900/5">
                 {!showReject ? (
                   <>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[['full', 'Full Refund'], ['partial', 'Partial Refund']].map(([mode, label]) => (
-                        <button
-                          key={mode}
-                          onClick={() => setApprovalMode(mode)}
-                          className={`py-3 rounded-xl text-[11px] font-black uppercase tracking-widest border-2 transition-all ${
-                            approvalMode === mode ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {approvalMode === 'partial' ? (
-                      <Field label={`Refund amount (max ${currency}${(request.orderTotal || 0).toFixed(2)})`}>
-                        <input type="number" placeholder="0.00" value={approvalAmount} onChange={(e) => setApprovalAmount(e.target.value)} className={inputClass} />
-                      </Field>
-                    ) : (
-                      <Field label="Fault attribution">
-                        <select value={approvalReason} onChange={(e) => setApprovalReason(e.target.value)} className={inputClass}>
-                          <option value="">Auto-calculate</option>
-                          <option value="buyer_fault">Buyer fault (convenience fee deducted)</option>
-                          <option value="seller_fault">Seller fault (full + charges)</option>
-                          <option value="courier_fault">Courier fault (full + charges)</option>
-                        </select>
-                      </Field>
-                    )}
-
-                    <Field label="Comment for the customer">
-                      <textarea rows="2" placeholder="Shown to the buyer with their refund" value={approvalComment} onChange={(e) => setApprovalComment(e.target.value)} className={inputClass} />
-                    </Field>
-
                     <div className="flex gap-2">
                       <Btn
                         variant="dark"
                         className="flex-1"
-                        disabled={busy || (approvalMode === 'partial' && !approvalAmount)}
-                        onClick={() => onApprove({
-                          orderId: request._id,
-                          returnReason: approvalMode === 'full' ? approvalReason || undefined : undefined,
-                          manualRefundAmount: approvalMode === 'partial' ? parseFloat(approvalAmount) : undefined,
-                          adminRefundComment: approvalComment,
-                          isPartialRefund: approvalMode === 'partial',
-                        })}
+                        disabled={busy}
+                        onClick={() => onApprove({ orderId: request._id })}
                       >
                         Approve &amp; Schedule Pickup
                       </Btn>
@@ -258,7 +220,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
           {refund.status === 'rejected' && (
             <div className="bg-red-50 border border-red-100 rounded-2xl p-5">
               <p className="text-[10px] font-black text-red-600 uppercase tracking-wider">Request rejected</p>
-              <p className="text-xs font-bold text-red-800 italic mt-1.5">"{refund.rejectionReason || 'No reason recorded.'}"</p>
+              <p className="text-xs font-bold text-red-800 italic mt-1.5">&quot;{refund.rejectionReason || 'No reason recorded.'}&quot;</p>
             </div>
           )}
 
@@ -282,8 +244,8 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
           {/* Request context */}
           <Section icon={MessageSquare} title="Request Context">
             <div className="bg-white p-5 rounded-2xl border border-slate-100 space-y-3">
-              <p className="text-[10px] font-black text-slate-400 uppercase">Customer's reason</p>
-              <p className="text-sm text-slate-700 font-medium italic">"{refund.reason || 'No reason provided.'}"</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase">Customer&apos;s reason</p>
+              <p className="text-sm text-slate-700 font-medium italic">&quot;{refund.reason || 'No reason provided.'}&quot;</p>
               <p className="text-[10px] text-slate-400 font-bold">Requested {fmtDateTime(refund.requestedAt)}</p>
               {refund.images?.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-2">
@@ -376,7 +338,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
                     </p>
                   </div>
                 </div>
-                {rt.lateNote && <p className="text-[11px] text-slate-600 font-medium italic mt-3 pl-8">"{rt.lateNote}"</p>}
+                {rt.lateNote && <p className="text-[11px] text-slate-600 font-medium italic mt-3 pl-8">&quot;{rt.lateNote}&quot;</p>}
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
@@ -431,7 +393,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
                   </p>
                 </div>
                 <p className="text-[11px] font-bold text-slate-500 mt-1.5 pl-7">By {rt.qcBy || 'admin'}</p>
-                {rt.qcNotes && <p className="text-xs text-slate-700 font-medium italic mt-3 pl-7">"{rt.qcNotes}"</p>}
+                {rt.qcNotes && <p className="text-xs text-slate-700 font-medium italic mt-3 pl-7">&quot;{rt.qcNotes}&quot;</p>}
                 {rt.qcPhotos?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-4 pl-7">
                     {rt.qcPhotos.map((img, i) => (
@@ -521,7 +483,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
           </Section>
 
           {/* Settlement */}
-          <Section icon={Banknote} title="Settlement" subtitle="The UTR is the only proof the customer was actually paid.">
+          <Section icon={Banknote} title="Settlement" subtitle="Issue the refund after the returned item is received and passes inspection.">
             {settled ? (
               <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-5 space-y-2">
                 <div className="flex items-center justify-between">
@@ -537,20 +499,53 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onReject, busy })
                   <span className="inline-block text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-700 px-2 py-1 rounded-lg">Partial refund</span>
                 )}
               </div>
+            ) : refundBlockReason ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-sm font-semibold text-slate-500">
+                <Lock size={18} className="mb-2" />{refundBlockReason}
+              </div>
+            ) : gatewayRefund ? (
+              <div className="space-y-4 rounded-2xl border border-slate-100 bg-white p-5">
+                <p className="text-xs font-bold text-slate-700">Refund through {request.paymentMethod} to the original payment source.</p>
+                {refund.status !== 'processing' && <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[['full', 'Full Refund'], ['partial', 'Partial Refund']].map(([mode, label]) => (
+                      <Btn key={mode} variant={refundMode === mode ? 'dark' : 'ghost'} onClick={() => setRefundMode(mode)}>{label}</Btn>
+                    ))}
+                  </div>
+                  {refundMode === 'partial' ? (
+                    <Field label={`Refund amount (max ${currency}${(request.orderTotal || 0).toFixed(2)})`}>
+                      <input type="number" aria-label="Refund amount" min="0.01" max={request.orderTotal} step="0.01" placeholder="0.00" value={gatewayAmount} onChange={e => setGatewayAmount(e.target.value)} className={inputClass} />
+                    </Field>
+                  ) : (
+                    <Field label="Fault attribution">
+                      <select value={refundReason} onChange={e => setRefundReason(e.target.value)} className={inputClass}>
+                        <option value="">Auto-calculate</option>
+                        <option value="buyer_fault">Buyer fault (convenience fee deducted)</option>
+                        <option value="seller_fault">Seller fault (full + charges)</option>
+                        <option value="courier_fault">Courier fault (full + charges)</option>
+                      </select>
+                    </Field>
+                  )}
+                  <Field label="Comment for the customer">
+                    <textarea rows="2" placeholder="Shown to the buyer with their refund" value={refundComment} onChange={e => setRefundComment(e.target.value)} className={inputClass} />
+                  </Field>
+                </>}
+                {refund.status === 'processing' && <p className="text-xs font-semibold text-blue-600">The gateway is processing this refund. Check its status to confirm completion.</p>}
+                <Btn variant="emerald" className="w-full" disabled={busy || (refund.status !== 'processing' && refundMode === 'partial' && (!Number.isFinite(Number(gatewayAmount)) || Number(gatewayAmount) <= 0 || Number(gatewayAmount) > request.orderTotal))}
+                  onClick={() => onRefund({ orderId: request._id,
+                    ...(refund.status !== 'processing' ? {
+                      returnReason: refundMode === 'full' ? refundReason || undefined : undefined,
+                      manualRefundAmount: refundMode === 'partial' ? Number(gatewayAmount) : undefined,
+                      adminRefundComment: refundComment, isPartialRefund: refundMode === 'partial',
+                    } : {}),
+                  })}>
+                  {refund.status === 'processing' ? 'Check Refund Status' : 'Issue Refund'}
+                </Btn>
+              </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
                 {/* Payout destination the customer gave us */}
-                {request.paymentMethod === 'Razorpay' ? (
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5">
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Prepaid · Razorpay</p>
-                    <p className="text-xs font-bold text-slate-800 mt-1 break-all">
-                      Payment ID: {request.razorpayPaymentId || request.paymentDetails?.razorpay_payment_id || 'N/A'}
-                    </p>
-                    <p className="text-[11px] text-blue-600 font-medium mt-1">
-                      Approve from the Refund Requests queue to push it back through the gateway, or record a manual settlement below.
-                    </p>
-                  </div>
-                ) : refund.customerPayoutDetails?.type ? (
+                {refund.customerPayoutDetails?.type ? (
                   <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 space-y-2">
                     <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
                       <Landmark size={11} /> COD payout · {refund.customerPayoutDetails.type === 'upi' ? 'UPI' : 'Bank transfer'}

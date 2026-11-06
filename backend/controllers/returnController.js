@@ -19,6 +19,9 @@ import {
 } from '../utils/returnStatus.js';
 import { syncReturnsTracking, syncReturnTracking } from '../utils/returnTrackingSync.js';
 import { sendRefundCompletedEmail } from '../utils/orderNotifications.js';
+import { createReturnOrder, buildShiprocketOrderPayload } from '../utils/shiprocket.js';
+import { approveRefund } from './refundController.js';
+import { getReturnRefundBlockReason, isReturnAwaitingApproval } from '../../shared/returnWorkflow.js';
 
 const RETURN_FILTER = { 'refundDetails.requestType': 'return' };
 
@@ -46,6 +49,63 @@ const respondWithOrder = async (res, order, message) => {
         order,
         view: buildAdminReturnView(order, settings)
     });
+};
+
+// Approval arranges collection only. Money stays pending until receipt and QC.
+const approveReturn = async (req, res) => {
+    try {
+        const { order, error } = await loadReturnOrder(req.body.orderId);
+        if (error) return res.status(400).json({ success: false, message: error });
+        if (order.isCancelled || order.refundDetails.status !== 'pending') {
+            return res.status(409).json({ success: false, message: 'This return is not awaiting approval.' });
+        }
+        if (!isReturnAwaitingApproval(order)) {
+            return res.json({ success: true, message: 'This return is already approved. No refund has been issued by this action.' });
+        }
+        // Claim the decision before contacting the courier so repeated clicks
+        // cannot create multiple return shipments.
+        const approved = await orderModel.findOneAndUpdate({
+            _id: order._id, 'refundDetails.requestType': 'return', 'refundDetails.status': 'pending',
+            'refundDetails.returnTracking.approvedAt': null, isCancelled: { $ne: true },
+        }, { $set: {
+            'refundDetails.returnTracking.approvedAt': new Date(),
+            'refundDetails.returnTracking.approvedBy': actorOf(req),
+        } }, { new: true }).populate('userId', 'name email');
+        if (!approved) return res.status(409).json({ success: false, message: 'Return changed. Refresh before trying again.' });
+        appendReturnHistory(approved, { status: 'RETURN_APPROVED', note: 'Return approved for collection; refund awaits warehouse receipt and QC.', by: actorOf(req) });
+
+        const pickup = approved.refundDetails.pickup;
+        try {
+            const result = await createReturnOrder(buildShiprocketOrderPayload(approved));
+            if (!result?.order_id) throw new Error('Courier did not accept the return pickup.');
+            pickup.status = 'scheduled';
+            pickup.shiprocketReturnOrderId = String(result.order_id);
+            if (result.shipment_id) pickup.shipmentId = String(result.shipment_id);
+            pickup.scheduledDate = new Date();
+            pickup.failureReason = undefined;
+            appendReturnHistory(approved, { status: INTERNAL_STATUS.PICKUP_SCHEDULED, note: 'Reverse pickup scheduled with the courier.', by: actorOf(req) });
+        } catch (pickupError) {
+            pickup.status = 'failed';
+            pickup.failureReason = pickupError.message;
+            appendReturnHistory(approved, { status: 'PICKUP_SCHEDULING_FAILED', note: 'Return approved, but courier scheduling failed. Arrange collection manually.', by: actorOf(req) });
+        }
+        await respondWithOrder(res, approved, pickup.status === 'scheduled'
+            ? 'Return approved and pickup scheduled. Refund will follow warehouse receipt and a passed quality check.'
+            : 'Return approved, but pickup scheduling failed. Arrange collection manually. No refund has been issued.');
+    } catch (error) {
+        console.error('Unable to approve return', { name: error.name });
+        res.status(500).json({ success: false, message: 'Unable to approve return.' });
+    }
+};
+
+const refundReturn = async (req, res) => {
+    try {
+        const { error } = await loadReturnOrder(req.body.orderId);
+        if (error) return res.status(400).json({ success: false, message: error });
+        return await approveRefund(req, res);
+    } catch {
+        return res.status(400).json({ success: false, message: 'Unable to load the return request.' });
+    }
 };
 
 // --- 1. Queue listing -------------------------------------------------------
@@ -275,6 +335,10 @@ const markRefundInitiated = async (req, res) => {
             return res.json({ success: false, message: 'This refund is already completed.' });
         }
 
+        const blockReason = getReturnRefundBlockReason(order);
+        if (blockReason) return res.status(409).json({ success: false, message: blockReason });
+        if (order.paymentMethod !== 'COD') return res.status(409).json({ success: false, message: 'Use the payment gateway refund action for prepaid orders.' });
+
         order.refundDetails.returnTracking.refundInitiatedAt = order.refundDetails.returnTracking.refundInitiatedAt || new Date();
         order.refundDetails.status = 'initiated';
         if (order.orderStatus !== 'Refunded') order.orderStatus = 'Refund Initiated';
@@ -298,12 +362,17 @@ const recordRefundSettlement = async (req, res) => {
         const { order, error } = await loadReturnOrder(orderId);
         if (error) return res.json({ success: false, message: error });
 
+        if (order.refundDetails.status === 'completed') return res.status(409).json({ success: false, message: 'This refund is already completed.' });
+        const blockReason = getReturnRefundBlockReason(order);
+        if (blockReason) return res.status(409).json({ success: false, message: blockReason });
+        if (order.paymentMethod !== 'COD') return res.status(409).json({ success: false, message: 'Use the original payment gateway to refund prepaid orders.' });
+
         if (!utr || !utr.toString().trim()) {
             return res.json({ success: false, message: 'A UTR / bank reference number is required.' });
         }
 
         const settledAmount = amount !== undefined && amount !== '' ? Number(amount) : (order.refundDetails.amount || order.orderTotal || 0);
-        if (isNaN(settledAmount) || settledAmount <= 0) {
+        if (!Number.isFinite(settledAmount) || settledAmount <= 0) {
             return res.json({ success: false, message: 'Enter a valid refund amount.' });
         }
         if (settledAmount > (order.orderTotal || 0)) {
@@ -500,6 +569,8 @@ const setManualStatus = async (req, res) => {
 };
 
 export {
+    approveReturn,
+    refundReturn,
     listReturns,
     getReturn,
     markPickedUp,

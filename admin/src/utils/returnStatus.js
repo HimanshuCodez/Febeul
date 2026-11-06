@@ -80,6 +80,7 @@ export const TONES = {
 // History entries also record actions that aren't statuses (a follow-up call, a
 // cleared override). They share the same timeline, so they need labels too.
 const ACTION_META = {
+  RETURN_APPROVED: { label: 'Return Approved', tone: 'blue' },
   REFUND_INITIATED: { label: 'Refund Initiated', tone: 'emerald' },
   FOLLOW_UP: { label: 'Follow-up', tone: 'amber' },
   OVERRIDE_CLEARED: { label: 'Override Cleared', tone: 'slate' },

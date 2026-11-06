@@ -163,7 +163,7 @@ test('return request emails receive the updated order and pending refund state',
     assert.equal(result.data.success, true);
     for (let attempt = 0; attempt < 30 && !messages.length; attempt++) await new Promise(resolve => setTimeout(resolve, 10));
     assert.equal(messages.length, 1);
-    assert.match(messages[0].html, /buyer@notifications.test \/ Refund Initiated \/ pending/);
+    assert.match(messages[0].html, /buyer@notifications.test \/ Delivered \/ pending/);
     assert.match(messages[0].html, /Test garment/);
 });
 

@@ -12,6 +12,7 @@ import ReturnDrawer from '../components/returns/ReturnDrawer';
 import RefundRequestList from '../components/returns/RefundRequestList';
 import { RETURN_TABS, TONES, toneOf, labelOf, fmtDate } from '../utils/returnStatus';
 import { REQUEST_CATEGORIES, categoryOf, isPrepaid } from '../utils/requestCategory';
+import { isReturnAwaitingApproval } from '../../../shared/returnWorkflow';
 
 // Return journey queue.
 //
@@ -36,7 +37,7 @@ const TABS = [
 // Each return has exactly one home, so the tab counts sum to the total.
 const bucketOf = (row) => {
   const refundStatus = row.refundDetails?.status;
-  if (refundStatus === 'pending') return 'approval';
+  if (isReturnAwaitingApproval(row)) return 'approval';
   if (refundStatus === 'rejected') return 'closed';
   const status = row.view?.status;
   if (status === 'REFUND_COMPLETED') return 'closed';
@@ -157,10 +158,10 @@ const ReturnRequests = ({ token }) => {
   };
 
   const approveReturn = async (payload) => {
-    if (!window.confirm('Approve this return? Prepaid orders are refunded through Razorpay immediately and a courier pickup is scheduled.')) return;
+    if (!window.confirm('Approve this return and schedule courier pickup? Refund will be issued after warehouse receipt and a passed quality check.')) return;
     setBusy(true);
     try {
-      const { data } = await axios.post(`${backendUrl}/api/refund/approve`, payload, { headers: { token } });
+      const { data } = await axios.post(`${backendUrl}/api/return/approve`, payload, { headers: { token } });
       data.success ? toast.success(data.message) : toast.error(data.message);
       if (data.success) await fetchReturns({ silent: true });
     } catch (error) {
@@ -168,6 +169,11 @@ const ReturnRequests = ({ token }) => {
     } finally {
       setBusy(false);
     }
+  };
+
+  const refundReturn = async (payload) => {
+    if (!window.confirm('Send or check this refund through the original payment gateway? The returned item must have been received and passed QC.')) return;
+    await runAction('refund', payload);
   };
 
   const rejectReturn = async (payload) => {
@@ -464,7 +470,7 @@ const ReturnRequests = ({ token }) => {
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${tone.chip}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
-                          {row.refundDetails?.status === 'pending' ? 'Awaiting Approval'
+                          {isReturnAwaitingApproval(row) ? 'Awaiting Approval'
                             : row.refundDetails?.status === 'rejected' ? 'Rejected'
                             : labelOf(view.status)}
                         </span>
@@ -524,6 +530,7 @@ const ReturnRequests = ({ token }) => {
           onClose={() => setSelectedId(null)}
           onAction={runAction}
           onApprove={approveReturn}
+          onRefund={refundReturn}
           onReject={rejectReturn}
         />
       )}
