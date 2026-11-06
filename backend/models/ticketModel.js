@@ -15,6 +15,9 @@ const ticketSchema = new mongoose.Schema({
     status: { type: String, enum: ['open', 'pending', 'closed'], default: 'open' },
     ticketNumber: { type: String, required: true, unique: true }, // Added numeric ticket ID
     lastSeenByUserAt: { type: Date }, // Last time the ticket owner opened this ticket — drives the unread-reply dot
+    // Messages are append-only. Record how far the admin has actually read,
+    // so a reply arriving during a read acknowledgement remains unread.
+    lastSeenByAdminMessageCount: { type: Number, default: 0, min: 0 },
     messages: [messageSchema],
     images: [{ type: String }], // Array to store Cloudinary image URLs
     type: { type: String, enum: ['support', 'appeal'], default: 'support' },

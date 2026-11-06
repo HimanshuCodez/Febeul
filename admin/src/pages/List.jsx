@@ -7,7 +7,7 @@ import { CSVLink } from 'react-csv'
 import { ExternalLink } from 'lucide-react'
 import useSearchPrefill from '../search/useSearchPrefill'
 
-const LOW_STOCK_THRESHOLD = 15;
+const LOW_STOCK_THRESHOLD = 10;
 const storefrontUrl = (import.meta.env.VITE_FRONTEND_URL || (import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:5173` : 'https://febeul.com')).replace(/\/+$/, '');
 
 const List = ({ token }) => {

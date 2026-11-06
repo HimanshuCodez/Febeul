@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, PackageSearch, PlusCircle, List,
@@ -10,6 +10,7 @@ import {
   UserCog, Activity, MailCheck, Share2, Crown
 } from 'lucide-react'
 import './Sidebar.css'
+import UnreadTicketBadge from './UnreadTicketBadge';
 
 // Grouped nav config — single source of truth for search, accordions, and rendering.
 const NAV_SECTIONS = [
@@ -102,7 +103,7 @@ const highlight = (label, query) => {
   );
 };
 
-const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query, onNavigate }) => {
+const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query, onNavigate, unreadCount = 0 }) => {
   const baseClass = "admin-sidebar-item mx-4 my-1 flex items-center gap-3 px-4 py-3 rounded-xl font-medium group";
   const activeClass = "admin-sidebar-item-current";
   const inactiveClass = "admin-sidebar-item-idle";
@@ -131,8 +132,8 @@ const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query,
     <NavLink
       to={to}
       end
-      aria-label={collapsed ? label : undefined}
-      title={collapsed ? label : undefined}
+      aria-label={collapsed ? `${label}${unreadCount ? `, ${unreadCount} unread customer messages` : ''}` : undefined}
+      title={collapsed ? `${label}${unreadCount ? `, ${unreadCount} unread customer messages` : ''}` : undefined}
       onClick={() => onNavigate?.(to)}
       className={({ isActive }) => `${baseClass} ${collapsedClass} ${isActive ? activeClass : inactiveClass}`}
     >
@@ -140,18 +141,19 @@ const SidebarItem = ({ to, icon: Icon, label, active, onClick, collapsed, query,
         <>
           <Icon size={20} className="admin-sidebar-icon shrink-0" aria-hidden="true" />
           {!collapsed && <span className="min-w-0 flex-1">{highlight(label, query)}</span>}
+          <UnreadTicketBadge count={unreadCount} className={collapsed ? 'absolute right-1 top-1' : ''} />
           {isActive && <span className="admin-sidebar-current-marker" aria-hidden="true" />}
           {isActive && !collapsed && (
             <span className="admin-sidebar-current-arrow shrink-0" aria-hidden="true"><ChevronRight size={16} strokeWidth={2.5} /></span>
           )}
-          {isActive && collapsed && <span className="admin-sidebar-current-dot" aria-hidden="true" />}
+          {isActive && collapsed && !unreadCount && <span className="admin-sidebar-current-dot" aria-hidden="true" />}
         </>
       )}
     </NavLink>
   );
 };
 
-const Sidebar = ({ role, permissions = [], onNavigate }) => {
+const Sidebar = ({ role, permissions = [], onNavigate, unreadTicketCount = 0 }) => {
   const location = useLocation();
   const activeAccordion = NAV_SECTIONS.find(section => section.accordion && (
     section.items.some(item => item.to === location.pathname) ||
@@ -297,6 +299,7 @@ const Sidebar = ({ role, permissions = [], onNavigate }) => {
                     collapsed={collapsed}
                     query={isSearching ? query.trim() : ''}
                     onNavigate={onNavigate}
+                    unreadCount={item.to === '/tickets' ? unreadTicketCount : 0}
                   />
                 ))}
                 {section.key === 'catalog' && location.pathname.includes('/update') && isAllowed('/list') && (isOpen) && (

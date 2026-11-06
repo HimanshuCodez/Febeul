@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { backendUrl } from '../App';
 import { Paperclip, X, Download, CalendarRange, ShieldAlert, LifeBuoy, PhoneCall, Unlock, Plus, Mail, Search, RefreshCw, Clock3, CheckCircle2, Inbox, ArrowUpRight, MessageSquare } from 'lucide-react';
 import { CSVLink } from 'react-csv';
+import UnreadTicketBadge from '../components/UnreadTicketBadge';
 
 
 const buttonClass = 'inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-theme-eae5ed bg-white px-3 py-2.5 text-xs font-medium text-theme-776180 hover:border-theme-d8cbdc hover:bg-theme-faf6fa';
@@ -16,7 +17,7 @@ const StatusBadge = ({ status, style }) => (
   </span>
 );
 
-const Tickets = ({ token }) => {
+const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -33,7 +34,29 @@ const Tickets = ({ token }) => {
   const itemsPerPage = 8;
   const adminFileInputRef = useRef(null); // Ref for admin file input
   const ticketDialogRef = useRef(null);
+  const lastReadAttempt = useRef(null);
   const isTicketOpen = selectedTicket !== null;
+
+  useEffect(() => {
+    if (!selectedTicket) {
+      lastReadAttempt.current = null;
+      return;
+    }
+    const lastMessageId = selectedTicket.messages?.[selectedTicket.messages.length - 1]?._id;
+    if (!lastMessageId || !unreadCounts[selectedTicket._id]) return;
+    const key = `${selectedTicket._id}:${lastMessageId}`;
+    if (lastReadAttempt.current === key) return;
+    lastReadAttempt.current = key;
+    axios.post(`${backendUrl}/api/ticket/admin-mark-read`, {
+      ticketId: selectedTicket._id, lastMessageId,
+    }, { headers: { token } }).then(({ data }) => {
+      if (!data.success) throw new Error(data.message);
+      onUnreadChange?.();
+    }).catch(error => {
+      if (lastReadAttempt.current === key) lastReadAttempt.current = null;
+      console.error('Failed to mark customer replies as read:', error);
+    });
+  }, [selectedTicket, unreadCounts, token, onUnreadChange]);
 
   useEffect(() => {
     if (!isTicketOpen) return;
@@ -80,23 +103,25 @@ const Tickets = ({ token }) => {
   const [isSubmittingNewTicket, setIsSubmittingNewTicket] = useState(false);
   const newTicketFileInputRef = useRef(null);
 
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async ({ silent = false } = {}) => {
     if (!token) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const response = await axios.get(`${backendUrl}/api/ticket/list`, { headers: { token } });
       if (response.data.success) {
-        setTickets(response.data.tickets.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        const nextTickets = response.data.tickets.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setTickets(nextTickets);
+        setSelectedTicket(previous => previous ? nextTickets.find(ticket => ticket._id === previous._id) || previous : null);
       } else {
-        toast.error(response.data.message);
+        if (!silent) toast.error(response.data.message);
       }
     } catch (error) {
       console.error('Error fetching tickets:', error);
-      toast.error('Failed to fetch tickets.');
+      if (!silent) toast.error('Failed to fetch tickets.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   const handleStatusChange = async (ticketId, newStatus) => {
     if (!token) return;
@@ -169,6 +194,7 @@ const Tickets = ({ token }) => {
         toast.success("Reply sent!");
         // Update the messages in the selected ticket locally
         setSelectedTicket(prev => {
+          if (prev?._id !== ticketId) return prev;
           const newMsgImages = response.data.newImages || []; // Assuming backend returns URLs of uploaded images
           const newMessage = {
             message: adminMessage,
@@ -186,6 +212,8 @@ const Tickets = ({ token }) => {
         if (adminFileInputRef.current) {
             adminFileInputRef.current.value = ""; // Clear file input
         }
+        fetchTickets({ silent: true });
+        onUnreadChange?.();
       } else {
         toast.error(response.data.message);
       }
@@ -270,11 +298,14 @@ const Tickets = ({ token }) => {
   };
 
   useEffect(() => {
-    fetchTickets();
-  }, [token]);
+    // The shared notification poll refreshes the conversation too, so replies
+    // arriving while its dialog is open are displayed before being marked read.
+    fetchTickets({ silent: true });
+  }, [fetchTickets, unreadCounts]);
 
   const tabTickets = tickets.filter(ticket => activeTab === 'appeals' ? ticket.type === 'appeal' : ticket.type !== 'appeal');
   const appealsCount = tickets.filter((t) => t.type === 'appeal').length;
+  const unreadTotal = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchesTab = activeTab === 'appeals' ? ticket.type === 'appeal' : ticket.type !== 'appeal';
@@ -345,11 +376,11 @@ const Tickets = ({ token }) => {
       <header className="mb-6 flex flex-col gap-5 pt-1 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="mb-2.5 flex items-center gap-2 text-[10px] font-medium tracking-[0.18em] text-theme-947c8c"><span className="h-1.5 w-1.5 rotate-45 rounded-sm bg-theme-c77893" />FEBEUL / CUSTOMER CARE</p>
-          <h1 className="text-3xl font-semibold leading-tight tracking-[-0.04em] lg:text-[36px]">Support tickets<span className="text-theme-c77893">.</span></h1>
+          <h1 className="flex items-center gap-3 text-3xl font-semibold leading-tight tracking-[-0.04em] lg:text-[36px]"><span>Support tickets<span className="text-theme-c77893">.</span></span><UnreadTicketBadge count={unreadTotal} /></h1>
           <p className="mt-2 text-xs leading-relaxed text-theme-8b7b93 sm:text-[13px]">Customer conversations and account appeals, all in one place.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={fetchTickets} disabled={loading} className={buttonClass + ' !px-3'} aria-label="Refresh tickets" title="Refresh tickets"><RefreshCw size={16} className={loading ? 'motion-safe:animate-spin' : ''} /></button>
+          <button type="button" onClick={() => { fetchTickets(); onUnreadChange?.(); }} disabled={loading} className={buttonClass + ' !px-3'} aria-label="Refresh tickets" title="Refresh tickets"><RefreshCw size={16} className={loading ? 'motion-safe:animate-spin' : ''} /></button>
           <CSVLink data={csvData} headers={csvHeaders} filename={'tickets_export_' + new Date().toISOString().split('T')[0] + '.csv'} className={buttonClass} title="Export tickets matching the current tab and filters"><Download size={15} aria-hidden="true" />Export CSV</CSVLink>
           <button type="button" onClick={() => setIsCreatingTicket((prev) => !prev)} aria-expanded={isCreatingTicket} aria-controls="create-ticket-panel" className={darkButtonClass}>
             {isCreatingTicket ? <X size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}{isCreatingTicket ? 'Cancel' : 'New Ticket'}
@@ -534,7 +565,7 @@ const Tickets = ({ token }) => {
                   {paginatedTickets.map((ticket) => (
                     <tr key={ticket._id} className='hover:bg-gray-50'>
                       <td className="whitespace-nowrap px-4 py-4 text-xs font-medium tabular-nums text-theme-84648f">{ticket.ticketNumber || ticket._id.slice(-6)}</td>
-                      <td className="max-w-[240px] px-4 py-4 text-xs leading-relaxed text-theme-725e7f [overflow-wrap:anywhere]">{ticket.subject}</td>
+                      <td className="max-w-[240px] px-4 py-4 text-xs leading-relaxed text-theme-725e7f [overflow-wrap:anywhere]"><span className="flex items-center gap-2"><span>{ticket.subject}</span><UnreadTicketBadge count={unreadCounts[ticket._id]} /></span></td>
                       <td className="px-4 py-4 text-[11px] text-theme-95809f">
                         <div className="flex min-w-0 flex-col gap-1 [&>span]:max-w-[240px] [&>span]:[overflow-wrap:anywhere]">
                           <span className='font-medium text-gray-900'>{ticket.user?.name || 'N/A'}</span>
@@ -584,7 +615,7 @@ const Tickets = ({ token }) => {
                     <span className="text-[11px] font-medium tabular-nums text-theme-a88eb3">#{ticket.ticketNumber || ticket._id.slice(-6)}</span>
                     <StatusBadge status={ticket.status} style={getStatusStyle(ticket.status)} />
                   </div>
-                  <p className="line-clamp-2 text-sm font-medium text-theme-614b6c [overflow-wrap:anywhere]">{ticket.subject}</p>
+                  <div className="flex items-center gap-2"><p className="line-clamp-2 text-sm font-medium text-theme-614b6c [overflow-wrap:anywhere]">{ticket.subject}</p><UnreadTicketBadge count={unreadCounts[ticket._id]} /></div>
                   <div className='flex items-center justify-between gap-2'>
                     <div className='min-w-0'>
                       <p className="truncate text-xs font-medium text-theme-7b6287">{ticket.user?.name || 'N/A'}</p>

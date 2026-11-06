@@ -12,6 +12,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { isOrderTrackingMutation, notifyOrderTrackingChanged } from './utils/orderTrackingEvents';
 import useAdminTheme from './hooks/useAdminTheme';
 import ThemeToggle from './components/ThemeToggle';
+import useTicketNotifications from './hooks/useTicketNotifications';
 
 // Route-level code splitting: each admin page (and its data fetching) only
 // loads once its route is actually visited, instead of all pages being
@@ -103,6 +104,8 @@ const App = () => {
     return permissions.includes(path);
   };
 
+  const { counts: ticketUnreadCounts, total: unreadTicketCount, refresh: refreshTicketUnreadCounts } = useTicketNotifications(token, isAllowed('/tickets'));
+
   useEffect(()=>{
     localStorage.setItem('token',token)
     localStorage.setItem('role',role)
@@ -124,7 +127,7 @@ const App = () => {
           <Navbar setToken={setToken} setRole={setRole} setUserEmail={setUserEmail} role={role} email={userEmail} setPermissions={setPermissions} theme={theme} onToggleTheme={toggleTheme} />
           <hr />
           <div className='flex w-full'>
-            <Sidebar role={role} permissions={permissions} onNavigate={handleSidebarNavigate} />
+            <Sidebar role={role} permissions={permissions} onNavigate={handleSidebarNavigate} unreadTicketCount={unreadTicketCount} />
             <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/tickets', '/orders', '/reviews', '/user-tracking', '/coupons', '/send-mail'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname === '/home-gift-offer' && isAllowed('/cms')) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
               ? 'min-w-0 flex-1 px-3 py-5 sm:px-6 lg:px-8 lg:py-8 text-gray-600 text-base'
               : 'w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'}>
@@ -150,7 +153,7 @@ const App = () => {
                 {isAllowed('/gift-wraps') && <Route path='/gift-wraps' element={<ManageGiftWraps token={token} />} />}
                 {isAllowed('/policy-update') && <Route path='/policy-update' element={<PolicyUpdate token={token} />} />}
                 {isAllowed('/coupons') && <Route path='/coupons' element={<Coupons token={token} />} />}
-                {isAllowed('/tickets') && <Route path='/tickets' element={<Tickets token={token} />} />}
+                {isAllowed('/tickets') && <Route path='/tickets' element={<Tickets token={token} unreadCounts={ticketUnreadCounts} onUnreadChange={refreshTicketUnreadCounts} />} />}
                 {isAllowed('/reviews') && <Route path='/reviews' element={<ReviewsAdmin token={token} />} />}
                 {isAllowed('/cms') && <Route path='/cms' element={<Cms token={token} />} />}
                 {isAllowed('/images') && <Route path='/images' element={<Images token={token} />} />}

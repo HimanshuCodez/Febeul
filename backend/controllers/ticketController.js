@@ -1,4 +1,5 @@
 import { ticketModel } from '../models/ticketModel.js';
+import mongoose from 'mongoose';
 import userModel from '../models/userModel.js';
 import { v2 as cloudinary } from 'cloudinary'; // Import cloudinary
 import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
@@ -242,6 +243,53 @@ export const listTickets = async (req, res) => {
     } catch (error) {
         console.error('Error listing tickets:', error);
         res.status(500).json({ success: false, message: 'Error listing tickets' });
+    }
+};
+
+// Admin: Counts of customer messages after each ticket's saved read position.
+export const getAdminUnreadTickets = async (req, res) => {
+    try {
+        const tickets = await ticketModel.aggregate([
+            { $project: { unreadCount: { $size: { $filter: {
+                input: { $slice: [
+                    { $ifNull: ['$messages', []] },
+                    { $ifNull: ['$lastSeenByAdminMessageCount', 0] },
+                    { $add: [{ $size: { $ifNull: ['$messages', []] } }, 1] }
+                ] },
+                as: 'message',
+                cond: { $eq: ['$$message.sender', 'user'] }
+            } } } } },
+            { $match: { unreadCount: { $gt: 0 } } }
+        ]);
+        const counts = Object.fromEntries(tickets.map(ticket => [String(ticket._id), ticket.unreadCount]));
+        res.json({ success: true, counts, total: tickets.reduce((sum, ticket) => sum + ticket.unreadCount, 0) });
+    } catch (error) {
+        console.error('Error counting unread customer replies:', error);
+        res.status(500).json({ success: false, message: 'Error fetching unread replies.' });
+    }
+};
+
+export const markTicketReadByAdmin = async (req, res) => {
+    const { ticketId, lastMessageId } = req.body;
+    if (!mongoose.isValidObjectId(ticketId) || !mongoose.isValidObjectId(lastMessageId)) {
+        return res.status(400).json({ success: false, message: 'Invalid ticket or message ID.' });
+    }
+    try {
+        const ticket = await ticketModel.findById(ticketId).select('messages._id');
+        if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found.' });
+        const messageIndex = ticket.messages.findIndex(message => String(message._id) === lastMessageId);
+        if (messageIndex === -1) return res.status(400).json({ success: false, message: 'Message does not belong to this ticket.' });
+
+        // Never move the read position backwards, or clear messages the admin
+        // has not displayed yet. Reading also must not change "Last Updated".
+        const updated = await ticketModel.findByIdAndUpdate(ticketId, {
+            $max: { lastSeenByAdminMessageCount: messageIndex + 1 }
+        }, { new: true, runValidators: true, timestamps: false }).select('lastSeenByAdminMessageCount');
+        if (!updated) return res.status(404).json({ success: false, message: 'Ticket not found.' });
+        res.json({ success: true, lastSeenByAdminMessageCount: updated.lastSeenByAdminMessageCount });
+    } catch (error) {
+        console.error('Error marking customer replies as read:', error);
+        res.status(500).json({ success: false, message: 'Error marking replies as read.' });
     }
 };
 
