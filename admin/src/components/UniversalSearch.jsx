@@ -107,7 +107,7 @@ export default function UniversalSearch({ token, backendUrl, role, permissions }
           <div id={listId} role="listbox" aria-label="Admin search results" className="max-h-[min(55vh,440px)] overflow-y-auto overscroll-contain p-2">
             {groups.map(group => (
               <div key={group.type} role="group" aria-label={group.type}>
-                <p className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wider text-gray-400">{group.type}{group.hasMore ? ' · Top 6 matches — narrow your search for more' : ''}</p>
+                <p className="px-3 pb-1 pt-3 text-[13px] font-bold uppercase tracking-wider text-gray-400">{group.type}{group.hasMore ? ' · Top 6 matches — narrow your search for more' : ''}</p>
                 {group.items.map(item => {
                   const itemIndex = ++index;
                   const Icon = icons[group.type] || Settings;

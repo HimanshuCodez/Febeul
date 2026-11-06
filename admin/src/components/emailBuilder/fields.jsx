@@ -12,7 +12,7 @@ export const Field = ({ label, hint, children }) => (
   <div className='flex flex-col gap-1.5'>
     {label && <label className='text-xs font-semibold text-gray-600 uppercase tracking-wide'>{label}</label>}
     {children}
-    {hint && <p className='text-[11px] text-gray-400'>{hint}</p>}
+    {hint && <p className='text-[13px] text-gray-400'>{hint}</p>}
   </div>
 )
 
@@ -230,8 +230,8 @@ export const TokenMenu = ({ tokens, onPick, label = 'Insert variable' }) => {
                 className='w-full text-left px-3 py-2 hover:bg-gray-50 flex flex-col'
               >
                 <span className='text-sm text-gray-800'>{t.label}</span>
-                <span className='text-[11px] font-mono text-gray-400'>{t.insertText ? '{{#items}} … {{/items}}' : `{{${t.key}}}`}</span>
-                {t.hint && <span className='mt-1 text-[11px] text-gray-500'>{t.hint}</span>}
+                <span className='text-[13px] font-mono text-gray-400'>{t.insertText ? '{{#items}} … {{/items}}' : `{{${t.key}}}`}</span>
+                {t.hint && <span className='mt-1 text-[13px] text-gray-500'>{t.hint}</span>}
               </button>
             ))}
           </div>

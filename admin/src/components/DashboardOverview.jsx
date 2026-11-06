@@ -9,8 +9,8 @@ import './DashboardOverview.css';
 
 const chartColors = ['#be617d', '#d991a6', '#e9b9c7', '#967caa', '#b7a5c7', '#667d83', '#99aeb1', '#c89c73', '#dbbb9d', '#8d8e9e'];
 const rangeLabels = { '7days': 'Last 7 days', '30days': 'Last 30 days', '90days': 'Last 90 days', year: 'This year', custom: 'Custom range' };
-const chartTooltip = { border: '1px solid #e8e5e8', borderRadius: 12, fontSize: 12, boxShadow: '0 8px 24px #241d2810' };
-const axisStyle = { fill: '#85818a', fontSize: 11 };
+const chartTooltip = { border: '1px solid #e8e5e8', borderRadius: 12, fontSize: 14, boxShadow: '0 8px 24px #241d2810' };
+const axisStyle = { fill: '#85818a', fontSize: 13 };
 const compactMoney = value => `${currency}${Math.abs(value) >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}`;
 const money = value => `${currency}${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 const shortDate = value => {

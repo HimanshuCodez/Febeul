@@ -243,7 +243,7 @@ const ReturnRequests = ({ token }) => {
           <button
             onClick={() => fetchReturns({ silent: true })}
             disabled={refreshing}
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
           >
             <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Refresh
           </button>
@@ -251,7 +251,7 @@ const ReturnRequests = ({ token }) => {
             data={csvData}
             headers={csvHeaders}
             filename={`Returns_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
           >
             <Download size={13} /> Export
           </CSVLink>}
@@ -304,11 +304,11 @@ const ReturnRequests = ({ token }) => {
             <p className="text-sm font-black uppercase tracking-wide">
               {overdueCount} refund{overdueCount > 1 ? 's' : ''} past the {settings?.returnMaxRefundDays ?? 15}-day promise
             </p>
-            <p className={`text-[11px] font-bold ${overdueOnly ? 'text-red-100' : 'text-red-600'}`}>
+            <p className={`text-[13px] font-bold ${overdueOnly ? 'text-red-100' : 'text-red-600'}`}>
               Pay these now and recover from the courier separately — a chargeback costs more than the parcel.
             </p>
           </div>
-          <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shrink-0 ${overdueOnly ? 'bg-white/20' : 'bg-red-600 text-white'}`}>
+          <span className={`text-[12px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shrink-0 ${overdueOnly ? 'bg-white/20' : 'bg-red-600 text-white'}`}>
             {overdueOnly ? 'Filtering' : 'Show only'}
           </span>
         </button>
@@ -337,7 +337,7 @@ const ReturnRequests = ({ token }) => {
                   {counts[tab.key]}
                 </span>
               </div>
-              <p className={`text-[10px] font-black uppercase tracking-wider leading-tight ${isActive ? 'text-white' : 'text-slate-600'}`}>
+              <p className={`text-[12px] font-black uppercase tracking-wider leading-tight ${isActive ? 'text-white' : 'text-slate-600'}`}>
                 {tab.label}
               </p>
               {!isActive && counts[tab.key] > 0 && <span className={`absolute top-0 left-4 right-4 h-[3px] rounded-b-full ${tone.solid}`} />}
@@ -351,7 +351,7 @@ const ReturnRequests = ({ token }) => {
         <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 bg-slate-50/50">
           <div>
             <p className="text-sm font-black text-slate-900 uppercase tracking-wide">{activeTabMeta?.label}</p>
-            <p className="text-[11px] text-slate-400 font-bold">{activeTabMeta?.hint}</p>
+            <p className="text-[13px] text-slate-400 font-bold">{activeTabMeta?.hint}</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             <div className="relative flex-1 sm:w-72">
@@ -367,10 +367,10 @@ const ReturnRequests = ({ token }) => {
             <div className={`flex items-center gap-2 rounded-xl px-3 py-2 border shrink-0 ${startDate || endDate ? 'bg-slate-900 border-slate-900' : 'bg-white border-slate-200'}`}>
               <CalendarRange size={14} className={startDate || endDate ? 'text-white' : 'text-slate-400'} />
               <input type="date" value={startDate} max={endDate || undefined} onChange={(e) => setStartDate(e.target.value)}
-                className={`text-[11px] font-bold bg-transparent focus:outline-none cursor-pointer ${startDate || endDate ? 'text-white' : 'text-slate-700'}`} aria-label="From date" />
-              <span className={`text-[11px] font-bold ${startDate || endDate ? 'text-white/40' : 'text-slate-300'}`}>→</span>
+                className={`text-[13px] font-bold bg-transparent focus:outline-none cursor-pointer ${startDate || endDate ? 'text-white' : 'text-slate-700'}`} aria-label="From date" />
+              <span className={`text-[13px] font-bold ${startDate || endDate ? 'text-white/40' : 'text-slate-300'}`}>→</span>
               <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)}
-                className={`text-[11px] font-bold bg-transparent focus:outline-none cursor-pointer ${startDate || endDate ? 'text-white' : 'text-slate-700'}`} aria-label="To date" />
+                className={`text-[13px] font-bold bg-transparent focus:outline-none cursor-pointer ${startDate || endDate ? 'text-white' : 'text-slate-700'}`} aria-label="To date" />
               {(startDate || endDate) && (
                 <button onClick={() => { setStartDate(''); setEndDate(''); }} title="Clear dates" className="text-white/60 hover:text-white transition-colors">
                   <XCircle size={14} />
@@ -385,7 +385,7 @@ const ReturnRequests = ({ token }) => {
             <thead className="bg-slate-50/50">
               <tr>
                 {['Return', 'Customer', 'Clock', 'Status', 'Refund', ''].map((heading, i) => (
-                  <th key={i} className={`px-5 py-3.5 text-[10px] font-black text-slate-400 uppercase tracking-widest ${i === 5 ? 'text-right' : 'text-left'}`}>
+                  <th key={i} className={`px-5 py-3.5 text-[12px] font-black text-slate-400 uppercase tracking-widest ${i === 5 ? 'text-right' : 'text-left'}`}>
                     {heading}
                   </th>
                 ))}
@@ -421,7 +421,7 @@ const ReturnRequests = ({ token }) => {
                           <div className={`p-2 rounded-xl border ${tone.chip}`}><Undo2 size={16} /></div>
                           <div>
                             <p className="text-sm font-black text-slate-900">#{row.orderItemId || row._id.slice(-8).toUpperCase()}</p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">
+                            <p className="text-[12px] text-slate-400 font-bold uppercase">
                               {fmtDate(row.refundDetails?.requestedAt || row.date)}
                               {row.refundDetails?.pickup?.awb ? ` · AWB ${row.refundDetails.pickup.awb}` : ''}
                             </p>
@@ -432,8 +432,8 @@ const ReturnRequests = ({ token }) => {
                       <td className="px-5 py-4 whitespace-nowrap">
                         <p className="text-xs font-black text-slate-800">{row.userId?.name || 'N/A'}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <p className="text-[10px] text-slate-400 font-bold">{currency}{(row.orderTotal || 0).toFixed(2)}</p>
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                          <p className="text-[12px] text-slate-400 font-bold">{currency}{(row.orderTotal || 0).toFixed(2)}</p>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[12px] font-black uppercase tracking-wider ${
                             isPrepaid(row.paymentMethod) ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600'
                           }`}>
                             {isPrepaid(row.paymentMethod) ? <CreditCard size={9} /> : <Wallet size={9} />}
@@ -447,7 +447,7 @@ const ReturnRequests = ({ token }) => {
                           <>
                             <div className="flex items-baseline gap-1.5">
                               <span className="text-lg font-black text-slate-900 leading-none">{view.daysSincePickup}</span>
-                              <span className="text-[10px] font-black text-slate-400 uppercase">
+                              <span className="text-[12px] font-black text-slate-400 uppercase">
                                 {rt.receivedDate ? `days · ${view.transitDays}d transit` : 'days out'}
                               </span>
                             </div>
@@ -463,36 +463,36 @@ const ReturnRequests = ({ token }) => {
                             )}
                           </>
                         ) : (
-                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">Not picked up</span>
+                          <span className="text-[12px] font-black text-slate-300 uppercase tracking-wider">Not picked up</span>
                         )}
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${tone.chip}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-black uppercase tracking-wider border ${tone.chip}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
                           {isReturnAwaitingApproval(row) ? 'Awaiting Approval'
                             : row.refundDetails?.status === 'rejected' ? 'Rejected'
                             : labelOf(view.status)}
                         </span>
-                        {view.isManual && <span className="block mt-1 text-[9px] font-black text-slate-400 uppercase tracking-wider">Manual override</span>}
+                        {view.isManual && <span className="block mt-1 text-[12px] font-black text-slate-400 uppercase tracking-wider">Manual override</span>}
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap">
                         {row.refundDetails?.status === 'completed' ? (
                           <div>
                             <p className="text-xs font-black text-emerald-600">{currency}{(row.refundDetails.amount || 0).toFixed(2)}</p>
-                            <p className="text-[10px] font-bold text-slate-400">{rt.refundUtr ? `UTR ${rt.refundUtr}` : 'Paid'}</p>
+                            <p className="text-[12px] font-bold text-slate-400">{rt.refundUtr ? `UTR ${rt.refundUtr}` : 'Paid'}</p>
                           </div>
                         ) : view.refundOverdue ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-lg">
+                          <span className="inline-flex items-center gap-1 text-[12px] font-black uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-lg">
                             <AlertTriangle size={10} /> {Math.abs(view.daysToRefundDeadline)}d overdue
                           </span>
                         ) : view.daysToRefundDeadline !== null && view.daysToRefundDeadline !== undefined ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg">
+                          <span className="inline-flex items-center gap-1 text-[12px] font-black uppercase tracking-wider text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg">
                             <Clock size={10} /> {view.daysToRefundDeadline}d left
                           </span>
                         ) : (
-                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">—</span>
+                          <span className="text-[12px] font-black text-slate-300 uppercase tracking-wider">—</span>
                         )}
                       </td>
 
@@ -511,11 +511,11 @@ const ReturnRequests = ({ token }) => {
 
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3.5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-[11px] font-bold text-slate-400">
+            <p className="text-[13px] font-bold text-slate-400">
               Showing {filtered.length} of {rows.length} returns
             </p>
             {settings && (
-              <p className="text-[11px] font-bold text-slate-400">
+              <p className="text-[13px] font-bold text-slate-400">
                 Critical {settings.returnCriticalDays}d · Lost {settings.returnLostDays}d · Refund by {settings.returnMaxRefundDays}d
               </p>
             )}

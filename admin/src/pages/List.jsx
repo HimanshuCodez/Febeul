@@ -378,7 +378,7 @@ const List = ({ token }) => {
                   <p className={`hidden md:block text-xs ${calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
                     {calculateTotalStock(item) === 0 ? 'Out' : calculateTotalStock(item)}
                   </p>
-                  <p className='hidden lg:block text-[10px] text-gray-500 font-medium'>
+                  <p className='hidden lg:block text-[12px] text-gray-500 font-medium'>
                     {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </p>
                   <div onClick={(e) => e.stopPropagation()} className='hidden lg:block'>
@@ -386,13 +386,13 @@ const List = ({ token }) => {
                       <div className='flex flex-col gap-0.5'>
                         <p 
                           onClick={() => { if(item.creator.role === 'staff') { setSelectedStaff(item.creator); setShowStaffModal(true); } }}
-                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
+                          className={`text-[12px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block w-fit`}
                         >
                           {item.creator.role || 'Admin'}
                         </p>
                       </div>
                     ) : (
-                      <p className='text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase inline-block w-fit'>
+                      <p className='text-[12px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase inline-block w-fit'>
                         System
                       </p>
                     )}
@@ -423,7 +423,7 @@ const List = ({ token }) => {
                 <div className='bg-gray-50 p-4 border-t'>
                   <div className='flex justify-between items-center mb-3'>
                     <h4 className='font-bold text-gray-700 text-sm uppercase tracking-wider'>Product Variations</h4>
-                    <p className='text-[10px] text-gray-500 italic'>* Select individual sizes below for granular export</p>
+                    <p className='text-[12px] text-gray-500 italic'>* Select individual sizes below for granular export</p>
                   </div>
                   <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
                     {item.variations.map((v, vIndex) => {
@@ -453,7 +453,7 @@ const List = ({ token }) => {
                                </div>
                             </div>
                             <div className='flex flex-col items-end gap-1'>
-                              <span className='text-[9px] font-bold text-gray-400 uppercase'>Select All</span>
+                              <span className='text-[12px] font-bold text-gray-400 uppercase'>Select All</span>
                               <input 
                                 type="checkbox"
                                 checked={isVarFullySelected}
@@ -466,7 +466,7 @@ const List = ({ token }) => {
                             </div>
                           </div>
                           <div className='overflow-hidden rounded-md border border-gray-100'>
-                            <table className='min-w-full divide-y divide-gray-200 text-[10px]'>
+                            <table className='min-w-full divide-y divide-gray-200 text-[12px]'>
                               <thead className='bg-gray-100'>
                                 <tr>
                                   <th className='px-2 py-1.5 text-left font-bold text-gray-600'>Select</th>

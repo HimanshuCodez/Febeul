@@ -322,14 +322,14 @@ const RefundRequestList = ({
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50/50">
               <tr>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Order Detail</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Payment</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                {showPendingAge && <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Pending For</th>}
-                <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
+                <th className="px-6 py-4 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Order Detail</th>
+                <th className="px-6 py-4 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Customer</th>
+                <th className="px-6 py-4 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
+                <th className="px-6 py-4 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Payment</th>
+                <th className="px-6 py-4 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Type</th>
+                <th className="px-6 py-4 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                {showPendingAge && <th className="px-6 py-4 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Pending For</th>}
+                <th className="px-6 py-4 text-right text-[12px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 bg-white">
@@ -349,9 +349,9 @@ const RefundRequestList = ({
                         </div>
                         <div>
                           <p className="text-sm font-black text-gray-900">#{req._id.slice(-8).toUpperCase()}</p>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(req.refundDetails?.requestedAt || req.date).toLocaleDateString()}</p>
+                          <p className="text-[12px] text-gray-400 font-bold uppercase">{new Date(req.refundDetails?.requestedAt || req.date).toLocaleDateString()}</p>
                           {req.paymentMethod === 'Razorpay' && (req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id) && (
-                            <p className="text-[10px] text-blue-500 font-bold">Razorpay: {req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id}</p>
+                            <p className="text-[12px] text-blue-500 font-bold">Razorpay: {req.razorpayPaymentId || req.paymentDetails?.razorpay_payment_id}</p>
                           )}
                         </div>
                       </div>
@@ -363,7 +363,7 @@ const RefundRequestList = ({
                       {currency}{(refundAmount(req)).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-black uppercase tracking-tighter ${
                         isPrepaid(req.paymentMethod) ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600'
                       }`}>
                         {isPrepaid(req.paymentMethod) ? <CreditCard size={11} /> : <Wallet size={11} />}
@@ -379,7 +379,7 @@ const RefundRequestList = ({
                           : cat === 'return' ? 'bg-purple-50 text-purple-600'
                           : 'bg-blue-50 text-blue-600';
                         return (
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${className}`}>
+                          <span className={`px-3 py-1 rounded-full text-[12px] font-black uppercase tracking-tighter ${className}`}>
                             {label}
                           </span>
                         );
@@ -427,7 +427,7 @@ const RefundRequestList = ({
 
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
               <section>
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><User size={12} /> Customer Identity</h4>
+                <h4 className="text-[12px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><User size={12} /> Customer Identity</h4>
                 <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 flex items-center gap-4">
                     <div className="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center text-white text-xl font-black uppercase">{selectedRequest.userId?.name?.charAt(0)}</div>
                     <div>
@@ -438,7 +438,7 @@ const RefundRequestList = ({
                             o.userId?._id === selectedRequest.userId?._id && o.refundDetails?.status && o.refundDetails.status !== 'none'
                           ).length;
                           return priorCount > 1 ? (
-                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider mt-1">⚠ {priorCount} prior returns/refunds</p>
+                            <p className="text-[12px] font-black text-amber-600 uppercase tracking-wider mt-1">⚠ {priorCount} prior returns/refunds</p>
                           ) : null;
                         })()}
                     </div>
@@ -446,9 +446,9 @@ const RefundRequestList = ({
               </section>
 
               <section>
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageSquare size={12} /> Request Context</h4>
+                <h4 className="text-[12px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageSquare size={12} /> Request Context</h4>
                 <div className="p-5 bg-white border-2 border-gray-100 rounded-3xl mb-4">
-                    <p className="text-[10px] font-black text-gray-400 uppercase mb-2">User&apos;s Reason</p>
+                    <p className="text-[12px] font-black text-gray-400 uppercase mb-2">User&apos;s Reason</p>
                     <p className="text-gray-800 font-medium italic">&quot;{selectedRequest.refundDetails?.reason || 'No reason provided.'}&quot;</p>
                 </div>
                 {selectedRequest.refundDetails?.images?.length > 0 && (
@@ -463,34 +463,34 @@ const RefundRequestList = ({
               </section>
 
               <section>
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><CreditCard size={12} /> Payment & Settlement</h4>
+                <h4 className="text-[12px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><CreditCard size={12} /> Payment & Settlement</h4>
                 {selectedRequest.paymentMethod === 'Razorpay' ? (
                   <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-2">
-                    <p className="text-[10px] font-black text-blue-600 uppercase">Prepaid (Razorpay)</p>
+                    <p className="text-[12px] font-black text-blue-600 uppercase">Prepaid (Razorpay)</p>
                     <p className="text-sm font-bold text-gray-900">Payment ID: {selectedRequest.razorpayPaymentId || selectedRequest.paymentDetails?.razorpay_payment_id || 'N/A'}</p>
                     <p className="text-xs text-blue-500 italic">Refund will be processed back to original source via gateway.</p>
                   </div>
                 ) : selectedRequest.refundDetails?.customerPayoutDetails ? (
                     <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 space-y-4">
-                        <p className="text-[10px] font-black text-emerald-600 uppercase">COD Settlement Details</p>
+                        <p className="text-[12px] font-black text-emerald-600 uppercase">COD Settlement Details</p>
                         <div className="grid grid-cols-2 gap-4">
-                            <div><p className="text-[10px] font-black text-emerald-600 uppercase">Holder</p><p className="text-sm font-bold">{selectedRequest.refundDetails?.customerPayoutDetails.accountHolderName}</p></div>
-                            <div><p className="text-[10px] font-black text-emerald-600 uppercase">IFSC</p><p className="text-sm font-bold">{selectedRequest.refundDetails?.customerPayoutDetails.ifsc}</p></div>
-                            <div className="col-span-2"><p className="text-[10px] font-black text-emerald-600 uppercase">Account</p><p className="text-lg font-black tracking-widest font-mono">{selectedRequest.refundDetails?.customerPayoutDetails.bankAccount}</p></div>
+                            <div><p className="text-[12px] font-black text-emerald-600 uppercase">Holder</p><p className="text-sm font-bold">{selectedRequest.refundDetails?.customerPayoutDetails.accountHolderName}</p></div>
+                            <div><p className="text-[12px] font-black text-emerald-600 uppercase">IFSC</p><p className="text-sm font-bold">{selectedRequest.refundDetails?.customerPayoutDetails.ifsc}</p></div>
+                            <div className="col-span-2"><p className="text-[12px] font-black text-emerald-600 uppercase">Account</p><p className="text-lg font-black tracking-widest font-mono">{selectedRequest.refundDetails?.customerPayoutDetails.bankAccount}</p></div>
                         </div>
                     </div>
                 ) : <div className="p-6 border-2 border-dashed border-gray-200 rounded-3xl text-center text-xs text-gray-400 font-bold uppercase">No payout details provided.</div>}
               </section>
 
               <section>
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><DollarSign size={12} /> Settlement Amount</h4>
+                <h4 className="text-[12px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><DollarSign size={12} /> Settlement Amount</h4>
                 <div className="bg-gray-900 text-white p-6 rounded-3xl">
                     <div className="flex justify-between items-end">
-                        <div><p className="text-[10px] font-black uppercase opacity-50">Refundable Amount</p><p className="text-3xl font-black">{currency}{(refundAmount(selectedRequest)).toFixed(2)}</p></div>
-                        <span className="text-[10px] bg-emerald-500 text-white px-2 py-1 rounded-lg font-black uppercase">{selectedRequest.paymentMethod}</span>
+                        <div><p className="text-[12px] font-black uppercase opacity-50">Refundable Amount</p><p className="text-3xl font-black">{currency}{(refundAmount(selectedRequest)).toFixed(2)}</p></div>
+                        <span className="text-[12px] bg-emerald-500 text-white px-2 py-1 rounded-lg font-black uppercase">{selectedRequest.paymentMethod}</span>
                     </div>
                     {selectedRequest.refundDetails?.id && (
-                      <p className="text-[10px] font-bold text-emerald-200 mt-3">Gateway Ref: {selectedRequest.refundDetails?.id}</p>
+                      <p className="text-[12px] font-bold text-emerald-200 mt-3">Gateway Ref: {selectedRequest.refundDetails?.id}</p>
                     )}
                 </div>
               </section>
@@ -504,7 +504,7 @@ const RefundRequestList = ({
                           <div className="space-y-4">
                             {/* Refund Type Selector */}
                             <div>
-                              <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Refund Type</p>
+                              <p className="text-[12px] font-black text-gray-400 uppercase mb-2">Refund Type</p>
                               <div className="flex gap-4">
                                 <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
                                   <input 
@@ -534,7 +534,7 @@ const RefundRequestList = ({
                             {/* Partial Refund Amount Input */}
                             {refundType === 'partial' && (
                               <div className="space-y-1 animate-in fade-in duration-200">
-                                <label className="text-[10px] font-black text-gray-400 uppercase">Refund Amount ({currency})</label>
+                                <label className="text-[12px] font-black text-gray-400 uppercase">Refund Amount ({currency})</label>
                                 <input 
                                   type="number" 
                                   placeholder={`Max: ${currency}${(refundAmount(selectedRequest)).toFixed(2)}`}
@@ -547,7 +547,7 @@ const RefundRequestList = ({
 
                             {/* Reason for refund (For Partial Refund) */}
                             <div className="space-y-1">
-                              <label className="text-[10px] font-black text-gray-400 uppercase">Reason/Comment for Customer</label>
+                              <label className="text-[12px] font-black text-gray-400 uppercase">Reason/Comment for Customer</label>
                               <textarea 
                                 placeholder="Explain why this refund is being processed (visible to buyer)..." 
                                 value={adminRefundComment} 

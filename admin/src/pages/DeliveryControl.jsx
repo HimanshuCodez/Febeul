@@ -315,10 +315,10 @@ const DeliveryControl = ({ token }) => {
                             <p className="font-bold text-gray-900 text-sm">{zone.name}</p>
                             <p className="text-2xl font-black text-gray-900 mt-2">{zone.minDays}–{zone.maxDays}<span className="text-xs font-medium text-gray-400 ml-1">days</span></p>
                             <div className="flex items-center justify-between mt-3">
-                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${PRIORITY_STYLES[zone.priority] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                                <span className={`text-[12px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${PRIORITY_STYLES[zone.priority] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
                                     {zone.priority}
                                 </span>
-                                <span className="text-[11px] text-gray-400 font-medium">{zone.activeCount}/{zone.total} states</span>
+                                <span className="text-[13px] text-gray-400 font-medium">{zone.activeCount}/{zone.total} states</span>
                             </div>
                         </div>
                     ))}
@@ -336,12 +336,12 @@ const DeliveryControl = ({ token }) => {
                         <div key={zone.key} className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-center py-4">
                             <div>
                                 <p className="font-semibold text-gray-800 text-sm">{zone.name}</p>
-                                <span className={`inline-block mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${PRIORITY_STYLES[zone.priority] || ''}`}>
+                                <span className={`inline-block mt-1 text-[12px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${PRIORITY_STYLES[zone.priority] || ''}`}>
                                     {zone.priority} priority
                                 </span>
                             </div>
                             <div className="space-y-1">
-                                <label className="block text-[10px] font-semibold text-gray-400 uppercase">Min Days</label>
+                                <label className="block text-[12px] font-semibold text-gray-400 uppercase">Min Days</label>
                                 <input
                                     type="number"
                                     min={0}
@@ -351,7 +351,7 @@ const DeliveryControl = ({ token }) => {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="block text-[10px] font-semibold text-gray-400 uppercase">Max Days</label>
+                                <label className="block text-[12px] font-semibold text-gray-400 uppercase">Max Days</label>
                                 <input
                                     type="number"
                                     min={0}
@@ -361,7 +361,7 @@ const DeliveryControl = ({ token }) => {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="block text-[10px] font-semibold text-gray-400 uppercase">Priority</label>
+                                <label className="block text-[12px] font-semibold text-gray-400 uppercase">Priority</label>
                                 <select
                                     value={zone.priority}
                                     onChange={(e) => updateZone(zone.key, 'priority', e.target.value)}
@@ -397,7 +397,7 @@ const DeliveryControl = ({ token }) => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                            <tr className="text-left text-[12px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                                 <th className="py-3 pr-3">State / UT</th>
                                 <th className="py-3 px-3">Zone</th>
                                 <th className="py-3 px-3">Delivery days</th>
@@ -410,7 +410,7 @@ const DeliveryControl = ({ token }) => {
                                 <tr key={s.state} className={!s.active ? 'opacity-50' : ''}>
                                     <td className="py-3 pr-3">
                                         <p className="font-semibold text-gray-800">{s.state}</p>
-                                        {s.isUT && <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">UT</span>}
+                                        {s.isUT && <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider">UT</span>}
                                     </td>
                                     <td className="py-3 px-3">
                                         <select
@@ -445,7 +445,7 @@ const DeliveryControl = ({ token }) => {
                                         <select
                                             value={s.priority}
                                             onChange={(e) => updateState(s.state, 'priority', e.target.value)}
-                                            className={`px-2 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider outline-none ${PRIORITY_STYLES[s.priority] || ''}`}
+                                            className={`px-2 py-1 rounded-full border text-[12px] font-bold uppercase tracking-wider outline-none ${PRIORITY_STYLES[s.priority] || ''}`}
                                         >
                                             {Object.keys(PRIORITY_STYLES).map((p) => <option key={p} value={p}>{p}</option>)}
                                         </select>
@@ -485,7 +485,7 @@ const DeliveryControl = ({ token }) => {
 
                 <div className="rounded-xl border border-gray-200 p-4 flex flex-wrap items-end gap-4">
                     <div className="space-y-1">
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase">Pincode</label>
+                        <label className="block text-[12px] font-semibold text-gray-400 uppercase">Pincode</label>
                         <input
                             type="text"
                             maxLength={6}
@@ -534,7 +534,7 @@ const DeliveryControl = ({ token }) => {
                     <div className="overflow-x-auto mt-6">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                                <tr className="text-left text-[12px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                                     <th className="py-3 pr-3">Pincode</th>
                                     <th className="py-3 px-3">Area</th>
                                     <th className="py-3 px-3">Block Pincode</th>

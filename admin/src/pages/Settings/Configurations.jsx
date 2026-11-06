@@ -128,7 +128,7 @@ const Configurations = ({ token }) => {
                                     onChange={(e) => setSettings({ ...settings, membershipPrice: Number(e.target.value) })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">The actual price customers pay for the membership.</p>
+                                <p className="text-[12px] text-gray-400">The actual price customers pay for the membership.</p>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-600">Original Price (₹ - for Strike-through)</label>
@@ -138,7 +138,7 @@ const Configurations = ({ token }) => {
                                     onChange={(e) => setSettings({ ...settings, membershipPriceOriginal: Number(e.target.value) })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">The strike-through price shown to indicate a discount.</p>
+                                <p className="text-[12px] text-gray-400">The strike-through price shown to indicate a discount.</p>
                             </div>
                         </div>
                     </section>
@@ -158,7 +158,7 @@ const Configurations = ({ token }) => {
                                     onChange={(e) => setSettings({ ...settings, shippingThreshold: Number(e.target.value) })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">Orders above this amount get free shipping (Prepaid only).</p>
+                                <p className="text-[12px] text-gray-400">Orders above this amount get free shipping (Prepaid only).</p>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-600">Standard Shipping Charge (₹)</label>
@@ -168,7 +168,7 @@ const Configurations = ({ token }) => {
                                     onChange={(e) => setSettings({ ...settings, defaultShippingCharge: Number(e.target.value) })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">Standard delivery fee for orders below the threshold.</p>
+                                <p className="text-[12px] text-gray-400">Standard delivery fee for orders below the threshold.</p>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-600">Expected Delivery Text</label>
@@ -179,7 +179,7 @@ const Configurations = ({ token }) => {
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
                                     placeholder="e.g. 5 to 7 Days"
                                 />
-                                <p className="text-[10px] text-gray-400">Fallback shown on product pages when no shipping address is selected yet. Once a customer picks an address, the zone-specific estimate from Settings &gt; Delivery Zones takes over.</p>
+                                <p className="text-[12px] text-gray-400">Fallback shown on product pages when no shipping address is selected yet. Once a customer picks an address, the zone-specific estimate from Settings &gt; Delivery Zones takes over.</p>
                             </div>
                         </div>
                     </section>
@@ -199,7 +199,7 @@ const Configurations = ({ token }) => {
                                     onChange={(e) => setSettings({ ...settings, codCharge: Number(e.target.value) })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">Applied to every order that selects COD payment method.</p>
+                                <p className="text-[12px] text-gray-400">Applied to every order that selects COD payment method.</p>
                             </div>
                         </div>
                     </section>
@@ -224,7 +224,7 @@ const Configurations = ({ token }) => {
                                     onChange={(e) => setSettings({ ...settings, returnCriticalDays: Number(e.target.value) })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">Parcel not back by now gets flagged for the investigation queue. The customer still sees &quot;In Transit&quot;.</p>
+                                <p className="text-[12px] text-gray-400">Parcel not back by now gets flagged for the investigation queue. The customer still sees &quot;In Transit&quot;.</p>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-600">Lost Return After (days)</label>
@@ -235,7 +235,7 @@ const Configurations = ({ token }) => {
                                     onChange={(e) => setSettings({ ...settings, returnLostDays: Number(e.target.value) })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">Written off and moved to courier-claim recovery. Never shown to the customer.</p>
+                                <p className="text-[12px] text-gray-400">Written off and moved to courier-claim recovery. Never shown to the customer.</p>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-600">Refund Deadline (days from pickup)</label>
@@ -246,7 +246,7 @@ const Configurations = ({ token }) => {
                                     onChange={(e) => setSettings({ ...settings, returnMaxRefundDays: Number(e.target.value) })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">Latest the customer may be paid, parcel received or not. Overdue returns are flagged in the Returns queue.</p>
+                                <p className="text-[12px] text-gray-400">Latest the customer may be paid, parcel received or not. Overdue returns are flagged in the Returns queue.</p>
                             </div>
                             <div className="space-y-2 md:col-span-2">
                                 <label className="text-sm font-semibold text-gray-600">Return Support Email</label>
@@ -257,7 +257,7 @@ const Configurations = ({ token }) => {
                                     placeholder="support@febeul.com"
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400">Shown to customers on their return tracking, so they write to us instead of chasing the courier.</p>
+                                <p className="text-[12px] text-gray-400">Shown to customers on their return tracking, so they write to us instead of chasing the courier.</p>
                             </div>
                         </div>
 

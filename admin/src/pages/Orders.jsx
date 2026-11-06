@@ -143,7 +143,7 @@ const Orders = ({ token }) => {
     if (tone === 'complete') { colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-100'; icon = <BadgeCheck size={12} className="shrink-0" />; }
     if (tone === 'attention') colorClass = 'bg-amber-50 text-amber-800 border-amber-200';
     return (
-      <span aria-label="Current order status" className={`inline-flex max-w-full items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${colorClass}`}>
+      <span aria-label="Current order status" className={`inline-flex max-w-full items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-semibold border ${colorClass}`}>
         {icon} {status}
       </span>
     );
@@ -160,7 +160,7 @@ const Orders = ({ token }) => {
     };
     const colorClass = colorMap[status] || 'bg-theme-faf8fb text-theme-65526f border-theme-eae5ed';
     return (
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border capitalize whitespace-nowrap ${colorClass}`}>
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[13px] font-semibold border capitalize whitespace-nowrap ${colorClass}`}>
         {status}
       </span>
     );
@@ -179,12 +179,12 @@ const Orders = ({ token }) => {
                 <img className='w-12 h-12 object-cover rounded-lg border shadow-sm' src={item.image} alt={item.name} />
                 <div className="min-w-0 flex-1">
                   <p className='text-xs font-bold text-theme-4f4059 truncate'>{item.name}</p>
-                  <p className='text-[10px] text-theme-8b7b93 font-medium'>
+                  <p className='text-[12px] text-theme-8b7b93 font-medium'>
                     {item.sku ? `SKU: ${item.sku} | ` : ''}
                     {item.quantity} x {currency}{item.price.toFixed(2)} {item.size && `(${item.size})`}
                   </p>
                   {item.appliedCoupon && (
-                    <span className="inline-flex mt-1 text-[8px] bg-green-50 text-green-700 px-1 py-0.5 rounded border font-semibold">
+                    <span className="inline-flex mt-1 text-[12px] bg-green-50 text-green-700 px-1 py-0.5 rounded border font-semibold">
                       Coupon: {item.appliedCoupon}
                     </span>
                   )}
@@ -201,7 +201,7 @@ const Orders = ({ token }) => {
             <div className="flex items-center gap-2">
               <p className="font-bold text-theme-4f4059">{order.address.name}</p>
               {order.address.addressType && (
-                <span className="px-1.5 py-0.5 bg-gray-100 text-theme-8b7b93 text-[9px] rounded uppercase font-bold border">
+                <span className="px-1.5 py-0.5 bg-gray-100 text-theme-8b7b93 text-[12px] rounded uppercase font-bold border">
                   {order.address.addressType === 'Home' ? 'Home' : order.address.addressType}
                 </span>
               )}
@@ -210,7 +210,7 @@ const Orders = ({ token }) => {
             <p className="text-theme-8b7b93 flex items-center gap-1"><Phone size={12}/> {order.address.phone}</p>
             <div className="mt-2 pt-2 border-t border-theme-eee9f0">
               <p className="font-medium text-theme-4f4059">{order.address.address}, {order.address.locality}</p>
-              {order.address.landmark && <p className="italic text-theme-9d8da5 text-[10px]">Landmark: {order.address.landmark}</p>}
+              {order.address.landmark && <p className="italic text-theme-9d8da5 text-[12px]">Landmark: {order.address.landmark}</p>}
               <p className="font-bold text-theme-65526f">{order.address.city}, {order.address.state}, {order.address.country} - {order.address.zip}</p>
             </div>
           </address>
@@ -227,11 +227,11 @@ const Orders = ({ token }) => {
             )}
             {order.couponCode && (
               <div className='flex flex-col bg-green-50 p-1.5 rounded-lg border border-green-100 w-fit mt-1'>
-                <span className="text-[10px] font-bold text-green-700 flex items-center gap-1">
+                <span className="text-[12px] font-bold text-green-700 flex items-center gap-1">
                   <Tag size={10} /> Coupon: {order.couponCode}
                 </span>
                 {order.couponDiscount > 0 && (
-                  <span className="text-[9px] text-green-600 font-medium">Saved: {currency}{order.couponDiscount.toFixed(2)}</span>
+                  <span className="text-[12px] text-green-600 font-medium">Saved: {currency}{order.couponDiscount.toFixed(2)}</span>
                 )}
               </div>
             )}
@@ -243,21 +243,21 @@ const Orders = ({ token }) => {
           {order.shiprocket && (
             <div className='mt-4 pt-3 border-t border-theme-eee9f0'>
               <p className='font-bold text-theme-4f4059 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5'><Truck size={14}/> Logistics</p>
-              <div className='space-y-1 text-[11px] text-theme-756480 bg-theme-faf8fb p-2 rounded-lg border'>
+              <div className='space-y-1 text-[13px] text-theme-756480 bg-theme-faf8fb p-2 rounded-lg border'>
                 {order.shiprocketStatus && (
                   <p>Live Status: <span className="font-bold text-theme-342a3c uppercase">{order.shiprocketStatus.replace(/_/g, ' ')}</span></p>
                 )}
                 {order.shiprocket.awb && <p>AWB: <span className="font-bold">{order.shiprocket.awb}</span></p>}
                 {order.shiprocket.courier && <p>Courier: <span className="font-semibold">{order.shiprocket.courier}</span></p>}
                 {order.shiprocket.lastTrackedAt && (
-                  <p className="text-[10px] text-theme-9d8da5">Last synced: {formatDate(order.shiprocket.lastTrackedAt)}</p>
+                  <p className="text-[12px] text-theme-9d8da5">Last synced: {formatDate(order.shiprocket.lastTrackedAt)}</p>
                 )}
                 {order.shiprocket.trackingUrl && (
                   <a
                     href={order.shiprocket.trackingUrl}
                     target='_blank'
                     rel='noopener noreferrer'
-                    className='text-theme-a85070 hover:underline flex items-center gap-1 font-bold mt-1 text-[10px] uppercase'
+                    className='text-theme-a85070 hover:underline flex items-center gap-1 font-bold mt-1 text-[12px] uppercase'
                   >
                     <FileText size={12}/> Track Shipment
                   </a>
@@ -658,7 +658,7 @@ const Orders = ({ token }) => {
     return (
       <th
         scope="col"
-        className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93"
+        className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93"
       >
         <button type="button" aria-label={'Sort by ' + label} onClick={() => onSort(sortKey)} className="flex items-center gap-1.5 rounded uppercase tracking-wider transition-colors hover:text-theme-a85070">
           {label}
@@ -747,7 +747,7 @@ const Orders = ({ token }) => {
     <div className="mx-auto w-full min-w-0 max-w-[1600px] font-[Outfit,sans-serif] text-theme-342a3c [&_*]:[font-family:inherit] [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-theme-b77997 [&_button]:focus-visible:ring-offset-2 motion-reduce:[&_*]:transition-none motion-reduce:[&_*]:animate-none">
       <header className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <p className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-theme-9c839e">
+          <p className="mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-theme-9c839e">
             <span className="h-1.5 w-1.5 rotate-45 bg-theme-b77997" aria-hidden="true" /> Febeul / Order management
           </p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Orders<span className="text-theme-b77997">.</span></h1>
@@ -769,13 +769,13 @@ const Orders = ({ token }) => {
               type="button"
               aria-pressed={isActive}
               onClick={() => setActiveTab(tab.key)}
-              className={`relative flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-3 text-[11px] font-medium transition-colors sm:px-3 sm:text-xs ${
+              className={`relative flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-3 text-[13px] font-medium transition-colors sm:px-3 sm:text-xs ${
                 isActive ? 'bg-theme-302735 text-white shadow-sm' : 'text-theme-8b7b93 hover:bg-theme-f8f4f9 hover:text-theme-5b4264'
               }`}
             >
               <Icon size={15} className={isActive ? 'shrink-0 text-theme-e6bfd2' : 'shrink-0 text-theme-b19db9'} />
               <span>{tab.label}</span>
-              <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md transition-colors ${
+              <span className={`shrink-0 text-[12px] font-semibold px-1.5 py-0.5 rounded-md transition-colors ${
                 isActive ? 'bg-white/15 text-white' : 'bg-theme-f3eef5 text-theme-9a83a3'
               }`}>
                 {tab.count}
@@ -821,7 +821,7 @@ const Orders = ({ token }) => {
                   <span className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + color}><Icon size={16} aria-hidden="true" /></span>
                 </div>
                 <p className="text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
-                <p className={'mt-1 text-[11px] ' + (index === 0 ? 'text-theme-b9a7c0' : 'text-theme-a292a9')}>All dates</p>
+                <p className={'mt-1 text-[13px] ' + (index === 0 ? 'text-theme-b9a7c0' : 'text-theme-a292a9')}>All dates</p>
               </div>
             ))}
           </div>
@@ -934,14 +934,14 @@ const Orders = ({ token }) => {
                   <table className='w-full min-w-full divide-y divide-theme-eee9f0'>
                     <thead className='bg-theme-faf8fb'>
                       <tr>
-                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Order</th>
-                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Customer</th>
-                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Contact</th>
-                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Date</th>
-                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Total</th>
-                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Destination</th>
-                        <th className='px-4 py-3 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Status</th>
-                        <th className='px-4 py-3 text-right text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Actions</th>
+                        <th className='px-4 py-3 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Order</th>
+                        <th className='px-4 py-3 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Customer</th>
+                        <th className='px-4 py-3 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Contact</th>
+                        <th className='px-4 py-3 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Date</th>
+                        <th className='px-4 py-3 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Total</th>
+                        <th className='px-4 py-3 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Destination</th>
+                        <th className='px-4 py-3 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Status</th>
+                        <th className='px-4 py-3 text-right text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide'>Actions</th>
                       </tr>
                     </thead>
                     <tbody className='divide-y divide-theme-eee9f0'>
@@ -952,12 +952,12 @@ const Orders = ({ token }) => {
                               {order.orderItemId && (
                                 <p className='text-xs font-bold text-theme-a85070 truncate' title={order.orderItemId}>#{order.orderItemId}</p>
                               )}
-                              <p className='text-[11px] text-theme-9d8da5 truncate' title={order._id}>#{order._id}</p>
+                              <p className='text-[13px] text-theme-9d8da5 truncate' title={order._id}>#{order._id}</p>
                             </td>
                             <td className='px-4 py-3 align-top max-w-[160px]'>
                               <p className='text-xs font-semibold text-theme-4f4059 truncate' title={order.userId?.name || order.address?.name || 'N/A'}>{order.userId?.name || order.address?.name || 'N/A'}</p>
                               {order.userId?.isLuxeMember && (
-                                <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-wide w-fit mt-1'>
+                                <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[12px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-wide w-fit mt-1'>
                                   Luxe
                                 </span>
                               )}
@@ -968,14 +968,14 @@ const Orders = ({ token }) => {
                             </td>
                             <td className='px-4 py-3 align-top whitespace-nowrap'>
                               <p className='text-xs text-theme-65526f font-medium'>{formatDate(order.date)}</p>
-                              <p className='text-[11px] text-theme-9d8da5'>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                              <p className='text-[13px] text-theme-9d8da5'>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             </td>
                             <td className='px-4 py-3 align-top whitespace-nowrap'>
                               <p className='text-xs font-semibold text-theme-342a3c'>{currency}{order.orderTotal.toFixed(2)}</p>
                             </td>
                             <td className='px-4 py-3 align-top max-w-[150px]'>
                               <p className='text-xs text-theme-65526f font-medium truncate' title={`${order.address.city}, ${order.address.state}`}>{order.address.city}, {order.address.state}</p>
-                              <p className='text-[11px] text-theme-9d8da5'>{order.address.zip}</p>
+                              <p className='text-[13px] text-theme-9d8da5'>{order.address.zip}</p>
                             </td>
                             <td className='px-4 py-3 align-top min-w-[170px] max-w-[230px]'>
                               <StatusBadge status={order.tracking?.label || order.orderStatus} tone={order.tracking?.tone} />
@@ -1022,13 +1022,13 @@ const Orders = ({ token }) => {
                       <div className='flex flex-wrap items-start justify-between gap-3'>
                         <div className='min-w-0'>
                           {order.orderItemId && (
-                            <p className='text-[11px] font-bold text-theme-a85070 truncate' title={order.orderItemId}>#{order.orderItemId}</p>
+                            <p className='text-[13px] font-bold text-theme-a85070 truncate' title={order.orderItemId}>#{order.orderItemId}</p>
                           )}
-                          <p className='text-[11px] font-semibold text-theme-9d8da5 truncate' title={order._id}>#{order._id}</p>
+                          <p className='text-[13px] font-semibold text-theme-9d8da5 truncate' title={order._id}>#{order._id}</p>
                           <p className='text-sm font-semibold text-theme-342a3c truncate mt-0.5'>{order.userId?.name || order.address?.name || 'N/A'}</p>
                           <p className='text-xs text-theme-8b7b93 truncate'>{order.userId?.email || order.address?.email || 'N/A'}</p>
                           {order.userId?.isLuxeMember && (
-                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-wide w-fit mt-1'>
+                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[12px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-wide w-fit mt-1'>
                               Luxe
                             </span>
                           )}
@@ -1145,7 +1145,7 @@ const Orders = ({ token }) => {
                 <Map size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">States Covered</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">States Covered</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">{analytics.states.length}</h4>
               </div>
             </div>
@@ -1154,7 +1154,7 @@ const Orders = ({ token }) => {
                 <MapPin size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Pincodes Reached</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Pincodes Reached</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">{analytics.pincodes.length}</h4>
               </div>
             </div>
@@ -1163,7 +1163,7 @@ const Orders = ({ token }) => {
                 <TrendingUp size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Total Combined revenue</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Total Combined revenue</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">{currency}{orders.reduce((sum, o) => sum + o.orderTotal, 0).toFixed(2)}</h4>
               </div>
             </div>
@@ -1228,7 +1228,7 @@ const Orders = ({ token }) => {
                     <MapPin size={16} className="text-theme-b77997" /> Pincode Breakdown
                   </h4>
                   {selectedStateFilter && (
-                    <span className="px-2 py-0.5 bg-pink-100 text-pink-700 text-[10px] font-semibold rounded-lg uppercase tracking-wider flex items-center gap-1">
+                    <span className="px-2 py-0.5 bg-pink-100 text-pink-700 text-[12px] font-semibold rounded-lg uppercase tracking-wider flex items-center gap-1">
                       State: {selectedStateFilter}
                       <button onClick={() => setSelectedStateFilter('')} className="hover:text-pink-900 ml-1">×</button>
                     </span>
@@ -1301,7 +1301,7 @@ const Orders = ({ token }) => {
                 <Users size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Total Unique Buyers</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Total Unique Buyers</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">{analytics.customers.length}</h4>
               </div>
             </div>
@@ -1310,7 +1310,7 @@ const Orders = ({ token }) => {
                 <BadgeCheck size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Luxe Members</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Luxe Members</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">{analytics.customers.filter(c => c.isLuxe).length}</h4>
               </div>
             </div>
@@ -1319,7 +1319,7 @@ const Orders = ({ token }) => {
                 <TrendingUp size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Avg. Orders / Customer</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Avg. Orders / Customer</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">
                   {analytics.customers.length ? (orders.length / analytics.customers.length).toFixed(1) : 0}
                 </h4>
@@ -1352,7 +1352,7 @@ const Orders = ({ token }) => {
                   <SortHeader label="Buyer Identity" sortKey="name" currentSort={buyerSort} onSort={(k) => handleSort(k, buyerSort, setBuyerSort)} />
                   <SortHeader label="Order Count (Frequency)" sortKey="orderCount" currentSort={buyerSort} onSort={(k) => handleSort(k, buyerSort, setBuyerSort)} />
                   <SortHeader label="Total Spend" sortKey="totalSpent" currentSort={buyerSort} onSort={(k) => handleSort(k, buyerSort, setBuyerSort)} />
-                  <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Products Ordered & Frequency</th>
+                  <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Products Ordered & Frequency</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-f3eef5 bg-white">
@@ -1370,10 +1370,10 @@ const Orders = ({ token }) => {
                             <p className="text-xs font-semibold text-theme-342a3c flex items-center gap-1.5">
                               {customer.name}
                               {customer.isLuxe && (
-                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[8px] font-semibold rounded uppercase border border-amber-200">Luxe</span>
+                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[12px] font-semibold rounded uppercase border border-amber-200">Luxe</span>
                               )}
                             </p>
-                            <p className="text-[10px] text-theme-9d8da5 font-bold">{customer.email}</p>
+                            <p className="text-[12px] text-theme-9d8da5 font-bold">{customer.email}</p>
                           </div>
                         </div>
                       </td>
@@ -1389,10 +1389,10 @@ const Orders = ({ token }) => {
                             <div key={pIdx} className="flex items-center gap-2 bg-theme-faf8fb p-1.5 rounded-xl border border-theme-eee9f0 w-full max-w-md">
                               <img src={prod.image} className="w-8 h-8 object-cover rounded-lg border shadow-sm" alt="" />
                               <div className="min-w-0 flex-1">
-                                <p className="text-[11px] font-bold text-theme-4f4059 truncate">{prod.name}</p>
-                                <p className="text-[9px] text-theme-9d8da5 font-bold uppercase">SKU: {prod.sku}</p>
+                                <p className="text-[13px] font-bold text-theme-4f4059 truncate">{prod.name}</p>
+                                <p className="text-[12px] text-theme-9d8da5 font-bold uppercase">SKU: {prod.sku}</p>
                               </div>
-                              <span className="text-[10px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded-lg font-semibold whitespace-nowrap">
+                              <span className="text-[12px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded-lg font-semibold whitespace-nowrap">
                                 Qty: {prod.quantity}
                               </span>
                             </div>
@@ -1418,7 +1418,7 @@ const Orders = ({ token }) => {
                 <RefreshCcw size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Total Returns Processed</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Total Returns Processed</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">{analytics.returns.length}</h4>
               </div>
             </div>
@@ -1427,7 +1427,7 @@ const Orders = ({ token }) => {
                 <DollarSign size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Total Refunded Capital</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Total Refunded Capital</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">
                   {currency}{analytics.returns.reduce((sum, r) => sum + r.amount, 0).toFixed(2)}
                 </h4>
@@ -1438,7 +1438,7 @@ const Orders = ({ token }) => {
                 <Map size={24} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Affected Return States</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Affected Return States</p>
                 <h4 className="text-2xl font-semibold tracking-tight tabular-nums break-words text-theme-342a3c">{analytics.returnStates.length}</h4>
               </div>
             </div>
@@ -1454,9 +1454,9 @@ const Orders = ({ token }) => {
                 <table className="w-full min-w-full divide-y divide-theme-eee9f0">
                   <thead className="bg-theme-faf8fb">
                     <tr>
-                      <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">State</th>
-                      <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Return Count</th>
-                      <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Total Refund</th>
+                      <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">State</th>
+                      <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Return Count</th>
+                      <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Total Refund</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-theme-f3eef5 bg-white">
@@ -1488,7 +1488,7 @@ const Orders = ({ token }) => {
                     <RefreshCcw size={16} className="text-theme-b77997" /> Returned Order details
                   </h4>
                   {returnStateFilter && (
-                    <span className="px-2.5 py-0.5 bg-red-100 text-red-700 text-[10px] font-semibold rounded-lg uppercase tracking-wider flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 bg-red-100 text-red-700 text-[12px] font-semibold rounded-lg uppercase tracking-wider flex items-center gap-1">
                       State: {returnStateFilter}
                       <button onClick={() => setReturnStateFilter('')} className="hover:text-red-900 ml-1">×</button>
                     </span>
@@ -1513,11 +1513,11 @@ const Orders = ({ token }) => {
                   <thead className="bg-theme-faf8fb sticky top-0 z-10">
                     <tr>
                       <SortHeader label="Return Date" sortKey="date" currentSort={returnSort} onSort={(k) => handleSort(k, returnSort, setReturnSort)} />
-                      <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Order Details</th>
-                      <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Buyer Info</th>
-                      <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">State & Pin</th>
-                      <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">SKU & Item Details</th>
-                      <th className="px-4 py-4 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Coupon Used</th>
+                      <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Order Details</th>
+                      <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Buyer Info</th>
+                      <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">State & Pin</th>
+                      <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">SKU & Item Details</th>
+                      <th className="px-4 py-4 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Coupon Used</th>
                       <SortHeader label="Refund Amount" sortKey="amount" currentSort={returnSort} onSort={(k) => handleSort(k, returnSort, setReturnSort)} />
                     </tr>
                   </thead>
@@ -1531,16 +1531,16 @@ const Orders = ({ token }) => {
                           <td className="px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-theme-342a3c">#{item.orderId.slice(-8).toUpperCase()}</td>
                           <td className="px-4 py-3.5 whitespace-nowrap">
                             <p className="text-xs font-bold text-theme-4f4059">{item.userName}</p>
-                            <p className="text-[10px] text-theme-9d8da5 font-semibold">{item.email}</p>
+                            <p className="text-[12px] text-theme-9d8da5 font-semibold">{item.email}</p>
                           </td>
                           <td className="px-4 py-3.5 whitespace-nowrap">
                             <p className="text-xs font-bold text-theme-4f4059">{item.state}</p>
-                            <p className="text-[10px] text-theme-9d8da5 font-semibold">{item.pincode}</p>
+                            <p className="text-[12px] text-theme-9d8da5 font-semibold">{item.pincode}</p>
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="flex flex-col gap-1">
                               {item.items.map((prod, pIdx) => (
-                                <div key={pIdx} className="flex items-center gap-1.5 text-[10px]">
+                                <div key={pIdx} className="flex items-center gap-1.5 text-[12px]">
                                   <span className="font-bold text-theme-4f4059 bg-gray-100 px-1 py-0.5 rounded">SKU: {prod.sku}</span>
                                   <span className="text-theme-8b7b93 truncate max-w-40 font-medium">({prod.name})</span>
                                   <span className="text-theme-756480 font-bold ml-auto">x{prod.quantity}</span>
@@ -1550,7 +1550,7 @@ const Orders = ({ token }) => {
                           </td>
                           <td className="px-4 py-3.5 whitespace-nowrap text-xs">
                             {item.couponUsed !== 'None' ? (
-                              <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-semibold rounded border border-green-200">
+                              <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[12px] font-semibold rounded border border-green-200">
                                 {item.couponUsed}
                               </span>
                             ) : (
@@ -1581,7 +1581,7 @@ const Orders = ({ token }) => {
                 <AlertCircle size={20} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Active Refund Requests</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Active Refund Requests</p>
                 <h4 className="text-xl font-bold text-theme-342a3c">{analytics.refunds.length}</h4>
               </div>
             </div>
@@ -1590,7 +1590,7 @@ const Orders = ({ token }) => {
                 <DollarSign size={20} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Requested Refund Capital</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Requested Refund Capital</p>
                 <h4 className="text-xl font-bold text-theme-342a3c">
                   {currency}{analytics.refunds.reduce((sum, r) => sum + r.amount, 0).toFixed(2)}
                 </h4>
@@ -1601,7 +1601,7 @@ const Orders = ({ token }) => {
                 <Map size={20} />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-theme-8b7b93">Affected Request States</p>
+                <p className="text-[13px] font-medium text-theme-8b7b93">Affected Request States</p>
                 <h4 className="text-xl font-bold text-theme-342a3c">{analytics.refundStates.length}</h4>
               </div>
             </div>
@@ -1618,9 +1618,9 @@ const Orders = ({ token }) => {
                   <table className="w-full min-w-full divide-y divide-theme-eee9f0">
                     <thead className="bg-theme-faf8fb">
                       <tr>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide">State</th>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide">Requests</th>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-theme-8b7b93 uppercase tracking-wide">Value</th>
+                        <th className="px-4 py-2.5 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide">State</th>
+                        <th className="px-4 py-2.5 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide">Requests</th>
+                        <th className="px-4 py-2.5 text-left text-[13px] font-semibold text-theme-8b7b93 uppercase tracking-wide">Value</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-theme-eee9f0">
@@ -1653,7 +1653,7 @@ const Orders = ({ token }) => {
                     <DollarSign size={14} className="text-theme-b77997" /> Pending Refund Requests
                   </h4>
                   {refundStateFilter && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 border border-orange-100 text-[11px] font-semibold rounded-full">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 border border-orange-100 text-[13px] font-semibold rounded-full">
                       {refundStateFilter}
                       <button onClick={() => setRefundStateFilter('')} className="hover:text-orange-900" title="Clear state filter">
                         <X size={11} />
@@ -1687,13 +1687,13 @@ const Orders = ({ token }) => {
                         <thead className="bg-theme-faf8fb sticky top-0 z-10">
                           <tr>
                             <SortHeader label="Date" sortKey="date" currentSort={refundSort} onSort={(k) => handleSort(k, refundSort, setRefundSort)} />
-                            <th className="px-4 py-3 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Order</th>
-                            <th className="px-4 py-3 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Buyer</th>
-                            <th className="px-4 py-3 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Destination</th>
-                            <th className="px-4 py-3 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Items</th>
-                            <th className="px-4 py-3 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Coupon</th>
+                            <th className="px-4 py-3 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Order</th>
+                            <th className="px-4 py-3 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Buyer</th>
+                            <th className="px-4 py-3 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Destination</th>
+                            <th className="px-4 py-3 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Items</th>
+                            <th className="px-4 py-3 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Coupon</th>
                             <SortHeader label="Amount" sortKey="amount" currentSort={refundSort} onSort={(k) => handleSort(k, refundSort, setRefundSort)} />
-                            <th className="px-4 py-3 text-left text-[11px] font-medium text-theme-8b7b93 uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-3 text-left text-[13px] font-medium text-theme-8b7b93 uppercase tracking-wider">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-theme-eee9f0">
@@ -1705,16 +1705,16 @@ const Orders = ({ token }) => {
                               </td>
                               <td className="px-4 py-3 align-top max-w-[160px]">
                                 <p className="text-xs font-semibold text-theme-4f4059 truncate">{item.userName}</p>
-                                <p className="text-[11px] text-theme-8b7b93 truncate">{item.email}</p>
+                                <p className="text-[13px] text-theme-8b7b93 truncate">{item.email}</p>
                               </td>
                               <td className="px-4 py-3 align-top whitespace-nowrap">
                                 <p className="text-xs text-theme-65526f font-medium">{item.state}</p>
-                                <p className="text-[11px] text-theme-9d8da5">{item.pincode}</p>
+                                <p className="text-[13px] text-theme-9d8da5">{item.pincode}</p>
                               </td>
                               <td className="px-4 py-3 align-top">
                                 <div className="flex flex-col gap-1 max-w-[220px]">
                                   {item.items.map((prod, pIdx) => (
-                                    <div key={pIdx} className="flex items-center gap-1.5 text-[11px]">
+                                    <div key={pIdx} className="flex items-center gap-1.5 text-[13px]">
                                       <span className="font-semibold text-theme-65526f bg-gray-100 px-1.5 py-0.5 rounded shrink-0">{prod.sku}</span>
                                       <span className="text-theme-8b7b93 truncate">{prod.name}</span>
                                       <span className="text-theme-756480 font-semibold ml-auto shrink-0">x{prod.quantity}</span>
@@ -1724,7 +1724,7 @@ const Orders = ({ token }) => {
                               </td>
                               <td className="px-4 py-3 align-top whitespace-nowrap text-xs">
                                 {item.couponUsed !== 'None' ? (
-                                  <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[11px] font-semibold rounded border border-green-100">
+                                  <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[13px] font-semibold rounded border border-green-100">
                                     {item.couponUsed}
                                   </span>
                                 ) : (
@@ -1750,7 +1750,7 @@ const Orders = ({ token }) => {
                       <div key={idx} className="bg-white rounded-xl border border-theme-eae5ed p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-[11px] font-semibold text-theme-9d8da5 truncate" title={item.orderId}>#{item.orderId}</p>
+                            <p className="text-[13px] font-semibold text-theme-9d8da5 truncate" title={item.orderId}>#{item.orderId}</p>
                             <p className="text-sm font-semibold text-theme-342a3c truncate mt-0.5">{item.userName}</p>
                             <p className="text-xs text-theme-8b7b93 truncate">{item.email}</p>
                           </div>
@@ -1778,7 +1778,7 @@ const Orders = ({ token }) => {
 
                         <div className="mt-3 pt-3 border-t border-theme-eee9f0 space-y-1">
                           {item.items.map((prod, pIdx) => (
-                            <div key={pIdx} className="flex items-center gap-1.5 text-[11px]">
+                            <div key={pIdx} className="flex items-center gap-1.5 text-[13px]">
                               <span className="font-semibold text-theme-65526f bg-gray-100 px-1.5 py-0.5 rounded shrink-0">{prod.sku}</span>
                               <span className="text-theme-8b7b93 truncate">{prod.name}</span>
                               <span className="text-theme-756480 font-semibold ml-auto shrink-0">x{prod.quantity}</span>

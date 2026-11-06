@@ -15,10 +15,10 @@ import {
 const Section = ({ icon: Icon, title, subtitle, children, accent = 'text-slate-400' }) => (
   <section className="space-y-4">
     <div>
-      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+      <h4 className="text-[12px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
         <Icon size={12} className={accent} /> {title}
       </h4>
-      {subtitle && <p className="text-[11px] text-slate-400 font-medium mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-[13px] text-slate-400 font-medium mt-1">{subtitle}</p>}
     </div>
     {children}
   </section>
@@ -26,7 +26,7 @@ const Section = ({ icon: Icon, title, subtitle, children, accent = 'text-slate-4
 
 const Field = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{label}</label>
+    <label className="text-[12px] font-black text-slate-400 uppercase tracking-wider">{label}</label>
     {children}
   </div>
 );
@@ -45,7 +45,7 @@ const Btn = ({ children, variant = 'dark', className = '', ...props }) => {
   return (
     <button
       {...props}
-      className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 ${variants[variant]} ${className}`}
+      className={`px-4 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 ${variants[variant]} ${className}`}
     >
       {children}
     </button>
@@ -54,9 +54,9 @@ const Btn = ({ children, variant = 'dark', className = '', ...props }) => {
 
 const Stat = ({ label, value, sub, tone = 'text-white' }) => (
   <div>
-    <p className="text-[9px] font-black uppercase tracking-widest opacity-50">{label}</p>
+    <p className="text-[12px] font-black uppercase tracking-widest opacity-50">{label}</p>
     <p className={`text-2xl font-black leading-tight ${tone}`}>{value}</p>
-    {sub && <p className="text-[10px] font-bold opacity-60 mt-0.5">{sub}</p>}
+    {sub && <p className="text-[12px] font-bold opacity-60 mt-0.5">{sub}</p>}
   </div>
 );
 
@@ -129,12 +129,12 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
         <div className="px-7 py-5 bg-white border-b border-slate-100 flex items-start justify-between gap-4 shrink-0">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${tone.chip}`}>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-black uppercase tracking-wider border ${tone.chip}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
                 {labelOf(view.status)}
               </span>
               {view.isManual && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-900 text-white">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[12px] font-black uppercase tracking-wider bg-slate-900 text-white">
                   <Lock size={9} /> Manual
                 </span>
               )}
@@ -142,7 +142,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
             <h3 className="text-xl font-black text-slate-900 tracking-tight mt-2 truncate">
               #{request.orderItemId || request._id.slice(-8).toUpperCase()}
             </h3>
-            <p className="text-[11px] text-slate-400 font-bold truncate">{request._id}</p>
+            <p className="text-[13px] text-slate-400 font-bold truncate">{request._id}</p>
           </div>
           <button aria-label="Close return details" onClick={onClose} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-400 shrink-0">
             <X size={18} />
@@ -172,7 +172,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
           {view.refundOverdue && (
             <div className="mt-4 flex items-start gap-2.5 bg-red-500/15 border border-red-400/30 rounded-xl px-3.5 py-2.5">
               <AlertTriangle size={14} className="text-red-400 mt-0.5 shrink-0" />
-              <p className="text-[11px] font-bold text-red-100 leading-relaxed">
+              <p className="text-[13px] font-bold text-red-100 leading-relaxed">
                 Past the {view.thresholds?.returnMaxRefundDays ?? 15}-day settlement target. Follow up with the courier.
                 Refund remains locked until warehouse receipt and a passed quality check.
               </p>
@@ -219,7 +219,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
 
           {refund.status === 'rejected' && (
             <div className="bg-red-50 border border-red-100 rounded-2xl p-5">
-              <p className="text-[10px] font-black text-red-600 uppercase tracking-wider">Request rejected</p>
+              <p className="text-[12px] font-black text-red-600 uppercase tracking-wider">Request rejected</p>
               <p className="text-xs font-bold text-red-800 italic mt-1.5">&quot;{refund.rejectionReason || 'No reason recorded.'}&quot;</p>
             </div>
           )}
@@ -235,7 +235,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                 <p className="text-xs text-slate-500 font-medium truncate">{request.userId?.email}</p>
               </div>
               <div className="ml-auto text-right shrink-0">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Order value</p>
+                <p className="text-[12px] font-black text-slate-400 uppercase tracking-wider">Order value</p>
                 <p className="text-lg font-black text-slate-900">{currency}{(request.orderTotal || 0).toFixed(2)}</p>
               </div>
             </div>
@@ -244,9 +244,9 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
           {/* Request context */}
           <Section icon={MessageSquare} title="Request Context">
             <div className="bg-white p-5 rounded-2xl border border-slate-100 space-y-3">
-              <p className="text-[10px] font-black text-slate-400 uppercase">Customer&apos;s reason</p>
+              <p className="text-[12px] font-black text-slate-400 uppercase">Customer&apos;s reason</p>
               <p className="text-sm text-slate-700 font-medium italic">&quot;{refund.reason || 'No reason provided.'}&quot;</p>
-              <p className="text-[10px] text-slate-400 font-bold">Requested {fmtDateTime(refund.requestedAt)}</p>
+              <p className="text-[12px] text-slate-400 font-bold">Requested {fmtDateTime(refund.requestedAt)}</p>
               {refund.images?.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-2">
                   {refund.images.map((img, i) => (
@@ -264,11 +264,11 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
             <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Return AWB</p>
+                  <p className="text-[12px] font-black text-slate-400 uppercase tracking-wider">Return AWB</p>
                   <p className="text-sm font-black text-slate-800 select-all break-all">{pickup.awb || 'Not assigned'}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Courier</p>
+                  <p className="text-[12px] font-black text-slate-400 uppercase tracking-wider">Courier</p>
                   <p className="text-sm font-black text-slate-800">{pickup.courier || '—'}</p>
                 </div>
               </div>
@@ -276,7 +276,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
               {pickup.status === 'failed' && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
                   <AlertTriangle size={13} className="text-amber-500 mt-0.5 shrink-0" />
-                  <p className="text-[11px] font-bold text-amber-800">
+                  <p className="text-[13px] font-bold text-amber-800">
                     Auto-scheduling failed: {pickup.failureReason || 'unknown error'}. Arrange collection manually in Shiprocket.
                   </p>
                 </div>
@@ -288,8 +288,8 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                     <div key={i} className="flex items-start gap-2.5">
                       <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${i === 0 ? 'bg-blue-500' : 'bg-slate-300'}`} />
                       <div className="min-w-0">
-                        <p className="text-[11px] font-bold text-slate-700">{act.activity || act.status}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">
+                        <p className="text-[13px] font-bold text-slate-700">{act.activity || act.status}</p>
+                        <p className="text-[12px] text-slate-400 font-medium">
                           {fmtDateTime(act.date)}{act.location ? ` · ${act.location}` : ''}
                         </p>
                       </div>
@@ -303,7 +303,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                 <div className="pt-4 border-t border-slate-100 space-y-3">
                   <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3">
                     <Info size={13} className="text-blue-500 mt-0.5 shrink-0" />
-                    <p className="text-[11px] font-bold text-blue-800">
+                    <p className="text-[13px] font-bold text-blue-800">
                       No pickup scan yet. Record it manually only if the courier has physically collected the parcel — every deadline counts from this date.
                     </p>
                   </div>
@@ -332,20 +332,20 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                     <p className="text-sm font-black text-slate-900">
                       {rt.lateDeliveredAt ? 'Received late' : 'Received'} · {fmtDateTime(rt.receivedDate)}
                     </p>
-                    <p className="text-[11px] text-slate-500 font-bold">
+                    <p className="text-[13px] text-slate-500 font-bold">
                       {view.transitDays !== null && view.transitDays !== undefined ? `${view.transitDays} days in transit` : 'Transit time unknown'}
                       {rt.lateMarkedBy ? ` · marked by ${rt.lateMarkedBy}` : ''}
                     </p>
                   </div>
                 </div>
-                {rt.lateNote && <p className="text-[11px] text-slate-600 font-medium italic mt-3 pl-8">&quot;{rt.lateNote}&quot;</p>}
+                {rt.lateNote && <p className="text-[13px] text-slate-600 font-medium italic mt-3 pl-8">&quot;{rt.lateNote}&quot;</p>}
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
                 {isLostFamily && (
                   <div className="flex items-start gap-2 bg-violet-50 border border-violet-100 rounded-xl p-3">
                     <Undo2 size={13} className="text-violet-500 mt-0.5 shrink-0" />
-                    <p className="text-[11px] font-bold text-violet-800">
+                    <p className="text-[13px] font-bold text-violet-800">
                       This parcel is written off as lost. Marking it received keeps the lost record intact and adds the late arrival on top of it.
                     </p>
                   </div>
@@ -392,7 +392,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                     QC {rt.qcResult} · {fmtDateTime(rt.qcDate)}
                   </p>
                 </div>
-                <p className="text-[11px] font-bold text-slate-500 mt-1.5 pl-7">By {rt.qcBy || 'admin'}</p>
+                <p className="text-[13px] font-bold text-slate-500 mt-1.5 pl-7">By {rt.qcBy || 'admin'}</p>
                 {rt.qcNotes && <p className="text-xs text-slate-700 font-medium italic mt-3 pl-7">&quot;{rt.qcNotes}&quot;</p>}
                 {rt.qcPhotos?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-4 pl-7">
@@ -407,7 +407,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
             ) : !received ? (
               <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-5 text-center">
                 <Clock size={18} className="text-slate-300 mx-auto mb-2" />
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mark the parcel received first</p>
+                <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">Mark the parcel received first</p>
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
@@ -440,7 +440,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                   />
                   <button
                     onClick={() => photoInputRef.current?.click()}
-                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed transition-all text-[11px] font-black uppercase tracking-widest ${
+                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed transition-all text-[13px] font-black uppercase tracking-widest ${
                       qcResult === 'FAIL' && qcPhotos.length === 0
                         ? 'border-red-200 bg-red-50 text-red-500 hover:border-red-400'
                         : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-400'
@@ -452,7 +452,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                   {qcPhotos.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {qcPhotos.map((file, i) => (
-                        <span key={i} className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg truncate max-w-[140px]">
+                        <span key={i} className="text-[12px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg truncate max-w-[140px]">
                           {file.name}
                         </span>
                       ))}
@@ -465,7 +465,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                 </Field>
 
                 {qcResult === 'FAIL' && qcPhotos.length === 0 && (
-                  <p className="text-[11px] font-bold text-red-500 flex items-center gap-1.5">
+                  <p className="text-[13px] font-bold text-red-500 flex items-center gap-1.5">
                     <AlertTriangle size={12} /> Attach at least one photo to record a failure.
                   </p>
                 )}
@@ -487,16 +487,16 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
             {settled ? (
               <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Refund completed</p>
+                  <p className="text-[12px] font-black text-emerald-600 uppercase tracking-wider">Refund completed</p>
                   <p className="text-xl font-black text-emerald-800">{currency}{(refund.amount || 0).toFixed(2)}</p>
                 </div>
                 {rt.refundUtr && <p className="text-xs font-bold text-slate-700">UTR: <span className="select-all font-mono">{rt.refundUtr}</span></p>}
                 {refund.id && <p className="text-xs font-bold text-slate-700">Gateway ref: <span className="select-all font-mono">{refund.id}</span></p>}
-                <p className="text-[11px] text-slate-500 font-bold">
+                <p className="text-[13px] text-slate-500 font-bold">
                   {fmtDateTime(rt.refundPaidAt || refund.processedAt)}{rt.refundDecidedBy ? ` · by ${rt.refundDecidedBy}` : ''}
                 </p>
                 {refund.isPartialRefund && (
-                  <span className="inline-block text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-700 px-2 py-1 rounded-lg">Partial refund</span>
+                  <span className="inline-block text-[12px] font-black uppercase tracking-wider bg-amber-100 text-amber-700 px-2 py-1 rounded-lg">Partial refund</span>
                 )}
               </div>
             ) : refundBlockReason ? (
@@ -547,21 +547,21 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                 {/* Payout destination the customer gave us */}
                 {refund.customerPayoutDetails?.type ? (
                   <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 space-y-2">
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <p className="text-[12px] font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
                       <Landmark size={11} /> COD payout · {refund.customerPayoutDetails.type === 'upi' ? 'UPI' : 'Bank transfer'}
                     </p>
                     {refund.customerPayoutDetails.type === 'upi' ? (
                       <p className="text-sm font-black font-mono text-slate-800 select-all">{refund.customerPayoutDetails.upiId}</p>
                     ) : (
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div><span className="text-[9px] font-black text-emerald-600 uppercase block">Holder</span><span className="font-bold">{refund.customerPayoutDetails.accountHolderName}</span></div>
-                        <div><span className="text-[9px] font-black text-emerald-600 uppercase block">IFSC</span><span className="font-bold font-mono">{refund.customerPayoutDetails.ifsc}</span></div>
-                        <div className="col-span-2"><span className="text-[9px] font-black text-emerald-600 uppercase block">Account</span><span className="font-black font-mono select-all">{refund.customerPayoutDetails.bankAccount}</span></div>
+                        <div><span className="text-[12px] font-black text-emerald-600 uppercase block">Holder</span><span className="font-bold">{refund.customerPayoutDetails.accountHolderName}</span></div>
+                        <div><span className="text-[12px] font-black text-emerald-600 uppercase block">IFSC</span><span className="font-bold font-mono">{refund.customerPayoutDetails.ifsc}</span></div>
+                        <div className="col-span-2"><span className="text-[12px] font-black text-emerald-600 uppercase block">Account</span><span className="font-black font-mono select-all">{refund.customerPayoutDetails.bankAccount}</span></div>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-3.5 text-center text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-3.5 text-center text-[13px] font-black text-slate-400 uppercase tracking-wider">
                     No payout details on file
                   </div>
                 )}
@@ -606,8 +606,8 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
             <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
               {rt.investigationTicket && (
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-3.5">
-                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider">Ticket #{rt.investigationTicket}</p>
-                  <p className="text-[11px] font-bold text-slate-600 mt-1">
+                  <p className="text-[12px] font-black text-amber-600 uppercase tracking-wider">Ticket #{rt.investigationTicket}</p>
+                  <p className="text-[13px] font-bold text-slate-600 mt-1">
                     Opened {fmtDate(rt.investigationOpenedAt)}{rt.investigationBy ? ` by ${rt.investigationBy}` : ''}
                   </p>
                 </div>
@@ -632,8 +632,8 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                     <div key={i} className="flex items-start gap-2.5 bg-slate-50 rounded-xl px-3 py-2.5">
                       <PhoneCall size={12} className="text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[11px] font-bold text-slate-700">{f.note}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{fmtDate(f.date)} · {f.by}</p>
+                        <p className="text-[13px] font-bold text-slate-700">{f.note}</p>
+                        <p className="text-[12px] text-slate-400 font-medium">{fmtDate(f.date)} · {f.by}</p>
                       </div>
                     </div>
                   ))}
@@ -666,7 +666,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
               {rt.claimStatus && rt.claimStatus !== 'none' && (
                 <div className="flex items-center justify-between bg-slate-50 rounded-xl px-3.5 py-3">
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Current claim</p>
+                    <p className="text-[12px] font-black text-slate-400 uppercase tracking-wider">Current claim</p>
                     <p className="text-sm font-black text-slate-800 capitalize">{rt.claimStatus}{rt.claimReference ? ` · ${rt.claimReference}` : ''}</p>
                   </div>
                   {rt.claimAmount ? <p className="text-lg font-black text-slate-900">{currency}{rt.claimAmount}</p> : null}
@@ -704,7 +704,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
               {view.isManual && (
                 <div className="flex items-center justify-between bg-slate-900 text-white rounded-xl px-3.5 py-3">
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-wider opacity-50">Override active</p>
+                    <p className="text-[12px] font-black uppercase tracking-wider opacity-50">Override active</p>
                     <p className="text-sm font-black">{labelOf(rt.manualStatus)}</p>
                   </div>
                   <Btn variant="ghost" disabled={busy} onClick={() => onAction('manual-status', { orderId: request._id, status: '' })}>
@@ -713,7 +713,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                 </div>
               )}
               {received ? (
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center py-2">
+                <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider text-center py-2">
                   Parcel received — status is settled and can no longer be overridden
                 </p>
               ) : (
@@ -743,20 +743,20 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
           <Section icon={History} title="History" subtitle="Append-only. Entries are never edited or deleted — this is what backs every dispute and claim.">
             <div className="bg-white rounded-2xl border border-slate-100 p-5">
               {history.length === 0 ? (
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center py-3">No entries yet</p>
+                <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider text-center py-3">No entries yet</p>
               ) : (
                 <div className="relative pl-5 border-l-2 border-slate-100 space-y-5">
                   {history.map((entry, i) => (
                     <div key={i} className="relative">
                       <span className={`absolute -left-[26px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${i === 0 ? toneOf(entry.status).dot : 'bg-slate-300'}`} />
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${toneOf(entry.status).chip}`}>
+                        <span className={`text-[12px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${toneOf(entry.status).chip}`}>
                           {labelOf(entry.status)}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-400">{fmtDateTime(entry.date)}</span>
+                        <span className="text-[12px] font-bold text-slate-400">{fmtDateTime(entry.date)}</span>
                       </div>
                       {entry.note && <p className="text-xs font-medium text-slate-700 mt-1.5">{entry.note}</p>}
-                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">— {entry.by || 'system'}</p>
+                      <p className="text-[12px] font-bold text-slate-400 mt-0.5">— {entry.by || 'system'}</p>
                     </div>
                   ))}
                 </div>
@@ -766,7 +766,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
 
           <div className="flex items-start gap-2.5 bg-slate-100 rounded-2xl p-4">
             <CalendarDays size={14} className="text-slate-400 mt-0.5 shrink-0" />
-            <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
+            <p className="text-[13px] font-medium text-slate-500 leading-relaxed">
               Thresholds in force: critical at <strong className="font-black">{view.thresholds?.returnCriticalDays ?? 10} days</strong>, lost at{' '}
               <strong className="font-black">{view.thresholds?.returnLostDays ?? 50} days</strong>, refund due within{' '}
               <strong className="font-black">{view.thresholds?.returnMaxRefundDays ?? 15} days</strong> of pickup. Change them under Settings → Config.

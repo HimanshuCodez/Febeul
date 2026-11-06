@@ -282,7 +282,7 @@ const Cms = ({ token }) => {
             <div>
               <h2 className="text-xl font-bold text-gray-800">Swiping Messages</h2>
               {swipingCreator && (
-                <p className="text-[10px] text-gray-500 mt-1">
+                <p className="text-[12px] text-gray-500 mt-1">
                   Last Updated By: 
                   <span 
                     onClick={() => { if(swipingCreator.role === 'staff') { setSelectedStaff(swipingCreator); setShowStaffModal(true); } }}
@@ -333,7 +333,7 @@ const Cms = ({ token }) => {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800">Promo Banner (Join Now Section)</h2>
             {promoCreator && (
-              <p className="text-[10px] text-gray-500 mt-1">
+              <p className="text-[12px] text-gray-500 mt-1">
                 Last Updated By: 
                 <span 
                   onClick={() => { if(promoCreator.role === 'staff') { setSelectedStaff(promoCreator); setShowStaffModal(true); } }}
@@ -348,7 +348,7 @@ const Cms = ({ token }) => {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
               <div className="space-y-3">
-                <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Desktop Background</p>
+                <p className="font-bold text-gray-600 uppercase text-[12px] tracking-wider">Desktop Background</p>
                 <div className="w-full h-24 bg-gray-100 rounded border overflow-hidden">
                   {promoBanner.desktopBackground ? (
                     <img src={promoBanner.desktopBackground} className="w-full h-full object-cover" alt="Desktop background preview" />
@@ -360,10 +360,10 @@ const Cms = ({ token }) => {
                   Upload Desktop Image
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePromoBackgroundUpload('desktopBackground', e.target.files[0])} />
                 </label>
-                <p className="text-[10px] text-gray-500">Best fit: 1920×400px (wide banner, ~4.8:1). The banner's height is set by the text/button content, so the image is cropped with object-cover — keep the important part centered.</p>
+                <p className="text-[12px] text-gray-500">Best fit: 1920×400px (wide banner, ~4.8:1). The banner's height is set by the text/button content, so the image is cropped with object-cover — keep the important part centered.</p>
               </div>
               <div className="space-y-3">
-                <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Background</p>
+                <p className="font-bold text-blue-600 uppercase text-[12px] tracking-wider">Mobile Background</p>
                 <div className="w-full h-24 bg-gray-100 rounded border overflow-hidden">
                   {promoBanner.mobileBackground ? (
                     <img src={promoBanner.mobileBackground} className="w-full h-full object-cover" alt="Mobile background preview" />
@@ -375,7 +375,7 @@ const Cms = ({ token }) => {
                   Upload Mobile Image
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePromoBackgroundUpload('mobileBackground', e.target.files[0])} />
                 </label>
-                <p className="text-[10px] text-gray-500">Best fit: 750×600px. Mobile text wraps to more lines, so this crop is taller/narrower than the desktop one.</p>
+                <p className="text-[12px] text-gray-500">Best fit: 750×600px. Mobile text wraps to more lines, so this crop is taller/narrower than the desktop one.</p>
               </div>
               {(promoBanner.desktopBackground || promoBanner.mobileBackground) && (
                 <div className="md:col-span-2">
@@ -411,7 +411,7 @@ const Cms = ({ token }) => {
                   onChange={(color) => setPromoBanner(prev => ({ ...prev, backgroundColor: color }))}
                   placeholder="#e2a5a2"
                 />
-                <p className="text-[10px] text-gray-500 mt-1">Shown behind/around the banner image, and used as the fallback when no image is set.</p>
+                <p className="text-[12px] text-gray-500 mt-1">Shown behind/around the banner image, and used as the fallback when no image is set.</p>
               </div>
             </div>
 
@@ -461,7 +461,7 @@ const Cms = ({ token }) => {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800">Info Bar (Shipping / Scan &amp; Shop / Free Return)</h2>
             {infoBarCreator && (
-              <p className="text-[10px] text-gray-500 mt-1">
+              <p className="text-[12px] text-gray-500 mt-1">
                 Last Updated By:
                 <span
                   onClick={() => { if(infoBarCreator.role === 'staff') { setSelectedStaff(infoBarCreator); setShowStaffModal(true); } }}
@@ -477,7 +477,7 @@ const Cms = ({ token }) => {
             <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
               <div>
                 <p className="font-medium text-sm">Background Color</p>
-                <p className="text-[10px] text-gray-500">Applies to the whole strip.</p>
+                <p className="text-[12px] text-gray-500">Applies to the whole strip.</p>
               </div>
               <input
                 type="color"
@@ -521,12 +521,12 @@ const Cms = ({ token }) => {
                 placeholder="e.g. Free shipping"
                 required
               />
-              <p className="text-[10px] text-gray-500 mt-1">The subtext ("on orders over Rs.X") is pulled automatically from the shipping threshold in Site Settings.</p>
+              <p className="text-[12px] text-gray-500 mt-1">The subtext ("on orders over Rs.X") is pulled automatically from the shipping threshold in Site Settings.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 items-start border-t pt-4">
               <div className="space-y-3">
-                <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">QR / Barcode Image</p>
+                <p className="font-bold text-gray-600 uppercase text-[12px] tracking-wider">QR / Barcode Image</p>
                 <div className="w-24 h-24 bg-gray-100 rounded border overflow-hidden">
                   {infoBar.qrImage ? (
                     <img src={infoBar.qrImage} className="w-full h-full object-contain" alt="QR code preview" />
@@ -538,7 +538,7 @@ const Cms = ({ token }) => {
                   Upload Image
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => handleInfoBarImageUpload(e.target.files[0])} />
                 </label>
-                <p className="text-[10px] text-gray-500 max-w-[140px]">Best fit: 200×200px square, transparent or white background.</p>
+                <p className="text-[12px] text-gray-500 max-w-[140px]">Best fit: 200×200px square, transparent or white background.</p>
               </div>
               <div className="space-y-4 w-full">
                 <div>

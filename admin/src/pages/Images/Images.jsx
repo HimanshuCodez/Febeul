@@ -240,7 +240,7 @@ const Images = ({ token }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
                   {/* Desktop Upload */}
                   <div className="space-y-3">
-                    <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Desktop Version (Wide)</p>
+                    <p className="font-bold text-gray-600 uppercase text-[12px] tracking-wider">Desktop Version (Wide)</p>
                     <div className="flex items-center gap-4">
                       <div className="w-40 shrink-0 bg-gray-200 rounded border overflow-hidden">
                         {slide.desktop ? <img src={slide.desktop} alt={`Desktop preview for slide ${index + 1}`} className="block w-full h-auto" /> : <div className="h-20 flex items-center justify-center text-gray-400 text-xs">Image or GIF</div>}
@@ -250,21 +250,21 @@ const Images = ({ token }) => {
                         <input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('hero', index, file, 'desktop'); }} />
                       </label>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-1">Any aspect ratio is supported. A wide image works well on desktop; GIF animation is preserved.</p>
+                    <p className="text-[12px] text-gray-500 mt-1">Any aspect ratio is supported. A wide image works well on desktop; GIF animation is preserved.</p>
                   </div>
                   {/* Mobile Upload */}
                   <div className="space-y-3">
-                    <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Version (Portrait)</p>
+                    <p className="font-bold text-blue-600 uppercase text-[12px] tracking-wider">Mobile Version (Portrait)</p>
                     <div className="flex items-center gap-4">
                       <div className="w-20 shrink-0 bg-gray-200 rounded border overflow-hidden">
-                        {slide.mobile ? <img src={slide.mobile} alt={`Mobile preview for slide ${index + 1}`} className="block w-full h-auto" /> : <div className="h-24 flex items-center justify-center text-gray-400 text-[10px] text-center">Image or GIF</div>}
+                        {slide.mobile ? <img src={slide.mobile} alt={`Mobile preview for slide ${index + 1}`} className="block w-full h-auto" /> : <div className="h-24 flex items-center justify-center text-gray-400 text-[12px] text-center">Image or GIF</div>}
                       </div>
                       <label className="cursor-pointer bg-blue-50 border border-blue-200 text-blue-600 px-3 py-1 rounded text-xs shadow-sm hover:bg-blue-100 transition">
                         Upload Mobile Image / GIF
                         <input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('hero', index, file, 'mobile'); }} />
                       </label>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-1">Optional. Use any image or GIF dimensions; the carousel follows its original proportions on mobile too.</p>
+                    <p className="text-[12px] text-gray-500 mt-1">Optional. Use any image or GIF dimensions; the carousel follows its original proportions on mobile too.</p>
                   </div>
                   {/* Link */}
                   <div className="md:col-span-2 border-t pt-4">
@@ -297,7 +297,7 @@ const Images = ({ token }) => {
                   <div className="flex flex-col items-center gap-3 mb-4">
                     <img src={item.image || ''} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md" />
                     <label className="cursor-pointer bg-white border px-4 py-1 text-xs rounded-full shadow-sm hover:bg-gray-50 transition">Change Photo<input type="file" className="hidden" onChange={(e) => handleFileUpload('spotlight', index, e.target.files[0])} /></label>
-                    <p className="text-[10px] text-gray-500 text-center">Note: Use a square image, exactly 500x500px, for a sharp circular crop.</p>
+                    <p className="text-[12px] text-gray-500 text-center">Note: Use a square image, exactly 500x500px, for a sharp circular crop.</p>
                   </div>
                   <div className="w-full space-y-2">
                     <input type="text" placeholder="Category Label" value={item.label} onChange={(e) => { const n = [...spotlight]; n[index].label = e.target.value; setSpotlight(n); }} className="w-full px-3 py-2 border rounded text-sm outline-none bg-white" />
@@ -327,7 +327,7 @@ const Images = ({ token }) => {
             <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
               <div>
                 <p className="font-medium text-sm">Section Background Color</p>
-                <p className="text-[10px] text-gray-500">Applies to the whole banner section behind the videos.</p>
+                <p className="text-[12px] text-gray-500">Applies to the whole banner section behind the videos.</p>
               </div>
               <input
                 type="color"
@@ -347,7 +347,7 @@ const Images = ({ token }) => {
             <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
               <div>
                 <p className="font-medium text-sm">Section Text Color</p>
-                <p className="text-[10px] text-gray-500">Applies to the video title and &quot;Watch More&quot; headings.</p>
+                <p className="text-[12px] text-gray-500">Applies to the video title and &quot;Watch More&quot; headings.</p>
               </div>
               <input
                 type="color"
@@ -367,7 +367,7 @@ const Images = ({ token }) => {
             <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
               <div>
                 <p className="font-medium text-sm">Product Rail Text Color</p>
-                <p className="text-[10px] text-gray-500">Name & price color on the shoppable product cards (left rail on desktop, &quot;Shop This Look&quot; strip on mobile).</p>
+                <p className="text-[12px] text-gray-500">Name & price color on the shoppable product cards (left rail on desktop, &quot;Shop This Look&quot; strip on mobile).</p>
               </div>
               <input
                 type="color"
@@ -392,7 +392,7 @@ const Images = ({ token }) => {
                 <p className="font-bold text-purple-700 text-xs uppercase tracking-widest">{index === 0 ? 'Main Video (Center Stage)' : `Watch More Video #${index}`}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-3">
-                    <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Desktop Version</p>
+                    <p className="font-bold text-gray-600 uppercase text-[12px] tracking-wider">Desktop Version</p>
                     <div className="bg-black rounded-lg overflow-hidden aspect-video shadow-xl">
                       {show.desktopVideo ? (
                         <video src={show.desktopVideo} className="w-full h-full object-cover" controls muted />
@@ -404,9 +404,9 @@ const Images = ({ token }) => {
                       Upload Desktop Video
                       <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'desktop')} />
                     </label>
-                    <p className="text-[10px] text-gray-500">Note: Use exactly 1920x1080px (16:9) — this player is widescreen on tablet & desktop.</p>
+                    <p className="text-[12px] text-gray-500">Note: Use exactly 1920x1080px (16:9) — this player is widescreen on tablet & desktop.</p>
                     <div className="pt-1">
-                      <p className="text-[10px] font-medium text-gray-600 mb-1">Or paste YouTube link (desktop)</p>
+                      <p className="text-[12px] font-medium text-gray-600 mb-1">Or paste YouTube link (desktop)</p>
                       <input
                         type="text"
                         placeholder="https://www.youtube.com/watch?v=..."
@@ -414,11 +414,11 @@ const Images = ({ token }) => {
                         onChange={(e) => { const n = [...shows]; n[index].desktopYoutubeLink = e.target.value; setShows(n); }}
                         className="w-full px-3 py-2 border rounded outline-none bg-white text-xs"
                       />
-                      <p className="text-[10px] text-gray-500 mt-1">If set, this plays instead of the uploaded desktop video.</p>
+                      <p className="text-[12px] text-gray-500 mt-1">If set, this plays instead of the uploaded desktop video.</p>
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Mobile Version</p>
+                    <p className="font-bold text-blue-600 uppercase text-[12px] tracking-wider">Mobile Version</p>
                     <div className="bg-black rounded-lg overflow-hidden aspect-[9/16] shadow-xl">
                       {show.mobileVideo ? (
                         <video src={show.mobileVideo} className="w-full h-full object-cover" controls muted />
@@ -430,9 +430,9 @@ const Images = ({ token }) => {
                       Upload Mobile Video
                       <input type="file" accept="video/*,image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'mobile')} />
                     </label>
-                    <p className="text-[10px] text-gray-500">Note: Use exactly 1080x1920px (9:16) — this player is full-height portrait on mobile.</p>
+                    <p className="text-[12px] text-gray-500">Note: Use exactly 1080x1920px (9:16) — this player is full-height portrait on mobile.</p>
                     <div className="pt-1">
-                      <p className="text-[10px] font-medium text-gray-600 mb-1">Or paste YouTube link (mobile)</p>
+                      <p className="text-[12px] font-medium text-gray-600 mb-1">Or paste YouTube link (mobile)</p>
                       <input
                         type="text"
                         placeholder="https://www.youtube.com/watch?v=..."
@@ -440,11 +440,11 @@ const Images = ({ token }) => {
                         onChange={(e) => { const n = [...shows]; n[index].mobileYoutubeLink = e.target.value; setShows(n); }}
                         className="w-full px-3 py-2 border rounded outline-none bg-white text-xs"
                       />
-                      <p className="text-[10px] text-gray-500 mt-1">If set, this plays instead of the uploaded mobile video.</p>
+                      <p className="text-[12px] text-gray-500 mt-1">If set, this plays instead of the uploaded mobile video.</p>
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <p className="font-bold text-pink-600 uppercase text-[10px] tracking-wider">Watch More Thumbnail</p>
+                    <p className="font-bold text-pink-600 uppercase text-[12px] tracking-wider">Watch More Thumbnail</p>
                     <div className="bg-gray-200 rounded-lg overflow-hidden aspect-video shadow-xl">
                       {show.thumbnail ? (
                         <img src={show.thumbnail} className="w-full h-full object-cover" />
@@ -456,7 +456,7 @@ const Images = ({ token }) => {
                       Upload Thumbnail
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload('show', index, e.target.files[0], 'thumbnail')} />
                     </label>
-                    <p className="text-[10px] text-gray-500">Note: Use exactly 800x450px (16:9) for a sharp &quot;Watch More&quot; thumbnail.</p>
+                    <p className="text-[12px] text-gray-500">Note: Use exactly 800x450px (16:9) for a sharp &quot;Watch More&quot; thumbnail.</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
@@ -526,7 +526,7 @@ const Images = ({ token }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border p-4 rounded-md bg-gray-50 shadow-inner">
               <div className="space-y-3">
-                <p className="font-bold text-gray-600 uppercase text-[10px] tracking-wider">Section Background — Desktop</p>
+                <p className="font-bold text-gray-600 uppercase text-[12px] tracking-wider">Section Background — Desktop</p>
                 <div className="w-full bg-gray-200 rounded border overflow-hidden">
                   {styleSectionDesktopBg ? <img src={styleSectionDesktopBg} alt="Desktop style background preview" className="block w-full h-auto" /> : <div className="w-full aspect-[3/1] flex items-center justify-center text-gray-400 text-xs">No image (uses gradient)</div>}
                 </div>
@@ -534,13 +534,13 @@ const Images = ({ token }) => {
                   Upload Desktop Background / GIF
                   <input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('styleSectionBg', null, file, 'desktop'); }} />
                 </label>
-                <p className="text-[10px] text-gray-500">JPG, PNG, WebP or animated GIF, with no fixed dimensions. The full image keeps its proportions, with extra space when the pills need it.</p>
+                <p className="text-[12px] text-gray-500">JPG, PNG, WebP or animated GIF, with no fixed dimensions. The full image keeps its proportions, with extra space when the pills need it.</p>
                 {styleSectionDesktopBg && (
-                  <button onClick={() => setStyleSectionDesktopBg('')} className="text-[10px] text-red-500 underline">Remove</button>
+                  <button onClick={() => setStyleSectionDesktopBg('')} className="text-[12px] text-red-500 underline">Remove</button>
                 )}
               </div>
               <div className="space-y-3">
-                <p className="font-bold text-blue-600 uppercase text-[10px] tracking-wider">Section Background — Mobile</p>
+                <p className="font-bold text-blue-600 uppercase text-[12px] tracking-wider">Section Background — Mobile</p>
                 <div className="w-full max-w-[160px] bg-gray-200 rounded border overflow-hidden">
                   {styleSectionMobileBg ? <img src={styleSectionMobileBg} alt="Mobile style background preview" className="block w-full h-auto" /> : <div className="w-full aspect-[3/4] flex items-center justify-center text-gray-400 text-xs">No image (uses gradient)</div>}
                 </div>
@@ -548,9 +548,9 @@ const Images = ({ token }) => {
                   Upload Mobile Background / GIF
                   <input type="file" accept={BANNER_MEDIA_TYPES.join(',')} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; handleFileUpload('styleSectionBg', null, file, 'mobile'); }} />
                 </label>
-                <p className="text-[10px] text-gray-500">The full image or GIF scales to the phone width. Leave empty to use the desktop version; remove both backgrounds to use the default gradient.</p>
+                <p className="text-[12px] text-gray-500">The full image or GIF scales to the phone width. Leave empty to use the desktop version; remove both backgrounds to use the default gradient.</p>
                 {styleSectionMobileBg && (
-                  <button onClick={() => setStyleSectionMobileBg('')} className="text-[10px] text-red-500 underline">Remove</button>
+                  <button onClick={() => setStyleSectionMobileBg('')} className="text-[12px] text-red-500 underline">Remove</button>
                 )}
               </div>
             </div>
@@ -559,7 +559,7 @@ const Images = ({ token }) => {
               <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
                 <div>
                   <p className="font-medium text-sm">Pill Background Color</p>
-                  <p className="text-[10px] text-gray-500">Background of each style pill.</p>
+                  <p className="text-[12px] text-gray-500">Background of each style pill.</p>
                 </div>
                 <input
                   type="color"
@@ -579,7 +579,7 @@ const Images = ({ token }) => {
               <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
                 <div>
                   <p className="font-medium text-sm">Pill Text Color</p>
-                  <p className="text-[10px] text-gray-500">Icon & label color on each style pill.</p>
+                  <p className="text-[12px] text-gray-500">Icon & label color on each style pill.</p>
                 </div>
                 <input
                   type="color"
@@ -599,7 +599,7 @@ const Images = ({ token }) => {
               <div className="border p-4 rounded-md bg-gray-50 shadow-inner flex flex-wrap items-center gap-4">
                 <div>
                   <p className="font-medium text-sm">Pill Font Family</p>
-                  <p className="text-[10px] text-gray-500">Icon label font on each style pill.</p>
+                  <p className="text-[12px] text-gray-500">Icon label font on each style pill.</p>
                 </div>
                 <div className="w-48">
                   <FontSelect value={pillFontFamily} onChange={setPillFontFamily} />

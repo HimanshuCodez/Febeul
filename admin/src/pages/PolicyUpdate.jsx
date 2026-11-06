@@ -34,7 +34,7 @@ const InsertDivider = ({ onInsert, label }) => (
     <button
       type="button"
       onClick={onInsert}
-      className="opacity-0 group-hover:opacity-100 relative z-10 flex items-center gap-1 text-[10px] font-bold text-pink-600 bg-white border border-pink-300 rounded-full px-2.5 py-0.5 shadow-sm hover:bg-pink-50 transition-all"
+      className="opacity-0 group-hover:opacity-100 relative z-10 flex items-center gap-1 text-[12px] font-bold text-pink-600 bg-white border border-pink-300 rounded-full px-2.5 py-0.5 shadow-sm hover:bg-pink-50 transition-all"
     >
       <FiPlus size={10} /> {label}
     </button>

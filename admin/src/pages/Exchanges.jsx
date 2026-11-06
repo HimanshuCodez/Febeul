@@ -129,7 +129,7 @@ const Exchanges = ({ token }) => {
           <button
             onClick={() => fetchExchanges({ silent: true })}
             disabled={refreshing}
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
           >
             <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Refresh
           </button>
@@ -137,7 +137,7 @@ const Exchanges = ({ token }) => {
             data={csvData}
             headers={csvHeaders}
             filename={`Exchanges_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
           >
             <Download size={13} /> Export
           </CSVLink>
@@ -165,7 +165,7 @@ const Exchanges = ({ token }) => {
                   {counts[tab.key] || 0}
                 </span>
               </div>
-              <p className={`text-[10px] font-black uppercase tracking-wider leading-tight ${isActive ? 'text-white' : 'text-slate-600'}`}>
+              <p className={`text-[12px] font-black uppercase tracking-wider leading-tight ${isActive ? 'text-white' : 'text-slate-600'}`}>
                 {tab.label}
               </p>
               {!isActive && counts[tab.key] > 0 && <span className={`absolute top-0 left-4 right-4 h-[3px] rounded-b-full ${tone.solid}`} />}
@@ -178,7 +178,7 @@ const Exchanges = ({ token }) => {
         <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 bg-slate-50/50">
           <div>
             <p className="text-sm font-black text-slate-900 uppercase tracking-wide">{activeTabMeta?.label}</p>
-            <p className="text-[11px] text-slate-400 font-bold">{activeTabMeta?.hint}</p>
+            <p className="text-[13px] text-slate-400 font-bold">{activeTabMeta?.hint}</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             <div className="relative flex-1 sm:w-72">
@@ -194,10 +194,10 @@ const Exchanges = ({ token }) => {
             <div className={`flex items-center gap-2 rounded-xl px-3 py-2 border shrink-0 ${startDate || endDate ? 'bg-slate-900 border-slate-900' : 'bg-white border-slate-200'}`}>
               <CalendarRange size={14} className={startDate || endDate ? 'text-white' : 'text-slate-400'} />
               <input type="date" value={startDate} max={endDate || undefined} onChange={(e) => setStartDate(e.target.value)}
-                className={`text-[11px] font-bold bg-transparent focus:outline-none cursor-pointer ${startDate || endDate ? 'text-white' : 'text-slate-700'}`} aria-label="From date" />
-              <span className={`text-[11px] font-bold ${startDate || endDate ? 'text-white/40' : 'text-slate-300'}`}>→</span>
+                className={`text-[13px] font-bold bg-transparent focus:outline-none cursor-pointer ${startDate || endDate ? 'text-white' : 'text-slate-700'}`} aria-label="From date" />
+              <span className={`text-[13px] font-bold ${startDate || endDate ? 'text-white/40' : 'text-slate-300'}`}>→</span>
               <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)}
-                className={`text-[11px] font-bold bg-transparent focus:outline-none cursor-pointer ${startDate || endDate ? 'text-white' : 'text-slate-700'}`} aria-label="To date" />
+                className={`text-[13px] font-bold bg-transparent focus:outline-none cursor-pointer ${startDate || endDate ? 'text-white' : 'text-slate-700'}`} aria-label="To date" />
               {(startDate || endDate) && (
                 <button onClick={() => { setStartDate(''); setEndDate(''); }} title="Clear dates" className="text-white/60 hover:text-white transition-colors">
                   <XCircle size={14} />
@@ -212,7 +212,7 @@ const Exchanges = ({ token }) => {
             <thead className="bg-slate-50/50">
               <tr>
                 {['Ticket', 'Customer', 'Item', 'Reason', 'Status', ''].map((heading, i) => (
-                  <th key={i} className={`px-5 py-3.5 text-[10px] font-black text-slate-400 uppercase tracking-widest ${i === 5 ? 'text-right' : 'text-left'}`}>
+                  <th key={i} className={`px-5 py-3.5 text-[12px] font-black text-slate-400 uppercase tracking-widest ${i === 5 ? 'text-right' : 'text-left'}`}>
                     {heading}
                   </th>
                 ))}
@@ -238,13 +238,13 @@ const Exchanges = ({ token }) => {
                           <div className={`p-2 rounded-xl border ${tone.chip}`}><Repeat size={16} /></div>
                           <div>
                             <p className="text-sm font-black text-slate-900">{row.ticketId}</p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">{fmtDate(row.createdAt)}</p>
+                            <p className="text-[12px] text-slate-400 font-bold uppercase">{fmtDate(row.createdAt)}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <p className="text-xs font-black text-slate-800">{row.userId?.name || 'N/A'}</p>
-                        <p className="text-[10px] text-slate-400 font-bold">{row.userId?.email}</p>
+                        <p className="text-[12px] text-slate-400 font-bold">{row.userId?.email}</p>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -253,15 +253,15 @@ const Exchanges = ({ token }) => {
                           )}
                           <div>
                             <p className="text-xs font-bold text-slate-700 max-w-[160px] truncate">{row.originalItem?.name}</p>
-                            <p className="text-[10px] text-slate-400 font-bold">Size {row.originalItem?.size}</p>
+                            <p className="text-[12px] text-slate-400 font-bold">Size {row.originalItem?.size}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className="text-[11px] font-bold text-slate-600">{REASON_LABELS[row.reason] || row.reason}</span>
+                        <span className="text-[13px] font-bold text-slate-600">{REASON_LABELS[row.reason] || row.reason}</span>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${tone.chip}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-black uppercase tracking-wider border ${tone.chip}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
                           {labelOf(row.view?.status)}
                         </span>
@@ -281,7 +281,7 @@ const Exchanges = ({ token }) => {
 
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3.5 bg-slate-50/50 border-t border-slate-100">
-            <p className="text-[11px] font-bold text-slate-400">Showing {filtered.length} of {rows.length} exchanges</p>
+            <p className="text-[13px] font-bold text-slate-400">Showing {filtered.length} of {rows.length} exchanges</p>
           </div>
         )}
       </div>

@@ -9,10 +9,10 @@ import { toneOf, labelOf, fmtDateTime, REASON_LABELS } from '../../utils/exchang
 const Section = ({ icon: Icon, title, subtitle, children, accent = 'text-slate-400' }) => (
   <section className="space-y-4">
     <div>
-      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+      <h4 className="text-[12px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
         <Icon size={12} className={accent} /> {title}
       </h4>
-      {subtitle && <p className="text-[11px] text-slate-400 font-medium mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-[13px] text-slate-400 font-medium mt-1">{subtitle}</p>}
     </div>
     {children}
   </section>
@@ -20,7 +20,7 @@ const Section = ({ icon: Icon, title, subtitle, children, accent = 'text-slate-4
 
 const Field = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{label}</label>
+    <label className="text-[12px] font-black text-slate-400 uppercase tracking-wider">{label}</label>
     {children}
   </div>
 );
@@ -39,7 +39,7 @@ const Btn = ({ children, variant = 'dark', className = '', ...props }) => {
   return (
     <button
       {...props}
-      className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 ${variants[variant]} ${className}`}
+      className={`px-4 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 ${variants[variant]} ${className}`}
     >
       {children}
     </button>
@@ -90,12 +90,12 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
         {/* Header */}
         <div className="px-7 py-5 bg-white border-b border-slate-100 flex items-start justify-between gap-4 shrink-0">
           <div className="min-w-0">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${tone.chip}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-black uppercase tracking-wider border ${tone.chip}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
               {labelOf(view.status)}
             </span>
             <h3 className="text-xl font-black text-slate-900 tracking-tight mt-2 truncate">{exchange.ticketId}</h3>
-            <p className="text-[11px] text-slate-400 font-bold truncate">{REASON_LABELS[exchange.reason] || exchange.reason}</p>
+            <p className="text-[13px] text-slate-400 font-bold truncate">{REASON_LABELS[exchange.reason] || exchange.reason}</p>
           </div>
           <button onClick={onClose} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-400 shrink-0">
             <X size={18} />
@@ -108,7 +108,7 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
             <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
               <div>
                 <p className="text-sm font-black text-slate-800">{exchange.userId?.name || 'N/A'}</p>
-                <p className="text-[11px] text-slate-400 font-bold">{exchange.userId?.email}</p>
+                <p className="text-[13px] text-slate-400 font-bold">{exchange.userId?.email}</p>
               </div>
               <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
                 {exchange.originalItem?.image && (
@@ -116,7 +116,7 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
                 )}
                 <div>
                   <p className="text-xs font-black text-slate-800">{exchange.originalItem?.name}</p>
-                  <p className="text-[11px] text-slate-400 font-bold">
+                  <p className="text-[13px] text-slate-400 font-bold">
                     Size {exchange.originalItem?.size} · Qty {exchange.originalItem?.quantity} · SKU {exchange.originalItem?.sku || '—'}
                   </p>
                 </div>
@@ -185,11 +185,11 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Courier</span>
+                        <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest block">Courier</span>
                         <span className="text-sm font-extrabold text-slate-800">{reversePickup.courier || '—'}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">AWB</span>
+                        <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest block">AWB</span>
                         <span className="text-sm font-extrabold text-slate-800 select-all break-all">{reversePickup.awb || '—'}</span>
                       </div>
                     </div>
@@ -198,7 +198,7 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
                         <AlertTriangle size={14} className="text-amber-600 mt-0.5 shrink-0" />
                         <div>
                           <p className="text-xs font-black text-amber-800">Pickup scheduling failed</p>
-                          <p className="text-[11px] text-amber-700 font-medium">{reversePickup.failureReason}</p>
+                          <p className="text-[13px] text-amber-700 font-medium">{reversePickup.failureReason}</p>
                           <Btn variant="amber" className="mt-2" disabled={busy} onClick={() => onAction('schedule-pickup', { exchangeId: exchange._id })}>
                             Retry
                           </Btn>
@@ -207,10 +207,10 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
                     )}
                     {reversePickup.trackingHistory?.length > 0 && (
                       <details className="pt-2 border-t border-slate-100">
-                        <summary className="cursor-pointer text-[11px] font-black text-slate-500 uppercase tracking-wider">Tracking scans</summary>
+                        <summary className="cursor-pointer text-[13px] font-black text-slate-500 uppercase tracking-wider">Tracking scans</summary>
                         <div className="mt-3 space-y-2">
                           {[...reversePickup.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).map((act, i) => (
-                            <div key={i} className="text-[11px]">
+                            <div key={i} className="text-[13px]">
                               <span className="font-bold text-slate-700">{act.activity || act.status}</span>
                               <span className="text-slate-400 font-bold ml-2">{fmtDateTime(act.date)}</span>
                             </div>
@@ -249,7 +249,7 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
                       QC {qc.result} · {fmtDateTime(qc.date)}
                     </p>
                   </div>
-                  <p className="text-[11px] font-bold text-slate-500 mt-1.5 pl-7">By {qc.by || 'admin'}</p>
+                  <p className="text-[13px] font-bold text-slate-500 mt-1.5 pl-7">By {qc.by || 'admin'}</p>
                   {qc.notes && <p className="text-xs text-slate-700 font-medium italic mt-3 pl-7">"{qc.notes}"</p>}
                   {qc.photos?.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-4 pl-7">
@@ -292,7 +292,7 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
                     />
                     <button
                       onClick={() => photoInputRef.current?.click()}
-                      className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed transition-all text-[11px] font-black uppercase tracking-widest ${
+                      className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed transition-all text-[13px] font-black uppercase tracking-widest ${
                         qcResult === 'FAIL' && qcPhotos.length === 0
                           ? 'border-red-200 bg-red-50 text-red-500 hover:border-red-400'
                           : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-400'
@@ -308,7 +308,7 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
                   </Field>
 
                   {qcResult === 'FAIL' && qcPhotos.length === 0 && (
-                    <p className="text-[11px] font-bold text-red-500 flex items-center gap-1.5">
+                    <p className="text-[13px] font-bold text-red-500 flex items-center gap-1.5">
                       <AlertTriangle size={12} /> Attach at least one photo to record a failure.
                     </p>
                   )}
@@ -341,7 +341,7 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
           {status === 'RECEIVED_AT_WAREHOUSE' && qc.result === 'PASS' && (
             <Section icon={Package} title="Dispatch Replacement" subtitle="Ships the same size/color the customer originally ordered, unless substituted below.">
               <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
-                <label className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-wider cursor-pointer">
+                <label className="flex items-center gap-2 text-[13px] font-black text-slate-500 uppercase tracking-wider cursor-pointer">
                   <input type="checkbox" checked={substitute} onChange={(e) => setSubstitute(e.target.checked)} />
                   Substitute a different variation (out of stock) — always a free swap
                 </label>
@@ -383,18 +383,18 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
               <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Courier</span>
+                    <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest block">Courier</span>
                     <span className="text-sm font-extrabold text-slate-800">{forwardShipment.courier || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">AWB</span>
+                    <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest block">AWB</span>
                     <span className="text-sm font-extrabold text-slate-800 select-all break-all">{forwardShipment.awb || '—'}</span>
                   </div>
                 </div>
                 {exchange.replacement?.substituted && (
                   <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
                     <Info size={14} className="text-amber-600 mt-0.5 shrink-0" />
-                    <p className="text-[11px] text-amber-700 font-medium">
+                    <p className="text-[13px] text-amber-700 font-medium">
                       Substituted: size {exchange.replacement.size}{exchange.replacement.substitutionNote ? ` — ${exchange.replacement.substitutionNote}` : ''}
                     </p>
                   </div>
@@ -407,20 +407,20 @@ const ExchangeDrawer = ({ exchange, onClose, onAction, busy }) => {
           <Section icon={History} title="History" subtitle="Append-only. Entries are never edited or deleted.">
             <div className="bg-white rounded-2xl border border-slate-100 p-5">
               {history.length === 0 ? (
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center py-3">No entries yet</p>
+                <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider text-center py-3">No entries yet</p>
               ) : (
                 <div className="relative pl-5 border-l-2 border-slate-100 space-y-5">
                   {history.map((entry, i) => (
                     <div key={i} className="relative">
                       <span className={`absolute -left-[26px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${i === 0 ? toneOf(entry.status).dot : 'bg-slate-300'}`} />
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${toneOf(entry.status).chip}`}>
+                        <span className={`text-[12px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${toneOf(entry.status).chip}`}>
                           {labelOf(entry.status)}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-400">{fmtDateTime(entry.date)}</span>
+                        <span className="text-[12px] font-bold text-slate-400">{fmtDateTime(entry.date)}</span>
                       </div>
                       {entry.note && <p className="text-xs font-medium text-slate-700 mt-1.5">{entry.note}</p>}
-                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">— {entry.by || 'system'}</p>
+                      <p className="text-[12px] font-bold text-slate-400 mt-0.5">— {entry.by || 'system'}</p>
                     </div>
                   ))}
                 </div>

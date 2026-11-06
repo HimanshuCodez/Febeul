@@ -127,7 +127,7 @@ const MaintenanceMode = ({ token }) => {
                 </div>
                 
                 <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 text-right">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <span className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
                         Last checked: {new Date().toLocaleTimeString()}
                     </span>
                 </div>

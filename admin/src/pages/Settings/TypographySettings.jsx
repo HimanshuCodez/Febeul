@@ -75,7 +75,7 @@ const FontPicker = ({ label, value, onChange, description }) => {
                             if (groupFiltered.length === 0) return null;
                             return (
                                 <div key={group}>
-                                    <div className="px-3 py-1 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{group}</div>
+                                    <div className="px-3 py-1 bg-gray-50 text-[12px] font-bold text-gray-400 uppercase tracking-wider">{group}</div>
                                     {groupFiltered.map(font => (
                                         <div 
                                             key={font}
@@ -95,7 +95,7 @@ const FontPicker = ({ label, value, onChange, description }) => {
                     </div>
                 </div>
             )}
-            <p className="text-[10px] text-gray-400">{description}</p>
+            <p className="text-[12px] text-gray-400">{description}</p>
         </div>
     );
 };

@@ -12,7 +12,7 @@ const darkButtonClass = 'inline-flex min-h-[42px] items-center justify-center ga
 const summaryIconColors = { dark: 'bg-white/5 text-theme-e4b0c4', green: 'bg-theme-edf5f0 text-theme-5e8c74', amber: 'bg-theme-faf3e8 text-theme-b09564', rose: 'bg-theme-f9eff4 text-theme-b07a96' };
 
 const StatusBadge = ({ status, style }) => (
-  <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 text-[10px] font-medium capitalize ${style.badge}`}>
+  <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 text-[12px] font-medium capitalize ${style.badge}`}>
     <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} /> {status}
   </span>
 );
@@ -375,9 +375,9 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
     <div className="mx-auto w-full max-w-[1600px] font-[Outfit,sans-serif] text-theme-342a3c [&_*]:[font-family:inherit] [&_button]:transition-colors [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50 [&_button:focus-visible]:outline [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-theme-ad708f motion-reduce:[&_*]:animate-none motion-reduce:[&_*]:transition-none">
       <header className="mb-6 flex flex-col gap-5 pt-1 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="mb-2.5 flex items-center gap-2 text-[10px] font-medium tracking-[0.18em] text-theme-947c8c"><span className="h-1.5 w-1.5 rotate-45 rounded-sm bg-theme-c77893" />FEBEUL / CUSTOMER CARE</p>
-          <h1 className="flex items-center gap-3 text-3xl font-semibold leading-tight tracking-[-0.04em] lg:text-[36px]"><span>Support tickets<span className="text-theme-c77893">.</span></span><UnreadTicketBadge count={unreadTotal} /></h1>
-          <p className="mt-2 text-xs leading-relaxed text-theme-8b7b93 sm:text-[13px]">Customer conversations and account appeals, all in one place.</p>
+          <p className="mb-2.5 flex items-center gap-2 text-[12px] font-medium tracking-[0.18em] text-theme-947c8c"><span className="h-1.5 w-1.5 rotate-45 rounded-sm bg-theme-c77893" />FEBEUL / CUSTOMER CARE</p>
+          <h1 className="flex items-center gap-3 text-3xl font-semibold leading-tight tracking-[-0.04em] lg:text-[38px]"><span>Support tickets<span className="text-theme-c77893">.</span></span><UnreadTicketBadge count={unreadTotal} /></h1>
+          <p className="mt-2 text-xs leading-relaxed text-theme-8b7b93 sm:text-[15px]">Customer conversations and account appeals, all in one place.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => { fetchTickets(); onUnreadChange?.(); }} disabled={loading} className={buttonClass + ' !px-3'} aria-label="Refresh tickets" title="Refresh tickets"><RefreshCw size={16} className={loading ? 'motion-safe:animate-spin' : ''} /></button>
@@ -396,26 +396,26 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
           { label: 'Closed', count: tabTickets.filter(ticket => ticket.status === 'closed').length, icon: CheckCircle2, note: 'Closed conversations', color: 'rose' },
         ].map(({ label, count, icon: Icon, note, color }) => (
           <article key={label} aria-label={label + ' count'} className={'rounded-xl border p-4 shadow-sm sm:p-5 ' + (color === 'dark' ? 'border-theme-302735 bg-theme-302735 text-white' : 'border-theme-eae5ed bg-white')}>
-            <div className={'flex items-center justify-between gap-2 text-[11px] font-medium sm:text-xs ' + (color === 'dark' ? 'text-theme-e0d5e3' : 'text-theme-776d80')}>
+            <div className={'flex items-center justify-between gap-2 text-[13px] font-medium sm:text-xs ' + (color === 'dark' ? 'text-theme-e0d5e3' : 'text-theme-776d80')}>
               <span>{label}</span><span className={'grid h-8 w-8 shrink-0 place-items-center rounded-lg ' + summaryIconColors[color]}><Icon size={17} aria-hidden="true" /></span>
             </div>
             <strong className="mb-2 mt-3 block text-3xl font-semibold leading-tight tracking-tight tabular-nums">{loading ? '\u2014' : count.toLocaleString('en-IN')}</strong>
-            <p className={'text-[10px] leading-relaxed sm:text-[11px] ' + (color === 'dark' ? 'text-theme-c5b8cb' : 'text-theme-84758e')}>{note}</p>
+            <p className={'text-[12px] leading-relaxed sm:text-[13px] ' + (color === 'dark' ? 'text-theme-c5b8cb' : 'text-theme-84758e')}>{note}</p>
           </article>
         ))}
       </div>
-      <p className="mb-6 mt-2.5 text-[10px] leading-relaxed text-theme-897b92 sm:text-[11px]">Status totals for {activeTab === 'appeals' ? 'block appeals' : 'support tickets'}, before search and date filters.</p>
+      <p className="mb-6 mt-2.5 text-[12px] leading-relaxed text-theme-897b92 sm:text-[13px]">Status totals for {activeTab === 'appeals' ? 'block appeals' : 'support tickets'}, before search and date filters.</p>
 
       <section className="mb-5 min-w-0 rounded-2xl border border-theme-eae5ed bg-white shadow-sm" aria-label="Ticket filters">
         <nav className="flex flex-wrap gap-1 border-b border-theme-eee7f1 px-3 pt-2 sm:px-5" aria-label="Ticket type">
           <button type="button" onClick={() => setActiveTab('tickets')} aria-pressed={activeTab === 'tickets'} className={'flex min-h-12 items-center gap-2 border-b-2 px-3 text-xs font-medium sm:px-4 ' + (activeTab === 'tickets' ? 'border-theme-b97797 text-theme-a26083' : 'border-transparent text-theme-95829f hover:text-theme-665270')}><LifeBuoy size={16} aria-hidden="true" />Support Tickets</button>
-          <button type="button" onClick={() => setActiveTab('appeals')} aria-pressed={activeTab === 'appeals'} className={'flex min-h-12 items-center gap-2 border-b-2 px-3 text-xs font-medium sm:px-4 ' + (activeTab === 'appeals' ? 'border-theme-b97797 text-theme-a26083' : 'border-transparent text-theme-95829f hover:text-theme-665270')}><ShieldAlert size={16} aria-hidden="true" />Appeals{appealsCount > 0 && <span className="rounded-md bg-theme-f7edf3 px-1.5 py-0.5 text-[10px] text-theme-a9758f">{appealsCount}</span>}</button>
+          <button type="button" onClick={() => setActiveTab('appeals')} aria-pressed={activeTab === 'appeals'} className={'flex min-h-12 items-center gap-2 border-b-2 px-3 text-xs font-medium sm:px-4 ' + (activeTab === 'appeals' ? 'border-theme-b97797 text-theme-a26083' : 'border-transparent text-theme-95829f hover:text-theme-665270')}><ShieldAlert size={16} aria-hidden="true" />Appeals{appealsCount > 0 && <span className="rounded-md bg-theme-f7edf3 px-1.5 py-0.5 text-[12px] text-theme-a9758f">{appealsCount}</span>}</button>
         </nav>
         <div className="space-y-3 px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="grid grid-cols-4 gap-1 rounded-lg bg-theme-f6f2f8 p-1 sm:w-fit" role="group" aria-label="Filter by status">
               {['all', 'open', 'pending', 'closed'].map(status => (
-                <button type="button" key={status} onClick={() => setFilterStatus(status)} aria-pressed={filterStatus === status} className={'min-h-8 rounded-md px-2 text-[11px] font-medium capitalize sm:px-4 ' + (filterStatus === status ? 'bg-white text-theme-7e587d shadow-sm' : 'text-theme-9985a4 hover:text-theme-70517d')}>{status}</button>
+                <button type="button" key={status} onClick={() => setFilterStatus(status)} aria-pressed={filterStatus === status} className={'min-h-8 rounded-md px-2 text-[13px] font-medium capitalize sm:px-4 ' + (filterStatus === status ? 'bg-white text-theme-7e587d shadow-sm' : 'text-theme-9985a4 hover:text-theme-70517d')}>{status}</button>
               ))}
             </div>
             <div className="flex min-w-0 items-center gap-2 rounded-lg border border-theme-e4dce9 px-3 text-theme-a28bab focus-within:border-theme-b77997 focus-within:ring-2 focus-within:ring-theme-f5e9f0 lg:w-[340px]">
@@ -424,15 +424,15 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
               {searchTerm && <button type="button" onClick={() => setSearchTerm('')} aria-label="Clear ticket search" className="grid h-8 w-6 shrink-0 place-items-center"><X size={14} /></button>}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-theme-99849f sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-[13px] text-theme-99849f sm:gap-3">
             <span className="flex w-full items-center gap-1.5 sm:w-auto"><CalendarRange size={14} aria-hidden="true" />Created date</span>
             <div className="flex w-full min-w-0 items-end gap-1.5 sm:w-auto sm:items-center sm:gap-2">
-              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2"><span>From</span><input type="date" value={startDate} max={endDate || undefined} onChange={(e) => setStartDate(e.target.value)} aria-label="From date" className="w-full min-w-0 rounded-md border-theme-e4dce9 bg-white px-1 py-2 text-[11px] text-theme-7b6089 sm:w-auto sm:px-2" /></label>
+              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2"><span>From</span><input type="date" value={startDate} max={endDate || undefined} onChange={(e) => setStartDate(e.target.value)} aria-label="From date" className="w-full min-w-0 rounded-md border-theme-e4dce9 bg-white px-1 py-2 text-[13px] text-theme-7b6089 sm:w-auto sm:px-2" /></label>
               <span className="pb-2 text-theme-b6a7be sm:pb-0" aria-hidden="true">&ndash;</span>
-              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2"><span>To</span><input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)} aria-label="To date" className="w-full min-w-0 rounded-md border-theme-e4dce9 bg-white px-1 py-2 text-[11px] text-theme-7b6089 sm:w-auto sm:px-2" /></label>
+              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2"><span>To</span><input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)} aria-label="To date" className="w-full min-w-0 rounded-md border-theme-e4dce9 bg-white px-1 py-2 text-[13px] text-theme-7b6089 sm:w-auto sm:px-2" /></label>
               {(startDate || endDate) && <button type="button" onClick={clearDateFilter} title="Clear date filter" aria-label="Clear date filter" className="grid min-h-8 min-w-6 place-items-center text-theme-a96586"><X size={14} /></button>}
             </div>
-            <span className="mt-1 w-full text-[10px] text-theme-998a9f sm:ml-auto sm:mt-0 sm:w-auto">CSV export uses your current filters.</span>
+            <span className="mt-1 w-full text-[12px] text-theme-998a9f sm:ml-auto sm:mt-0 sm:w-auto">CSV export uses your current filters.</span>
           </div>
         </div>
       </section>
@@ -499,7 +499,7 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                 ))}
                 {newTicketImages.length < 2 && (
                   <label className="relative flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-theme-cfb8d7 text-theme-a77c97 transition-colors hover:border-theme-b77997 hover:bg-theme-faf0f6 focus-within:ring-2 focus-within:ring-theme-b77997">
-                    <Paperclip size={18} aria-hidden="true" /><span className="text-[10px]">Add photo</span>
+                    <Paperclip size={18} aria-hidden="true" /><span className="text-[12px]">Add photo</span>
                     <input
                       type="file"
                       aria-label="New ticket photos"
@@ -533,7 +533,7 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-semibold tracking-tight text-theme-5b4264">{activeTab === 'appeals' ? 'Block Appeals' : 'All Tickets'} ({filteredTickets.length})</h3>
           {totalPages > 1 && (
-            <span className="text-[11px] font-medium text-theme-9b86a5">Page {currentPage} of {totalPages}</span>
+            <span className="text-[13px] font-medium text-theme-9b86a5">Page {currentPage} of {totalPages}</span>
           )}
         </div>
         {loading ? (
@@ -550,15 +550,15 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
               <table className="w-full min-w-[860px] border-collapse text-left">
                 <thead className='bg-gray-50'>
                   <tr>
-                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-theme-9a80a8">ID</th>
-                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-theme-9a80a8">Subject</th>
-                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-theme-9a80a8">Customer</th>
+                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[13px] font-medium text-theme-9a80a8">ID</th>
+                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[13px] font-medium text-theme-9a80a8">Subject</th>
+                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[13px] font-medium text-theme-9a80a8">Customer</th>
                     {activeTab === 'appeals' && (
-                      <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-theme-9a80a8">Phone</th>
+                      <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[13px] font-medium text-theme-9a80a8">Phone</th>
                     )}
-                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-theme-9a80a8">Status</th>
-                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-theme-9a80a8">Last Updated</th>
-                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-medium text-theme-9a80a8">Actions</th>
+                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[13px] font-medium text-theme-9a80a8">Status</th>
+                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[13px] font-medium text-theme-9a80a8">Last Updated</th>
+                    <th scope='col' className="whitespace-nowrap px-4 py-3 text-left text-[13px] font-medium text-theme-9a80a8">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-theme-f1eaf5 bg-white">
@@ -566,12 +566,12 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                     <tr key={ticket._id} className='hover:bg-gray-50'>
                       <td className="whitespace-nowrap px-4 py-4 text-xs font-medium tabular-nums text-theme-84648f">{ticket.ticketNumber || ticket._id.slice(-6)}</td>
                       <td className="max-w-[240px] px-4 py-4 text-xs leading-relaxed text-theme-725e7f [overflow-wrap:anywhere]"><span className="flex items-center gap-2"><span>{ticket.subject}</span><UnreadTicketBadge count={unreadCounts[ticket._id]} /></span></td>
-                      <td className="px-4 py-4 text-[11px] text-theme-95809f">
+                      <td className="px-4 py-4 text-[13px] text-theme-95809f">
                         <div className="flex min-w-0 flex-col gap-1 [&>span]:max-w-[240px] [&>span]:[overflow-wrap:anywhere]">
                           <span className='font-medium text-gray-900'>{ticket.user?.name || 'N/A'}</span>
                           <span className='text-xs'>{ticket.user?.email}</span>
                           {ticket.user?.isLuxeMember && (
-                            <span className="inline-flex w-fit items-center rounded-md border border-theme-eee3d0 bg-theme-faf3e6 px-2 py-0.5 text-[9px] font-medium text-theme-a88b56">
+                            <span className="inline-flex w-fit items-center rounded-md border border-theme-eee3d0 bg-theme-faf3e6 px-2 py-0.5 text-[12px] font-medium text-theme-a88b56">
                               <span className="mr-1 h-1 w-1 rounded-full bg-theme-baa36e"></span>
                               Luxe Member
                             </span>
@@ -579,20 +579,20 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                         </div>
                       </td>
                       {activeTab === 'appeals' && (
-                        <td className="max-w-[180px] px-4 py-4 text-[11px] font-medium text-theme-8d729a [overflow-wrap:anywhere]">
+                        <td className="max-w-[180px] px-4 py-4 text-[13px] font-medium text-theme-8d729a [overflow-wrap:anywhere]">
                           {ticket.appealDetails?.phone || ticket.contactInfo || 'N/A'}
                         </td>
                       )}
                       <td className="whitespace-nowrap px-4 py-4">
                         <StatusBadge status={ticket.status} style={getStatusStyle(ticket.status)} />
                       </td>
-                      <td className="px-4 py-4 text-[11px] text-theme-95809f">
+                      <td className="px-4 py-4 text-[13px] text-theme-95809f">
                         {new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString()}
                       </td>
                       <td className="whitespace-nowrap px-4 py-4 text-right">
                         <button
                           onClick={() => setSelectedTicket(ticket)}
-                          className="inline-flex min-h-8 items-center gap-1 rounded-md border border-theme-e7ddec px-2.5 text-[11px] font-medium text-theme-a17cab hover:border-theme-c5a1d0 hover:bg-theme-fbf6fd"
+                          className="inline-flex min-h-8 items-center gap-1 rounded-md border border-theme-e7ddec px-2.5 text-[13px] font-medium text-theme-a17cab hover:border-theme-c5a1d0 hover:bg-theme-fbf6fd"
                         >
                           View Details <ArrowUpRight size={13} aria-hidden="true" />
                         </button>
@@ -612,29 +612,29 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                   className="min-w-0 cursor-pointer space-y-3 rounded-xl border border-theme-e9e0ed p-4 transition-colors hover:border-theme-d3b8d2 active:bg-theme-fcf7fd"
                 >
                   <div className='flex items-center justify-between gap-2'>
-                    <span className="text-[11px] font-medium tabular-nums text-theme-a88eb3">#{ticket.ticketNumber || ticket._id.slice(-6)}</span>
+                    <span className="text-[13px] font-medium tabular-nums text-theme-a88eb3">#{ticket.ticketNumber || ticket._id.slice(-6)}</span>
                     <StatusBadge status={ticket.status} style={getStatusStyle(ticket.status)} />
                   </div>
                   <div className="flex items-center gap-2"><p className="line-clamp-2 text-sm font-medium text-theme-614b6c [overflow-wrap:anywhere]">{ticket.subject}</p><UnreadTicketBadge count={unreadCounts[ticket._id]} /></div>
                   <div className='flex items-center justify-between gap-2'>
                     <div className='min-w-0'>
                       <p className="truncate text-xs font-medium text-theme-7b6287">{ticket.user?.name || 'N/A'}</p>
-                      <p className="mt-1 truncate text-[11px] text-theme-a18eab">{ticket.user?.email}</p>
+                      <p className="mt-1 truncate text-[13px] text-theme-a18eab">{ticket.user?.email}</p>
                     </div>
-                    <p className="shrink-0 text-[10px] font-medium text-theme-a18eab">{new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString()}</p>
+                    <p className="shrink-0 text-[12px] font-medium text-theme-a18eab">{new Date(ticket.updatedAt || ticket.createdAt).toLocaleDateString()}</p>
                   </div>
                   {ticket.user?.isLuxeMember && (
-                    <span className="inline-flex w-fit items-center rounded-md border border-theme-eee3d0 bg-theme-faf3e6 px-2 py-0.5 text-[9px] font-medium text-theme-a88b56">
+                    <span className="inline-flex w-fit items-center rounded-md border border-theme-eee3d0 bg-theme-faf3e6 px-2 py-0.5 text-[12px] font-medium text-theme-a88b56">
                       <span className="mr-1 h-1 w-1 rounded-full bg-theme-baa36e"></span>
                       Luxe Member
                     </span>
                   )}
                   {activeTab === 'appeals' && (
-                    <p className="flex items-center gap-1.5 text-[11px] font-medium text-theme-9a7ba6 [overflow-wrap:anywhere]">
+                    <p className="flex items-center gap-1.5 text-[13px] font-medium text-theme-9a7ba6 [overflow-wrap:anywhere]">
                       <PhoneCall size={12} className='text-gray-400' /> {ticket.appealDetails?.phone || ticket.contactInfo || 'N/A'}
                     </p>
                   )}
-                  <button className="inline-flex min-h-8 items-center gap-1 text-[11px] font-medium text-theme-aa7a9d">View Details →</button>
+                  <button className="inline-flex min-h-8 items-center gap-1 text-[13px] font-medium text-theme-aa7a9d">View Details →</button>
                 </div>
               ))}
             </div>
@@ -645,7 +645,7 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="min-h-9 rounded-lg border border-theme-e5dbe9 bg-white px-3 py-2 text-[11px] font-medium text-theme-9679a1 hover:bg-theme-faf6fc"
+                  className="min-h-9 rounded-lg border border-theme-e5dbe9 bg-white px-3 py-2 text-[13px] font-medium text-theme-9679a1 hover:bg-theme-faf6fc"
                 >
                   Previous
                 </button>
@@ -660,7 +660,7 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                           aria-label={"Page " + pageNum}
                           aria-current={currentPage === pageNum ? "page" : undefined}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`w-9 h-9 rounded-lg text-[11px] font-medium transition-colors ${currentPage === pageNum ? 'bg-theme-302735 text-white' : 'bg-white border border-theme-e5dbe9 text-theme-9679a1 hover:bg-theme-faf6fc'}`}
+                          className={`w-9 h-9 rounded-lg text-[13px] font-medium transition-colors ${currentPage === pageNum ? 'bg-theme-302735 text-white' : 'bg-white border border-theme-e5dbe9 text-theme-9679a1 hover:bg-theme-faf6fc'}`}
                         >
                           {pageNum}
                         </button>
@@ -671,12 +671,12 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                     return null;
                   })}
                 </div>
-                <span className="px-2 text-[11px] font-medium text-theme-9980a5 sm:hidden">{currentPage} / {totalPages}</span>
+                <span className="px-2 text-[13px] font-medium text-theme-9980a5 sm:hidden">{currentPage} / {totalPages}</span>
 
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="min-h-9 rounded-lg border border-theme-e5dbe9 bg-white px-3 py-2 text-[11px] font-medium text-theme-9679a1 hover:bg-theme-faf6fc"
+                  className="min-h-9 rounded-lg border border-theme-e5dbe9 bg-white px-3 py-2 text-[13px] font-medium text-theme-9679a1 hover:bg-theme-faf6fc"
                 >
                   Next
                 </button>
@@ -702,23 +702,23 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
             <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain p-4 sm:p-6">
               <div className='flex flex-col sm:flex-row justify-between items-start gap-3'>
                 <div>
-                  <p className="text-[11px] font-medium text-theme-a18aaa">Customer:</p>
+                  <p className="text-[13px] font-medium text-theme-a18aaa">Customer:</p>
                   <p className="mt-1 text-sm font-semibold text-theme-66506f [overflow-wrap:anywhere]">{selectedTicket.user?.name || 'N/A'}</p>
-                  <p className="mt-1 text-[11px] text-theme-a38bac [overflow-wrap:anywhere]">{selectedTicket.user?.email}</p>
+                  <p className="mt-1 text-[13px] text-theme-a38bac [overflow-wrap:anywhere]">{selectedTicket.user?.email}</p>
                 </div>
                 {selectedTicket.user?.isLuxeMember && (
                   <div className='flex flex-col items-start sm:items-end'>
-                    <span className="flex items-center gap-1.5 rounded-md border border-theme-eadcbf bg-theme-faf2e2 px-2.5 py-1 text-[10px] font-medium text-theme-ae9056">
+                    <span className="flex items-center gap-1.5 rounded-md border border-theme-eadcbf bg-theme-faf2e2 px-2.5 py-1 text-[12px] font-medium text-theme-ae9056">
                       <span className="h-1.5 w-1.5 rounded-full bg-theme-bda56e"></span>
                       Luxe Priority
                     </span>
-                    <span className="mt-1 text-[10px] text-theme-baa274">High Priority Support</span>
+                    <span className="mt-1 text-[12px] text-theme-baa274">High Priority Support</span>
                   </div>
                 )}
               </div>
               <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                 <div>
-                  <p className="text-[11px] font-medium text-theme-a18aaa">Status:</p>
+                  <p className="text-[13px] font-medium text-theme-a18aaa">Status:</p>
                   <select aria-label="Ticket status"
                     value={selectedTicket.status}
                     onChange={(e) => handleStatusChange(selectedTicket._id, e.target.value)}
@@ -730,7 +730,7 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                   </select>
                 </div>
                 <div>
-                  <p className="text-[11px] font-medium text-theme-a18aaa">Created At:</p>
+                  <p className="text-[13px] font-medium text-theme-a18aaa">Created At:</p>
                   <p className="mt-2.5 text-xs text-theme-8e7499">{new Date(selectedTicket.createdAt).toLocaleString()}</p>
                 </div>
               </div>
@@ -740,26 +740,26 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                     <p className='text-sm font-bold text-amber-800 flex items-center gap-1.5'>
                       <ShieldAlert size={16} /> Block Appeal
                     </p>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${selectedTicket.user?.isBlocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[12px] font-black uppercase tracking-wider ${selectedTicket.user?.isBlocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                       {selectedTicket.user?.isBlocked ? 'Currently Blocked' : 'Currently Active'}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-3">
                     <div>
-                      <p className='text-[9px] sm:text-[10px] font-black text-amber-600 uppercase tracking-widest'>Blocked At</p>
-                      <p className='text-[11px] sm:text-xs font-bold text-amber-900 mt-1'>
+                      <p className='text-[12px] sm:text-[12px] font-black text-amber-600 uppercase tracking-widest'>Blocked At</p>
+                      <p className='text-[13px] sm:text-xs font-bold text-amber-900 mt-1'>
                         {selectedTicket.appealDetails?.blockedAt || selectedTicket.user?.blockedAt ? new Date(selectedTicket.appealDetails?.blockedAt || selectedTicket.user?.blockedAt).toLocaleDateString() : '—'}
                       </p>
                     </div>
                     <div>
-                      <p className='text-[9px] sm:text-[10px] font-black text-amber-600 uppercase tracking-widest'>Last Active</p>
-                      <p className='text-[11px] sm:text-xs font-bold text-amber-900 mt-1'>
+                      <p className='text-[12px] sm:text-[12px] font-black text-amber-600 uppercase tracking-widest'>Last Active</p>
+                      <p className='text-[13px] sm:text-xs font-bold text-amber-900 mt-1'>
                         {selectedTicket.appealDetails?.activeAt || selectedTicket.user?.activeAt ? new Date(selectedTicket.appealDetails?.activeAt || selectedTicket.user?.activeAt).toLocaleDateString() : '—'}
                       </p>
                     </div>
                     <div>
-                      <p className='text-[9px] sm:text-[10px] font-black text-amber-600 uppercase tracking-widest'>Appealed On</p>
-                      <p className='text-[11px] sm:text-xs font-bold text-amber-900 mt-1'>{new Date(selectedTicket.createdAt).toLocaleDateString()}</p>
+                      <p className='text-[12px] sm:text-[12px] font-black text-amber-600 uppercase tracking-widest'>Appealed On</p>
+                      <p className='text-[13px] sm:text-xs font-bold text-amber-900 mt-1'>{new Date(selectedTicket.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className='flex items-center gap-1.5 text-sm text-amber-900 font-semibold bg-white/70 rounded-md px-3 py-2 border border-amber-100'>
@@ -783,13 +783,13 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
               )}
 
               <div>
-                <p className="mb-2 text-[11px] font-medium text-theme-a18aaa">Contact Info:</p>
+                <p className="mb-2 text-[13px] font-medium text-theme-a18aaa">Contact Info:</p>
                 <div className="mb-4 rounded-lg border border-theme-eee7f3 bg-theme-fcfafd p-3 text-xs text-theme-82698f [overflow-wrap:anywhere]">
                   {selectedTicket.contactInfo || 'Not provided'}
                 </div>
               </div>
               <div className='space-y-2'>
-                <p className="text-[11px] font-medium text-theme-a18aaa">Messages:</p>
+                <p className="text-[13px] font-medium text-theme-a18aaa">Messages:</p>
                 {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
                   selectedTicket.messages.map((msg, index) => (
                     <div key={index} className={`flex max-w-[95%] flex-col gap-1 rounded-xl border p-3 sm:max-w-[85%] ${msg.sender === 'admin' ? 'ml-auto border-theme-ead5e3 bg-theme-fbf1f7 text-theme-996789' : 'border-theme-eee7f3 bg-theme-faf7fc text-theme-8a6e96'}`}>
@@ -804,7 +804,7 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
                               ))}
                           </div>
                       )}
-                      <span className="mt-1 self-end text-[10px] text-theme-b19cbc">{new Date(msg.createdAt).toLocaleString()}</span>
+                      <span className="mt-1 self-end text-[12px] text-theme-b19cbc">{new Date(msg.createdAt).toLocaleString()}</span>
                     </div>
                   ))
                 ) : (
@@ -887,7 +887,7 @@ const Tickets = ({ token, unreadCounts = {}, onUnreadChange }) => {
 
               {selectedTicket.images && selectedTicket.images.length > 0 && (
                 <div className="space-y-3 border-t border-theme-eae1ef pt-4">
-                  <p className="text-[11px] font-medium text-theme-a18aaa">Attached Images:</p>
+                  <p className="text-[13px] font-medium text-theme-a18aaa">Attached Images:</p>
                   <div className='flex flex-wrap gap-2'>
                     {selectedTicket.images.map((image, index) => (
                       <a key={index} href={image} target="_blank" rel="noopener noreferrer">

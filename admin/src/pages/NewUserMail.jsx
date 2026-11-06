@@ -435,7 +435,7 @@ const NewUserMail = ({ token }) => {
                         </div>
                         <label htmlFor="marketing-html" className="text-sm font-medium text-gray-700">Email HTML code</label>
                         <textarea id="marketing-html" value={htmlDraft ?? ''} onChange={event => setHtmlDraft(event.target.value)} spellCheck={false} autoCapitalize="off" autoCorrect="off" rows={25} wrap="off" aria-describedby="marketing-html-help" className="min-w-0 w-full resize-y overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-xs leading-relaxed outline-none focus:border-black focus:ring-2 focus:ring-black/5" />
-                        <p className="text-[11px] leading-relaxed text-gray-500">Both drafts are kept when you switch modes. The selected mode is used for preview and sending.</p>
+                        <p className="text-[13px] leading-relaxed text-gray-500">Both drafts are kept when you switch modes. The selected mode is used for preview and sending.</p>
                     </div>}
 
                     <button

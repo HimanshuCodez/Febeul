@@ -353,11 +353,11 @@ const Add = ({ token, draftOwner }) => {
     <form onSubmit={onSubmitHandler} className="mx-auto w-full max-w-[1500px] pb-6 font-[Outfit,sans-serif] text-theme-342a3c [&_*]:[font-family:inherit] [&_input]:min-w-0 [&_select]:min-w-0 [&_button:focus-visible]:outline [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-theme-ad708f motion-reduce:[&_*]:transition-none">
       <header className="mb-6 flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="mb-2.5 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em] text-theme-947c8c"><span className="h-1.5 w-1.5 rotate-45 rounded-sm bg-theme-c77893" />FEBEUL / CATALOG</p>
-          <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.04em] sm:text-[34px]">Add new product<span className="text-theme-c77893">.</span></h1>
-          <p className="mt-2 max-w-xl text-xs leading-relaxed text-theme-8b7b93 sm:text-[13px]">Build your listing with product details, images, and inventory.</p>
+          <p className="mb-2.5 flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.18em] text-theme-947c8c"><span className="h-1.5 w-1.5 rotate-45 rounded-sm bg-theme-c77893" />FEBEUL / CATALOG</p>
+          <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.04em] sm:text-[36px]">Add new product<span className="text-theme-c77893">.</span></h1>
+          <p className="mt-2 max-w-xl text-xs leading-relaxed text-theme-8b7b93 sm:text-[15px]">Build your listing with product details, images, and inventory.</p>
         </div>
-        <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-theme-e7dce8 bg-white px-3 py-2 text-[11px] font-medium text-theme-96768c"><PackagePlus size={15} aria-hidden="true" />New listing</span>
+        <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-theme-e7dce8 bg-white px-3 py-2 text-[13px] font-medium text-theme-96768c"><PackagePlus size={15} aria-hidden="true" />New listing</span>
       </header>
 
       <ProductDraftStatus draft={draft} disabled={loading} />
@@ -439,7 +439,7 @@ const Add = ({ token, draftOwner }) => {
                       <p className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-theme-776580">
                         SKU
                         {isSkuDuplicate(variation.sku, v_index) && (
-                          <span className="text-[10px] font-medium text-rose-600">SKU already exists. Please use another.</span>
+                          <span className="text-[12px] font-medium text-rose-600">SKU already exists. Please use another.</span>
                         )}
                       </p>
                       <input
@@ -459,7 +459,7 @@ const Add = ({ token, draftOwner }) => {
                       {variation.sizes.map((sizeData, s_index) => (
                         <div key={s_index} className="mb-3 grid min-w-0 grid-cols-2 items-end gap-2 rounded-xl border border-theme-ece4f0 bg-white p-3 min-[900px]:grid-cols-[minmax(64px,0.8fr)_repeat(3,minmax(0,1fr))_36px]">
                           <div className="min-w-0">
-                            <label htmlFor={"product-size-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-theme-927d9d">Size</label>
+                            <label htmlFor={"product-size-" + v_index + "-" + s_index} className="mb-1.5 block text-[13px] font-medium text-theme-927d9d">Size</label>
                             <input id={"product-size-" + v_index + "-" + s_index}
                               name="size"
                               value={sizeData.size}
@@ -468,7 +468,7 @@ const Add = ({ token, draftOwner }) => {
                             />
                           </div>
                           <div>
-                            <label htmlFor={"product-mrp-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-theme-927d9d">MRP</label>
+                            <label htmlFor={"product-mrp-" + v_index + "-" + s_index} className="mb-1.5 block text-[13px] font-medium text-theme-927d9d">MRP</label>
                             <input id={"product-mrp-" + v_index + "-" + s_index}
                               name="mrp"
                               onChange={(e) => handleSizeChange(v_index, s_index, e)}
@@ -480,7 +480,7 @@ const Add = ({ token, draftOwner }) => {
                             />
                           </div>
                           <div>
-                            <label htmlFor={"product-price-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-theme-927d9d">Price</label>
+                            <label htmlFor={"product-price-" + v_index + "-" + s_index} className="mb-1.5 block text-[13px] font-medium text-theme-927d9d">Price</label>
                             <input id={"product-price-" + v_index + "-" + s_index}
                               name="price"
                               onChange={(e) => handleSizeChange(v_index, s_index, e)}
@@ -500,7 +500,7 @@ const Add = ({ token, draftOwner }) => {
                             )}
                           </div>
                           <div>
-                            <label htmlFor={"product-stock-" + v_index + "-" + s_index} className="mb-1.5 block text-[11px] font-medium text-theme-927d9d">Stock</label>
+                            <label htmlFor={"product-stock-" + v_index + "-" + s_index} className="mb-1.5 block text-[13px] font-medium text-theme-927d9d">Stock</label>
                             <input id={"product-stock-" + v_index + "-" + s_index}
                               name="stock"
                               onChange={(e) => handleSizeChange(v_index, s_index, e)}
@@ -735,7 +735,7 @@ const Add = ({ token, draftOwner }) => {
                 <span className="text-xs font-medium leading-relaxed text-theme-725e7f">Add to Bestseller</span>
               </label>
             </div>
-          <p className="mt-4 text-[11px] leading-relaxed text-theme-96859f">These settings take effect when you add the product.</p></section>
+          <p className="mt-4 text-[13px] leading-relaxed text-theme-96859f">These settings take effect when you add the product.</p></section>
           <section className="rounded-2xl bg-theme-302735 p-5 text-white" aria-labelledby="product-summary-title">
             <div className="mb-4 flex items-center justify-between gap-2"><h2 id="product-summary-title" className="text-sm font-medium">In this form</h2><Package size={17} className="text-theme-d8a3bb" aria-hidden="true" /></div>
             <dl className="space-y-3 text-xs">
@@ -743,7 +743,7 @@ const Add = ({ token, draftOwner }) => {
               <div className="flex items-center justify-between gap-3"><dt className="text-theme-cbbdd1">Size entries</dt><dd className="font-medium tabular-nums">{variations.reduce((count, variation) => count + variation.sizes.length, 0)}</dd></div>
               <div className="flex items-center justify-between gap-3"><dt className="text-theme-cbbdd1">Images</dt><dd className="font-medium tabular-nums">{variations.reduce((count, variation) => count + variation.images.length, 0)}</dd></div>
             </dl>
-            <p className="mt-5 border-t border-white/10 pt-4 text-[11px] leading-relaxed text-theme-cbbdd1">Review each variation&apos;s pricing and stock before saving.</p>
+            <p className="mt-5 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-theme-cbbdd1">Review each variation&apos;s pricing and stock before saving.</p>
           </section>
         </aside>
       </div>

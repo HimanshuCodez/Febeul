@@ -22,7 +22,7 @@
         --admin-line: #374153;
         --admin-hover: #2b3343;
     }
-    body { background: var(--admin-canvas); color: var(--admin-foreground); }
+    body { background: var(--admin-canvas); color: var(--admin-foreground); font-size: 18px; line-height: 1.5; }
     *, ::before, ::after { border-color: var(--admin-line); }
     :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea, select) {
         background-color: var(--admin-surface);
@@ -43,7 +43,7 @@
     border-radius: 12px;
     background: var(--admin-surface);
     color: var(--admin-foreground);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
 }
@@ -53,6 +53,7 @@
 .admin-navbar .admin-theme-toggle:hover { background: #ffffff20; }
 
 /* Editors and chart widgets supply their own CSS or inline styles. */
+.admin-app .ql-container { font-size: 16px; }
 :root[data-theme="dark"] .admin-app .ql-toolbar,
 :root[data-theme="dark"] .admin-app .ql-container,
 :root[data-theme="dark"] .admin-app .ql-picker-options,

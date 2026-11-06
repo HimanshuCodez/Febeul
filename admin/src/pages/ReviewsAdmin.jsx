@@ -116,7 +116,7 @@ const ReviewsAdmin = ({ token }) => {
         <div className="mx-auto w-full min-w-0 max-w-[1600px] font-[Outfit,sans-serif] text-theme-342a3c [&_*]:[font-family:inherit] [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-theme-b77997 [&_button]:focus-visible:ring-offset-2 motion-reduce:[&_*]:transition-none motion-reduce:[&_*]:animate-none">
             <header className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
-                    <p className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-theme-9c839e">
+                    <p className="mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-theme-9c839e">
                         <span className="h-1.5 w-1.5 rotate-45 bg-theme-b77997" aria-hidden="true" /> Febeul / Customer experience
                     </p>
                     <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Customer reviews<span className="text-theme-b77997">.</span></h1>
@@ -135,7 +135,7 @@ const ReviewsAdmin = ({ token }) => {
                             <span className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + color}><Icon size={16} aria-hidden="true" /></span>
                         </div>
                         <p className="text-3xl font-semibold tracking-tight tabular-nums">{loading ? '\u2014' : value}</p>
-                        <p className={'mt-1 text-[11px] ' + (index === 0 ? 'text-theme-b9a7c0' : 'text-theme-a292a9')}>All dates</p>
+                        <p className={'mt-1 text-[13px] ' + (index === 0 ? 'text-theme-b9a7c0' : 'text-theme-a292a9')}>All dates</p>
                     </div>
                 ))}
             </div>
@@ -151,11 +151,11 @@ const ReviewsAdmin = ({ token }) => {
                     </div>
                     <div className="flex flex-wrap items-end gap-2 sm:gap-3">
                         <label className="min-w-0 flex-1 sm:flex-none">
-                            <span className="mb-1.5 block text-[11px] font-medium text-theme-8b7b93">From date</span>
+                            <span className="mb-1.5 block text-[13px] font-medium text-theme-8b7b93">From date</span>
                             <input type="date" value={startDate} max={endDate || undefined} onChange={(e) => setStartDate(e.target.value)} aria-label="From date" className="min-h-10 w-full min-w-0 rounded-lg border border-theme-eae5ed bg-theme-fcfafc px-2 py-2 text-xs outline-none focus:border-theme-b77997 focus:ring-2 focus:ring-theme-f5e9f0 sm:w-36" />
                         </label>
                         <label className="min-w-0 flex-1 sm:flex-none">
-                            <span className="mb-1.5 block text-[11px] font-medium text-theme-8b7b93">To date</span>
+                            <span className="mb-1.5 block text-[13px] font-medium text-theme-8b7b93">To date</span>
                             <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)} aria-label="To date" className="min-h-10 w-full min-w-0 rounded-lg border border-theme-eae5ed bg-theme-fcfafc px-2 py-2 text-xs outline-none focus:border-theme-b77997 focus:ring-2 focus:ring-theme-f5e9f0 sm:w-36" />
                         </label>
                         {(startDate || endDate) && (
@@ -177,7 +177,7 @@ const ReviewsAdmin = ({ token }) => {
                     <div className="min-w-0 overflow-x-auto">
                         <table className="block w-full xl:table xl:table-fixed">
                             <thead className="sr-only bg-theme-faf8fb xl:not-sr-only xl:table-header-group">
-                                <tr className="[&_th]:px-4 [&_th]:py-3.5 [&_th]:text-left [&_th]:text-[10px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-theme-8b7b93">
+                                <tr className="[&_th]:px-4 [&_th]:py-3.5 [&_th]:text-left [&_th]:text-[12px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-theme-8b7b93">
                                     <th scope="col" className="w-[19%]">Customer</th>
                                     <th scope="col" className="w-[17%]">Product</th>
                                     <th scope="col" className="w-[27%]">Rating &amp; review</th>
@@ -194,7 +194,7 @@ const ReviewsAdmin = ({ token }) => {
                                                 {review.userId?.profilePicture ? <img src={review.userId.profilePicture} alt={review.userId.name} className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-theme-eee9f0" /> : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-theme-f4edf6 text-theme-aa8ab4"><UserRound size={16} /></span>}
                                                 <div className="min-w-0">
                                                     <p className="break-words text-sm font-medium">{review.userId?.name || 'Anonymous'}</p>
-                                                    <p className="mt-1 break-all text-[11px] text-theme-8b7b93">{review.userId?.email || 'N/A'}</p>
+                                                    <p className="mt-1 break-all text-[13px] text-theme-8b7b93">{review.userId?.email || 'N/A'}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -207,25 +207,25 @@ const ReviewsAdmin = ({ token }) => {
                                         <td className="col-span-2 min-w-0 pb-4 pt-1 xl:px-4 xl:py-5 xl:align-top">
                                             <div className="mb-2 flex flex-wrap items-center gap-2">
                                                 <span className="flex items-center gap-0.5" aria-hidden="true">{[1, 2, 3, 4, 5].map(star => <Star key={star} size={13} className={review.rating >= star ? 'fill-amber-400 text-amber-400' : 'text-theme-e0d8e5'} />)}</span>
-                                                <span className="text-[11px] font-medium text-theme-8b7b93">{review.rating} Stars</span>
+                                                <span className="text-[13px] font-medium text-theme-8b7b93">{review.rating} Stars</span>
                                             </div>
                                             <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-theme-65566f">{review.comment}</p>
                                             {review.images && review.images.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{review.images.map((image, index) => <img key={index} src={image} alt={'Review image ' + (index + 1)} className="h-12 w-12 rounded-lg border border-theme-eee9f0 object-cover" />)}</div>}
                                         </td>
                                         <td className="border-t border-theme-f1ecf3 py-3 text-xs text-theme-8b7b93 xl:border-0 xl:px-4 xl:py-5 xl:align-top">
-                                            <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-theme-a292a9 xl:hidden">Submitted</span>
+                                            <span className="mb-1 block text-[12px] font-medium uppercase tracking-wider text-theme-a292a9 xl:hidden">Submitted</span>
                                             {new Date(review.date).toLocaleDateString()}
                                         </td>
                                         <td className="border-t border-theme-f1ecf3 py-3 text-right xl:border-0 xl:px-4 xl:py-5 xl:text-left xl:align-top">
-                                            <span className={'inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-medium capitalize ' + (review.status === 'approved' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : review.status === 'rejected' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-amber-100 bg-amber-50 text-amber-700')}>
+                                            <span className={'inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[12px] font-medium capitalize ' + (review.status === 'approved' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : review.status === 'rejected' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-amber-100 bg-amber-50 text-amber-700')}>
                                                 <span className="h-1 w-1 rounded-full bg-current" aria-hidden="true" />{review.status || 'pending'}
                                             </span>
                                         </td>
                                         <td className="col-span-2 border-t border-theme-f1ecf3 pt-3 xl:border-0 xl:px-4 xl:py-5 xl:align-top">
                                             <div className="flex flex-wrap gap-2">
-                                                {review.status !== 'approved' && <button type="button" onClick={() => handleUpdateStatus(review._id, 'approved')} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100"><CheckCircle2 size={12} aria-hidden="true" />Approve</button>}
-                                                {review.status !== 'rejected' && <button type="button" onClick={() => handleUpdateStatus(review._id, 'rejected')} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-theme-eae5ed bg-white px-2.5 py-1.5 text-[11px] font-medium text-theme-827089 transition-colors hover:bg-theme-f7f3f8"><XCircle size={12} aria-hidden="true" />Reject</button>}
-                                                {role !== 'staff' && <button type="button" onClick={() => handleDeleteReview(review._id)} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-rose-600 transition-colors hover:bg-rose-50"><Trash2 size={12} aria-hidden="true" />Delete</button>}
+                                                {review.status !== 'approved' && <button type="button" onClick={() => handleUpdateStatus(review._id, 'approved')} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100"><CheckCircle2 size={12} aria-hidden="true" />Approve</button>}
+                                                {review.status !== 'rejected' && <button type="button" onClick={() => handleUpdateStatus(review._id, 'rejected')} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-theme-eae5ed bg-white px-2.5 py-1.5 text-[13px] font-medium text-theme-827089 transition-colors hover:bg-theme-f7f3f8"><XCircle size={12} aria-hidden="true" />Reject</button>}
+                                                {role !== 'staff' && <button type="button" onClick={() => handleDeleteReview(review._id)} className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-rose-600 transition-colors hover:bg-rose-50"><Trash2 size={12} aria-hidden="true" />Delete</button>}
                                             </div>
                                         </td>
                                     </tr>

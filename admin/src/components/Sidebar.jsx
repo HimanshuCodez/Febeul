@@ -273,7 +273,7 @@ const Sidebar = ({ role, permissions = [], onNavigate, unreadTicketCount = 0 }) 
         return (
           <div key={section.key} className="admin-sidebar-section flex flex-col mb-1" data-current={activeAccordion === section.key || undefined}>
             {!collapsed && (
-              <p className="px-6 mt-4 mb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+              <p className="px-6 mt-4 mb-1 text-[13px] font-semibold uppercase tracking-wider text-gray-400">
                 {section.label}
               </p>
             )}

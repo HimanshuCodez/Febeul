@@ -134,7 +134,7 @@ const ManageGiftWraps = ({ token }) => {
                                 {item.creator && (
                                     <p 
                                         onClick={() => { if(item.creator.role === 'staff') { setSelectedStaff(item.creator); setShowStaffModal(true); } }}
-                                        className={`mt-2 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block`}
+                                        className={`mt-2 text-[12px] px-2 py-0.5 rounded-full font-bold uppercase ${item.creator.role === 'staff' ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200' : 'bg-gray-100 text-gray-600'} inline-block`}
                                     >
                                         {item.creator.role || 'Admin'}
                                     </p>

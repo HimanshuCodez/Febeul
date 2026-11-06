@@ -80,7 +80,7 @@ export default function HomeGiftOffer({ token }) {
     <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-pink-100 bg-pink-50 text-pink-600"><Gift size={22} /></span>
-        <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-pink-600">Marketing &amp; content</p><h1 className="text-2xl font-semibold tracking-tight text-slate-900">Home Gift Offer</h1><p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500">A floating gift on your home page. Visitors tap to open the offer, then reveal and copy your coupon after signing in.</p></div>
+        <div><p className="mb-1 text-[12px] font-semibold uppercase tracking-widest text-pink-600">Marketing &amp; content</p><h1 className="text-2xl font-semibold tracking-tight text-slate-900">Home Gift Offer</h1><p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500">A floating gift on your home page. Visitors tap to open the offer, then reveal and copy your coupon after signing in.</p></div>
       </div>
       <button type="submit" disabled={saving || refreshing || !dirty || (content.enabled && !selectedCoupon?.eligibleForGift)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"><Save size={17} />{saving ? 'Saving...' : 'Save gift offer'}</button>
     </header>
@@ -125,9 +125,9 @@ export default function HomeGiftOffer({ token }) {
 
       <aside className="min-w-0 xl:self-start" aria-label="Gift offer live preview">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="mb-4 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800"><Eye size={16} />Live preview</h2><span className={'rounded-full px-2.5 py-1 text-[10px] font-semibold ' + (content.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500')}>{content.enabled ? 'Enabled on save' : 'Hidden'}</span></div>
+          <div className="mb-4 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800"><Eye size={16} />Live preview</h2><span className={'rounded-full px-2.5 py-1 text-[12px] font-semibold ' + (content.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500')}>{content.enabled ? 'Enabled on save' : 'Hidden'}</span></div>
           <HomeGiftOfferPreview content={previewContent} />
-          <p className="mt-4 text-[11px] leading-relaxed text-slate-500">Preview only. Save to publish. The gift waits until cookie choices are made and opens when tapped.</p>
+          <p className="mt-4 text-[13px] leading-relaxed text-slate-500">Preview only. Save to publish. The gift waits until cookie choices are made and opens when tapped.</p>
         </div>
       </aside>
     </div>

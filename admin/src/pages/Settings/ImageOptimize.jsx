@@ -99,7 +99,7 @@ const ImageOptimize = ({ token }) => {
                                 className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                 placeholder="e.g. 450"
                             />
-                            <p className="text-[10px] text-gray-400">Limits the height of the main product image.</p>
+                            <p className="text-[12px] text-gray-400">Limits the height of the main product image.</p>
                         </div>
 
                         <div className="space-y-4">
@@ -114,7 +114,7 @@ const ImageOptimize = ({ token }) => {
                                 className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                 placeholder="e.g. 100"
                             />
-                            <p className="text-[10px] text-gray-400">Percentage of the container width to occupy.</p>
+                            <p className="text-[12px] text-gray-400">Percentage of the container width to occupy.</p>
                         </div>
 
                         <div className="space-y-4">
@@ -133,7 +133,7 @@ const ImageOptimize = ({ token }) => {
                                 <option value="4/5">4:5 Portrait (Premium)</option>
                                 <option value="16/9">16:9 Landscape</option>
                             </select>
-                            <p className="text-[10px] text-gray-400">Forces the container to a specific shape.</p>
+                            <p className="text-[12px] text-gray-400">Forces the container to a specific shape.</p>
                         </div>
                     </div>
 
@@ -150,7 +150,7 @@ const ImageOptimize = ({ token }) => {
                                 className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                 placeholder="e.g. 250"
                             />
-                            <p className="text-[10px] text-gray-400">Magnification factor for the hover zoom effect.</p>
+                            <p className="text-[12px] text-gray-400">Magnification factor for the hover zoom effect.</p>
                         </div>
 
                         <div className="space-y-4">
@@ -167,7 +167,7 @@ const ImageOptimize = ({ token }) => {
                                 <option value="cover">Cover (Fill Area)</option>
                                 <option value="fill">Fill (Stretch)</option>
                             </select>
-                            <p className="text-[10px] text-gray-400">How the image should resize to fit its container.</p>
+                            <p className="text-[12px] text-gray-400">How the image should resize to fit its container.</p>
                         </div>
                     </div>
 
@@ -184,7 +184,7 @@ const ImageOptimize = ({ token }) => {
                                 className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                 placeholder="e.g. 64"
                             />
-                            <p className="text-[10px] text-gray-400">Size of the side gallery preview images.</p>
+                            <p className="text-[12px] text-gray-400">Size of the side gallery preview images.</p>
                         </div>
 
                         <div className="space-y-4">
@@ -199,7 +199,7 @@ const ImageOptimize = ({ token }) => {
                                 className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                 placeholder="e.g. 48"
                             />
-                            <p className="text-[10px] text-gray-400">Size of the color variation previews.</p>
+                            <p className="text-[12px] text-gray-400">Size of the color variation previews.</p>
                         </div>
                     </div>
 

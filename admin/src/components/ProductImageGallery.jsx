@@ -46,7 +46,7 @@ export default function ProductImageGallery({ images, onChange, onUpload, variat
 
   return <div className="min-w-0">
     <p className="mb-2 text-xs font-medium text-theme-776580">Images</p>
-    <p id={`${galleryId}-help`} className="mb-3 text-[11px] leading-relaxed text-theme-8b7b93">Drag images to reorder, or use the arrows. The first image is the cover.</p>
+    <p id={`${galleryId}-help`} className="mb-3 text-[13px] leading-relaxed text-theme-8b7b93">Drag images to reorder, or use the arrows. The first image is the cover.</p>
     <div className="flex flex-wrap items-start gap-3" role="list" aria-label={`Images for variation ${variationNumber}`}>
       {images.map((image, index) => <div
         key={imageKey(image)} role="listitem" data-image-index={index}
@@ -84,7 +84,7 @@ export default function ProductImageGallery({ images, onChange, onUpload, variat
           }}
         >
           <ImagePreview image={image} alt={`Variation ${variationNumber}, image ${index + 1}`} />
-          <span className={`pointer-events-none absolute bottom-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${index === 0 ? 'bg-theme-514459 text-white' : 'bg-white/95 text-theme-514459'}`}>{index === 0 ? 'Cover' : index + 1}</span>
+          <span className={`pointer-events-none absolute bottom-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-[12px] font-medium ${index === 0 ? 'bg-theme-514459 text-white' : 'bg-white/95 text-theme-514459'}`}>{index === 0 ? 'Cover' : index + 1}</span>
           <span className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-white/90 p-0.5 text-theme-776580"><GripVertical size={13} aria-hidden="true" /></span>
         </div>
         {canRemove && <button type="button" disabled={disabled} aria-label={`Remove image ${index + 1} from variation ${variationNumber}`}
@@ -99,12 +99,12 @@ export default function ProductImageGallery({ images, onChange, onUpload, variat
       </div>)}
       <div role="listitem">
         <label className={`relative flex h-24 w-24 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-theme-cfb8d7 bg-white text-theme-a27695 transition-colors focus-within:ring-2 focus-within:ring-theme-b77997 ${disabled ? 'opacity-40' : 'cursor-pointer hover:border-theme-b77997 hover:bg-theme-faf0f6'}`}>
-          <ImagePlus size={22} aria-hidden="true" /><span className="text-[11px] font-medium">Upload images</span>
+          <ImagePlus size={22} aria-hidden="true" /><span className="text-[13px] font-medium">Upload images</span>
           <input aria-label={`Upload images for variation ${variationNumber}`} accept={PRODUCT_IMAGE_ACCEPT} onChange={onUpload} disabled={disabled} type="file" multiple className="sr-only" />
         </label>
       </div>
     </div>
     <p role="status" aria-live="polite" className="sr-only">{announcement}</p>
-    <p className="mt-2 text-[11px] leading-relaxed text-theme-8b7b93">{PRODUCT_UPLOAD_HINT}</p>
+    <p className="mt-2 text-[13px] leading-relaxed text-theme-8b7b93">{PRODUCT_UPLOAD_HINT}</p>
   </div>;
 }

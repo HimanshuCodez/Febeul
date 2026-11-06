@@ -125,13 +125,13 @@ const RazorpayTransactionsModal = ({ token, onClose }) => {
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50/50 sticky top-0">
                 <tr>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">ID</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <th className="px-6 py-3 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">ID</th>
+                  <th className="px-6 py-3 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
+                  <th className="px-6 py-3 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">
                     {activeTab === 'settlements' ? 'UTR' : activeTab === 'payments' ? 'Method' : 'Payment ID'}
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                  <th className="px-6 py-3 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-3 text-left text-[12px] font-black text-gray-400 uppercase tracking-widest">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -143,7 +143,7 @@ const RazorpayTransactionsModal = ({ token, onClose }) => {
                       {activeTab === 'settlements' ? (item.utr || '—') : activeTab === 'payments' ? (item.method || '—') : (item.paymentId || '—')}
                     </td>
                     <td className="px-6 py-3.5">
-                      <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${STATUS_TONE[item.status] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                      <span className={`inline-flex px-2.5 py-1 rounded-full text-[12px] font-black uppercase tracking-wider border ${STATUS_TONE[item.status] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
                         {item.status}
                       </span>
                     </td>
@@ -208,7 +208,7 @@ const RazorpayActivity = ({ token }) => {
             <Banknote size={18} />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Razorpay — Last Settlement</p>
+            <p className="text-[12px] font-black text-gray-400 uppercase tracking-widest">Razorpay — Last Settlement</p>
             {loading ? (
               <p className="text-sm font-bold text-gray-400">Checking Razorpay…</p>
             ) : error ? (
@@ -236,7 +236,7 @@ const RazorpayActivity = ({ token }) => {
           {SHOW_TRANSACTIONS_BUTTON && (
             <button
               onClick={() => setShowTransactions(true)}
-              className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all"
+              className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest hover:bg-black transition-all"
             >
               <ExternalLink size={13} /> View Transactions
             </button>

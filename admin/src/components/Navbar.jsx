@@ -16,7 +16,7 @@ const Navbar = ({setToken, setRole, setUserEmail, setPermissions, role, email, t
                     {role === 'staff' ? 'Staff Panel' : 'Admin Panel'}
                 </p>
                 {email && (
-                    <p className='hidden sm:block text-gray-400 text-[10px]'>
+                    <p className='hidden sm:block text-gray-400 text-[12px]'>
                         {email}
                     </p>
                 )}

@@ -327,7 +327,7 @@ const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
         <div>
           <h1 className='text-2xl font-bold text-gray-800 flex items-center gap-3'>
             {templateType.label} Email
-            {dirty && <span className='text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700'>Unsaved changes</span>}
+            {dirty && <span className='text-[13px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700'>Unsaved changes</span>}
           </h1>
           <p className='text-sm text-gray-500 mt-1'>
             {templateType.description}{' '}
@@ -430,7 +430,7 @@ const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
                             <div className='text-sm font-semibold text-gray-800 flex items-center gap-1.5'>
                               {def.label}
                               {def.order && <span title='Order data block — can be hidden or moved, not deleted'><Lock size={11} className='text-gray-400' /></span>}
-                              {b.hidden && <span className='text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-500'>Hidden</span>}
+                              {b.hidden && <span className='text-[12px] font-semibold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-500'>Hidden</span>}
                             </div>
                             <div className='text-xs text-gray-400 truncate'>{blockSummary(b) || def.description}</div>
                           </div>
@@ -476,7 +476,7 @@ const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
                                 className='flex flex-col items-start gap-1 p-3 rounded-xl border border-gray-200 hover:border-black hover:shadow-sm text-left bg-white transition-all'>
                                 <Icon size={18} className={def.order ? 'text-pink-500' : 'text-gray-700'} />
                                 <span className='text-sm font-semibold text-gray-800'>{def.label}</span>
-                                <span className='text-[11px] text-gray-400 leading-snug'>{def.description}</span>
+                                <span className='text-[13px] text-gray-400 leading-snug'>{def.description}</span>
                               </button>
                             )
                           })}
@@ -520,7 +520,7 @@ const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
                       options={meta.fonts.map((f) => ({ value: f, label: f }))} />
                   </div>
                   <RangeInput label='Email corner radius' value={content.theme.radius} onChange={(v) => updateTheme('radius', v)} min={0} max={40} />
-                  <p className='text-[11px] text-gray-400'>Web fonts show in Apple Mail, iOS and most mobile apps; Gmail and Outlook fall back to a similar system font.</p>
+                  <p className='text-[13px] text-gray-400'>Web fonts show in Apple Mail, iOS and most mobile apps; Gmail and Outlook fall back to a similar system font.</p>
                 </div>
               )}
             </div>
@@ -553,7 +553,7 @@ const EmailTemplateEditor = ({ token, templateType, onStateChange }) => {
                 rows={30}
                 className='w-full font-mono text-xs leading-relaxed p-3 border border-gray-200 rounded-lg outline-none focus:border-black bg-gray-50 resize-y'
               />
-              <p className='text-[11px] text-gray-400'>
+              <p className='text-[13px] text-gray-400'>
                 {isOrderTemplate ? <>
                   Include all products using <code>{'{{itemRows}}'}</code> inside a <code>&lt;tbody&gt;</code> or a repeating products block, plus <code>{'{{totalAmount}}'}</code>. Row variables such as <code>{'{{gstRows}}'}</code> output <code>&lt;tr&gt;</code> elements, so place them inside a table.
                 </> : <>

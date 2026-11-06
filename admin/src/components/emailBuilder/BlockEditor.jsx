@@ -151,7 +151,7 @@ const BlockEditor = ({ block, onChange, token, tokens }) => {
             <TextInput label='Total label' value={p.totalLabel} onChange={set('totalLabel')} />
           </div>
           <ColorInput label='Box background' value={p.bgColor} onChange={set('bgColor')} />
-          <p className='text-[11px] text-gray-400'>Coupon, COD, gift-wrap and GST rows appear automatically when they apply to the order.</p>
+          <p className='text-[13px] text-gray-400'>Coupon, COD, gift-wrap and GST rows appear automatically when they apply to the order.</p>
           {paddingField}
         </>
       )

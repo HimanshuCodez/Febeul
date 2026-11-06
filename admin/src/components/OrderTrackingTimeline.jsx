@@ -27,10 +27,10 @@ export default function OrderTrackingTimeline({ tracking, orderId }) {
       {tracking.journeys.map(journey => <details key={journey.key} open={journey.key !== 'delivery' || tracking.journeys.length === 1} className="group overflow-hidden rounded-xl border border-theme-eee9f0">
         <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 bg-theme-fcfbfd px-4 py-3 focus-visible:outline-violet-400">
           <span className="min-w-0"><span className="text-xs font-bold text-theme-4f4059">{journey.title}</span>{journey.item && <span className="mt-1 block break-words text-xs text-theme-8b7b93">{journey.item}</span>}</span>
-          <span className="flex min-w-0 items-center gap-2"><span className={`rounded-lg border px-2 py-1 text-[11px] font-medium ${tones[journey.tone] || tones.active}`}>{journey.label}</span><span className="text-xs text-theme-9c839e group-open:rotate-180" aria-hidden="true">▾</span></span>
+          <span className="flex min-w-0 items-center gap-2"><span className={`rounded-lg border px-2 py-1 text-[13px] font-medium ${tones[journey.tone] || tones.active}`}>{journey.label}</span><span className="text-xs text-theme-9c839e group-open:rotate-180" aria-hidden="true">▾</span></span>
         </summary>
         <div className="space-y-4 border-t border-theme-eee9f0 p-4">
-          {journey.customerLabel && journey.customerLabel !== journey.label && <p className="text-[11px] text-theme-8b7b93">Customer status: <span className="font-medium text-theme-65526f">{journey.customerLabel}</span></p>}
+          {journey.customerLabel && journey.customerLabel !== journey.label && <p className="text-[13px] text-theme-8b7b93">Customer status: <span className="font-medium text-theme-65526f">{journey.customerLabel}</span></p>}
           {journey.milestones.length > 0 && <ol aria-label={`${journey.title} timeline`}>
             {journey.milestones.map((step, index) => <li key={step.key} aria-current={step.current ? 'step' : undefined} className="relative flex min-w-0 gap-3 pb-5 last:pb-0">
               {index < journey.milestones.length - 1 && <span aria-hidden="true" className={`absolute bottom-0 left-[11px] top-6 w-px ${step.reached ? 'bg-violet-200' : 'bg-slate-200'}`} />}
@@ -38,8 +38,8 @@ export default function OrderTrackingTimeline({ tracking, orderId }) {
                 {step.reached ? <Check size={12} strokeWidth={3} /> : <Clock3 size={11} />}
               </span>
               <div className="min-w-0 flex-1 pt-0.5"><div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"><p className={`break-words text-xs font-semibold ${step.reached ? 'text-theme-4f4059' : 'text-theme-9d8da5'}`}>{step.label}</p>
-                {step.current && <span className="text-[9px] font-medium uppercase tracking-wider text-theme-a46f91">Current step</span>}</div>
-                <p className="mt-1 text-[10px] text-theme-9d8da5">{step.at ? dateTime(step.at) : step.reached ? 'Timestamp not recorded' : 'Awaiting update'}</p>
+                {step.current && <span className="text-[12px] font-medium uppercase tracking-wider text-theme-a46f91">Current step</span>}</div>
+                <p className="mt-1 text-[12px] text-theme-9d8da5">{step.at ? dateTime(step.at) : step.reached ? 'Timestamp not recorded' : 'Awaiting update'}</p>
               </div>
             </li>)}
           </ol>}
@@ -47,7 +47,7 @@ export default function OrderTrackingTimeline({ tracking, orderId }) {
           {journey.references?.refundOverdue && <p className="text-xs font-semibold text-red-700">Refund settlement is overdue.</p>}
           <dl className="grid min-w-0 grid-cols-1 gap-3 border-t border-theme-f1edf3 pt-3 sm:grid-cols-2 xl:grid-cols-3">
             {Object.entries(journey.references || {}).filter(([key, value]) => referenceLabels[key] && value !== null && value !== undefined && value !== '').map(([key, value]) => <div key={key} className="min-w-0">
-              <dt className="text-[9px] font-medium uppercase tracking-wider text-theme-9d8da5">{referenceLabels[key]}</dt>
+              <dt className="text-[12px] font-medium uppercase tracking-wider text-theme-9d8da5">{referenceLabels[key]}</dt>
               <dd className="mt-1 break-all text-xs font-medium text-theme-65526f">{['lastTrackedAt', 'refundDueDate', 'nextRetryAt'].includes(key) ? dateTime(value) : key === 'amount' ? `₹${Number(value).toFixed(2)}` : String(value)}</dd>
             </div>)}
           </dl>
@@ -57,9 +57,9 @@ export default function OrderTrackingTimeline({ tracking, orderId }) {
         <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-theme-65526f"><History size={14} className="mr-2 inline-block" />All order activity <span className="ml-1 font-normal text-theme-9d8da5">({tracking.events.length})</span></summary>
         <ol aria-label="Order activity history" className="max-h-[30rem] space-y-4 overflow-y-auto border-t border-theme-eee9f0 p-4">
           {tracking.events.map((event, index) => <li key={`${event.source}-${event.at}-${index}`} className="border-l-2 border-theme-e8d9e8 pl-3">
-            <div className="flex flex-wrap items-center justify-between gap-2"><p className="break-words text-xs font-semibold text-theme-4f4059">{event.label}</p><span className="rounded-md bg-theme-f6f1f7 px-2 py-1 text-[9px] text-theme-937d9d">{event.source}{event.reference ? ` · ${event.reference}` : ''}</span></div>
+            <div className="flex flex-wrap items-center justify-between gap-2"><p className="break-words text-xs font-semibold text-theme-4f4059">{event.label}</p><span className="rounded-md bg-theme-f6f1f7 px-2 py-1 text-[12px] text-theme-937d9d">{event.source}{event.reference ? ` · ${event.reference}` : ''}</span></div>
             {event.note && <p className="mt-1 break-words text-xs leading-relaxed text-theme-756480">{event.note}</p>}
-            <p className="mt-1 text-[10px] text-theme-9d8da5">{dateTime(event.at) || 'Timestamp not recorded'}{event.by ? ` · ${event.by}` : ''}</p>
+            <p className="mt-1 text-[12px] text-theme-9d8da5">{dateTime(event.at) || 'Timestamp not recorded'}{event.by ? ` · ${event.by}` : ''}</p>
           </li>)}
         </ol>
       </details>
