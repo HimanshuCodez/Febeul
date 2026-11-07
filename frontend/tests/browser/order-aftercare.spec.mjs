@@ -130,6 +130,114 @@ test('prepaid refund has no payout fields and shows review before payment proces
   expect(state.errors).toEqual([]);
 });
 
+test('COD bank search includes the PDF catalogue, selects one bank and submits its full name', async ({ context, page }) => {
+  const order = makeOrder(), state = await mockApp(context, order);
+  await visit(page, order);
+  await action(page, 'Return').click();
+  const request = page.locator('.aftercare-dialog');
+  await evidence(request);
+  await request.getByRole('radio', { name: 'Use a different bank account' }).check();
+  await request.getByLabel('Account Holder Name').fill('Test Buyer');
+  await request.getByLabel('Account Number', { exact: true }).fill('123456789012');
+  await request.getByLabel('Confirm Account Number').fill('123456789012');
+  await request.getByLabel('IFSC Code').fill('sbin0001234');
+  await request.getByRole('button', { name: 'Submit return request' }).click();
+  await expect(request.getByRole('button', { name: 'Bank Name', exact: true })).toHaveAttribute('aria-invalid', 'true');
+  expect(state.calls).toEqual([]);
+  await request.getByRole('button', { name: 'Bank Name', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Select your bank', exact: true });
+  await expect(picker.getByRole('searchbox', { name: 'Search banks' })).toBeFocused();
+  await expect(picker.getByRole('region', { name: 'Popular banks' }).getByRole('button')).toHaveCount(12);
+  const allBanks = picker.getByRole('region', { name: 'All banks' });
+  await expect(allBanks.getByRole('button')).toHaveCount(120);
+  for (const bank of ['AB Bank PLC', 'PT Bank Maybank Indonesia TBK', 'slice Small Finance Bank', 'YES Bank']) {
+    await expect(allBanks.getByRole('button', { name: `Select ${bank}`, exact: true })).toHaveCount(1);
+  }
+  await picker.getByRole('searchbox', { name: 'Search banks' }).fill('  s b i  ');
+  await expect(picker.getByRole('region', { name: 'Search results' }).getByRole('button')).toHaveCount(1);
+  await picker.getByRole('button', { name: 'Select State Bank of India', exact: true }).click();
+  await picker.getByRole('button', { name: 'Confirm SBI', exact: true }).click();
+  await expect(picker).toHaveCount(0);
+  await expect(request.getByRole('button', { name: 'Bank Name', exact: true })).toContainText('State Bank of India');
+  await expect(request.getByRole('button', { name: 'Bank Name', exact: true })).toBeFocused();
+  await request.getByRole('button', { name: 'Submit return request' }).click();
+  await expect(request).toHaveCount(0);
+  expect(state.calls).toHaveLength(1);
+  expect(JSON.parse(multipartField(state.calls[0].body, 'payoutDetails'))).toEqual({
+    type: 'bank', accountHolderName: 'Test Buyer', bankAccount: '123456789012', ifsc: 'SBIN0001234', bankName: 'State Bank of India',
+  });
+  expect(state.errors).toEqual([]);
+});
+
+test('bank-picker Escape, search and cancellation keep the parent refund form and photos intact', async ({ context, page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const order = makeOrder(), state = await mockApp(context, order);
+  await visit(page, order); await action(page, 'Refund').click();
+  const request = page.locator('.aftercare-dialog');
+  await evidence(request);
+  await request.getByRole('radio', { name: 'Use a different bank account' }).check();
+  await request.getByLabel('Account Holder Name').fill('Keep these details');
+  const bankField = request.getByRole('button', { name: 'Bank Name', exact: true });
+  await bankField.click();
+  let picker = page.getByRole('dialog', { name: 'Select your bank', exact: true });
+  await expect(picker.getByRole('button', { name: 'Choose a bank to continue' })).toBeDisabled();
+  await picker.getByRole('searchbox', { name: 'Search banks' }).fill('no-such-bank-xyz');
+  await expect(picker.getByText('No banks found', { exact: true })).toBeVisible();
+  await picker.getByRole('button', { name: 'Clear bank search' }).click();
+  await picker.getByRole('region', { name: 'Popular banks' }).getByRole('button', { name: 'Select HDFC Bank', exact: true }).click();
+  await picker.getByRole('button', { name: 'Back to account details' }).focus();
+  await page.keyboard.press('Shift+Tab');
+  expect(await picker.evaluate(node => node.contains(document.activeElement))).toBe(true);
+  await page.keyboard.press('Tab');
+  await expect(picker.getByRole('button', { name: 'Back to account details' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.bank-picker-dialog')).toHaveCount(0);
+  await expect(request).toBeVisible();
+  await expect(bankField).toBeFocused();
+  await expect(bankField).toContainText('Select your bank');
+  await expect(request.getByLabel('Account Holder Name')).toHaveValue('Keep these details');
+  await expect(request.getByText('4/4 added')).toBeVisible();
+  await bankField.click();
+  picker = page.getByRole('dialog', { name: 'Select your bank', exact: true });
+  await picker.getByRole('button', { name: 'Close bank selection' }).click();
+  await expect(request).toBeVisible();
+  await bankField.click();
+  await page.evaluate(() => {
+    history.pushState({}, '', '/myorders');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(page.locator('.bank-picker-dialog, .aftercare-dialog')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
+  expect(state.calls).toEqual([]);
+  expect(state.errors).toEqual([]);
+});
+
+test('bank selection fits narrow phones and desktop with a visible confirm button and scrollable bank list', async ({ context, page }) => {
+  const order = makeOrder(), state = await mockApp(context, order);
+  await visit(page, order); await action(page, 'Return').click();
+  const request = page.locator('.aftercare-dialog');
+  await request.getByRole('radio', { name: 'Use a different bank account' }).check();
+  await request.getByRole('button', { name: 'Bank Name', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Select your bank', exact: true });
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: width === 320 ? 568 : 900 });
+    await expect(picker.getByRole('button', { name: /Choose a bank to continue|Confirm/ })).toBeInViewport();
+    const box = await picker.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width + 1);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height + 1);
+    expect(await picker.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+    expect(await picker.locator('.bank-picker-scroll').evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
+    await picker.screenshot({ path: test.info().outputPath(`bank-picker-${width}.png`) });
+  }
+  await picker.getByRole('region', { name: 'All banks' }).getByRole('button', { name: 'Select YES Bank', exact: true }).click();
+  await expect(picker.getByRole('button', { name: 'Confirm YES Bank' })).toBeInViewport();
+  await picker.getByRole('button', { name: 'Confirm YES Bank' }).click();
+  await expect(request.getByRole('button', { name: 'Bank Name', exact: true })).toContainText('YES Bank');
+  expect(state.errors).toEqual([]);
+});
+
 test('exchange chooses a line item, uses its own endpoint and follows replacement tracking', async ({ context, page }) => {
   const order = makeOrder(); order.items.push({ ...order.items[0], name: 'Second Item', size: 'L', sku: 'SECOND' });
   const state = await mockApp(context, order);

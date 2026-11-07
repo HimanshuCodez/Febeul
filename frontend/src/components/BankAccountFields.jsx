@@ -1,6 +1,7 @@
 import { useId } from "react";
+import BankNamePicker from './BankNamePicker';
 
-const BankAccountFields = ({ form, errors, onChange: handleChange }) => (
+const BankAccountFields = ({ form, errors, onChange: handleChange, searchableBank = false }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div className="sm:col-span-2">
       <BankFormInput
@@ -13,14 +14,15 @@ const BankAccountFields = ({ form, errors, onChange: handleChange }) => (
       />
     </div>
     <div className="sm:col-span-2">
-      <BankFormInput
+      {searchableBank ? <BankNamePicker value={form.bankName} error={errors.bankName}
+        onChange={bankName => handleChange({ target: { name: 'bankName', value: bankName } })} /> : <BankFormInput
         name="bankName"
         label="Bank Name"
         value={form.bankName}
         onChange={handleChange}
         error={errors.bankName}
         placeholder="e.g. HDFC Bank"
-      />
+      />}
     </div>
     <BankFormInput
       name="accountNumber"

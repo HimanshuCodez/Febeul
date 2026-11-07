@@ -244,7 +244,7 @@ export default function OrderRequestModal({ order, token, initialType = 'return'
                       </label>
                       <label className="aftercare-new-bank"><input type="radio" name="bankAccountChoice" checked={!useSavedAccount} onChange={() => setBankAccountChoice('new')} /> Use a different bank account</label>
                     </>}
-                    {!useSavedAccount && <BankAccountFields form={bankForm} errors={bankErrors} onChange={handleBankChange} />}
+                    {!useSavedAccount && <BankAccountFields searchableBank form={bankForm} errors={bankErrors} onChange={handleBankChange} />}
                   </div>}
                 </section>
               ) : type !== 'exchange' && <div className="aftercare-note"><ShieldCheck size={20} /><p>Approved refunds are sent to your original payment method. No bank details needed.</p></div>}

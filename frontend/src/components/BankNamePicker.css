@@ -1,0 +1,66 @@
+.bank-name-field { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 9px; background: #fff; color: #34303b; text-align: left; font-size: 14px; line-height: 1.5; box-shadow: 0 1px 2px #0000000d; }
+.bank-name-field > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.bank-name-field > svg { flex-shrink: 0; color: #9b7887; }
+.bank-name-field .bank-name-placeholder { color: #8a8490; }
+.bank-name-field.has-error { border-color: #f87171; }
+.bank-name-field:hover { border-color: #b57486; }
+.bank-picker-dialog { width: min(600px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 40px); margin: auto; padding: 0; border: 0; border-radius: 26px; background: #f5f5f7; color: #27232e; overflow: hidden; box-shadow: 0 28px 100px #21142250; }
+.bank-picker-dialog::backdrop { background: #1b1528a6; backdrop-filter: blur(5px); }
+.bank-picker-dialog, .bank-picker-dialog h2, .bank-picker-dialog h3, .bank-picker-dialog h4 { font-family: 'Outfit', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.bank-picker-panel { display: flex; flex-direction: column; max-height: calc(100dvh - 40px); text-align: left; }
+.bank-picker-header { position: relative; flex-shrink: 0; padding: 24px 24px 18px; }
+.bank-picker-back, .bank-picker-close { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid #e6e1e7; border-radius: 50%; background: #fff; color: #49404d; }
+.bank-picker-back { position: absolute; left: 20px; top: 18px; }
+.bank-picker-close { position: absolute; right: 20px; top: 18px; }
+.bank-picker-kicker { display: flex; justify-content: center; align-items: center; gap: 7px; min-height: 28px; margin: 0 32px 24px; color: #956477; font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+.bank-picker-header h2 { font-size: 30px; font-weight: 750; line-height: 1.2; letter-spacing: -.035em; margin-bottom: 7px; }
+.bank-picker-header > p { color: #7a7181; font-size: 14px; line-height: 1.6; }
+.bank-picker-search { display: flex; align-items: center; gap: 10px; margin-top: 19px; padding: 0 16px; min-height: 50px; border: 1px solid #e8e3ea; border-radius: 28px; background: #fff; color: #77707e; }
+.bank-picker-search:focus-within { border-color: #ae637a; box-shadow: 0 0 0 3px #f4e3e9; }
+.bank-picker-search input { width: 100%; min-width: 0; min-height: 48px; padding: 8px 0; border: 0; outline: none; box-shadow: none; background: transparent; color: #352e3e; font-size: 16px; line-height: 1.5; }
+.bank-picker-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.bank-picker-search > svg { flex-shrink: 0; }
+.bank-picker-search button { display: grid; place-items: center; min-width: 30px; min-height: 36px; }
+.bank-picker-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 20px 20px; scrollbar-width: thin; scrollbar-color: #d6cad4 transparent; }
+.bank-picker-card { padding: 20px 16px; border: 1px solid #eeeaef; border-radius: 21px; background: #fff; }
+.bank-picker-card + .bank-picker-card { margin-top: 16px; }
+.bank-picker-card h3 { margin: 0; color: #322c3a; font-size: 17px; font-weight: 700; line-height: 1.4; }
+.bank-picker-popular { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 8px; margin-top: 22px; }
+.bank-picker-tile { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 9px; min-width: 0; border-radius: 12px; padding: 4px 2px; font-size: 13px; font-weight: 550; line-height: 1.4; color: #5a4c61; }
+.bank-picker-tile:hover { background: #faf3f5; }
+.bank-picker-emblem { position: relative; display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; border: 1px solid #e9e5ec; background: #f5f4f8; color: var(--bank-color); font-size: 13px; font-weight: 800; letter-spacing: -.04em; }
+.bank-picker-tile[aria-pressed=true] .bank-picker-emblem { border-color: #a74757; box-shadow: 0 0 0 3px #f5e1e6; background: #fff8fa; }
+.bank-picker-check { position: absolute; right: -1px; top: -1px; display: grid; place-items: center; width: 19px; height: 19px; border: 2px solid #fff; border-radius: 50%; background: #a74757; color: #fff; }
+.bank-picker-section-title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.bank-picker-section-title > span { font-size: 11px; color: #8c7c94; }
+.bank-picker-letter { padding: 17px 8px 6px; font-size: 11px; font-weight: 750; letter-spacing: .12em; color: #9d8596; }
+.bank-picker-row { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 60px; padding: 10px 8px; border-bottom: 1px solid #f2edf3; border-radius: 10px; color: #473b50; text-align: left; font-size: 14px; line-height: 1.5; }
+.bank-picker-row:hover, .bank-picker-row[aria-pressed=true] { background: #fff4f7; }
+.bank-picker-row > span:nth-child(2) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.bank-picker-row-icon { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: #f5f2f7; color: #a086a5; }
+.bank-picker-radio { display: grid; place-items: center; flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; border: 1px solid #d9ccda; color: #fff; }
+.bank-picker-row[aria-pressed=true] .bank-picker-radio { border-color: #a74757; background: #a74757; }
+.bank-picker-empty { display: flex; align-items: center; flex-direction: column; gap: 9px; padding: 36px 12px; text-align: center; color: #a3879a; }
+.bank-picker-empty h4 { color: #5f4b69; font-size: 15px; font-weight: 650; }
+.bank-picker-empty p { color: #89778e; font-size: 12px; line-height: 1.6; }
+.bank-picker-footer { flex-shrink: 0; padding: 14px 24px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid #e9e2eb; background: #fff; }
+.bank-picker-selection { display: flex; align-items: center; justify-content: center; gap: 7px; margin-bottom: 10px; color: #8b5065; font-size: 12px; line-height: 1.5; }
+.bank-picker-selection svg { flex-shrink: 0; }
+.bank-picker-selection span { min-width: 0; overflow-wrap: anywhere; }
+.bank-picker-confirm { display: block; width: 100%; min-height: 48px; padding: 11px 17px; border-radius: 26px; background: #a74757; color: #fff; font-size: 14px; font-weight: 650; line-height: 1.5; }
+.bank-picker-confirm:hover:not(:disabled) { background: #883648; }
+.bank-picker-confirm:disabled { cursor: not-allowed; background: #e9e3ec; color: #9a8a9e; }
+.bank-picker-dialog button:focus-visible { outline: 2px solid #a74757; outline-offset: 3px; }
+@media (max-width: 639px) {
+  .bank-name-field { font-size: 16px; }
+  .bank-picker-dialog { width: 100%; max-height: calc(100dvh - 12px); margin: auto 0 0; border-radius: 24px 24px 0 0; }
+  .bank-picker-panel { max-height: calc(100dvh - 12px); }
+  .bank-picker-header { padding: 20px 18px 16px; }
+  .bank-picker-header h2 { font-size: 28px; }
+  .bank-picker-kicker { margin-bottom: 22px; font-size: 9px; }
+  .bank-picker-scroll { padding: 0 12px 16px; }
+  .bank-picker-card { padding: 18px 12px; }
+  .bank-picker-popular { gap: 17px 5px; }
+  .bank-picker-emblem { width: 50px; height: 50px; font-size: 12px; }
+  .bank-picker-footer { padding-left: 18px; padding-right: 18px; }
+}
