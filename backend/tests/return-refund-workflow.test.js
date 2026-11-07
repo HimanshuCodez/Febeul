@@ -179,3 +179,45 @@ test('money-only refunds remain separate and return actions enforce staff permis
   await userModel.updateOne({ _id: staff._id }, { $set: { permissions: ['/return-requests'] } });
   await success('/api/return/approve', { orderId: physical._id }, userToken(staff, 'admin'));
 });
+
+test('customers can cancel return and refund requests before pickup is scheduled', async () => {
+  for (const requestType of ['return', 'refund']) {
+    for (const status of ['none', 'failed']) {
+      const order = await makeOrder({ refundDetails: { requestType, status: 'pending', pickup: { status },
+        returnTracking: { history: [{ status: 'RETURN_REQUESTED', note: 'Customer request', by: 'customer', date: new Date() }] } } });
+      await success('/api/refund/cancel-request', { orderId: order._id }, userToken(customer));
+      const saved = await orderModel.findById(order._id);
+      assert.equal(saved.refundDetails.status, 'none');
+      assert.equal(saved.refundDetails.requestType, undefined);
+      assert.equal(saved.refundDetails.returnTracking.history.at(-1).status, 'REQUEST_CANCELLED');
+      assert.equal(saved.refundDetails.returnTracking.history[0].note, 'Customer request');
+    }
+  }
+});
+
+test('scheduled pickup and later stages block cancellation without changing request history', async () => {
+  for (const requestType of ['return', 'refund']) {
+    for (const status of ['scheduled', 'picked_up', 'in_transit', 'delivered_to_warehouse']) {
+      const order = await makeOrder({ refundDetails: { requestType, status: 'pending', pickup: { status },
+        returnTracking: { history: [{ status: 'PICKUP_SCHEDULED', note: 'Preserve collection', by: 'admin', date: new Date() }] } } });
+      const before = (await orderModel.findById(order._id).lean()).refundDetails;
+      const response = await request('/api/refund/cancel-request', { orderId: order._id }, userToken(customer));
+      assert.equal(response.status, 409, `${requestType}: ${status}`);
+      assert.equal(response.data.success, false);
+      assert.equal(response.data.message, 'Return/refund cancellation closes once pickup is scheduled.');
+      assert.deepEqual((await orderModel.findById(order._id).lean()).refundDetails, before);
+    }
+  }
+  assert.equal(payments.length, 0);
+  assert.equal(pickups.length, 0);
+});
+
+test('a later pickup failure cannot reopen cancellation after a recorded schedule', async () => {
+  const order = await makeOrder({ refundDetails: { requestType: 'return', status: 'pending',
+    pickup: { status: 'failed', scheduledDate: new Date() } } });
+  const response = await request('/api/refund/cancel-request', { orderId: order._id }, userToken(customer));
+  assert.equal(response.status, 409);
+  const saved = await orderModel.findById(order._id);
+  assert.equal(saved.refundDetails.status, 'pending');
+  assert.ok(saved.refundDetails.pickup.scheduledDate);
+});

@@ -8,7 +8,7 @@ import { cancelShiprocketOrder } from "../utils/shiprocket.js";
 import { sendTemplateEmail } from "../utils/sendTemplateEmail.js";
 import { sendRefundCompletedEmail } from '../utils/orderNotifications.js';
 import { appendReturnHistory, INTERNAL_STATUS } from "../utils/returnStatus.js";
-import { getReturnRefundBlockReason } from '../../shared/returnWorkflow.js';
+import { getReturnRefundBlockReason, hasReturnPickupBeenScheduled, RETURN_CANCELLATION_NOTICE } from '../../shared/returnWorkflow.js';
 
 const razorpayInstance = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -298,8 +298,7 @@ const autoRefundOnCourierReturn = async (order) => {
 };
 
 // --- 9. Customer Cancels Their Own Return/Refund Request ---
-// Allowed only while the courier hasn't collected the item yet — i.e. before
-// refundDetails.pickup.status reaches 'picked_up'.
+// Allowed only before courier pickup has been scheduled.
 const cancelReturnRequest = async (req, res) => {
     const { orderId } = req.body;
     const userId = req.userId;
@@ -311,14 +310,24 @@ const cancelReturnRequest = async (req, res) => {
         if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails?.requestType === 'cancellation') return res.status(409).json({ success: false, message: 'Cancellation and refund history cannot be replaced or withdrawn.' });
 
         const cancellableRequestStatuses = ['pending', 'initiated', 'processing'];
-        const cancellablePickupStatuses = ['none', 'scheduled', 'failed'];
+        const cancellablePickupStatuses = ['none', 'failed'];
 
         if (!cancellableRequestStatuses.includes(order.refundDetails.status)) {
             return res.json({ success: false, message: "This request can no longer be cancelled." });
         }
-        if (!cancellablePickupStatuses.includes(order.refundDetails.pickup?.status)) {
-            return res.json({ success: false, message: "The courier has already picked up this item, so the request can't be cancelled anymore." });
+        if (hasReturnPickupBeenScheduled(order) || !cancellablePickupStatuses.includes(order.refundDetails.pickup?.status)) {
+            return res.status(409).json({ success: false, message: RETURN_CANCELLATION_NOTICE });
         }
+
+        // Reject a stale cancellation if scheduling or pickup wins the race
+        // after this request has loaded the order.
+        order.$where = {
+            'refundDetails.status': { $in: cancellableRequestStatuses },
+            'refundDetails.pickup.status': { $in: [...cancellablePickupStatuses, null] },
+            'refundDetails.pickup.scheduledDate': null,
+            'refundDetails.returnTracking.pickupDate': null,
+            'refundDetails.returnTracking.receivedDate': null,
+        };
 
         if (order.refundDetails.pickup?.shiprocketReturnOrderId) {
             try {
@@ -345,7 +354,7 @@ const cancelReturnRequest = async (req, res) => {
         };
         appendReturnHistory(order, {
             status: 'REQUEST_CANCELLED',
-            note: 'Customer cancelled their own return/refund request before pickup',
+            note: 'Customer cancelled their own return/refund request before pickup was scheduled',
             by: 'customer'
         });
 

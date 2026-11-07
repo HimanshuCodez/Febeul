@@ -1,3 +1,12 @@
+export const RETURN_CANCELLATION_NOTICE = 'Return/refund cancellation closes once pickup is scheduled.';
+
+export function hasReturnPickupBeenScheduled(order) {
+  const pickup = order?.refundDetails?.pickup || {};
+  const tracking = order?.refundDetails?.returnTracking || {};
+  return ['scheduled', 'picked_up', 'in_transit', 'delivered_to_warehouse'].includes(pickup.status)
+    || Boolean(pickup.scheduledDate || tracking.pickupDate || tracking.receivedDate);
+}
+
 export function isReturnAwaitingApproval(order) {
   const refund = order?.refundDetails || {};
   const tracking = refund.returnTracking || {};

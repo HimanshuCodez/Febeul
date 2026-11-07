@@ -93,6 +93,8 @@ test('COD return requires four photos, sends saved payout and continues below De
   expect(body.match(/name="images"/g)).toHaveLength(4);
   const journey = page.getByRole('region', { name: 'Return tracking' });
   await expect(journey.locator('[aria-current=step]')).toContainText('Return initiated');
+  await expect(page.getByRole('button', { name: 'Cancel Return/Refund Request' })).toBeVisible();
+  await expect(page.getByText('Return/refund cancellation closes once pickup is scheduled.', { exact: true })).toBeVisible();
   await expect(journey.getByRole('heading', { name: 'Picked Up', exact: true }).locator('..').locator('..')).toContainText('Awaiting update');
   await page.locator('#aftercare-timeline').screenshot({ path: 'test-results/order-aftercare/return-timeline.png' });
   const delivery = page.getByText('Delivered', { exact: true }).first();
@@ -100,6 +102,11 @@ test('COD return requires four photos, sends saved payout and continues below De
   order.refundDetails.pickup = { status: 'scheduled', awb: 'RETURN-123', courier: 'Test Courier', scheduledDate: new Date().toISOString() };
   await refresh(page, order);
   await expect(journey.locator('[aria-current=step]')).toContainText('Pickup Scheduled');
+  await expect(page.getByRole('button', { name: 'Cancel Return/Refund Request' })).toHaveCount(0);
+  await expect(page.getByText('Return/refund cancellation closes once pickup is scheduled.', { exact: true })).toBeVisible();
+  order.refundDetails.pickup.status = 'failed';
+  await refresh(page, order);
+  await expect(page.getByRole('button', { name: 'Cancel Return/Refund Request' })).toHaveCount(0);
   order.refundDetails.pickup.status = 'picked_up';
   order.refundDetails.returnTracking = { pickupDate: new Date(Date.now() - 1000).toISOString() };
   await refresh(page, order);

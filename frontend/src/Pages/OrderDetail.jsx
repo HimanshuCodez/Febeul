@@ -27,6 +27,7 @@ import Reviews from '../components/Reviews';
 import OrderRequestModal from '../components/OrderRequestModal';
 import { OrderAftercareActions, OrderAftercareTimeline } from '../components/OrderAftercare';
 import { getAftercareEligibility, hasAftercareJourney } from '../utils/orderAftercare';
+import { hasReturnPickupBeenScheduled, RETURN_CANCELLATION_NOTICE } from '../../../shared/returnWorkflow';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -415,11 +416,11 @@ export default function OrderDetailPage() {
   const cancellationPossible = isCancellationPossible();
   const cancellationEligible = !['Delivered', 'Cancelled', 'Returned', 'Refunded'].includes(displayStatus);
 
-  // The customer can back out of their own return/refund request any time
-  // before the Shiprocket courier actually collects the item.
-  const canCancelReturnRequest = ['pending', 'initiated', 'processing'].includes(order.refundDetails?.status)
-    && !order.isCancelled && order.refundDetails?.requestType !== 'cancellation'
-    && !['picked_up', 'in_transit', 'delivered_to_warehouse'].includes(order.refundDetails?.pickup?.status);
+  // Cancellation closes when collection is scheduled, before physical pickup.
+  const hasActiveReturnOrRefundRequest = ['pending', 'initiated', 'processing'].includes(order.refundDetails?.status)
+    && !order.isCancelled && order.orderStatus !== 'Cancelled' && order.refundDetails?.requestType !== 'cancellation';
+  const canCancelReturnRequest = hasActiveReturnOrRefundRequest && !hasReturnPickupBeenScheduled(order)
+    && ['none', 'failed'].includes(order.refundDetails?.pickup?.status || 'none');
 
   // Use pricing details from the order object
   const productAmount = order.productAmount || (order.items || []).reduce((sum, item) => sum + (parseFloat(item.price || 0) * parseFloat(item.quantity || 0)), 0);
@@ -1208,14 +1209,14 @@ export default function OrderDetailPage() {
           )}
 
           {/* Cancel Return/Refund Request Button */}
-          {canCancelReturnRequest && (
+          {hasActiveReturnOrRefundRequest && (
             <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
               className="mt-4"
             >
-              <Motion.button
+              {canCancelReturnRequest && <Motion.button
                   onClick={handleCancelReturnRequest}
                   disabled={isCancellingReturnRequest}
                   whileHover={!isCancellingReturnRequest ? { scale: 1.02 } : {}}
@@ -1224,8 +1225,8 @@ export default function OrderDetailPage() {
               >
                   <X className="mr-2" size={18} />
                   {isCancellingReturnRequest ? 'Cancelling...' : 'Cancel Return/Refund Request'}
-              </Motion.button>
-              <p className="text-[10px] text-slate-400 mt-2 text-center italic">You can cancel this request until the courier picks up the item for return.</p>
+              </Motion.button>}
+              <p className="text-xs text-slate-500 mt-2 text-center">{RETURN_CANCELLATION_NOTICE}</p>
             </Motion.div>
           )}
 
