@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createProductDraftStorage, createProductValues } from '../utils/productDrafts';
+import { createProductDraftStorage, createProductValues, productDraftKey } from '../utils/productDrafts';
 
 export default function useProductDraft({ owner, namespace, productId = 'new', loadProduct }) {
-  const key = `febeul:product-draft:v1:${JSON.stringify([namespace, owner?.trim().toLowerCase(), productId])}`;
+  const key = productDraftKey({ namespace, owner, productId });
   const storage = useMemo(() => createProductDraftStorage(key), [key]);
   const [values, setValues] = useState(createProductValues);
   const [ready, setReady] = useState(false);
@@ -28,6 +28,8 @@ export default function useProductDraft({ owner, namespace, productId = 'new', l
     const controller = new AbortController();
     let cancelled = false;
     setReady(false);
+    setError('');
+    setRecoveryWarning('');
     setLoadError('');
     const initialize = async () => {
       let draft;

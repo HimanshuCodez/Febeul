@@ -128,7 +128,7 @@ const App = () => {
           <hr />
           <div className='flex w-full'>
             <Sidebar role={role} permissions={permissions} onNavigate={handleSidebarNavigate} unreadTicketCount={unreadTicketCount} />
-            <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/tickets', '/orders', '/reviews', '/user-tracking', '/coupons', '/send-mail'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname === '/home-gift-offer' && isAllowed('/cms')) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
+            <div key={`${location.pathname}-${refreshNonce}`} className={((['/', '/allusers', '/add', '/list', '/tickets', '/orders', '/reviews', '/user-tracking', '/coupons', '/send-mail'].includes(location.pathname) && isAllowed(location.pathname)) || (location.pathname === '/home-gift-offer' && isAllowed('/cms')) || (location.pathname.startsWith('/update/') && isAllowed('/update')))
               ? 'min-w-0 flex-1 px-3 py-5 sm:px-6 lg:px-8 lg:py-8 text-gray-600 text-base'
               : 'w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'}>
               <Suspense fallback={<PageFallback />}>
@@ -137,12 +137,12 @@ const App = () => {
                 {isAllowed('/') ? (
                    <Route path='/' element={<FebeulDashboard token={token} />} />
                 ) : (
-                   <Route path='/' element={<List token={token} />} />
+                   <Route path='/' element={<List token={token} draftOwner={userEmail} canAdd={isAllowed('/add')} />} />
                 )}
 
                 {/* Other Routes protected by isAllowed */}
-                {isAllowed('/add') && <Route path='/add' element={<Add token={token} draftOwner={userEmail} />} />}
-                {isAllowed('/list') && <Route path='/list' element={<List token={token} />} />}
+                {isAllowed('/add') && <Route path='/add' element={<Add key={location.search} token={token} draftOwner={userEmail} />} />}
+                {isAllowed('/list') && <Route path='/list' element={<List token={token} draftOwner={userEmail} canAdd={isAllowed('/add')} />} />}
                 {isAllowed('/luxelist') && <Route path='/luxelist' element={<LuxeList token={token} />} />}
                 {isAllowed('/orders') && <Route path='/orders' element={<Orders token={token} />} />}
                 {isAllowed('/refund-requests') && <Route path='/refund-requests' element={<RefundRequests token={token} />} />}

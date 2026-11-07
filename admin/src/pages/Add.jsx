@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types -- Authentication props are supplied by the admin routes. */
 import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from "axios";
 import { backendUrl } from "../App";
 import { toast } from "react-toastify";
@@ -10,10 +11,10 @@ import EditableSelect from "../components/EditableSelect";
 import ProductImageGallery from "../components/ProductImageGallery";
 import useProductDraft from '../hooks/useProductDraft';
 import ProductDraftStatus from '../components/ProductDraftStatus';
+import { newProductDraftUrl } from '../utils/productDrafts';
 import { DEFAULT_TAXONOMY, fetchTaxonomy, saveTaxonomy } from "../utils/taxonomy";
 import { validateProductImageUploads } from '../../../shared/productUploads.js';
 import {
-  PackagePlus,
   Palette,
   ScrollText,
   Truck,
@@ -22,6 +23,7 @@ import {
   Tags,
   Package,
   Save,
+  Plus,
 } from "lucide-react";
 
 const inputClass = "w-full min-w-0 rounded-lg border border-theme-e4dce9 bg-white px-3 py-2.5 text-sm text-theme-514459 outline-none transition-shadow placeholder:text-theme-a99bad focus:border-theme-b77997 focus:ring-2 focus:ring-theme-f5e9f0";
@@ -29,7 +31,21 @@ const sectionClass = "min-w-0 rounded-2xl border border-theme-eae5ed bg-white p-
 const priceExceedsMrp = ({ price, mrp }) => mrp !== '' && mrp != null && Number(price) > Number(mrp);
 
 const Add = ({ token, draftOwner }) => {
-  const { values, setField, draft } = useProductDraft({ owner: draftOwner, namespace: backendUrl });
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const draftId = params.get('draft');
+  const { values, setField, draft } = useProductDraft({ owner: draftOwner, namespace: backendUrl, productId: draftId ? `new:${draftId}` : 'new' });
+  const [startingDraft, setStartingDraft] = useState(false);
+  const startNewDraft = async () => {
+    if (startingDraft || !draft.ready) return;
+    setStartingDraft(true);
+    try {
+      if ((draft.savedAt || ['saving', 'error'].includes(draft.status)) && !await draft.save()) return;
+      navigate(newProductDraftUrl());
+    } finally {
+      setStartingDraft(false);
+    }
+  };
   const {
     name, description, category, type, variations, bestseller,
     isLuxePrive, isActive, countryOfOrigin, manufacturer, packer, includedComponents,
@@ -357,7 +373,10 @@ const Add = ({ token, draftOwner }) => {
           <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.04em] sm:text-[36px]">Add new product<span className="text-theme-c77893">.</span></h1>
           <p className="mt-2 max-w-xl text-xs leading-relaxed text-theme-8b7b93 sm:text-[15px]">Build your listing with product details, images, and inventory.</p>
         </div>
-        <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-theme-e7dce8 bg-white px-3 py-2 text-[13px] font-medium text-theme-96768c"><PackagePlus size={15} aria-hidden="true" />New listing</span>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Link to="/list?tab=drafts" className="rounded-xl border border-theme-e7dce8 bg-white px-4 py-2.5 text-xs font-medium text-theme-725e7f hover:bg-theme-f5e9f0">View drafts</Link>
+          <button type="button" onClick={startNewDraft} disabled={loading || startingDraft || !draft.ready || draft.status === 'clearing'} className="inline-flex items-center gap-2 rounded-xl bg-theme-302735 px-4 py-2.5 text-xs font-medium text-white hover:bg-theme-48354e disabled:opacity-50"><Plus size={15} aria-hidden="true" />New draft</button>
+        </div>
       </header>
 
       <ProductDraftStatus draft={draft} disabled={loading} />

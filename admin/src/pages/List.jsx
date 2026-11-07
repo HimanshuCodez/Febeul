@@ -1,20 +1,26 @@
+/* eslint-disable react/prop-types -- Authentication props are supplied by the admin routes. */
 import axios from 'axios'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { backendUrl, currency } from '../App'
 import { toast } from 'react-toastify'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { CSVLink } from 'react-csv'
 import { ExternalLink } from 'lucide-react'
 import useSearchPrefill from '../search/useSearchPrefill'
+import useProductDraftList from '../hooks/useProductDraftList'
+import ProductDraftList from '../components/ProductDraftList'
 
 const LOW_STOCK_THRESHOLD = 10;
 const storefrontUrl = (import.meta.env.VITE_FRONTEND_URL || (import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:5173` : 'https://febeul.com')).replace(/\/+$/, '');
 
-const List = ({ token }) => {
+const List = ({ token, draftOwner, canAdd }) => {
 
   const [list, setList] = useState([])
   const [searchQuery, setSearchQuery] = useSearchPrefill();
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [params, setParams] = useSearchParams();
+  const activeFilter = ['low-stock', 'out-of-stock', 'hidden', 'drafts'].includes(params.get('tab')) ? params.get('tab') : 'all';
+  const filterTabsRef = useRef(null);
+  const { drafts, error: draftError, discard: discardDraft } = useProductDraftList({ owner: draftOwner, namespace: backendUrl });
   const [selectedSkus, setSelectedSkus] = useState([]); // Tracks "productId|sku|size"
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
@@ -138,6 +144,12 @@ const List = ({ token }) => {
     );
   });
 
+  const searchedDrafts = drafts.filter(({ values }) => {
+    const query = searchQuery.toLowerCase().trim();
+    return [values.name || 'Untitled product', values.category, ...values.variations.flatMap(variation => [variation.sku, variation.color])]
+      .some(value => String(value || '').toLowerCase().includes(query));
+  });
+
   const filterTabs = [
     { id: 'all', label: 'All products', products: searchedList },
     {
@@ -157,7 +169,8 @@ const List = ({ token }) => {
       id: 'hidden',
       label: 'Not visible on website',
       products: searchedList.filter(item => item.isActive === false)
-    }
+    },
+    { id: 'drafts', label: 'Drafts', products: searchedDrafts }
   ];
   const filteredList = filterTabs.find(tab => tab.id === activeFilter).products;
 
@@ -172,6 +185,17 @@ const List = ({ token }) => {
   useEffect(() => {
     setCurrentPage(page => Math.min(page, totalPages || 1));
   }, [totalPages]);
+
+  useEffect(() => {
+    const revealSelectedTab = () => {
+      const group = filterTabsRef.current;
+      const selected = group?.querySelector('[aria-pressed="true"]');
+      if (selected) group.scrollLeft = selected.offsetLeft;
+    };
+    revealSelectedTab();
+    window.addEventListener('resize', revealSelectedTab);
+    return () => window.removeEventListener('resize', revealSelectedTab);
+  }, [activeFilter]);
 
   const handleProductSelect = (item) => {
     const pKeys = getProductSkuKeys(item);
@@ -241,15 +265,16 @@ const List = ({ token }) => {
 
   return (
     <>
-      <div className='flex justify-between items-center mb-4 gap-4'>
+      <div className='flex flex-wrap justify-between items-center mb-4 gap-4'>
         <input
           type="text"
           placeholder="Search by Name, Category, SKU or Color"
-          className="p-2 border border-gray-300 rounded w-full"
+          aria-label={activeFilter === 'drafts' ? 'Search drafts' : 'Search products'}
+          className="min-w-0 flex-1 p-2 border border-gray-300 rounded w-full"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <CSVLink
+        {activeFilter !== 'drafts' && <CSVLink
           data={csvData}
           headers={headers}
           filename={"products.csv"}
@@ -262,17 +287,22 @@ const List = ({ token }) => {
           }}
         >
           Export Selected ({selectedSkus.length})
-        </CSVLink>
+        </CSVLink>}
       </div>
 
       <div className='mb-4'>
-        <div role="group" aria-label="Filter products" className='flex gap-2 overflow-x-auto border-b border-gray-200'>
+        <div ref={filterTabsRef} role="group" aria-label="Filter products" className='relative flex gap-2 overflow-x-auto border-b border-gray-200'>
           {filterTabs.map(tab => (
             <button
               key={tab.id}
               type="button"
               aria-pressed={activeFilter === tab.id}
-              onClick={() => setActiveFilter(tab.id)}
+              onClick={() => setParams(previous => {
+                const next = new URLSearchParams(previous);
+                if (tab.id === 'all') next.delete('tab');
+                else next.set('tab', tab.id);
+                return next;
+              })}
               className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 ${activeFilter === tab.id ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}
             >
               {tab.label}
@@ -282,17 +312,18 @@ const List = ({ token }) => {
             </button>
           ))}
         </div>
-        <p className='mt-2 text-xs text-gray-500'>
+        {activeFilter !== 'drafts' && <p className='mt-2 text-xs text-gray-500'>
           Low stock: 1–{LOW_STOCK_THRESHOLD} total units across all variations and sizes.
-        </p>
+        </p>}
       </div>
       
       <div className='flex flex-col gap-2'>
         <div className='flex justify-between items-center mb-2'>
-          <p className='font-bold text-lg text-gray-700'>Products ({filteredList.length})</p>
+          <p className='font-bold text-lg text-gray-700'>{activeFilter === 'drafts' ? 'Drafts' : 'Products'} ({filteredList.length})</p>
           <p className='text-sm text-gray-500'>Page {currentPage} of {totalPages || 1}</p>
         </div>
 
+        {activeFilter === 'drafts' ? <ProductDraftList drafts={paginatedList} error={draftError} onDiscard={discardDraft} canAdd={canAdd} searching={Boolean(searchQuery.trim())} /> : <>
         {/* ------- List Table Header ---------- */}
         <div className={`grid ${columnLayout} items-center gap-2 py-2 px-3 border bg-gray-100 text-xs font-bold text-gray-600 rounded-t-lg`}>
           <div className='flex items-center justify-center'>
@@ -508,6 +539,7 @@ const List = ({ token }) => {
             </div>
           );
         })}
+        </>}
       </div>
 
       {/* Pagination Controls */}

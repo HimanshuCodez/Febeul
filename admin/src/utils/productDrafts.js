@@ -1,6 +1,35 @@
 const DATABASE = 'febeul-product-drafts';
 const STORE = 'images';
+const KEY_PREFIX = 'febeul:product-draft:v1:';
+export const PRODUCT_DRAFTS_CHANGED = 'febeul:product-drafts-changed';
 let databasePromise;
+
+export const productDraftKey = ({ namespace, owner, productId = 'new' }) =>
+  `${KEY_PREFIX}${JSON.stringify([namespace, owner?.trim().toLowerCase(), productId])}`;
+
+export const newProductDraftUrl = () => `/add?draft=${crypto.randomUUID()}`;
+
+export function listNewProductDrafts({ namespace, owner }) {
+  if (!owner) return [];
+  const account = owner.trim().toLowerCase();
+  const drafts = [];
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    if (!key?.startsWith(KEY_PREFIX)) continue;
+    try {
+      const [savedNamespace, savedOwner, id] = JSON.parse(key.slice(KEY_PREFIX.length));
+      if (savedNamespace !== namespace || savedOwner !== account || typeof id !== 'string'
+        || (id !== 'new' && !id.startsWith('new:'))) continue;
+      const record = JSON.parse(localStorage.getItem(key));
+      if (record?.version !== 1 || !Array.isArray(record.values?.variations)) continue;
+      drafts.push({
+        key, values: record.values, savedAt: record.savedAt,
+        href: id === 'new' ? '/add' : `/add?draft=${encodeURIComponent(id.slice(4))}`,
+      });
+    } catch { /* One damaged draft must not hide other saved listings. */ }
+  }
+  return drafts.sort((left, right) => right.savedAt - left.savedAt);
+}
 
 function openDatabase() {
   if (!databasePromise) {
@@ -111,12 +140,14 @@ export function createProductDraftStorage(key) {
         }
         return pending.get(id);
       }));
+      window.dispatchEvent(new Event(PRODUCT_DRAFTS_CHANGED));
       return savedAt;
     },
 
     async clear() {
       // Remove the recovery record first; an outstanding image write cannot recreate it.
       localStorage.removeItem(key);
+      window.dispatchEvent(new Event(PRODUCT_DRAFTS_CHANGED));
       await Promise.allSettled([...pending.values()]);
       // Orphan cleanup is best effort; the recovery record is already removed.
       await imageTransaction('readwrite', store => store.delete(IDBKeyRange.bound(`${key}:image:`, `${key}:image:\uffff`))).catch(() => {});
