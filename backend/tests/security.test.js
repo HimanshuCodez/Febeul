@@ -132,10 +132,15 @@ test('registration cannot overwrite existing accounts and requires a single-use 
     const code = await issueOtp(pending, 'email-signup');
     const verified = await request('/signup-otp', { email: pending.email, otp: code });
     assert.equal(verified.data.success, true);
+    const proof = verifyToken(verified.data.registrationToken, 'registration');
+    assert.equal(proof.exp - proof.iat, 10 * 60);
     const registration = { email: pending.email, name: 'New Buyer', password: 'valid-password', registrationToken: verified.data.registrationToken, role: 'admin' };
     await cmsModel.create({ name: 'welcomeEmail', content: { mode: 'html', subject: 'A personal welcome for {{userName}}', html: '<p>Welcome {{userName}}!</p>' } });
     const welcome = nock('https://api.resend.com').post('/emails', body => body.to === pending.email && body.subject === 'A personal welcome for New Buyer' && body.html === '<p>Welcome New Buyer!</p>').reply(200, { id: 'welcome' });
-    assert.equal((await request('/register', registration)).data.success, true);
+    const registered = await request('/register', registration);
+    assert.equal(registered.data.success, true);
+    const session = verifyToken(registered.data.token, 'customer');
+    assert.equal(session.exp - session.iat, 7 * 24 * 60 * 60);
     assert.equal(welcome.isDone(), true);
     assert.equal((await userModel.findById(pending._id)).role, 'user');
     assert.equal((await request('/register', registration)).data.success, false);
@@ -229,7 +234,7 @@ test('tokens are expiring, audience-specific, and contain no admin password; leg
     assert.equal((await request('/identity', {}, expired)).status, 401);
 });
 
-test('admin password and OTP logins last 72 hours while customer sessions remain two hours', async (t) => {
+test('admin password and OTP logins last 72 hours', async (t) => {
     const assertAdminSession = result => {
         assert.equal(result.status, 200);
         assert.equal(result.data.success, true);
@@ -255,10 +260,28 @@ test('admin password and OTP logins last 72 hours while customer sessions remain
         const otp = await issueOtp(account, 'admin-login');
         assertAdminSession(await request('/admin-otp', { email: account.email, otp }));
     }
+});
+
+test('customer password and OTP sessions last seven days and expire at the deadline', async (t) => {
     const login = await request('/login', { email: customer.email, password: 'customer-password' });
-    assert.equal(login.data.success, true);
-    const claims = verifyToken(login.data.token, 'customer');
-    assert.equal(claims.exp - claims.iat, 2 * 60 * 60);
+    const otp = await issueOtp(customer, 'email-login');
+    const otpLogin = await request('/login-otp', { email: customer.email, otp });
+    for (const result of [login, otpLogin]) {
+        assert.equal(result.status, 200);
+        assert.equal(result.data.success, true);
+        const claims = verifyToken(result.data.token, 'customer');
+        assert.equal(claims.exp - claims.iat, 7 * 24 * 60 * 60);
+        const clock = t.mock.method(Date, 'now', () => (claims.iat + 6 * 24 * 60 * 60) * 1000);
+        try {
+            assert.equal((await request('/identity', {}, result.data.token)).status, 200);
+            clock.mock.mockImplementation(() => (claims.exp - 1) * 1000);
+            assert.equal((await request('/identity', {}, result.data.token)).status, 200);
+            clock.mock.mockImplementation(() => claims.exp * 1000);
+            assert.equal((await request('/identity', {}, result.data.token)).status, 401);
+        } finally {
+            clock.mock.restore();
+        }
+    }
 });
 
 test('three-day admin sessions are still revoked by credential changes', async () => {

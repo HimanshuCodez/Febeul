@@ -7,7 +7,7 @@ export const safeEqual = (a, b) => {
     const left = Buffer.from(a), right = Buffer.from(b);
     return left.length === right.length && timingSafeEqual(left, right);
 };
-export const signToken = (claims, audience, expiresIn = audience === 'admin' ? '3d' : '2h') => jwt.sign(claims, process.env.JWT_SECRET, {
+export const signToken = (claims, audience, expiresIn = audience === 'customer' ? '7d' : audience === 'admin' ? '3d' : '2h') => jwt.sign(claims, process.env.JWT_SECRET, {
     algorithm: 'HS256', issuer, audience, expiresIn,
 });
 export const verifyToken = (token, audience) => {
