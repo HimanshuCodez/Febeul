@@ -100,6 +100,8 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
 
   const settled = refund.status === 'completed';
   const received = !!rt.receivedDate;
+  const canInvestigate = !settled && !received;
+  const hasInvestigationHistory = Boolean(rt.investigationTicket || rt.followups?.length);
   const qcDone = !!rt.qcResult;
   const isLostFamily = ['LOST_RETURN', 'COURIER_CLAIM_PENDING', 'CLAIM_APPROVED', 'CLAIM_REJECTED'].includes(view.status);
 
@@ -602,7 +604,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
           </Section>
 
           {/* Investigation */}
-          <Section icon={Search} title="Courier Investigation">
+          {(canInvestigate || hasInvestigationHistory) && <Section icon={Search} title="Courier Investigation">
             <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
               {rt.investigationTicket && (
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-3.5">
@@ -613,7 +615,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                 </div>
               )}
 
-              {!settled && !received && (
+              {canInvestigate && (
                 <div className="flex gap-2 items-end">
                   <div className="flex-1">
                     <Field label={rt.investigationTicket ? 'Update ticket number' : 'Courier ticket number'}>
@@ -640,7 +642,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                 </div>
               )}
 
-              <div className="flex gap-2 items-end pt-1">
+              {canInvestigate && <div className="flex gap-2 items-end pt-1">
                 <div className="flex-1">
                   <Field label="Add follow-up">
                     <input
@@ -656,9 +658,9 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                 <Btn variant="ghost" disabled={busy || !followup.trim()} onClick={() => onAction('followup', { orderId: request._id, note: followup })}>
                   Log
                 </Btn>
-              </div>
+              </div>}
             </div>
-          </Section>
+          </Section>}
 
           {/* Claim */}
           <Section icon={ShieldAlert} title="Courier Claim" subtitle="Money recovery from the courier — entirely separate from the customer's refund.">

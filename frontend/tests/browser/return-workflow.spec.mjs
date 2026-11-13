@@ -74,8 +74,11 @@ test('return approval only schedules pickup, then receipt and QC unlock the fina
   await approve(page, drawer);
   expect(state.calls[0]).toEqual({ path: '/api/return/approve', body: { orderId: state.order._id } });
   expect(state.order.refundDetails.status).toBe('pending');
+  await expect(drawer.getByPlaceholder('What did the courier say?')).toBeVisible();
+  await expect(drawer.getByRole('button', { name: 'Log', exact: true })).toBeVisible();
   await expect(drawer.getByRole('button', { name: 'Issue Refund', exact: true })).toHaveCount(0);
   await drawer.getByRole('button', { name: 'Mark as Received', exact: true }).click();
+  await expect(drawer.getByText('Courier Investigation', { exact: true })).toHaveCount(0);
   await expect(drawer.getByRole('button', { name: 'Issue Refund', exact: true })).toHaveCount(0);
   await drawer.getByRole('button', { name: 'Record QC PASS', exact: true }).click();
   await drawer.getByRole('button', { name: 'Partial Refund', exact: true }).click();
@@ -90,6 +93,7 @@ test('return approval only schedules pickup, then receipt and QC unlock the fina
   page.once('dialog', dialog => dialog.accept());
   await drawer.getByRole('button', { name: 'Check Refund Status', exact: true }).click();
   await expect(drawer.getByText('Refund completed', { exact: true })).toBeVisible();
+  await expect(drawer.getByText('Courier Investigation', { exact: true })).toHaveCount(0);
   expect(state.calls.map(call => call.path)).toEqual(['/api/return/approve', '/api/return/mark-received', '/api/return/quality-check', '/api/return/refund', '/api/return/refund']);
   await drawer.getByRole('button', { name: 'Close return details' }).click();
   await page.getByRole('button', { name: /Closed/ }).click();
@@ -98,14 +102,27 @@ test('return approval only schedules pickup, then receipt and QC unlock the fina
 });
 
 test('COD payment recording is available only after receipt and inspection', async ({ context, page }) => {
-  const state = await fixture(context, makeOrder({ paymentMethod: 'COD', payment: false }));
+  const order = makeOrder({ paymentMethod: 'COD', payment: false });
+  order.refundDetails.returnTracking = {
+    investigationTicket: 'COURIER-123', investigationOpenedAt: new Date().toISOString(), investigationBy: 'Test Admin',
+    followups: [{ note: 'Courier confirmed the parcel is on its way.', by: 'Test Admin', date: new Date().toISOString() }],
+  };
+  const state = await fixture(context, order);
   const drawer = await open(page);
   await expect(drawer.getByRole('button', { name: 'Record Payment & Close' })).toHaveCount(0);
   await approve(page, drawer); await inspect(drawer);
+  await expect(drawer.getByText('Ticket #COURIER-123', { exact: true })).toBeVisible();
+  await expect(drawer.getByText('Courier confirmed the parcel is on its way.', { exact: true })).toBeVisible();
+  await expect(drawer.getByPlaceholder('What did the courier say?')).toHaveCount(0);
+  await expect(drawer.getByRole('button', { name: 'Log', exact: true })).toHaveCount(0);
+  await expect(drawer.getByPlaceholder('e.g. DL88231')).toHaveCount(0);
   await expect(drawer.getByRole('button', { name: 'Record Payment & Close' })).toBeDisabled();
   await drawer.getByPlaceholder('e.g. 4429XXXXXXX').fill('TEST-BANK-REF');
   await drawer.getByRole('button', { name: 'Record Payment & Close' }).click();
   await expect(drawer.getByText('Refund completed', { exact: true })).toBeVisible();
+  await expect(drawer.getByText('Ticket #COURIER-123', { exact: true })).toBeVisible();
+  await expect(drawer.getByText('Courier confirmed the parcel is on its way.', { exact: true })).toBeVisible();
+  await expect(drawer.getByRole('button', { name: 'Log', exact: true })).toHaveCount(0);
   expect(state.calls.at(-1).path).toBe('/api/return/refund-settlement');
   expect(state.errors).toEqual([]);
 });
