@@ -11,19 +11,25 @@ export function getAftercareEligibility(order, displayStatus, now = Date.now()) 
   const deliveredOrder = displayStatus === 'Delivered' && Number.isFinite(delivered) && age >= 0;
   const returnOpen = deliveredOrder && age <= 3 * DAY;
   const exchangeOpen = deliveredOrder && age <= 2 * DAY;
+  const returnWindowClosed = Number.isFinite(delivered) && age > 3 * DAY;
+  const exchangeWindowClosed = Number.isFinite(delivered) && age > 2 * DAY;
   const exchangeItems = physicalItems.filter(index =>
     !(order.exchanges || []).some(exchange => exchange.orderItemIndex === index));
   const returnAllowed = physicalItems.length > 0 && returnOpen && !activeRequest && !activeExchange;
   const exchangeAllowed = exchangeOpen && !activeRequest && exchangeItems.length > 0;
-  const returnReason = activeRequest ? 'This order already has a return or refund request.'
+  const requestReason = activeRequest ? 'This order already has a return or refund request.'
     : activeExchange ? 'An exchange is already in progress.'
-      : !returnOpen ? 'The 3-day request window has closed.' : '';
+      : !returnOpen ? 'Return and refund requests are available after delivery.' : '';
   return {
-    return: { allowed: returnAllowed, reason: returnReason },
-    refund: { allowed: returnAllowed, reason: returnReason },
-    exchange: { allowed: exchangeAllowed, reason: activeRequest ? 'This order already has a return or refund request.'
-      : !exchangeOpen ? 'The 2-day exchange window has closed.'
-        : !exchangeItems.length ? 'An exchange has already been requested for each item.' : '' },
+    return: { allowed: returnAllowed, windowClosed: returnWindowClosed,
+      reason: returnWindowClosed ? 'The 3-day return window has closed.' : requestReason },
+    refund: { allowed: returnAllowed, windowClosed: returnWindowClosed,
+      reason: returnWindowClosed ? 'The 3-day refund request window has closed.' : requestReason },
+    exchange: { allowed: exchangeAllowed, windowClosed: exchangeWindowClosed,
+      reason: exchangeWindowClosed ? 'The 2-day exchange window has closed.'
+        : activeRequest ? 'This order already has a return or refund request.'
+          : !exchangeOpen ? 'Exchange requests are available after delivery.'
+            : !exchangeItems.length ? 'An exchange has already been requested for each item.' : '' },
     exchangeItems,
     physicalItems,
     activeRequest,

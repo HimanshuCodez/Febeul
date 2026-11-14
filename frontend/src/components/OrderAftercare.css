@@ -98,11 +98,19 @@ textarea.aftercare-input { resize: vertical; min-height: 100px; }
 .aftercare-milestone-dot > span { width: 7px; height: 7px; background: #bfb5c5; border-radius: 50%; }
 .aftercare-milestone.is-reached .aftercare-milestone-dot { background: #f9e8ec; color: #a4475e; }
 .aftercare-milestone.is-current .aftercare-milestone-dot { background: #a74757; color: #fff; box-shadow: 0 0 0 4px #fbebef; }
-.aftercare-milestone-content { padding: 7px 0 25px; flex: 1; min-width: 0; }
-.aftercare-milestone-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.aftercare-milestone-content { padding: 0 0 16px; flex: 1; min-width: 0; }
+.aftercare-milestone-heading { width: 100%; }
 .aftercare-milestone-heading h3 { margin: 0; font: 650 14px/1.5 sans-serif; color: #8f819a; }
 .is-reached .aftercare-milestone-heading h3 { color: #3c3045; }
-.aftercare-milestone-heading > span { font-size: 9px; line-height: 1.5; padding: 3px 7px; border-radius: 20px; background: #f9eaf0; color: #a44b65; }
+.aftercare-milestone-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 40px; padding: 6px 8px; border: 0; border-radius: 9px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.aftercare-milestone-toggle:hover { background: #fbf5f7; }
+.aftercare-milestone-toggle:focus-visible { outline: 2px solid #a74757; outline-offset: 2px; }
+.aftercare-milestone-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
+.aftercare-milestone-badge { font-size: 9px; line-height: 1.5; font-weight: 500; padding: 3px 7px; border-radius: 20px; background: #f9eaf0; color: #a44b65; }
+.aftercare-milestone-toggle > svg { flex-shrink: 0; transition: transform .18s; }
+.aftercare-milestone-toggle[aria-expanded=true] > svg { transform: rotate(180deg); }
+.aftercare-milestone-panel { padding: 0 8px 4px; }
+.aftercare-milestone-panel[hidden] { display: none; }
 .aftercare-milestone-content p { font-size: 12px; line-height: 1.65; color: #81758d; margin-top: 4px; overflow-wrap: anywhere; }
 .aftercare-milestone-content time, .aftercare-scans time { display: block; margin-top: 5px; font-size: 10px; color: #9b90a3; }
 .aftercare-milestone-content .aftercare-journey-item { font-weight: 650; color: #9c586d; }
@@ -143,4 +151,4 @@ textarea.aftercare-input { resize: vertical; min-height: 100px; }
   .aftercare-action strong { margin-bottom: 2px; }
   .aftercare-action small { margin-top: 4px; }
 }
-@media (prefers-reduced-motion: reduce) { .aftercare-dialog[open] { animation: none; } .aftercare-dialog button, .aftercare-option { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .aftercare-dialog[open] { animation: none; } .aftercare-dialog button, .aftercare-option, .aftercare-milestone-toggle > svg { transition: none; } }

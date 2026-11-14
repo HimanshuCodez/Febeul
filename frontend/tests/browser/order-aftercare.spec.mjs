@@ -85,8 +85,15 @@ test('COD payout failures, customer notes and automatic bank references appear o
 });
 
 test('COD return requires four photos, sends saved payout and continues below Delivered through courier stages', async ({ context, page }) => {
-  const order = makeOrder(), state = await mockApp(context, order);
-  await visit(page, order);
+  const order = makeOrder({ orderStatus: 'Out for delivery', shiprocketStatus: 'OUT_FOR_DELIVERY', deliveredAt: null });
+  const state = await mockApp(context, order);
+  await page.goto(`${shop}/order-detail/${order._id}`);
+  await expect(page.getByRole('status', { name: 'Payment status', exact: true })).toHaveText('Pending');
+  order.orderStatus = 'Delivered';
+  order.shiprocketStatus = 'DELIVERED';
+  order.deliveredAt = new Date().toISOString();
+  await refresh(page, order);
+  await expect(page.getByRole('status', { name: 'Payment status', exact: true })).toHaveText('Paid on delivery');
   await action(page, 'Return').click();
   const modal = page.getByRole('dialog');
   await expect(modal).toBeVisible();
@@ -113,15 +120,36 @@ test('COD return requires four photos, sends saved payout and continues below De
   expect(body.match(/name="images"/g)).toHaveLength(4);
   const journey = page.getByRole('region', { name: 'Return tracking' });
   await expect(journey.locator('[aria-current=step]')).toContainText('Return initiated');
+  const currentStep = journey.getByRole('button', { name: 'Return initiated', exact: true });
+  await expect(currentStep).toHaveAttribute('aria-expanded', 'true');
+  for (const label of ['Pickup Scheduled', 'Picked Up', 'In Transit', 'Received', 'Quality Check Done', 'Refund Initiated', 'Refund Completed']) {
+    const step = journey.getByRole('button', { name: label, exact: true });
+    await expect(step).toHaveAttribute('aria-expanded', 'false');
+    await step.focus();
+    await page.keyboard.press('Enter');
+    await expect(step).toHaveAttribute('aria-expanded', 'true');
+    await expect(journey.getByRole('region', { name: label, exact: true })).toHaveText('Awaiting update');
+    await expect(currentStep).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Space');
+    await expect(step).toHaveAttribute('aria-expanded', 'false');
+  }
+  await currentStep.click();
+  await expect(currentStep).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('button', { name: 'Cancel Return/Refund Request' })).toBeVisible();
   await expect(page.getByText('Return/refund cancellation closes once pickup is scheduled.', { exact: true })).toBeVisible();
   await expect(journey.getByRole('heading', { name: 'Picked Up', exact: true }).locator('..').locator('..')).toContainText('Awaiting update');
   await page.locator('#aftercare-timeline').screenshot({ path: 'test-results/order-aftercare/return-timeline.png' });
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await journey.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+  await page.locator('#aftercare-timeline').screenshot({ path: 'test-results/order-aftercare/return-timeline-mobile.png' });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   const delivery = page.getByText('Delivered', { exact: true }).first();
   expect(await delivery.evaluate((node) => Boolean(node.compareDocumentPosition(document.getElementById('aftercare-timeline')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   order.refundDetails.pickup = { status: 'scheduled', awb: 'RETURN-123', courier: 'Test Courier', scheduledDate: new Date().toISOString() };
   await refresh(page, order);
   await expect(journey.locator('[aria-current=step]')).toContainText('Pickup Scheduled');
+  await expect(journey.getByRole('button', { name: 'Pickup Scheduled', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(journey.getByRole('region', { name: 'Pickup Scheduled', exact: true })).toContainText('Collection has been arranged');
   await expect(page.getByRole('button', { name: 'Cancel Return/Refund Request' })).toHaveCount(0);
   await expect(page.getByText('Return/refund cancellation closes once pickup is scheduled.', { exact: true })).toBeVisible();
   order.refundDetails.pickup.status = 'failed';
@@ -131,6 +159,7 @@ test('COD return requires four photos, sends saved payout and continues below De
   order.refundDetails.returnTracking = { pickupDate: new Date(Date.now() - 1000).toISOString() };
   await refresh(page, order);
   await expect(journey.locator('[aria-current=step]')).toContainText('Picked Up');
+  await expect(page.getByRole('status', { name: 'Payment status', exact: true })).toHaveText('Paid on delivery');
   await expect(page.getByRole('button', { name: 'Cancel Return/Refund Request' })).toHaveCount(0);
   expect(state.errors).toEqual([]);
 });
@@ -138,6 +167,7 @@ test('COD return requires four photos, sends saved payout and continues below De
 test('prepaid refund has no payout fields and shows review before payment processing', async ({ context, page }) => {
   const order = makeOrder({ paymentMethod: 'Razorpay', payment: true }), state = await mockApp(context, order);
   await visit(page, order);
+  await expect(page.getByRole('status', { name: 'Payment status', exact: true })).toHaveText('Paid');
   await action(page, 'Refund').click();
   const modal = page.getByRole('dialog');
   await expect(modal.getByRole('region', { name: 'Refund payout method' })).toHaveCount(0);
@@ -145,15 +175,18 @@ test('prepaid refund has no payout fields and shows review before payment proces
   await modal.getByRole('button', { name: 'Submit refund request' }).click();
   const journey = page.getByRole('region', { name: 'Refund tracking' });
   await expect(journey.locator('[aria-current=step]')).toContainText('Refund requested');
+  await expect(journey.getByRole('button', { name: 'Refund requested', exact: true })).toHaveAttribute('aria-expanded', 'true');
   await expect(journey).not.toContainText('Pickup');
   expect(state.calls[0].body).not.toContain('payoutDetails');
   expect(multipartField(state.calls[0].body, 'requestType')).toBe('refund');
   order.refundDetails.status = 'processing';
   await refresh(page, order);
   await expect(journey.locator('[aria-current=step]')).toContainText('Refund initiated');
+  await expect(journey.getByRole('button', { name: 'Refund initiated', exact: true })).toHaveAttribute('aria-expanded', 'true');
   order.refundDetails.status = 'completed'; order.refundDetails.processedAt = new Date().toISOString();
   await refresh(page, order);
   await expect(journey.locator('[aria-current=step]')).toContainText('Refund completed');
+  await expect(journey.getByRole('button', { name: 'Refund completed', exact: true })).toHaveAttribute('aria-expanded', 'true');
   expect(state.errors).toEqual([]);
 });
 
@@ -324,12 +357,25 @@ test('request windows remain separate and expired orders show disabled actions',
   await expect(action(page, 'Return')).toBeEnabled();
   await expect(action(page, 'Refund')).toBeEnabled();
   await expect(action(page, 'Exchange')).toBeDisabled();
+  await expect(action(page, 'Exchange')).toContainText('The 2-day exchange window has closed.');
+  await expect(action(page, 'Exchange')).toContainText('Window closed');
   await action(page, 'Return').click();
   await expect(page.getByRole('dialog').getByRole('radio', { name: /^Exchange/ })).toBeDisabled();
   await page.keyboard.press('Escape');
+  order.refundDetails = { requestType: 'return', status: 'pending', requestedAt: new Date().toISOString() };
+  await refresh(page, order);
+  await expect(action(page, 'Return')).toContainText('This order already has a return or refund request.');
+  await expect(action(page, 'Refund')).toContainText('Within 3 days');
+  await expect(action(page, 'Exchange')).toContainText('The 2-day exchange window has closed.');
   order.deliveredAt = new Date(Date.now() - 4 * 86400000).toISOString();
   await refresh(page, order);
-  for (const type of ['Return', 'Refund', 'Exchange']) await expect(action(page, type)).toBeDisabled();
+  for (const [type, message] of [['Return', 'The 3-day return window has closed.'], ['Refund', 'The 3-day refund request window has closed.'], ['Exchange', 'The 2-day exchange window has closed.']]) {
+    await expect(action(page, type)).toBeDisabled();
+    await expect(action(page, type)).toContainText(message);
+    await expect(action(page, type)).toContainText('Window closed');
+    await expect(action(page, type)).not.toContainText('already has a return');
+    await expect(action(page, type)).not.toContainText('Within');
+  }
   expect(state.calls).toEqual([]);
 });
 

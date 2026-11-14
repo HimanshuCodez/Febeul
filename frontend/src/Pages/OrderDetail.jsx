@@ -395,6 +395,9 @@ export default function OrderDetailPage() {
   };
 
   const displayStatus = getDisplayStatus();
+  // COD is collected at delivery even when the online-payment flag is false.
+  const codPaymentCollected = order.paymentMethod === 'COD' && displayStatus === 'Delivered';
+  const paymentCollected = Boolean(order.payment) || codPaymentCollected;
 
   // "Returned" (internal status, drives all the eligibility/badge logic
   // below unchanged) always means the courier sent the parcel back — a
@@ -999,7 +1002,7 @@ export default function OrderDetailPage() {
                 <div className="min-w-0">
                   <p className="font-bold text-slate-800">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : (order.paymentMethod === 'Razorpay' ? 'Razorpay Prepaid' : 'Stripe Payment')}</p>
                   <p className="text-sm text-slate-500">Total: ₹{orderTotal.toFixed(2)}</p>
-                  <p className={`text-[10px] font-black uppercase tracking-wider mt-0.5 ${order.payment ? 'text-emerald-600' : 'text-amber-600'}`}>{order.payment ? 'Paid' : 'Pending'}</p>
+                  <p role="status" aria-label="Payment status" className={`text-[10px] font-black uppercase tracking-wider mt-0.5 ${paymentCollected ? 'text-emerald-600' : 'text-amber-600'}`}>{codPaymentCollected ? 'Paid on delivery' : paymentCollected ? 'Paid' : 'Pending'}</p>
                   {order.paymentMethod === 'Razorpay' && order.razorpayPaymentId && (
                     <p className="text-[10px] text-slate-400 font-bold mt-1 break-all select-all">Ref ID: {order.razorpayPaymentId}</p>
                   )}

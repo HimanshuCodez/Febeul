@@ -1,5 +1,5 @@
-import { createElement } from 'react';
-import { ArrowLeftRight, ArrowUpRight, Check, CreditCard, RotateCcw, Clock3 } from 'lucide-react';
+import { createElement, useId, useState } from 'react';
+import { ArrowLeftRight, ArrowUpRight, Check, ChevronDown, CreditCard, RotateCcw, Clock3 } from 'lucide-react';
 import { getRefundMilestones } from '../utils/orderAftercare';
 import './OrderAftercare.css';
 
@@ -15,7 +15,7 @@ export function OrderAftercareActions({ eligibility, onRequest }) {
     <div className="aftercare-action-grid">
       {actions.map(({ type, label, detail, Icon }) => <button type="button" key={type} onClick={() => onRequest(type)} disabled={!eligibility[type].allowed} className="aftercare-action" aria-describedby={`aftercare-${type}-details`}>
         <span className="aftercare-action-icon">{createElement(Icon, { size: 20 })}</span>
-        <span><strong>{label}</strong><span id={`aftercare-${type}-details`}>{eligibility[type].allowed ? detail : eligibility[type].reason}</span><small>{type === 'exchange' ? 'Within 2 days' : 'Within 3 days'}</small></span>
+        <span><strong>{label}</strong><span id={`aftercare-${type}-details`}>{eligibility[type].allowed ? detail : eligibility[type].reason}</span><small>{eligibility[type].windowClosed ? 'Window closed' : type === 'exchange' ? 'Within 2 days' : 'Within 3 days'}</small></span>
         <ArrowUpRight size={17} className="aftercare-action-arrow" />
       </button>)}
     </div>
@@ -46,16 +46,31 @@ const formatDate = date => date && Number.isFinite(new Date(date).getTime())
   ? new Date(date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : null;
 
 function Journey({ title, item, milestones, copy, issue, children }) {
+  const id = useId();
+  const currentKey = milestones.find(milestone => milestone.current)?.key || milestones[0]?.key;
+  // Follow the current step until the customer chooses another step to inspect.
+  const [selectedKey, setSelectedKey] = useState(null);
+  const expandedKey = selectedKey === null ? currentKey : selectedKey;
+  const toggle = key => setSelectedKey(expandedKey === key ? '' : key === currentKey ? null : key);
+
   return <section className="aftercare-journey" aria-label={title}>
     <ol className="aftercare-journey-list">
       {milestones.map((milestone, index) => <li key={milestone.key} className={`aftercare-milestone ${milestone.reached ? 'is-reached' : ''} ${milestone.current ? 'is-current' : ''}`} aria-current={milestone.current ? 'step' : undefined}>
         <span className="aftercare-milestone-dot" aria-hidden="true">{milestone.reached ? <Check size={16} strokeWidth={2.5} /> : <span />}</span>
         <div className="aftercare-milestone-content">
-          <div className="aftercare-milestone-heading"><h3>{milestone.label}</h3>{milestone.current && <span>{issue ? 'Needs attention' : ['refund_completed', 'delivered'].includes(milestone.key) ? 'Completed' : 'Current step'}</span>}</div>
+          <div className="aftercare-milestone-heading"><h3>
+            <button type="button" id={`${id}-${milestone.key}-toggle`} className="aftercare-milestone-toggle" aria-label={milestone.label}
+              aria-expanded={expandedKey === milestone.key} aria-controls={`${id}-${milestone.key}-panel`} onClick={() => toggle(milestone.key)}>
+              <span className="aftercare-milestone-title">{milestone.label}{milestone.current && <span className="aftercare-milestone-badge">{issue ? 'Needs attention' : ['refund_completed', 'delivered'].includes(milestone.key) ? 'Completed' : 'Current step'}</span>}</span>
+              <ChevronDown size={17} aria-hidden="true" />
+            </button>
+          </h3></div>
           {index === 0 && item && <p className="aftercare-journey-item">{item}</p>}
-          <p>{milestone.reached ? copy[milestone.key] : 'Awaiting update'}</p>
-          {milestone.reached && formatDate(milestone.at) && <time dateTime={new Date(milestone.at).toISOString()}>{formatDate(milestone.at)}</time>}
-          {milestone.current && issue && <p className="aftercare-error">{issue}</p>}
+          <div id={`${id}-${milestone.key}-panel`} role="region" aria-labelledby={`${id}-${milestone.key}-toggle`} className="aftercare-milestone-panel" hidden={expandedKey !== milestone.key}>
+            <p>{milestone.reached ? copy[milestone.key] : 'Awaiting update'}</p>
+            {milestone.reached && formatDate(milestone.at) && <time dateTime={new Date(milestone.at).toISOString()}>{formatDate(milestone.at)}</time>}
+            {milestone.current && issue && <p className="aftercare-error">{issue}</p>}
+          </div>
         </div>
       </li>)}
     </ol>
