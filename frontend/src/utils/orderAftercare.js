@@ -41,6 +41,33 @@ export const hasAftercareJourney = order =>
     && Boolean(order.refundDetails?.status && order.refundDetails.status !== 'none'))
   || (order.exchanges || []).some(exchange => exchange.exchangeStatus);
 
+const returnScanStages = {
+  PICKUP_SCHEDULED: 'pickup_scheduled', PICKED_UP: 'picked_up',
+  IN_TRANSIT: 'in_transit', SHIPPED: 'in_transit', OUT_FOR_DELIVERY: 'in_transit',
+  DELIVERED: 'received', DELIVERED_TO_WAREHOUSE: 'received', RECEIVED: 'received',
+};
+
+// Keep the latest real update visible and group earlier courier scans under
+// their milestone. A reached milestone can stand alone when no scans exist.
+export function getMilestoneUpdates(milestone, description, scans = []) {
+  if (!milestone.reached) return [];
+  const timestamp = value => value && Number.isFinite(new Date(value).getTime()) ? new Date(value).getTime() : null;
+  const updates = scans.filter(scan => returnScanStages[String(scan.status || '').toUpperCase().replace(/[\s-]+/g, '_')] === milestone.key
+    && timestamp(scan.date) !== null && !/shiprocket/i.test(scan.activity || ''))
+    .map(scan => ({ ...scan, activity: scan.activity || description }));
+  const milestoneTime = timestamp(milestone.at);
+  if (!updates.length || (milestoneTime !== null && !updates.some(update => timestamp(update.date) === milestoneTime))) {
+    updates.push({ activity: description, date: milestone.at });
+  }
+  const seen = new Set();
+  return updates.filter(update => {
+    const key = JSON.stringify([timestamp(update.date), update.activity, update.location || '']);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort((left, right) => (timestamp(left.date) || 0) - (timestamp(right.date) || 0));
+}
+
 // Refund-only requests do not have a reverse shipment. Never invent pickup
 // milestones from the order's "Refund Initiated" label: pending means review.
 export function getRefundMilestones(refund) {

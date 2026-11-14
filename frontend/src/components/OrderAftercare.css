@@ -98,20 +98,25 @@ textarea.aftercare-input { resize: vertical; min-height: 100px; }
 .aftercare-milestone-dot > span { width: 7px; height: 7px; background: #bfb5c5; border-radius: 50%; }
 .aftercare-milestone.is-reached .aftercare-milestone-dot { background: #f9e8ec; color: #a4475e; }
 .aftercare-milestone.is-current .aftercare-milestone-dot { background: #a74757; color: #fff; box-shadow: 0 0 0 4px #fbebef; }
-.aftercare-milestone-content { padding: 0 0 16px; flex: 1; min-width: 0; }
-.aftercare-milestone-heading { width: 100%; }
-.aftercare-milestone-heading h3 { margin: 0; font: 650 14px/1.5 sans-serif; color: #8f819a; }
-.is-reached .aftercare-milestone-heading h3 { color: #3c3045; }
-.aftercare-milestone-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 40px; padding: 6px 8px; border: 0; border-radius: 9px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.aftercare-milestone-toggle:hover { background: #fbf5f7; }
-.aftercare-milestone-toggle:focus-visible { outline: 2px solid #a74757; outline-offset: 2px; }
+.aftercare-milestone-content { padding: 6px 0 24px; flex: 1; min-width: 0; }
+.aftercare-milestone-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; width: 100%; margin-bottom: 8px; }
+.aftercare-milestone-heading h3 { margin: 0; font: 700 16px/1.5 sans-serif; color: #94a3b8; }
+.is-reached .aftercare-milestone-heading h3 { color: #1e293b; }
 .aftercare-milestone-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
 .aftercare-milestone-badge { font-size: 9px; line-height: 1.5; font-weight: 500; padding: 3px 7px; border-radius: 20px; background: #f9eaf0; color: #a44b65; }
-.aftercare-milestone-toggle > svg { flex-shrink: 0; transition: transform .18s; }
-.aftercare-milestone-toggle[aria-expanded=true] > svg { transform: rotate(180deg); }
-.aftercare-milestone-panel { padding: 0 8px 4px; }
-.aftercare-milestone-panel[hidden] { display: none; }
-.aftercare-milestone-content p { font-size: 12px; line-height: 1.65; color: #81758d; margin-top: 4px; overflow-wrap: anywhere; }
+.aftercare-milestone-date { padding: 2px 8px; border: 1px solid #f1f5f9; border-radius: 6px; background: #f8fafc; font-size: 12px; line-height: 1.5; font-weight: 700; color: #94a3b8; }
+.aftercare-earlier-updates { display: flex; flex-direction: column; gap: 10px; }
+.aftercare-earlier-updates[hidden] { display: none; }
+.aftercare-earlier-updates:not([hidden]) + .aftercare-milestone-update { margin-top: 10px; }
+.aftercare-history-toggle { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; margin-top: 4px; padding: 4px 0; border: 0; border-radius: 4px; background: transparent; color: #e8767a; font-size: 12px; line-height: 1.5; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+.aftercare-history-toggle:hover { color: #d5666a; }
+.aftercare-history-toggle:focus-visible { outline: 2px solid #a74757; outline-offset: 3px; }
+.aftercare-history-toggle > svg { transition: transform .18s; }
+.aftercare-history-toggle[aria-expanded=true] > svg { transform: rotate(180deg); }
+.aftercare-update-location { display: inline-block; margin-top: 4px; padding: 1px 6px; border: 1px solid #f1f5f9; border-radius: 20px; background: #f8fafc; color: #64748b; font-size: 10px; font-weight: 650; }
+.aftercare-milestone-content p { font-size: 14px; line-height: 1.65; font-weight: 500; color: #475569; margin-top: 4px; overflow-wrap: anywhere; }
+.aftercare-milestone-content .aftercare-milestone-awaiting { color: #94a3b8; }
+.aftercare-milestone-content .aftercare-error { color: #a33a49; }
 .aftercare-milestone-content time, .aftercare-scans time { display: block; margin-top: 5px; font-size: 10px; color: #9b90a3; }
 .aftercare-milestone-content .aftercare-journey-item { font-weight: 650; color: #9c586d; }
 .aftercare-journey-details { margin: 0 0 18px 56px; display: flex; flex-direction: column; gap: 10px; overflow-wrap: anywhere; }
@@ -150,5 +155,10 @@ textarea.aftercare-input { resize: vertical; min-height: 100px; }
   .aftercare-action { align-items: center; padding: 13px; gap: 12px; }
   .aftercare-action strong { margin-bottom: 2px; }
   .aftercare-action small { margin-top: 4px; }
+  .aftercare-milestone-heading { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .aftercare-milestone-heading h3 { font-size: 14px; }
+  .aftercare-milestone-content p { font-size: 12px; }
+  .aftercare-milestone-date { font-size: 10px; }
+  .aftercare-history-toggle { min-height: 40px; font-size: 10px; }
 }
-@media (prefers-reduced-motion: reduce) { .aftercare-dialog[open] { animation: none; } .aftercare-dialog button, .aftercare-option, .aftercare-milestone-toggle > svg { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .aftercare-dialog[open] { animation: none; } .aftercare-dialog button, .aftercare-option, .aftercare-history-toggle > svg { transition: none; } }

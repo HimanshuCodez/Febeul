@@ -120,24 +120,14 @@ test('COD return requires four photos, sends saved payout and continues below De
   expect(body.match(/name="images"/g)).toHaveLength(4);
   const journey = page.getByRole('region', { name: 'Return tracking' });
   await expect(journey.locator('[aria-current=step]')).toContainText('Return initiated');
-  const currentStep = journey.getByRole('button', { name: 'Return initiated', exact: true });
-  await expect(currentStep).toHaveAttribute('aria-expanded', 'true');
+  await expect(journey.getByText('We received your request. Our team will review it before arranging pickup.', { exact: true })).toBeVisible();
   for (const label of ['Pickup Scheduled', 'Picked Up', 'In Transit', 'Received', 'Quality Check Done', 'Refund Initiated', 'Refund Completed']) {
-    const step = journey.getByRole('button', { name: label, exact: true });
-    await expect(step).toHaveAttribute('aria-expanded', 'false');
-    await step.focus();
-    await page.keyboard.press('Enter');
-    await expect(step).toHaveAttribute('aria-expanded', 'true');
-    await expect(journey.getByRole('region', { name: label, exact: true })).toHaveText('Awaiting update');
-    await expect(currentStep).toHaveAttribute('aria-expanded', 'false');
-    await page.keyboard.press('Space');
-    await expect(step).toHaveAttribute('aria-expanded', 'false');
+    const step = journey.getByRole('heading', { name: label, exact: true }).locator('xpath=ancestor::li[1]');
+    await expect(step.getByText('Awaiting update', { exact: true })).toBeVisible();
+    await expect(step.getByRole('button')).toHaveCount(0);
   }
-  await currentStep.click();
-  await expect(currentStep).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('button', { name: 'Cancel Return/Refund Request' })).toBeVisible();
   await expect(page.getByText('Return/refund cancellation closes once pickup is scheduled.', { exact: true })).toBeVisible();
-  await expect(journey.getByRole('heading', { name: 'Picked Up', exact: true }).locator('..').locator('..')).toContainText('Awaiting update');
   await page.locator('#aftercare-timeline').screenshot({ path: 'test-results/order-aftercare/return-timeline.png' });
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await journey.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
@@ -148,8 +138,7 @@ test('COD return requires four photos, sends saved payout and continues below De
   order.refundDetails.pickup = { status: 'scheduled', awb: 'RETURN-123', courier: 'Test Courier', scheduledDate: new Date().toISOString() };
   await refresh(page, order);
   await expect(journey.locator('[aria-current=step]')).toContainText('Pickup Scheduled');
-  await expect(journey.getByRole('button', { name: 'Pickup Scheduled', exact: true })).toHaveAttribute('aria-expanded', 'true');
-  await expect(journey.getByRole('region', { name: 'Pickup Scheduled', exact: true })).toContainText('Collection has been arranged');
+  await expect(journey.getByText('Collection has been arranged with our courier partner. Keep your item and packaging ready.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Cancel Return/Refund Request' })).toHaveCount(0);
   await expect(page.getByText('Return/refund cancellation closes once pickup is scheduled.', { exact: true })).toBeVisible();
   order.refundDetails.pickup.status = 'failed';
@@ -175,18 +164,66 @@ test('prepaid refund has no payout fields and shows review before payment proces
   await modal.getByRole('button', { name: 'Submit refund request' }).click();
   const journey = page.getByRole('region', { name: 'Refund tracking' });
   await expect(journey.locator('[aria-current=step]')).toContainText('Refund requested');
-  await expect(journey.getByRole('button', { name: 'Refund requested', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(journey.getByText('We received your refund request. It is awaiting review.', { exact: true })).toBeVisible();
   await expect(journey).not.toContainText('Pickup');
   expect(state.calls[0].body).not.toContain('payoutDetails');
   expect(multipartField(state.calls[0].body, 'requestType')).toBe('refund');
   order.refundDetails.status = 'processing';
   await refresh(page, order);
   await expect(journey.locator('[aria-current=step]')).toContainText('Refund initiated');
-  await expect(journey.getByRole('button', { name: 'Refund initiated', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(journey.getByText('Your refund is being processed.', { exact: true })).toBeVisible();
   order.refundDetails.status = 'completed'; order.refundDetails.processedAt = new Date().toISOString();
   await refresh(page, order);
   await expect(journey.locator('[aria-current=step]')).toContainText('Refund completed');
-  await expect(journey.getByRole('button', { name: 'Refund completed', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(journey.getByText('Your refund has been processed. Your bank or payment provider may take time to show the credit.', { exact: true })).toBeVisible();
+  expect(state.errors).toEqual([]);
+});
+
+test('return milestones match shipment updates with a visible latest entry and expandable earlier history', async ({ context, page }, testInfo) => {
+  const now = Date.now(), hour = 3600000;
+  const scans = [
+    { status: 'IN_TRANSIT', activity: 'Your return parcel reached the first hub.', location: 'Delhi', date: new Date(now - 3 * hour).toISOString() },
+    { status: 'IN_TRANSIT', activity: 'Your return parcel reached the next hub.', location: 'Mumbai', date: new Date(now - 2 * hour).toISOString() },
+    { status: 'IN_TRANSIT', activity: 'Your return parcel has left the final hub.', location: 'Pune', date: new Date(now - hour).toISOString() },
+  ];
+  const order = makeOrder({ deliveredAt: new Date(now - 60 * hour).toISOString(), refundDetails: {
+    requestType: 'return', status: 'pending', requestedAt: new Date(now - 40 * hour).toISOString(),
+    pickup: { status: 'in_transit', scheduledDate: new Date(now - 38 * hour).toISOString(), trackingHistory: [scans[2], scans[0], scans[1], scans[0],
+      { status: 'UNKNOWN', activity: 'Shiprocket internal update', date: new Date(now - hour).toISOString() }] },
+    returnTracking: { approvedAt: new Date(now - 39 * hour).toISOString(), pickupDate: new Date(now - 36 * hour).toISOString() },
+  } });
+  const state = await mockApp(context, order);
+  await visit(page, order);
+  const journey = page.getByRole('region', { name: 'Return tracking' });
+  const step = journey.getByRole('heading', { name: 'In Transit', exact: true }).locator('xpath=ancestor::li[1]');
+  const latest = step.getByText(scans[2].activity, { exact: true });
+  const earlier = step.getByText(scans[0].activity, { exact: true });
+  const toggle = step.getByRole('button');
+  await expect(latest).toBeVisible();
+  await expect(earlier).not.toBeVisible();
+  await expect(earlier).toHaveCount(1);
+  await expect(toggle).toHaveText('Show more (2)');
+  await expect(step.locator('.aftercare-milestone-date')).toBeVisible();
+  await expect(step.locator('time').last()).toHaveText(/[A-Z][a-z]{2}, \d{1,2}(st|nd|rd|th) [A-Z][a-z]{2} '\d{2} - \d{1,2}:\d{2}(am|pm)/);
+  await toggle.focus();
+  await page.keyboard.press('Enter');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(toggle).toHaveText('Show less');
+  await expect(earlier).toBeVisible();
+  await expect(step.getByText(scans[1].activity, { exact: true })).toBeVisible();
+  await expect(latest).toBeVisible();
+  await step.screenshot({ path: testInfo.outputPath('return-updates-expanded.png') });
+  await page.keyboard.press('Space');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(earlier).not.toBeVisible();
+  await expect(latest).toBeVisible();
+  await expect(journey).not.toContainText('Shiprocket');
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await step.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await step.screenshot({ path: testInfo.outputPath(`return-updates-${width}.png`) });
+  }
+  expect(state.calls).toEqual([]);
   expect(state.errors).toEqual([]);
 });
 

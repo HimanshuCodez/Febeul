@@ -27,6 +27,7 @@ import Reviews from '../components/Reviews';
 import OrderRequestModal from '../components/OrderRequestModal';
 import { OrderAftercareActions, OrderAftercareTimeline } from '../components/OrderAftercare';
 import { getAftercareEligibility, hasAftercareJourney } from '../utils/orderAftercare';
+import { formatMilestoneDate, formatMilestoneTime } from '../utils/trackingDates';
 import { hasReturnPickupBeenScheduled, RETURN_CANCELLATION_NOTICE } from '../../../shared/returnWorkflow';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -509,30 +510,6 @@ export default function OrderDetailPage() {
   // scan event, then buckets them under the same 4 milestones the customer
   // sees elsewhere on this page — so status and live tracking are ONE view,
   // not two disconnected sections.
-  const getOrdinalSuffix = (day) => {
-    if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  };
-
-  const formatMilestoneDate = (date) => {
-    const d = new Date(date);
-    const weekday = d.toLocaleDateString('en-IN', { weekday: 'short' });
-    const day = d.getDate();
-    const month = d.toLocaleDateString('en-IN', { month: 'short' });
-    const year = d.getFullYear().toString().slice(-2);
-    return `${weekday}, ${day}${getOrdinalSuffix(day)} ${month} '${year}`;
-  };
-
-  const formatMilestoneTime = (date) => new Date(date)
-    .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
-    .toLowerCase()
-    .replace(/\s/g, '');
-
   const DEFAULT_ACTIVITY_TEXT = {
     ORDER_PLACED: 'Your order has been placed.',
     NEW: 'Seller has processed your order.',

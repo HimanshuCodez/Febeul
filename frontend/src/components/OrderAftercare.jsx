@@ -1,6 +1,7 @@
 import { createElement, useId, useState } from 'react';
 import { ArrowLeftRight, ArrowUpRight, Check, ChevronDown, CreditCard, RotateCcw, Clock3 } from 'lucide-react';
-import { getRefundMilestones } from '../utils/orderAftercare';
+import { getMilestoneUpdates, getRefundMilestones } from '../utils/orderAftercare';
+import { formatMilestoneDate, formatMilestoneTime } from '../utils/trackingDates';
 import './OrderAftercare.css';
 
 const actions = [
@@ -42,37 +43,42 @@ const exchangeCopy = {
   out_for_delivery: 'Your replacement is out for delivery.',
   delivered: 'Your replacement has been delivered.',
 };
-const formatDate = date => date && Number.isFinite(new Date(date).getTime())
-  ? new Date(date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : null;
+const formatDate = date => formatMilestoneDate(date) ? `${formatMilestoneDate(date)} - ${formatMilestoneTime(date)}` : null;
 
-function Journey({ title, item, milestones, copy, issue, children }) {
+function Journey({ title, item, milestones, copy, scans, issue, children }) {
   const id = useId();
-  const currentKey = milestones.find(milestone => milestone.current)?.key || milestones[0]?.key;
-  // Follow the current step until the customer chooses another step to inspect.
-  const [selectedKey, setSelectedKey] = useState(null);
-  const expandedKey = selectedKey === null ? currentKey : selectedKey;
-  const toggle = key => setSelectedKey(expandedKey === key ? '' : key === currentKey ? null : key);
+  const [expanded, setExpanded] = useState({});
+  const toggle = key => setExpanded(previous => ({ ...previous, [key]: !previous[key] }));
+  const renderUpdate = (update, index) => <div key={index} className="aftercare-milestone-update">
+    <p>{update.activity}</p>
+    {update.location && <span className="aftercare-update-location">{update.location}</span>}
+    {formatDate(update.date) && <time dateTime={new Date(update.date).toISOString()}>{formatDate(update.date)}</time>}
+  </div>;
 
   return <section className="aftercare-journey" aria-label={title}>
     <ol className="aftercare-journey-list">
-      {milestones.map((milestone, index) => <li key={milestone.key} className={`aftercare-milestone ${milestone.reached ? 'is-reached' : ''} ${milestone.current ? 'is-current' : ''}`} aria-current={milestone.current ? 'step' : undefined}>
+      {milestones.map((milestone, index) => {
+        const updates = getMilestoneUpdates(milestone, copy[milestone.key], scans);
+        const latest = updates[updates.length - 1];
+        const earlier = updates.slice(0, -1);
+        const headerDate = latest && formatMilestoneDate(latest.date);
+        return <li key={milestone.key} className={`aftercare-milestone ${milestone.reached ? 'is-reached' : ''} ${milestone.current ? 'is-current' : ''}`} aria-current={milestone.current ? 'step' : undefined}>
         <span className="aftercare-milestone-dot" aria-hidden="true">{milestone.reached ? <Check size={16} strokeWidth={2.5} /> : <span />}</span>
         <div className="aftercare-milestone-content">
-          <div className="aftercare-milestone-heading"><h3>
-            <button type="button" id={`${id}-${milestone.key}-toggle`} className="aftercare-milestone-toggle" aria-label={milestone.label}
-              aria-expanded={expandedKey === milestone.key} aria-controls={`${id}-${milestone.key}-panel`} onClick={() => toggle(milestone.key)}>
-              <span className="aftercare-milestone-title">{milestone.label}{milestone.current && <span className="aftercare-milestone-badge">{issue ? 'Needs attention' : ['refund_completed', 'delivered'].includes(milestone.key) ? 'Completed' : 'Current step'}</span>}</span>
-              <ChevronDown size={17} aria-hidden="true" />
-            </button>
-          </h3></div>
-          {index === 0 && item && <p className="aftercare-journey-item">{item}</p>}
-          <div id={`${id}-${milestone.key}-panel`} role="region" aria-labelledby={`${id}-${milestone.key}-toggle`} className="aftercare-milestone-panel" hidden={expandedKey !== milestone.key}>
-            <p>{milestone.reached ? copy[milestone.key] : 'Awaiting update'}</p>
-            {milestone.reached && formatDate(milestone.at) && <time dateTime={new Date(milestone.at).toISOString()}>{formatDate(milestone.at)}</time>}
-            {milestone.current && issue && <p className="aftercare-error">{issue}</p>}
+          <div className="aftercare-milestone-heading">
+            <div className="aftercare-milestone-title"><h3>{milestone.label}</h3>{milestone.current && <span className="aftercare-milestone-badge">{issue ? 'Needs attention' : ['refund_completed', 'delivered'].includes(milestone.key) ? 'Completed' : 'Current step'}</span>}</div>
+            {headerDate && <span className="aftercare-milestone-date">{headerDate}</span>}
           </div>
+          {index === 0 && item && <p className="aftercare-journey-item">{item}</p>}
+          {earlier.length > 0 && <div id={`${id}-${milestone.key}-earlier`} role="region" aria-label={`${milestone.label} earlier updates`} className="aftercare-earlier-updates" hidden={!expanded[milestone.key]}>{earlier.map(renderUpdate)}</div>}
+          {latest ? renderUpdate(latest, 'latest') : <p className="aftercare-milestone-awaiting">Awaiting update</p>}
+          {earlier.length > 0 && <button type="button" className="aftercare-history-toggle" aria-expanded={Boolean(expanded[milestone.key])}
+            aria-controls={`${id}-${milestone.key}-earlier`} aria-label={`${expanded[milestone.key] ? 'Show less' : 'Show more'} for ${milestone.label}`} onClick={() => toggle(milestone.key)}>
+            {expanded[milestone.key] ? 'Show less' : `Show more (${earlier.length})`}<ChevronDown size={13} aria-hidden="true" />
+          </button>}
+          {milestone.current && issue && <p className="aftercare-error">{issue}</p>}
         </div>
-      </li>)}
+      </li>; })}
     </ol>
     {children && <div className="aftercare-journey-details">{children}</div>}
   </section>;
@@ -93,7 +99,7 @@ export function OrderAftercareTimeline({ order }) {
   // is not used as a substitute for a milestone from the server.
   const pickupScans = (refund.pickup?.trackingHistory || []).filter(scan => !/shiprocket/i.test(scan.activity || ''));
   return <div id="aftercare-timeline" className="aftercare-timelines" role="region" aria-label="After-sales tracking" tabIndex={-1}>
-    {isRequest && <Journey title={isReturn ? 'Return tracking' : 'Refund tracking'} milestones={milestones}
+    {isRequest && <Journey title={isReturn ? 'Return tracking' : 'Refund tracking'} milestones={milestones} scans={isReturn ? pickupScans : undefined}
       copy={{ ...returnCopy, ...(!isReturn ? { requested: 'We received your refund request. It is awaiting review.' } : {}), ...(isRejected ? { requested: 'Our team reviewed your request and could not approve it.' } : {}) }}
       issue={isRejected ? refund.rejectionReason || 'Contact support if you need help with this decision.' : refund.status === 'failed' ? 'Your refund needs attention. Please contact support with your order ID.' : null}>
       {!isRejected && <>
