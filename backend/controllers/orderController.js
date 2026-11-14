@@ -13,6 +13,7 @@ import { createAndAssignShipment } from '../utils/shiprocket.js';
 import { syncOrderTracking, syncOrdersTracking } from '../utils/orderTrackingSync.js';
 import { syncReturnTracking, syncReturnsTracking } from '../utils/returnTrackingSync.js';
 import { getReturnSettings, sanitizeOrderForCustomer, sanitizeOrdersForCustomer } from '../utils/returnStatus.js';
+import { syncCodPayout } from '../utils/codPayouts.js';
 import exchangeModel from '../models/exchangeModel.js';
 import { getExchangeSettings, sanitizeExchangesForCustomer, applyWindowExpiry } from '../utils/exchangeStatus.js';
 import { buildAdminOrderTracking } from '../utils/adminOrderTracking.js';
@@ -873,7 +874,7 @@ const generateInvoice = async (req, res) => {
 
 const getOrderById = async (req, res) => {
     try {
-        const order = await orderModel.findOne({ _id: req.params.id, userId: req.userId }).populate('userId', 'name email'); // Populate userId
+        let order = await orderModel.findOne({ _id: req.params.id, userId: req.userId }).populate('userId', 'name email'); // Populate userId
         if (!order) {
             return res.json({ success: false, message: 'Order not found' });
         }
@@ -887,6 +888,10 @@ const getOrderById = async (req, res) => {
         // The return leg gets the same treatment — this is the page a customer
         // sits on waiting for "picked up" to appear.
         await syncReturnTracking(order, { force: forceRefresh });
+        if (order.refundDetails?.payout?.id) {
+            order = await syncCodPayout(order, { force: forceRefresh });
+            await order.populate('userId', 'name email');
+        }
 
         // Sanitized: refundDetails.returnTracking is dropped entirely and
         // replaced with a customer-safe `returnStatus`, so internal statuses

@@ -24,6 +24,7 @@ import emailTemplateRouter from './routes/emailTemplateRoute.js';
 import errorHandler from './middleware/errorHandler.js'
 import analyticsRouter from './analytics/routes.js'
 import { startCancellationRefundWorker } from './utils/cancellationRefunds.js';
+import { razorpayXPayoutWebhook } from './controllers/codPayoutController.js';
 
 // App Config
 const app = express()
@@ -35,6 +36,7 @@ connectCloudinary()
 // Isolated parser keeps the analytics limit from changing existing API limits.
 installSecurity(app)
 app.use('/api/analytics', analyticsRouter)
+app.post('/api/razorpayx/webhook', express.raw({ type: 'application/json', limit: '100kb' }), razorpayXPayoutWebhook)
 app.use(express.json({ limit: '100kb' }))
 app.use(rejectUnsafeInput)
 

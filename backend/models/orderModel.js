@@ -53,6 +53,13 @@ const orderSchema = new mongoose.Schema({
         reason: { type: String },
         rejectionReason: { type: String }, // Reason for rejecting the refund/return
         adminRefundComment: { type: String }, // Explanation for partial/full refund sent to customer
+        payoutNote: { type: String }, // Explicitly customer-visible COD settlement note.
+        payout: {
+            id: String, key: String, status: String, sequence: Number,
+            amountPaise: Number, payload: mongoose.Schema.Types.Mixed,
+            lockUntil: Date, lockToken: String, updatedAt: Date, lastCheckedAt: Date,
+            adminError: String, failureCode: String, customerMessage: String,
+        },
         isPartialRefund: { type: Boolean, default: false }, // Flag for partial refunds
         images: { type: [String], default: [] }, // Added images for refund request
         requestedAt: { type: Date },

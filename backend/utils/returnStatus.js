@@ -284,7 +284,11 @@ export const sanitizeOrderForCustomer = (orderDoc, settings = RETURN_SETTINGS_DE
     if (!order?.refundDetails) return order;
 
     const returnStatus = buildCustomerReturnStatus(order, settings);
-    const { returnTracking, pickup, lastError, autoProcess, attempts, lastAttemptAt, nextRetryAt, processingUntil, attemptToken, ...safeRefundDetails } = order.refundDetails;
+    const { returnTracking, pickup, payout, lastError, autoProcess, attempts, lastAttemptAt, nextRetryAt, processingUntil, attemptToken, ...safeRefundDetails } = order.refundDetails;
+    if (payout?.status) safeRefundDetails.payout = {
+        id: payout.id, status: payout.status, message: payout.customerMessage,
+        updatedAt: payout.updatedAt, utr: returnTracking?.refundUtr,
+    };
     if (order.cancellation) {
         order.cancellation = { requestedBy: order.cancellation.requestedBy, requestedAt: order.cancellation.requestedAt, reason: order.cancellation.reason };
     }

@@ -2,9 +2,10 @@ import { useState, useMemo, useRef } from 'react';
 import {
   X, User, MessageSquare, Truck, PackageCheck, ClipboardCheck, Banknote,
   Search, ShieldAlert, History, Camera, Upload, AlertTriangle, CheckCircle2,
-  XCircle, Clock, CalendarDays, Info, PhoneCall, Landmark, Undo2, Lock
+  XCircle, Clock, CalendarDays, Info, PhoneCall, Undo2, Lock
 } from 'lucide-react';
 import { currency } from '../../App';
+import CodRefundSettlement from './CodRefundSettlement';
 import { getReturnRefundBlockReason, isReturnAwaitingApproval } from '../../../../shared/returnWorkflow';
 import {
   toneOf, labelOf, MANUAL_STATUS_OPTIONS, STATUS_META, fmtDate, fmtDateTime, toDateInputValue
@@ -73,9 +74,6 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
   const [qcResult, setQcResult] = useState('PASS');
   const [qcNotes, setQcNotes] = useState('');
   const [qcPhotos, setQcPhotos] = useState([]);
-  const [utr, setUtr] = useState('');
-  const [settleAmount, setSettleAmount] = useState('');
-  const [settleReason, setSettleReason] = useState('');
   const [ticket, setTicket] = useState(rt.investigationTicket || '');
   const [investigationNote] = useState('');
   const [followup, setFollowup] = useState('');
@@ -486,7 +484,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
 
           {/* Settlement */}
           <Section icon={Banknote} title="Settlement" subtitle="Issue the refund after the returned item is received and passes inspection.">
-            {settled ? (
+            {request.paymentMethod === 'COD' ? <CodRefundSettlement request={request} onAction={onAction} busy={busy} /> : settled ? (
               <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-5 space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[12px] font-black text-emerald-600 uppercase tracking-wider">Refund completed</p>
@@ -544,63 +542,7 @@ const ReturnDrawer = ({ request, onClose, onAction, onApprove, onRefund, onRejec
                   {refund.status === 'processing' ? 'Check Refund Status' : 'Issue Refund'}
                 </Btn>
               </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
-                {/* Payout destination the customer gave us */}
-                {refund.customerPayoutDetails?.type ? (
-                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 space-y-2">
-                    <p className="text-[12px] font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
-                      <Landmark size={11} /> COD payout · {refund.customerPayoutDetails.type === 'upi' ? 'UPI' : 'Bank transfer'}
-                    </p>
-                    {refund.customerPayoutDetails.type === 'upi' ? (
-                      <p className="text-sm font-black font-mono text-slate-800 select-all">{refund.customerPayoutDetails.upiId}</p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div><span className="text-[12px] font-black text-emerald-600 uppercase block">Holder</span><span className="font-bold">{refund.customerPayoutDetails.accountHolderName}</span></div>
-                        <div><span className="text-[12px] font-black text-emerald-600 uppercase block">IFSC</span><span className="font-bold font-mono">{refund.customerPayoutDetails.ifsc}</span></div>
-                        <div className="col-span-2"><span className="text-[12px] font-black text-emerald-600 uppercase block">Account</span><span className="font-black font-mono select-all">{refund.customerPayoutDetails.bankAccount}</span></div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-3.5 text-center text-[13px] font-black text-slate-400 uppercase tracking-wider">
-                    No payout details on file
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="UTR / Bank reference">
-                    <input type="text" placeholder="e.g. 4429XXXXXXX" value={utr} onChange={(e) => setUtr(e.target.value)} className={`${inputClass} font-mono`} />
-                  </Field>
-                  <Field label={`Amount (max ${currency}${(request.orderTotal || 0).toFixed(2)})`}>
-                    <input
-                      type="number"
-                      placeholder={(refund.amount || request.orderTotal || 0).toFixed(2)}
-                      value={settleAmount}
-                      onChange={(e) => setSettleAmount(e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                </div>
-                <Field label="Reason / comment">
-                  <input type="text" placeholder="Why this amount?" value={settleReason} onChange={(e) => setSettleReason(e.target.value)} className={inputClass} />
-                </Field>
-
-                <div className="flex gap-2">
-                  <Btn
-                    variant="ghost"
-                    className="flex-1"
-                    disabled={busy || refund.status === 'initiated'}
-                    onClick={() => onAction('refund-initiated', { orderId: request._id, note: settleReason })}
-                  >
-                    {refund.status === 'initiated' ? 'Already Initiated' : 'Mark Initiated'}
-                  </Btn>
-                  <Btn variant="emerald" className="flex-[2]" disabled={busy || !utr.trim()} onClick={() => onAction('refund-settlement', { orderId: request._id, utr, amount: settleAmount, reason: settleReason })}>
-                    Record Payment & Close
-                  </Btn>
-                </div>
-              </div>
-            )}
+            ) : null}
           </Section>
 
           {/* Investigation */}

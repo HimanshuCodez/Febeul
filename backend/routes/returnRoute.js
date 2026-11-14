@@ -17,6 +17,7 @@ import {
 } from '../controllers/returnController.js';
 import adminAuth from '../middleware/adminAuth.js';
 import upload from '../middleware/multer.js';
+import { payCodRefund, savePayoutNote } from '../controllers/codPayoutController.js';
 
 const returnRouter = express.Router();
 
@@ -34,6 +35,8 @@ returnRouter.post('/mark-late-received', adminAuth, markLateReceived);
 returnRouter.post('/quality-check', adminAuth, upload.array('photos', 6), submitQualityCheck);
 returnRouter.post('/refund-initiated', adminAuth, markRefundInitiated);
 returnRouter.post('/refund-settlement', adminAuth, recordRefundSettlement);
+returnRouter.post('/cod-payout', adminAuth, payCodRefund);
+returnRouter.post('/payout-note', adminAuth, savePayoutNote);
 returnRouter.post('/investigation', adminAuth, openInvestigation);
 returnRouter.post('/followup', adminAuth, addFollowup);
 returnRouter.post('/claim', adminAuth, updateClaim);

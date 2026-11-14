@@ -338,6 +338,8 @@ const markRefundInitiated = async (req, res) => {
         const blockReason = getReturnRefundBlockReason(order);
         if (blockReason) return res.status(409).json({ success: false, message: blockReason });
         if (order.paymentMethod !== 'COD') return res.status(409).json({ success: false, message: 'Use the payment gateway refund action for prepaid orders.' });
+        if (order.refundDetails.payout?.key || order.refundDetails.payout?.lockToken) return res.status(409).json({ success: false, message: 'This refund is managed by RazorpayX. Use Check payout status.' });
+        order.$where = { 'refundDetails.payout.key': null, 'refundDetails.payout.lockToken': null, 'refundDetails.status': { $ne: 'completed' } };
 
         order.refundDetails.returnTracking.refundInitiatedAt = order.refundDetails.returnTracking.refundInitiatedAt || new Date();
         order.refundDetails.status = 'initiated';
@@ -366,6 +368,8 @@ const recordRefundSettlement = async (req, res) => {
         const blockReason = getReturnRefundBlockReason(order);
         if (blockReason) return res.status(409).json({ success: false, message: blockReason });
         if (order.paymentMethod !== 'COD') return res.status(409).json({ success: false, message: 'Use the original payment gateway to refund prepaid orders.' });
+        if (order.refundDetails.payout?.key || order.refundDetails.payout?.lockToken) return res.status(409).json({ success: false, message: 'This refund is managed by RazorpayX. A manual settlement cannot override its payout status.' });
+        order.$where = { 'refundDetails.payout.key': null, 'refundDetails.payout.lockToken': null, 'refundDetails.status': { $ne: 'completed' } };
 
         if (!utr || !utr.toString().trim()) {
             return res.json({ success: false, message: 'A UTR / bank reference number is required.' });

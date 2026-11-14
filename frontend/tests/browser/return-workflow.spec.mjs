@@ -11,7 +11,7 @@ const makeOrder = (extra = {}) => ({
 });
 
 async function fixture(context, order = makeOrder()) {
-  const state = { order, calls: [], errors: [], pendingGateway: false, pickupFailure: false };
+  const state = { order, calls: [], errors: [], pendingGateway: false, pickupFailure: false, payoutError: false };
   context.on('page', page => page.on('pageerror', error => state.errors.push(error.message)));
   await context.addInitScript(() => {
     if (location.origin !== 'http://127.0.0.1:5179') return;
@@ -42,8 +42,17 @@ async function fixture(context, order = makeOrder()) {
         tracking.refundInitiatedAt = new Date().toISOString();
         if (!state.pendingGateway) tracking.refundPaidAt = new Date().toISOString();
       }
-      if (url.pathname.endsWith('/refund-settlement')) {
-        refund.status = 'completed'; refund.amount = Number(body.amount || 500); tracking.refundUtr = body.utr; tracking.refundPaidAt = new Date().toISOString();
+      if (url.pathname.endsWith('/payout-note')) refund.payoutNote = body.note;
+      if (url.pathname.endsWith('/cod-payout')) {
+        refund.payoutNote = body.note;
+        refund.amount = body.amount ?? refund.amount ?? 500;
+        refund.isPartialRefund = refund.amount < 500;
+        refund.payout = { key: 'local-payout-key', id: 'pout_local', status: state.payoutError ? 'failed' : state.pendingGateway ? 'processing' : 'processed',
+          adminError: state.payoutError ? 'RazorpayX has insufficient funds. Add funds before retrying the payout.' : '' };
+        refund.status = state.payoutError ? 'failed' : state.pendingGateway ? 'processing' : 'completed';
+        tracking.refundInitiatedAt = new Date().toISOString();
+        if (!state.payoutError && !state.pendingGateway) { tracking.refundUtr = 'AUTOMATIC-UTR'; tracking.refundPaidAt = new Date().toISOString(); }
+        if (state.payoutError) return route.fulfill({ status: 502, json: { success: false, message: refund.payout.adminError } });
       }
     }
     return route.fulfill({ json: data });
@@ -101,29 +110,65 @@ test('return approval only schedules pickup, then receipt and QC unlock the fina
   expect(state.errors).toEqual([]);
 });
 
-test('COD payment recording is available only after receipt and inspection', async ({ context, page }) => {
+test('COD payouts become available after receipt and QC and preserve earlier courier history', async ({ context, page }) => {
   const order = makeOrder({ paymentMethod: 'COD', payment: false });
   order.refundDetails.returnTracking = {
     investigationTicket: 'COURIER-123', investigationOpenedAt: new Date().toISOString(), investigationBy: 'Test Admin',
     followups: [{ note: 'Courier confirmed the parcel is on its way.', by: 'Test Admin', date: new Date().toISOString() }],
   };
+  order.refundDetails.customerPayoutDetails = { type: 'upi', upiId: 'buyer@upi' };
   const state = await fixture(context, order);
   const drawer = await open(page);
-  await expect(drawer.getByRole('button', { name: 'Record Payment & Close' })).toHaveCount(0);
+  await expect(drawer.getByRole('button', { name: 'Pay refund', exact: true })).toBeDisabled();
   await approve(page, drawer); await inspect(drawer);
   await expect(drawer.getByText('Ticket #COURIER-123', { exact: true })).toBeVisible();
   await expect(drawer.getByText('Courier confirmed the parcel is on its way.', { exact: true })).toBeVisible();
   await expect(drawer.getByPlaceholder('What did the courier say?')).toHaveCount(0);
   await expect(drawer.getByRole('button', { name: 'Log', exact: true })).toHaveCount(0);
   await expect(drawer.getByPlaceholder('e.g. DL88231')).toHaveCount(0);
-  await expect(drawer.getByRole('button', { name: 'Record Payment & Close' })).toBeDisabled();
-  await drawer.getByPlaceholder('e.g. 4429XXXXXXX').fill('TEST-BANK-REF');
-  await drawer.getByRole('button', { name: 'Record Payment & Close' }).click();
+  await expect(drawer.getByRole('button', { name: 'Pay refund', exact: true })).toBeEnabled();
+  await expect(drawer.getByPlaceholder('e.g. 4429XXXXXXX')).toHaveCount(0);
+  await drawer.getByRole('textbox', { name: 'Note to customer', exact: true }).fill('Refund approved after inspection.');
+  page.once('dialog', dialog => dialog.accept());
+  await drawer.getByRole('button', { name: 'Pay refund', exact: true }).click();
   await expect(drawer.getByText('Refund completed', { exact: true })).toBeVisible();
   await expect(drawer.getByText('Ticket #COURIER-123', { exact: true })).toBeVisible();
   await expect(drawer.getByText('Courier confirmed the parcel is on its way.', { exact: true })).toBeVisible();
   await expect(drawer.getByRole('button', { name: 'Log', exact: true })).toHaveCount(0);
-  expect(state.calls.at(-1).path).toBe('/api/return/refund-settlement');
+  await expect(drawer.getByText('UTR: AUTOMATIC-UTR', { exact: true })).toBeVisible();
+  await expect(drawer.getByRole('button', { name: 'Pay refund', exact: true })).toHaveCount(0);
+  expect(state.calls.at(-1)).toEqual({ path: '/api/return/cod-payout', body: { orderId: order._id, amount: 500, note: 'Refund approved after inspection.', retry: false } });
+  expect(state.errors).toEqual([]);
+});
+
+test('COD partial payout errors refresh the drawer, allow customer notes and reconcile processing without another pay click', async ({ context, page }) => {
+  const order = makeOrder({ paymentMethod: 'COD', payment: false });
+  order.refundDetails.customerPayoutDetails = { type: 'bank', accountHolderName: 'Test Buyer', bankAccount: '12345678901', ifsc: 'HDFC0001234' };
+  order.refundDetails.returnTracking = { approvedAt: new Date().toISOString(), receivedDate: new Date().toISOString(), qcResult: 'PASS' };
+  const state = await fixture(context, order), drawer = await open(page, 'Refund Pending');
+  await drawer.getByRole('button', { name: 'Partial refund', exact: true }).click();
+  await drawer.getByRole('spinbutton', { name: 'COD refund amount', exact: true }).fill('501');
+  await expect(drawer.getByRole('button', { name: 'Pay partial refund', exact: true })).toBeDisabled();
+  await drawer.getByRole('spinbutton', { name: 'COD refund amount', exact: true }).fill('125.25');
+  state.payoutError = true;
+  page.once('dialog', dialog => dialog.accept());
+  await drawer.getByRole('button', { name: 'Pay partial refund', exact: true }).click();
+  await expect(drawer.getByRole('alert')).toContainText('insufficient funds');
+  await expect(drawer.getByText('Refund completed', { exact: true })).toHaveCount(0);
+  await drawer.getByRole('textbox', { name: 'Note to customer', exact: true }).fill('Your refund is delayed. We will update you here.');
+  await drawer.getByRole('button', { name: 'Save customer note', exact: true }).click();
+  expect(order.refundDetails.payoutNote).toBe('Your refund is delayed. We will update you here.');
+  state.payoutError = false; state.pendingGateway = true;
+  page.once('dialog', dialog => dialog.accept());
+  await drawer.getByRole('button', { name: 'Retry payout', exact: true }).click();
+  await expect(drawer.getByRole('button', { name: 'Check payout status', exact: true })).toBeVisible();
+  await expect(drawer.getByRole('spinbutton', { name: 'COD refund amount', exact: true })).toHaveCount(0);
+  state.pendingGateway = false;
+  await drawer.getByRole('button', { name: 'Check payout status', exact: true }).click();
+  await expect(drawer.getByText('Refund completed', { exact: true })).toBeVisible();
+  await expect(drawer.getByText('₹125.25', { exact: true })).toBeVisible();
+  expect(state.calls.at(-1).body.amount).toBeUndefined();
+  expect(state.calls.filter(call => call.path.endsWith('/refund-settlement'))).toHaveLength(0);
   expect(state.errors).toEqual([]);
 });
 

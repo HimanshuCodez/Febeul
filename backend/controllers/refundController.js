@@ -106,7 +106,7 @@ const approveRefund = async (req, res) => {
         if (order.refundDetails.requestType === 'return') {
             const blockReason = getReturnRefundBlockReason(order);
             if (blockReason) return res.status(409).json({ success: false, message: blockReason });
-            if (order.paymentMethod === 'COD') return res.status(409).json({ success: false, message: 'Pay the COD refund and record its bank reference from the return settlement action.' });
+            if (order.paymentMethod === 'COD') return res.status(409).json({ success: false, message: 'Use the COD payout action in the return settlement section.' });
         }
 
         const reason = returnReason || order.refundDetails.reason;
@@ -175,6 +175,8 @@ const rejectRefund = async (req, res) => {
         const order = await orderModel.findById(orderId);
         if (!order) return res.json({ success: false, message: "Order not found." });
         if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails?.requestType === 'cancellation') return res.status(409).json({ success: false, message: 'A cancelled order refund cannot be rejected or removed.' });
+        if (order.refundDetails.payout?.key || order.refundDetails.payout?.lockToken) return res.status(409).json({ success: false, message: 'A RazorpayX payout cannot be rejected or replaced. Check its payment status instead.' });
+        order.$where = { 'refundDetails.payout.key': null, 'refundDetails.payout.lockToken': null };
 
         order.refundDetails.status = 'rejected';
         order.refundDetails.rejectionReason = rejectionReason;
@@ -202,6 +204,7 @@ const requestRefund = async (req, res) => {
         if (!order) return res.json({ success: false, message: "Order not found." });
         if (order.userId.toString() !== userId) return res.json({ success: false, message: "Unauthorized." });
         if (order.isCancelled || order.orderStatus === 'Cancelled' || order.refundDetails?.requestType === 'cancellation') return res.status(409).json({ success: false, message: 'Cancellation and refund history cannot be replaced or withdrawn.' });
+        if (order.refundDetails.payout?.key || order.refundDetails.payout?.lockToken) return res.status(409).json({ success: false, message: 'Your existing refund payout is already being handled. Contact support to correct refund details.' });
 
         const isDelivered = order.orderStatus === 'Delivered';
         if (isDelivered) {
@@ -237,7 +240,8 @@ const requestRefund = async (req, res) => {
         if (isDelivered && updateData['refundDetails.requestType'] !== 'return') updateData.orderStatus = 'Refund Initiated';
         if (order.paymentMethod === 'COD' && payoutDetails) updateData['refundDetails.customerPayoutDetails'] = JSON.parse(payoutDetails);
 
-        const updatedOrder = await orderModel.findByIdAndUpdate(orderId, updateData, { new: true });
+        const updatedOrder = await orderModel.findOneAndUpdate({ _id: orderId, userId, 'refundDetails.payout.key': null, 'refundDetails.payout.lockToken': null }, updateData, { new: true });
+        if (!updatedOrder) return res.status(409).json({ success: false, message: 'This refund changed while submitting. Refresh your order before continuing.' });
 
         const returnCount = await orderModel.countDocuments({ userId, 'refundDetails.status': { $ne: 'none' } });
         if (returnCount > MAX_RETURNS_BEFORE_BLOCK) {

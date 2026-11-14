@@ -858,6 +858,14 @@ export default function OrderDetailPage() {
               })}
 
               {hasAftercare && <OrderAftercareTimeline order={order} />}
+              {order.paymentMethod === 'COD' && (order.refundDetails?.payout?.message || order.refundDetails?.payoutNote) && (
+                <section aria-label="Refund payment update" className="ml-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:ml-14">
+                  <h3 className="text-sm font-bold text-slate-800">Refund payment update</h3>
+                  {order.refundDetails.payout?.message && <p className="mt-2 text-sm text-slate-700">{order.refundDetails.payout.message}</p>}
+                  {order.refundDetails.payoutNote && <div className="mt-3"><p className="text-xs font-semibold text-slate-500">Note from our team</p><p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-700">{order.refundDetails.payoutNote}</p></div>}
+                  {order.refundDetails.payout?.utr && <p className="mt-2 break-all text-xs text-slate-500">Bank reference (UTR): {order.refundDetails.payout.utr}</p>}
+                </section>
+              )}
 
               {/* Cancelled State */}
               {displayStatus === 'Cancelled' && (

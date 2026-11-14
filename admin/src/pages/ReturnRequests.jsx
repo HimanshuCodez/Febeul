@@ -149,9 +149,11 @@ const ReturnRequests = ({ token }) => {
         await fetchReturns({ silent: true });
       } else {
         toast.error(data.message || 'Action failed.');
+        if (endpoint === 'cod-payout') await fetchReturns({ silent: true });
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Action failed.');
+      if (endpoint === 'cod-payout') await fetchReturns({ silent: true });
     } finally {
       setBusy(false);
     }

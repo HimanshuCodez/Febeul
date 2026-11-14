@@ -64,6 +64,26 @@ async function refresh(page, order) {
   await response;
 }
 
+test('COD payout failures, customer notes and automatic bank references appear on the order page', async ({ context, page }) => {
+  const order = makeOrder({ refundDetails: { requestType: 'return', status: 'failed', amount: 125.25, payoutNote: 'Please contact support to update your bank details.\nYour refund is still due.',
+    payout: { status: 'failed', message: 'We could not send your refund to the supplied UPI ID or bank account.' },
+    returnTracking: { receivedDate: new Date().toISOString(), qcResult: 'PASS' } } });
+  const state = await mockApp(context, order);
+  await visit(page, order);
+  const update = page.getByRole('region', { name: 'Refund payment update' });
+  await expect(update).toContainText('could not send your refund');
+  await expect(update).toContainText('Please contact support to update your bank details.');
+  await expect(update).toContainText('Your refund is still due.');
+  state.order.refundDetails.status = 'completed';
+  state.order.refundDetails.payout = { status: 'processed', message: 'Your refund has been paid to your selected bank account or UPI ID.', utr: 'AUTOMATIC-UTR' };
+  state.order.refundDetails.payoutNote = 'Your agreed partial refund has been sent.';
+  await refresh(page, order);
+  await expect(update).toContainText('Your agreed partial refund has been sent.');
+  await expect(update).toContainText('Bank reference (UTR): AUTOMATIC-UTR');
+  await expect(update).not.toContainText('could not send');
+  expect(state.errors).toEqual([]);
+});
+
 test('COD return requires four photos, sends saved payout and continues below Delivered through courier stages', async ({ context, page }) => {
   const order = makeOrder(), state = await mockApp(context, order);
   await visit(page, order);
