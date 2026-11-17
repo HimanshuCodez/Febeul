@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { fillProductDetails, productDetails } from './helpers/productDetails.mjs';
 
 const admin = 'http://127.0.0.1:5179';
 const backend = 'http://127.0.0.1:4198';
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=', 'base64');
 const upload = name => ({ name, mimeType: 'image/png', buffer: png });
 const product = id => ({
+  ...productDetails,
   _id: id, name: `Published ${id}`, description: '<p>Published description</p>', category: 'BABYDOLL',
   variations: [{ color: 'Rose', sku: `SKU-${id}`, images: ['https://res.cloudinary.com/local/cover.png'], sizes: [{ size: 'M', price: 399, mrp: 499, stock: 10 }] }]
 });
@@ -60,6 +62,7 @@ async function login(page, email) {
   await expect(page.getByLabel('Product name', { exact: true })).toBeEnabled();
 }
 async function completeNewProduct(page) {
+  await fillProductDetails(page);
   await page.getByLabel('Product name', { exact: true }).fill('Draft product');
   await page.locator('.ql-editor').fill('Draft description');
   const variation = page.getByRole('group', { name: 'Variation 1', exact: true });
@@ -72,6 +75,52 @@ async function completeNewProduct(page) {
   await page.getByLabel('Upload images for variation 1').setInputFiles(upload('draft.png'));
   await saved(page);
 }
+
+for (const editor of ['Add', 'Update']) test(`${editor} rejects nonnumeric input and empty fields, preserves incomplete drafts and requires positive stock`, async ({ context }, testInfo) => {
+  const state = await fixture(context), page = await context.newPage();
+  await open(page, editor === 'Add' ? '/add' : '/update/one');
+  if (editor === 'Add') await completeNewProduct(page);
+  const price = page.getByLabel('Price', { exact: true }), stock = page.getByLabel('Stock', { exact: true });
+  for (const invalid of ['abc', '-2', '1e3', '12.999']) {
+    await price.fill(invalid);
+    await expect(price).toHaveValue('399');
+  }
+  await page.getByLabel('HSN', { exact: true }).fill('62A4');
+  await expect(page.getByLabel('HSN', { exact: true })).toHaveValue('6204');
+  await stock.fill('2.5');
+  await expect(stock).toHaveValue(editor === 'Add' ? '12' : '10');
+  await page.getByLabel('Product name', { exact: true }).fill('   ');
+  await page.locator('.ql-editor').fill('');
+  await price.fill('0');
+  await stock.fill('');
+  const submit = page.getByRole('button', { name: new RegExp(`^${editor} Product$`, 'i') });
+  await submit.click();
+  const errors = page.getByRole('alert');
+  await expect(errors).toContainText('Product name is required.');
+  await expect(errors).toContainText('Product description is required.');
+  await expect(errors).toContainText('stock must be a whole number greater than zero');
+  expect(state.writes).toHaveLength(0);
+  await errors.screenshot({ path: testInfo.outputPath(`${editor.toLowerCase()}-validation.png`) });
+  await draftPanel(page).getByRole('button', { name: 'Save as draft' }).click();
+  await saved(page);
+  await page.reload();
+  await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('   ');
+  await expect(stock).toHaveValue('');
+  await page.getByLabel('Product name', { exact: true }).fill('Validated listing');
+  await page.locator('.ql-editor').fill('Complete valid product description.');
+  await price.fill('12.50');
+  await stock.fill('0');
+  await submit.click();
+  await expect(errors).toContainText('stock must be a whole number greater than zero');
+  expect(state.writes).toHaveLength(0);
+  await stock.fill('1');
+  await submit.click();
+  if (editor === 'Add') await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('');
+  else await expect(page).toHaveURL(`${admin}/list`);
+  expect(state.writes).toHaveLength(1);
+  expect(state.writes[0].variations[0].sizes[0]).toMatchObject({ price: '12.50', stock: '1' });
+  expect(state.errors).toEqual([]);
+});
 
 test('Add blocks price above MRP, keeps invalid drafts, and allows an equal price after correction', async ({ context }) => {
   const state = await fixture(context);
@@ -120,6 +169,8 @@ test('Add checks pricing on later variations and sizes and allows prices below M
   await page.getByRole('button', { name: '+ Add Variation', exact: true }).click();
   const variation = page.getByRole('group', { name: 'Variation 2', exact: true });
   await variation.getByLabel('Color', { exact: true }).fill('Red');
+  await variation.getByLabel('SKU for variation 2', { exact: true }).fill('RED-NEW');
+  await variation.getByLabel('Upload images for variation 2').setInputFiles(upload('red.png'));
   for (const size of ['M', 'L']) await variation.getByRole('button', { name: `+ ${size}`, exact: true }).click();
   for (let index = 0; index < 2; index++) {
     await variation.getByLabel('MRP', { exact: true }).nth(index).fill('499');
@@ -145,7 +196,8 @@ test('incomplete drafts save offline and restore every field, variations and ima
   await page.getByLabel('Product name', { exact: true }).fill('Unfinished listing');
   await page.locator('.ql-editor').fill('Keep this description');
   const detailIds = ['keywords', 'pattern', 'sleeve-style', 'sleeve-length', 'neck', 'material-composition', 'closure-type', 'material-type', 'care-instructions', 'generic-name', 'country-of-origin', 'manufacturer', 'packer', 'included-components', 'hsn', 'item-weight', 'item-dimensions-lxwxh', 'net-quantity'];
-  for (const id of detailIds) await page.locator(`#product-${id}`).fill(`Draft ${id}`);
+  const draftValue = id => id === 'hsn' ? '6204' : id === 'sleeve-length' ? '19.5' : `Draft ${id}`;
+  for (const id of detailIds) await page.locator(`#product-${id}`).fill(draftValue(id));
   await page.getByLabel('Visible on Website').uncheck();
   await page.getByLabel('Add to Bestseller').check();
   await page.getByLabel('Add to Luxe Prive Sale').check();
@@ -168,7 +220,7 @@ test('incomplete drafts save offline and restore every field, variations and ima
   await open(page);
   await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('Offline unfinished listing');
   await expect(page.locator('.ql-editor')).toHaveText('Keep this description');
-  for (const id of detailIds) await expect(page.locator(`#product-${id}`)).toHaveValue(`Draft ${id}`);
+  for (const id of detailIds) await expect(page.locator(`#product-${id}`)).toHaveValue(draftValue(id));
   await expect(page.getByLabel('Visible on Website')).not.toBeChecked();
   await expect(page.getByLabel('Add to Bestseller')).toBeChecked();
   await expect(page.getByLabel('Add to Luxe Prive Sale')).toBeChecked();

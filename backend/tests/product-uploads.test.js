@@ -13,6 +13,7 @@ import productModel from '../models/productModel.js';
 import userModel from '../models/userModel.js';
 import { signToken, userToken } from '../utils/authTokens.js';
 import { PRODUCT_IMAGE_MAX_BYTES, PRODUCT_UPLOAD_MAX_FILES } from '../../shared/productUploads.js';
+import { productDetails } from './helpers/productFixture.js';
 
 // Real multipart parsing and MongoDB; no deployment keys or Cloudinary calls.
 process.env.JWT_SECRET = 'product-upload-tests-only-32-characters';
@@ -20,7 +21,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 const variationsFor = count => Array.from({ length: count }, (_, i) => ({ color: `Color ${i}`, sku: `SKU-${i}`, sizes: [{ size: 'M', price: 399, mrp: 499, stock: 10 }], images: [] }));
 const bodyFor = (counts, { variations = variationsFor(counts.length), productId } = {}) => {
     const body = new FormData();
-    for (const [name, value] of Object.entries({ name: 'Multi-color product', description: '<p>Test listing</p>', category: 'BABYDOLL', isActive: 'true', variations: JSON.stringify(variations), ...(productId ? { productId } : {}) })) body.append(name, value);
+    for (const [name, value] of Object.entries({ ...productDetails, name: 'Multi-color product', description: '<p>Test listing</p>', category: 'BABYDOLL', isActive: 'true', variations: JSON.stringify(variations), ...(productId ? { productId } : {}) })) body.append(name, value);
     counts.forEach((count, v) => { for (let i = 0; i < count; i++) body.append(`variations[${v}][images]`, new Blob([png, `marker:${v}-${i}`], { type: 'image/png' }), `${v}-${i}.png`); });
     return body;
 };
@@ -98,6 +99,70 @@ test('add accepts prices equal to or below MRP', async () => {
     assert.equal(result.data.success, true);
     const saved = await productModel.findOne();
     assert.deepEqual(saved.variations[0].sizes.map(size => size.price), [499.99, 399.5]);
+});
+
+test('add and update require every product detail and reject empty rich-text descriptions before cloud operations', async () => {
+    const variations = variationsFor(1);
+    variations[0].images = ['https://res.cloudinary.com/local/image/upload/existing.png'];
+    const product = await productModel.create({ ...productDetails, name: 'Existing', description: 'Existing', category: 'BABYDOLL', date: Date.now(), variations });
+    const snapshot = await productModel.findById(product._id).lean();
+    for (const mode of ['add', 'update']) {
+        for (const field of ['name', 'description', 'category', ...Object.keys(productDetails)]) {
+            const body = bodyFor([1], { ...(mode === 'update' ? { variations, productId: String(product._id) } : {}) });
+            body.set(field, field === 'description' ? '<p><br></p><p>&nbsp;\u200b</p>' : '   ');
+            const result = await send(`/api/product/${mode}`, body);
+            assert.equal(result.status, 400, `${mode}: ${field}`);
+            assert.equal(result.data.success, false);
+            assert.equal(result.data.errors[0].field, field);
+        }
+        const duplicateDescription = bodyFor([1], { ...(mode === 'update' ? { variations, productId: String(product._id) } : {}) });
+        duplicateDescription.append('description', 'Unexpected second description');
+        assert.equal((await send(`/api/product/${mode}`, duplicateDescription)).status, 400);
+    }
+    assert.equal(calls.length, 0);
+    assert.equal(await productModel.countDocuments(), 1);
+    assert.deepEqual(await productModel.findById(product._id).lean(), snapshot);
+});
+
+test('numeric and variation validation protects add and update from malformed or missing values', async () => {
+    const original = variationsFor(1); original[0].images = ['https://res.cloudinary.com/local/image/upload/existing.png'];
+    const product = await productModel.create({ ...productDetails, name: 'Existing', description: 'Existing', category: 'BABYDOLL', date: Date.now(), variations: original });
+    const snapshot = await productModel.findById(product._id).lean();
+    for (const mode of ['add', 'update']) {
+        for (const [field, value] of [['price', '1e2'], ['price', '-1'], ['price', '1.234'], ['price', 'Infinity'], ['price', ''],
+            ['price', 500], ['mrp', 0], ['mrp', 'NaN'], ['stock', ''], ['stock', 0], ['stock', '0'], ['stock', -1], ['stock', 1.5], ['stock', false], ['stock', 'two']]) {
+            const variations = structuredClone(original); variations[0].sizes[0][field] = value;
+            const result = await send(`/api/product/${mode}`, bodyFor([1], { variations, ...(mode === 'update' ? { productId: String(product._id) } : {}) }));
+            assert.equal(result.status, 400, `${mode}: ${field}=${value}`);
+        }
+        for (const variations of [[], null, {}, [null], [{ ...original[0], color: ' ' }], [{ ...original[0], sku: '' }],
+            [{ ...original[0], sizes: [] }], [{ ...original[0], sizes: [null] }], [{ ...original[0], images: 'invalid' }]]) {
+            const result = await send(`/api/product/${mode}`, bodyFor([1], { variations, ...(mode === 'update' ? { productId: String(product._id) } : {}) }));
+            assert.equal(result.status, 400, `${mode}: invalid variations`);
+        }
+        for (const [field, value] of [['hsn', '62a4'], ['sleeveLength', '-1'], ['itemWeight', 'heavy'], ['netQuantity', 'many'], ['itemDimensionsLxWxH', 'large'], ['keywords', ', ,']]) {
+            const body = bodyFor([1], { variations: original, ...(mode === 'update' ? { productId: String(product._id) } : {}) });
+            body.set(field, value);
+            assert.equal((await send(`/api/product/${mode}`, body)).status, 400, `${mode}: ${field}`);
+        }
+    }
+    assert.equal(calls.length, 0);
+    assert.deepEqual(await productModel.findById(product._id).lean(), snapshot);
+});
+
+test('positive stock, sleeveless length and decimal prices remain valid in both editors', async () => {
+    const variations = variationsFor(1); variations[0].sizes[0] = { size: 'M', price: '12.50', mrp: '20.99', stock: '1' };
+    const body = bodyFor([1], { variations }); body.set('sleeveLength', '0');
+    assert.equal((await send('/api/product/add', body)).data.success, true);
+    const product = await productModel.findOne();
+    const updating = bodyFor([0], { variations: product.variations.map(variation => variation.toObject()), productId: String(product._id) });
+    updating.set('sleeveLength', '0');
+    assert.equal((await send('/api/product/update', updating)).data.success, true);
+    const saved = await productModel.findById(product._id);
+    assert.equal(saved.variations[0].sizes[0].stock, 1);
+    assert.equal(saved.variations[0].sizes[0].price, 12.5);
+    assert.equal(saved.variations[0].sizes[0].mrp, 20.99);
+    assert.equal(saved.sleeveLength, '0');
 });
 
 test('update accepts 26 new images while retaining existing variation images', async () => {

@@ -2,22 +2,15 @@ const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/productModel.js"
 import { orderProductImages } from '../../shared/productUploads.js';
+import { validateProductRequest } from '../utils/productValidation.js';
 
 // function for add product
 const addProduct = async (req, res) => {
     try {
-        const { name, description, category, sizes, bestseller, isLuxePrive, isActive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
-        const variations = JSON.parse(variationsJSON);
-        const files = req.files;
-
-        // Reject invalid pricing before uploading images or creating a product.
-        for (const variation of variations) {
-            for (const size of variation.sizes) {
-                if (Number(size.price) > Number(size.mrp)) {
-                    return res.status(400).json({ success: false, message: `Price cannot be greater than MRP for size '${size.size}' in variation with color '${variation.color || 'N/A'}'.` });
-                }
-            }
-        }
+        const { name, description, category, bestseller, isLuxePrive, isActive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords } = req.body;
+        const variations = validateProductRequest(req, res);
+        if (!variations) return;
+        const files = req.files || [];
 
         // Step 1: Group files by variation index
         const filesGroupedByVariation = {};
@@ -48,7 +41,7 @@ const addProduct = async (req, res) => {
                     size: s.size,
                     price: Number(s.price),
                     mrp: Number(s.mrp),
-                    stock: Number(s.stock) || 0
+                    stock: Number(s.stock)
                 }))
             };
         }));
@@ -87,7 +80,7 @@ const addProduct = async (req, res) => {
             itemDimensionsLxWxH,
             netQuantity,
             genericName,
-            keywords: keywords ? keywords.split(',').map(kw => kw.trim()) : [],
+            keywords: keywords.split(',').map(kw => kw.trim()).filter(Boolean),
         };
 
         const product = new productModel(productData);
@@ -214,15 +207,16 @@ const singleProduct = async (req, res) => {
 // function for updating product
 const updateProduct = async (req, res) => {
     try {
-        const { productId, name, description, category, bestseller, isLuxePrive, isActive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords, variations: variationsJSON } = req.body;
+        const { productId, name, description, category, bestseller, isLuxePrive, isActive, styleCode, countryOfOrigin, manufacturer, packer, includedComponents, fabric, type, pattern, sleeveStyle, sleeveLength, neck, hsn, materialComposition, careInstructions, closureType, materialType, itemWeight, itemDimensionsLxWxH, netQuantity, genericName, keywords } = req.body;
         
         const product = await productModel.findById(productId);
         if (!product) {
             return res.json({ success: false, message: "Product not found" });
         }
 
-        const variations = JSON.parse(variationsJSON);
-        const files = req.files;
+        const variations = validateProductRequest(req, res, { existingImages: true });
+        if (!variations) return;
+        const files = req.files || [];
 
         // Step 1: Group files by variation index
         const filesGroupedByVariation = {};
@@ -275,7 +269,7 @@ const updateProduct = async (req, res) => {
                     size: s.size,
                     price: Number(s.price),
                     mrp: Number(s.mrp),
-                    stock: Number(s.stock) || 0
+                    stock: Number(s.stock)
                 }))
             };
         }));
@@ -307,7 +301,7 @@ const updateProduct = async (req, res) => {
         product.itemDimensionsLxWxH = itemDimensionsLxWxH;
         product.netQuantity = netQuantity;
         product.genericName = genericName;
-        product.keywords = keywords ? keywords.split(',').map(kw => kw.trim()) : [];
+        product.keywords = keywords.split(',').map(kw => kw.trim()).filter(Boolean);
         product.variations = processedVariations;
 
         await product.save();

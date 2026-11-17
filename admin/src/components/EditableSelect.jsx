@@ -43,6 +43,7 @@ const EditableSelect = ({
       {!isAdding ? (
         <div className="flex gap-2">
           <select
+            aria-label={label}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             required={required}

@@ -11,6 +11,9 @@ import EditableSelect from "../components/EditableSelect";
 import ProductImageGallery from "../components/ProductImageGallery";
 import useProductDraft from '../hooks/useProductDraft';
 import ProductDraftStatus from '../components/ProductDraftStatus';
+import ProductNumberInput from '../components/ProductNumberInput';
+import ProductValidationSummary from '../components/ProductValidationSummary';
+import useProductValidation from '../hooks/useProductValidation';
 import { newProductDraftUrl } from '../utils/productDrafts';
 import { DEFAULT_TAXONOMY, fetchTaxonomy, saveTaxonomy } from "../utils/taxonomy";
 import { validateProductImageUploads } from '../../../shared/productUploads.js';
@@ -35,6 +38,7 @@ const Add = ({ token, draftOwner }) => {
   const navigate = useNavigate();
   const draftId = params.get('draft');
   const { values, setField, draft } = useProductDraft({ owner: draftOwner, namespace: backendUrl, productId: draftId ? `new:${draftId}` : 'new' });
+  const validation = useProductValidation(values);
   const [startingDraft, setStartingDraft] = useState(false);
   const startNewDraft = async () => {
     if (startingDraft || !draft.ready) return;
@@ -226,6 +230,7 @@ const Add = ({ token, draftOwner }) => {
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     if (loading || !draft.ready || draft.status === 'clearing') return;
+    if (!validation.validate()) return;
     const imageError = validateProductImageUploads(variations.flatMap(variation => variation.images));
     if (imageError) { toast.error(imageError); return; }
     setLoading(true);
@@ -241,33 +246,6 @@ const Add = ({ token, draftOwner }) => {
     }, 500); // Update every 500ms (adjust as needed)
 
     try {
-      // Validate variations: must have at least one size with price and mrp
-      for (const variation of variations) {
-        if (!variation.sizes || variation.sizes.length === 0) {
-          toast.error(`Variation with color '${variation.color || "N/A"}' must have at least one size.`);
-          setLoading(false);
-          clearInterval(interval);
-          setUploadProgress(0);
-          return;
-        }
-        for (const size of variation.sizes) {
-          if (!size.price || !size.mrp || parseFloat(size.price) <= 0 || parseFloat(size.mrp) <= 0) {
-            toast.error(`Size '${size.size}' in variation with color '${variation.color || "N/A"}' must have valid positive Price and MRP.`);
-            setLoading(false);
-            clearInterval(interval);
-            setUploadProgress(0);
-            return;
-          }
-          if (priceExceedsMrp(size)) {
-            toast.error(`Price cannot be greater than MRP for size '${size.size}' in variation with color '${variation.color || "N/A"}'.`);
-            setLoading(false);
-            clearInterval(interval);
-            setUploadProgress(0);
-            return;
-          }
-        }
-      }
-
       // Validate SKUs
       for (let i = 0; i < variations.length; i++) {
         if (isSkuDuplicate(variations[i].sku, i)) {
@@ -341,6 +319,7 @@ const Add = ({ token, draftOwner }) => {
       if (response.data.success) {
         toast.success(response.data.message);
         await draft.clear(true);
+        validation.reset();
         setLoading(false);
         // Refresh existing SKUs after adding
         const updatedSkusResponse = await axios.get(backendUrl + "/api/product/list");
@@ -366,7 +345,7 @@ const Add = ({ token, draftOwner }) => {
   const fabricOptions = taxonomy.fabrics.filter((f) => !disabledFabrics.includes(f));
 
   return (
-    <form onSubmit={onSubmitHandler} className="mx-auto w-full max-w-[1500px] pb-6 font-[Outfit,sans-serif] text-theme-342a3c [&_*]:[font-family:inherit] [&_input]:min-w-0 [&_select]:min-w-0 [&_button:focus-visible]:outline [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-theme-ad708f motion-reduce:[&_*]:transition-none">
+    <form onSubmit={onSubmitHandler} className="mx-auto w-full max-w-[1500px] pb-6 font-[Outfit,sans-serif] text-theme-342a3c [&_*]:[font-family:inherit] [&_input]:min-w-0 [&_select]:min-w-0 [&_button:focus-visible]:outline [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-theme-ad708f motion-reduce:[&_*]:transition-none" noValidate >
       <header className="mb-6 flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="mb-2.5 flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.18em] text-theme-947c8c"><span className="h-1.5 w-1.5 rotate-45 rounded-sm bg-theme-c77893" />FEBEUL / CATALOG</p>
@@ -380,6 +359,8 @@ const Add = ({ token, draftOwner }) => {
       </header>
 
       <ProductDraftStatus draft={draft} disabled={loading} />
+      <p className="mb-4 text-xs text-theme-776580">All product details are required to publish. Incomplete work can be saved as a draft. Use 0 for sleeve length on sleeveless items.</p>
+      <ProductValidationSummary errors={validation.errors} />
       <fieldset disabled={!draft.ready || loading || draft.status === 'clearing'} className="min-w-0">
 
       <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
@@ -421,7 +402,7 @@ const Add = ({ token, draftOwner }) => {
                   className={inputClass}
                   type="text"
                   placeholder="Enter comma-separated keywords"
-                />
+                 required />
               </div>
             </div>
           </section>
@@ -468,7 +449,7 @@ const Add = ({ token, draftOwner }) => {
                         className={`w-full min-w-0 px-3 py-2.5 border rounded-lg text-sm text-theme-514459 outline-none focus:ring-2 focus:ring-theme-f5e9f0 ${isSkuDuplicate(variation.sku, v_index) ? 'border-red-500 bg-red-50' : 'border-theme-e4dce9 bg-white'}`}
                         type="text"
                         placeholder="e.g. S-110"
-                      />
+                       required id={`product-sku-${v_index}`} />
                     </div>
                   </div>
 
@@ -488,30 +469,28 @@ const Add = ({ token, draftOwner }) => {
                           </div>
                           <div>
                             <label htmlFor={"product-mrp-" + v_index + "-" + s_index} className="mb-1.5 block text-[13px] font-medium text-theme-927d9d">MRP</label>
-                            <input id={"product-mrp-" + v_index + "-" + s_index}
+                            <ProductNumberInput id={"product-mrp-" + v_index + "-" + s_index}
                               name="mrp"
                               onChange={(e) => handleSizeChange(v_index, s_index, e)}
                               value={sizeData.mrp}
                               className={inputClass}
-                              type="number"
                               placeholder="MRP"
                               required
-                            />
+                             min={0.01} />
                           </div>
                           <div>
                             <label htmlFor={"product-price-" + v_index + "-" + s_index} className="mb-1.5 block text-[13px] font-medium text-theme-927d9d">Price</label>
-                            <input id={"product-price-" + v_index + "-" + s_index}
+                            <ProductNumberInput id={"product-price-" + v_index + "-" + s_index}
                               name="price"
                               onChange={(e) => handleSizeChange(v_index, s_index, e)}
                               value={sizeData.price}
                               className={inputClass}
-                              type="number"
                               max={sizeData.mrp !== '' && sizeData.mrp != null ? sizeData.mrp : undefined}
                               aria-invalid={priceExceedsMrp(sizeData)}
                               aria-describedby={priceExceedsMrp(sizeData) ? `product-price-error-${v_index}-${s_index}` : undefined}
                               placeholder="Price"
                               required
-                            />
+                             min={0.01} />
                             {priceExceedsMrp(sizeData) && (
                               <p id={`product-price-error-${v_index}-${s_index}`} className="mt-1.5 text-xs text-rose-600" role="status">
                                 Price cannot be greater than MRP.
@@ -520,15 +499,15 @@ const Add = ({ token, draftOwner }) => {
                           </div>
                           <div>
                             <label htmlFor={"product-stock-" + v_index + "-" + s_index} className="mb-1.5 block text-[13px] font-medium text-theme-927d9d">Stock</label>
-                            <input id={"product-stock-" + v_index + "-" + s_index}
+                            <ProductNumberInput id={"product-stock-" + v_index + "-" + s_index}
                               name="stock"
                               onChange={(e) => handleSizeChange(v_index, s_index, e)}
                               value={sizeData.stock}
                               className={inputClass}
-                              type="number"
                               placeholder="Stock"
                               required
-                            />
+                              min={1}
+                              integer />
                           </div>
                           <button
                             type="button"
@@ -624,50 +603,50 @@ const Add = ({ token, draftOwner }) => {
                 value={fabric}
                 onChange={value => setField('fabric', value)}
                 onAddNew={addFabric}
-              />
+               required />
               <EditableSelect
                 label="Type"
                 options={typeOptions}
                 value={type}
                 onChange={value => setField('type', value)}
                 onAddNew={addType}
-              />
+               required />
 
               <div className="w-full">
                 <label htmlFor="product-pattern" className="mb-2 block text-xs font-medium text-theme-776580">Pattern</label>
-                <input id="product-pattern" onChange={(e) => setField('pattern', e.target.value)} value={pattern} className={inputClass} type="text" placeholder="indo western" />
+                <input id="product-pattern" onChange={(e) => setField('pattern', e.target.value)} value={pattern} className={inputClass} type="text" placeholder="indo western"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-sleeve-style" className="mb-2 block text-xs font-medium text-theme-776580">Sleeve Style</label>
-                <input id="product-sleeve-style" onChange={(e) => setField('sleeveStyle', e.target.value)} value={sleeveStyle} className={inputClass} type="text" placeholder="straight with cutwork" />
+                <input id="product-sleeve-style" onChange={(e) => setField('sleeveStyle', e.target.value)} value={sleeveStyle} className={inputClass} type="text" placeholder="straight with cutwork"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-sleeve-length" className="mb-2 block text-xs font-medium text-theme-776580">Sleeve Length</label>
-                <input id="product-sleeve-length" onChange={(e) => setField('sleeveLength', e.target.value)} value={sleeveLength} className={inputClass} type="text" placeholder="19.5" />
+                <ProductNumberInput id="product-sleeve-length" onChange={(e) => setField('sleeveLength', e.target.value)} value={sleeveLength} className={inputClass}  placeholder="19.5"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-neck" className="mb-2 block text-xs font-medium text-theme-776580">Neck</label>
-                <input id="product-neck" onChange={(e) => setField('neck', e.target.value)} value={neck} className={inputClass} type="text" placeholder="round" />
+                <input id="product-neck" onChange={(e) => setField('neck', e.target.value)} value={neck} className={inputClass} type="text" placeholder="round"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-material-composition" className="mb-2 block text-xs font-medium text-theme-776580">Material Composition</label>
-                <input id="product-material-composition" onChange={(e) => setField('materialComposition', e.target.value)} value={materialComposition} className={inputClass} type="text" placeholder="92% Net, 8% Lace" />
+                <input id="product-material-composition" onChange={(e) => setField('materialComposition', e.target.value)} value={materialComposition} className={inputClass} type="text" placeholder="92% Net, 8% Lace"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-closure-type" className="mb-2 block text-xs font-medium text-theme-776580">Closure Type</label>
-                <input id="product-closure-type" onChange={(e) => setField('closureType', e.target.value)} value={closureType} className={inputClass} type="text" placeholder="Tie" />
+                <input id="product-closure-type" onChange={(e) => setField('closureType', e.target.value)} value={closureType} className={inputClass} type="text" placeholder="Tie"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-material-type" className="mb-2 block text-xs font-medium text-theme-776580">Material Type</label>
-                <input id="product-material-type" onChange={(e) => setField('materialType', e.target.value)} value={materialType} className={inputClass} type="text" placeholder="Lace, Net" />
+                <input id="product-material-type" onChange={(e) => setField('materialType', e.target.value)} value={materialType} className={inputClass} type="text" placeholder="Lace, Net"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-care-instructions" className="mb-2 block text-xs font-medium text-theme-776580">Care Instructions</label>
-                <input id="product-care-instructions" onChange={(e) => setField('careInstructions', e.target.value)} value={careInstructions} className={inputClass} type="text" placeholder="Machine Wash" />
+                <input id="product-care-instructions" onChange={(e) => setField('careInstructions', e.target.value)} value={careInstructions} className={inputClass} type="text" placeholder="Machine Wash"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-generic-name" className="mb-2 block text-xs font-medium text-theme-776580">Generic Name</label>
-                <input id="product-generic-name" onChange={(e) => setField('genericName', e.target.value)} value={genericName} className={inputClass} type="text" placeholder="Nightgown" />
+                <input id="product-generic-name" onChange={(e) => setField('genericName', e.target.value)} value={genericName} className={inputClass} type="text" placeholder="Nightgown"  required />
               </div>
             </div>
           </section>
@@ -681,35 +660,35 @@ const Add = ({ token, draftOwner }) => {
             <div className="grid min-w-0 grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
               <div className="w-full">
                 <label htmlFor="product-country-of-origin" className="mb-2 block text-xs font-medium text-theme-776580">Country of Origin</label>
-                <input id="product-country-of-origin" onChange={(e) => setField('countryOfOrigin', e.target.value)} value={countryOfOrigin} className={inputClass} type="text" placeholder="India" />
+                <input id="product-country-of-origin" onChange={(e) => setField('countryOfOrigin', e.target.value)} value={countryOfOrigin} className={inputClass} type="text" placeholder="India"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-manufacturer" className="mb-2 block text-xs font-medium text-theme-776580">Manufacturer</label>
-                <input id="product-manufacturer" onChange={(e) => setField('manufacturer', e.target.value)} value={manufacturer} className={inputClass} type="text" placeholder="King style knitwear" />
+                <input id="product-manufacturer" onChange={(e) => setField('manufacturer', e.target.value)} value={manufacturer} className={inputClass} type="text" placeholder="King style knitwear"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-packer" className="mb-2 block text-xs font-medium text-theme-776580">Packer</label>
-                <input id="product-packer" onChange={(e) => setField('packer', e.target.value)} value={packer} className={inputClass} type="text" placeholder="King style knitwear" />
+                <input id="product-packer" onChange={(e) => setField('packer', e.target.value)} value={packer} className={inputClass} type="text" placeholder="King style knitwear"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-included-components" className="mb-2 block text-xs font-medium text-theme-776580">Included Components</label>
-                <input id="product-included-components" onChange={(e) => setField('includedComponents', e.target.value)} value={includedComponents} className={inputClass} type="text" placeholder="1 shirt, 1 pant" />
+                <input id="product-included-components" onChange={(e) => setField('includedComponents', e.target.value)} value={includedComponents} className={inputClass} type="text" placeholder="1 shirt, 1 pant"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-hsn" className="mb-2 block text-xs font-medium text-theme-776580">HSN</label>
-                <input id="product-hsn" onChange={(e) => setField('hsn', e.target.value)} value={hsn} className={inputClass} type="text" placeholder="6204" />
+                <ProductNumberInput id="product-hsn" onChange={(e) => setField('hsn', e.target.value)} value={hsn} className={inputClass}  placeholder="6204"  integer required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-item-weight" className="mb-2 block text-xs font-medium text-theme-776580">Item Weight</label>
-                <input id="product-item-weight" onChange={(e) => setField('itemWeight', e.target.value)} value={itemWeight} className={inputClass} type="text" placeholder="150 g" />
+                <input id="product-item-weight" onChange={(e) => setField('itemWeight', e.target.value)} value={itemWeight} className={inputClass} type="text" placeholder="150 g"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-item-dimensions-lxwxh" className="mb-2 block text-xs font-medium text-theme-776580">Item Dimensions LxWxH</label>
-                <input id="product-item-dimensions-lxwxh" onChange={(e) => setField('itemDimensionsLxWxH', e.target.value)} value={itemDimensionsLxWxH} className={inputClass} type="text" placeholder="22 x 20 x 2 Centimeters" />
+                <input id="product-item-dimensions-lxwxh" onChange={(e) => setField('itemDimensionsLxWxH', e.target.value)} value={itemDimensionsLxWxH} className={inputClass} type="text" placeholder="22 x 20 x 2 Centimeters"  required />
               </div>
               <div className="w-full">
                 <label htmlFor="product-net-quantity" className="mb-2 block text-xs font-medium text-theme-776580">Net Quantity</label>
-                <input id="product-net-quantity" onChange={(e) => setField('netQuantity', e.target.value)} value={netQuantity} className={inputClass} type="text" placeholder="1.0 Count" />
+                <input id="product-net-quantity" onChange={(e) => setField('netQuantity', e.target.value)} value={netQuantity} className={inputClass} type="text" placeholder="1.0 Count"  required />
               </div>
             </div>
           </section>

@@ -1,9 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { fillProductDetails, productDetails } from './helpers/productDetails.mjs';
 
 const admin = 'http://127.0.0.1:5179';
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=', 'base64');
 const files = (count, prefix = 'image') => Array.from({ length: count }, (_, index) => ({ name: `${prefix}-${index}.png`, mimeType: 'image/png', buffer: png }));
 const product = {
+  ...productDetails,
   _id: '650000000000000000000001', name: 'Multi-color babydoll', description: '<p>Product description</p>', category: 'BABYDOLL', date: Date.now(),
   variations: Array.from({ length: 5 }, (_, i) => ({ color: `Color ${i}`, sku: `SKU-${i}`, images: [`https://res.cloudinary.com/local/existing-${i}.png`], sizes: [{ size: 'M', price: 399, mrp: 499, stock: 10 }] })),
 };
@@ -38,6 +40,7 @@ async function fixture(page, path = '/add', initialProduct = product) {
 
 test('Add lets images be dragged in both directions and submits the displayed order', async ({ page }) => {
   const state = await fixture(page);
+  await fillProductDetails(page);
   await page.getByLabel('Product name').fill('Reordered product');
   await page.locator('.ql-editor').fill('Product description');
   const variation = page.getByRole('group', { name: 'Variation 1', exact: true });
@@ -111,6 +114,7 @@ test('image arrows and keyboard controls reorder on narrow screens', async ({ pa
 
 test('five variations submit all 26 images and preserve entered details after a server error', async ({ page }) => {
   const state = await fixture(page); state.reject = true;
+  await fillProductDetails(page);
   await page.getByLabel('Product name').fill('Multi-color babydoll');
   await page.locator('.ql-editor').fill('Product description');
   const counts = [6, 5, 5, 5, 5];
