@@ -146,3 +146,46 @@ test('checkout charges the same product subtotal and discount as the cart after 
     assert.equal(order.orderTotal - order.shippingCharge, line.price * line.quantity - line.discountAmount);
   }
 });
+
+test('checkout preview discounts remaining eligible value and cannot repeat a product coupon', async () => {
+  await add('PERCENT20');
+  await couponModel.updateOne({ code: 'FIXED1' }, { $set: { discountValue: 10 } });
+  const items = [{ sku: 'FORGED', price: 999, quantity: 99, discountAmount: 0 }];
+  const preview = await request('/coupon/apply', { code: 'FIXED1', items });
+  assert.equal(preview.data.success, true);
+  assert.equal(preview.data.discountAmount, 4);
+  const repeated = await request('/coupon/apply', { code: 'PERCENT20', items });
+  assert.equal(repeated.status, 400);
+  assert.match(repeated.data.message, /already applied/);
+});
+
+test('wrong-SKU and membership codes fail before charging while mixed checkout discounts only its eligible SKU', async () => {
+  await couponModel.create([
+    { code: 'ROSEONLY', discountType: 'percentage', discountValue: 20, applicableSKUs: ['ROSE'], isLifetime: true },
+    { code: 'JOIN30', discountType: 'fixed', discountValue: 30, userType: 'membership', isLifetime: true },
+  ]);
+  await request('/cart/add', item({ color: 'Black', quantity: 1 }));
+  const black = { productId: String(product._id), color: 'Black', size: 'M', quantity: 1, sku: 'ROSE', price: 0.01, discountAmount: 999 };
+  for (const code of ['ROSEONLY', 'JOIN30']) {
+    const preview = await request('/coupon/apply', { code, items: [{ ...black, sku: code === 'JOIN30' ? 'LUXE-MEMBERSHIP' : 'ROSE' }] });
+    assert.equal(preview.status, 400);
+    const placed = await request('/order/razorpay', { items: [black], couponCode: code, couponDiscount: 999, address: { state: 'Delhi' } });
+    assert.equal(placed.data.success, false);
+    assert.equal(await orderModel.countDocuments(), 0);
+  }
+  // The reserved membership SKU on an ordinary product is not a membership purchase.
+  await productModel.updateOne({ _id: product._id }, { $set: { 'variations.1.sku': 'LUXE-MEMBERSHIP' } });
+  assert.equal((await request('/order/razorpay', { items: [black], couponCode: 'JOIN30', address: { state: 'Delhi' } })).data.success, false);
+  await request('/cart/add', item({ quantity: 1 }));
+  const items = [black, { ...black, color: 'Rose' }];
+  const preview = await request('/coupon/apply', { code: 'ROSEONLY', items });
+  assert.equal(preview.data.discountAmount, 1);
+  const gateway = nock('https://api.razorpay.com').post('/v1/orders', body => body.amount === 5900).reply(200, { id: 'order_scoped_cart', status: 'created' });
+  const placed = await request('/order/razorpay', { items, couponCode: 'ROSEONLY', couponDiscount: 999, address: { state: 'Delhi' } });
+  assert.equal(placed.data.success, true);
+  assert.equal(gateway.isDone(), true);
+  const saved = await orderModel.findOne();
+  assert.equal(saved.productAmount, 10);
+  assert.equal(saved.couponDiscount, 1);
+  assert.equal(saved.orderTotal, 59);
+});

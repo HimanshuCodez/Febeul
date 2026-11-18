@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { isCouponExpired } from '../../../shared/couponValidity.js';
+import { couponMatchesProductItems } from '../../../shared/couponScope.js';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   FaMapMarkerAlt,
@@ -153,6 +154,22 @@ export default function CheckoutPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(null);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+
+  const cartItemsForCoupon = cartItems.map(item => {
+    const variation = item.variations?.find(variant => variant.color === item.color);
+    const size = variation?.sizes?.find(size => size.size === item.size);
+    return {
+      productId: item._id, color: item.color, size: item.size,
+      sku: item.sku || variation?.sku, price: item.price || size?.price || 0,
+      quantity: item.quantity, appliedCoupon: item.appliedCoupon, discountAmount: item.discountAmount || 0,
+    };
+  });
+  const couponCartKey = JSON.stringify(cartItemsForCoupon);
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+  }, [couponCartKey, token]);
 
   useEffect(() => {
     fetchSiteSettings();
@@ -319,7 +336,7 @@ export default function CheckoutPage() {
   }, [token]);
 
   const getBestOffer = (offerType) => {
-    const candidates = activeOffers.filter(o => o.offerType === offerType);
+    const candidates = activeOffers.filter(o => o.offerType === offerType && couponMatchesProductItems(o, cartItemsForCoupon));
     if (candidates.length === 0) return null;
     return candidates.reduce((best, curr) => (curr.discountValue > best.discountValue ? curr : best));
   };
@@ -335,7 +352,7 @@ export default function CheckoutPage() {
     if (!offerType) return;
 
     const candidates = activeOffers
-      .filter(o => o.offerType === offerType)
+      .filter(o => o.offerType === offerType && couponMatchesProductItems(o, cartItemsForCoupon))
       .sort((a, b) => b.discountValue - a.discountValue);
     if (candidates.length === 0) return;
 
@@ -347,7 +364,7 @@ export default function CheckoutPage() {
             { code: offer.code, items: cartItemsForCoupon, userId: user._id, paymentMethod: selectedPayment },
             { headers: { token } }
           );
-          if (response.data.success && !cancelled) {
+          if (response.data.success && !cancelled && couponMatchesProductItems(response.data, cartItemsForCoupon)) {
             handleCouponApply(response.data);
             toast.success(`🎉 ${offer.code} auto-applied — you're saving ${formatDiscount(offer)}!`, { icon: '✨' });
             break;
@@ -359,7 +376,7 @@ export default function CheckoutPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [selectedPayment]);
+  }, [selectedPayment, couponCartKey]);
 
   // Combines the state-level "Active" toggle with pincode-level overrides
   // from Delivery Control to decide if an address can be delivered to at all.
@@ -489,17 +506,6 @@ export default function CheckoutPage() {
         return sum + (item.discountAmount || 0);
     }, 0);
 
-    const cartItemsForCoupon = cartItems.map((item) => {
-        const selectedVariation = item.variations?.find(v => v.color === item.color);
-        const itemPrice = selectedVariation?.sizes?.find(s => s.size === item.size)?.price;
-        return {
-            sku: selectedVariation?.sku,
-            price: item.price || itemPrice || 0,
-            quantity: item.quantity,
-            appliedCoupon: item.appliedCoupon
-        };
-    });
-
     const isLuxeMember = user?.isLuxeMember && (user?.giftWrapsLeft > 0);
 
     let shippingCharge = 0;
@@ -531,7 +537,7 @@ export default function CheckoutPage() {
   }
 
   const handleCouponApply = (couponData) => {
-    if (couponData && couponData.success) {
+    if (couponData && couponData.success && couponMatchesProductItems(couponData, cartItemsForCoupon)) {
         setAppliedCoupon(couponData);
         setCouponDiscount(couponData.discountAmount);
     } else {

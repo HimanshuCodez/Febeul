@@ -9,6 +9,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import couponRouter from '../routes/couponRoute.js';
 import couponModel from '../models/couponModel.js';
 import userModel from '../models/userModel.js';
+import productModel from '../models/productModel.js';
 import { couponDiscountFor } from '../utils/checkoutSecurity.js';
 import { isCouponExpired } from '../../shared/couponValidity.js';
 
@@ -16,17 +17,25 @@ import { isCouponExpired } from '../../shared/couponValidity.js';
 process.env.JWT_SECRET = 'local-coupon-sku-tests';
 process.env.ADMIN_EMAIL = 'admin@coupon.test';
 process.env.ADMIN_PASSWORD = 'local-only';
-let database, server, base, customer, customerToken, coupon;
+let database, server, base, customer, customerToken, coupon, catalog;
 const adminToken = () => adminTokenFor(process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD);
 async function request(path, body, token = customerToken) {
   const response = await fetch(base + path, { method: 'POST', headers: { 'Content-Type': 'application/json', token }, body: JSON.stringify(body) });
   return { status: response.status, data: await response.json() };
+}
+async function setCart(items) {
+  await userModel.updateOne({ _id: customer._id }, { $set: { cartData: items.map(item => ({ product: catalog._id, color: item.sku, size: 'M', quantity: item.quantity, appliedCoupon: item.appliedCoupon || null })) } });
 }
 before(async () => {
   database = await MongoMemoryServer.create();
   await mongoose.connect(database.getUri(), { dbName: 'coupon-sku-tests' });
   customer = await userModel.create({ email: 'shopper@coupon.test' });
   customerToken = userToken(customer);
+  catalog = await productModel.create({ name: 'Coupon test products', description: 'Local fixture', category: 'Test', date: Date.now(), variations: [
+    { color: 'STYLE-ROSE', sku: 'STYLE-ROSE', sizes: [{ size: 'M', price: 500, stock: 99 }] },
+    { color: 'STYLE-BLACK', sku: 'STYLE-BLACK', sizes: [{ size: 'M', price: 800, stock: 99 }] },
+  ] });
+  await setCart([{ sku: 'STYLE-ROSE', quantity: 1 }]);
   const app = express();
   app.use(express.json()); app.use('/api/coupon', couponRouter);
   server = app.listen(0, '127.0.0.1');
@@ -59,13 +68,35 @@ test('product validation accepts the configured SKU and rejects its sibling', as
 
 test('cart coupons discount only matching lines; unrestricted coupons still cover all lines', async () => {
   const items = [{ sku: 'STYLE-ROSE', price: 500, quantity: 2 }, { sku: 'STYLE-BLACK', price: 800, quantity: 1 }];
+  await setCart(items);
   const result = await request('/apply', { code: 'ROSE20', items, userId: String(customer._id) });
   assert.equal(result.data.discountAmount, 200);
+  await setCart([items[1]]);
   assert.equal((await request('/apply', { code: 'ROSE20', items: [items[1]], userId: String(customer._id) })).status, 400);
+  await setCart(items);
   await couponModel.create({ code: 'ANY20', discountType: 'percentage', discountValue: 20, expiryDate: '2099-12-31' });
   const unrestricted = await request('/apply', { code: 'ANY20', items, userId: String(customer._id) });
   assert.equal(unrestricted.data.discountAmount, 360);
   assert.equal((await couponModel.findById(coupon._id)).usageCount, 0);
+});
+
+test('checkout coupon preview uses saved products, SKUs, prices and quantities instead of submitted claims', async () => {
+  await setCart([{ sku: 'STYLE-BLACK', quantity: 1 }]);
+  const forged = { sku: 'STYLE-ROSE', productId: String(catalog._id), color: 'STYLE-BLACK', size: 'M', price: 500, quantity: 1 };
+  const wrongProduct = await request('/apply', { code: 'ROSE20', items: [forged] });
+  assert.equal(wrongProduct.status, 400);
+  assert.equal(wrongProduct.data.success, false);
+  assert.equal(wrongProduct.data.discountAmount, undefined);
+  await setCart([{ sku: 'STYLE-ROSE', quantity: 1 }, { sku: 'STYLE-BLACK', quantity: 2 }]);
+  const mixed = await request('/apply', { code: 'ROSE20', items: [{ ...forged, price: 1, quantity: 99, discountAmount: 999 }] });
+  assert.equal(mixed.data.discountAmount, 100);
+  assert.deepEqual(mixed.data.applicableSKUs, ['STYLE-ROSE']);
+  await setCart([]);
+  assert.equal((await request('/apply', { code: 'ANY20', items: [forged] })).status, 400);
+  await setCart([{ sku: 'STYLE-ROSE', quantity: 1 }]);
+  await userModel.updateOne({ _id: customer._id }, { $push: { cartData: { product: new mongoose.Types.ObjectId(), color: 'Deleted', size: 'M', quantity: 1 } } });
+  assert.equal((await request('/apply', { code: 'ROSE20', items: [forged] })).data.discountAmount, 100);
+  await setCart([{ sku: 'STYLE-ROSE', quantity: 1 }]);
 });
 
 test('membership purchase coupons are listed only for the membership page', async t => {
@@ -118,7 +149,7 @@ test('membership purchase coupons are listed only for the membership page', asyn
   });
 
   await t.test('checkout rejects membership coupons for members, non-members, mixed carts and misleading item names', async () => {
-    const membership = { sku: 'LUXE-MEMBERSHIP', price: 129, quantity: 1 };
+    const membership = { sku: 'LUXE-MEMBERSHIP', name: 'Febeul Luxe Membership', price: 129, quantity: 1 };
     const product = { sku: 'STYLE-ROSE', price: 500, quantity: 1 };
     const savedCoupon = await couponModel.findOne({ code: 'JOIN30' });
     try {
@@ -156,6 +187,13 @@ test('membership purchase coupons are listed only for the membership page', asyn
       message: 'This coupon is valid for Luxe membership only.',
     });
   });
+
+  await t.test('a pasted membership code cannot masquerade as a membership purchase in the checkout preview', async () => {
+    await setCart([{ sku: 'STYLE-BLACK', quantity: 1 }]);
+    const result = await request('/apply', { code: 'JOIN30', items: [{ sku: 'LUXE-MEMBERSHIP', name: 'Febeul Luxe Membership', price: 129, quantity: 1 }] });
+    assert.equal(result.status, 400);
+    assert.deepEqual(result.data, { success: false, message: 'This coupon is valid for Luxe membership only.' });
+  });
 });
 
 test('lifetime validity is explicit, editable, and enforced consistently', async t => {
@@ -178,6 +216,7 @@ test('lifetime validity is explicit, editable, and enforced consistently', async
   });
   await t.test('redeem through cart, product, and authoritative checkout pricing', async () => {
     const items = [{ sku: 'STYLE-ROSE', price: 500, quantity: 1 }];
+    await setCart(items);
     const cart = await request('/apply', { code: 'FOREVER10', items });
     assert.equal(cart.status, 200); assert.equal(cart.data.discountAmount, 50);
     const product = await request('/apply-product-coupon', { code: 'FOREVER10', productItem: items[0] });

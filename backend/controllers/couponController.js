@@ -1,6 +1,7 @@
 import couponModel from '../models/couponModel.js';
 import userModel from '../models/userModel.js';
 import { isCouponExpired } from '../../shared/couponValidity.js';
+import { applyItemCoupons } from '../utils/itemCoupons.js';
 
 const validCouponWindow = () => ({ $or: [
     { isLifetime: true },
@@ -255,17 +256,18 @@ export const getAllCouponUsage = async (req, res) => {
 // User: Apply a coupon
 export const applyCoupon = async (req, res) => {
     try {
-        const { code, items, paymentMethod } = req.body; // Expecting items from cart
+        const { code: rawCode, items: submittedItems, paymentMethod } = req.body;
         const userId = req.userId;
 
-        if (!code) {
+        if (typeof rawCode !== 'string' || !rawCode.trim() || rawCode.length > 100) {
             return res.status(400).json({ success: false, message: 'Coupon code is required.' });
         }
-        if (!items || items.length === 0) {
+        if (!Array.isArray(submittedItems) || !submittedItems.length || submittedItems.length > 100) {
             return res.status(400).json({ success: false, message: 'Cart items are required to apply a coupon.' });
         }
 
-        const coupon = await couponModel.findOne({ code: code.toUpperCase() });
+        const code = rawCode.trim().toUpperCase();
+        const coupon = await couponModel.findOne({ code });
 
         if (!coupon || !coupon.isActive) {
             return res.status(404).json({ success: false, message: 'Invalid or inactive coupon code.' });
@@ -276,9 +278,30 @@ export const applyCoupon = async (req, res) => {
         }
 
         // Explain the purchase restriction before checking payment or customer eligibility.
-        if (coupon.userType === 'membership' && !items.every(item => item.sku === 'LUXE-MEMBERSHIP')) {
+        // This endpoint previews merchandise checkout. Membership purchases use
+        // apply-product-coupon and never redeem through the shopping cart.
+        if (coupon.userType === 'membership') {
             return res.status(400).json({ success: false, message: 'This coupon is valid for Luxe membership only.' });
         }
+
+        const user = await userModel.findById(userId).populate('cartData.product');
+        if (!user || user.isBlocked) return res.status(403).json({ success: false, message: 'Coupon unavailable for this account.' });
+        // Match the cart reader's handling of deleted products and legacy rows.
+        const cartLines = user.cartData?.filter(line => line?.product && line.size && line.color && line.quantity !== undefined) || [];
+        if (!cartLines.length) return res.status(400).json({ success: false, message: 'Your cart is empty. Add a product before applying a coupon.' });
+        const items = [];
+        for (const line of cartLines) {
+            const product = line.product;
+            const variation = product?.variations?.find(variant => variant.color === line.color);
+            const size = variation?.sizes?.find(size => size.size === line.size);
+            if (!product || product.isActive === false || !size || !Number.isFinite(size.price) || size.price < 0 || !Number.isSafeInteger(line.quantity) || line.quantity < 1 || line.quantity > 99) {
+                return res.status(400).json({ success: false, message: 'Remove unavailable items from your cart before applying a coupon.' });
+            }
+            items.push({ sku: variation.sku, price: size.price, quantity: line.quantity, appliedCoupon: line.appliedCoupon });
+        }
+        const method = paymentMethod === 'cod' ? 'COD' : paymentMethod ? 'Razorpay' : undefined;
+        const { codes } = await applyItemCoupons(items, user, method, { strict: false });
+        if (codes.includes(code)) return res.status(400).json({ success: false, message: 'This coupon is already applied to an item in your cart.' });
 
         // Check Payment Method Restriction
         if (coupon.offerType === 'prepaid' && paymentMethod && paymentMethod !== 'card') {
@@ -300,12 +323,7 @@ export const applyCoupon = async (req, res) => {
 
         // Check Restrictions (Luxe or Specific Users)
         if (coupon.userType === 'luxe' || (coupon.specificUsers && coupon.specificUsers.length > 0)) {
-            const user = await userModel.findById(userId);
-            if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found.' });
-            }
-
-            if (coupon.userType === 'luxe' && !user.isLuxeMember) {
+            if (coupon.userType === 'luxe' && !(user.isLuxeMember && new Date(user.luxeMembershipExpires) > new Date())) {
                 return res.status(403).json({ success: false, message: 'This coupon is reserved for Luxe Members only.' });
             }
 
@@ -320,14 +338,14 @@ export const applyCoupon = async (req, res) => {
 
         let applicableTotal = 0;
         let currentQuantity = 0;
-        let cartTotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+        let cartTotal = items.reduce((total, item) => total + (item.price * item.quantity) - (item.discountAmount || 0), 0);
 
         if (coupon.applicableSKUs && coupon.applicableSKUs.length > 0) {
             const applicableItems = items.filter(item => coupon.applicableSKUs.includes(item.sku));
             if (applicableItems.length === 0) {
                 return res.status(400).json({ success: false, message: 'This coupon is not applicable to any items in your cart.' });
             }
-            applicableTotal = applicableItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+            applicableTotal = applicableItems.reduce((total, item) => total + (item.price * item.quantity) - (item.discountAmount || 0), 0);
             currentQuantity = applicableItems.reduce((total, item) => total + item.quantity, 0);
         } else {
             applicableTotal = cartTotal;
@@ -349,7 +367,7 @@ export const applyCoupon = async (req, res) => {
             discountAmount = coupon.discountValue;
         }
         
-        discountAmount = Math.min(discountAmount, applicableTotal);
+        discountAmount = Math.round(Math.min(discountAmount, applicableTotal) * 100) / 100;
 
         res.json({
             success: true,
@@ -359,6 +377,8 @@ export const applyCoupon = async (req, res) => {
             discountValue: coupon.discountValue,
             code: coupon.code,
             offerType: coupon.offerType,
+            userType: coupon.userType,
+            applicableSKUs: coupon.applicableSKUs,
         });
 
     } catch (error) {

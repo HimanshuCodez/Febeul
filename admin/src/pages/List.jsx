@@ -120,6 +120,12 @@ const List = ({ token, draftOwner, canAdd }) => {
     }, 0) || 0;
   };
 
+  const countOutOfStockSizes = (item) => {
+    return item.variations?.reduce((total, variation) => {
+      return total + (variation.sizes?.filter(size => (Number(size.stock) || 0) <= 0).length || 0);
+    }, 0) || 0;
+  };
+
   const getDisplayVariation = (item) => {
     if (!searchQuery) return item.variations?.[0];
     const searchLower = searchQuery.toLowerCase().trim();
@@ -163,7 +169,7 @@ const List = ({ token, draftOwner, canAdd }) => {
     {
       id: 'out-of-stock',
       label: 'Out of stock',
-      products: searchedList.filter(item => calculateTotalStock(item) <= 0)
+      products: searchedList.filter(item => calculateTotalStock(item) <= 0 || countOutOfStockSizes(item) > 0)
     },
     {
       id: 'hidden',
@@ -314,6 +320,7 @@ const List = ({ token, draftOwner, canAdd }) => {
         </div>
         {activeFilter !== 'drafts' && <p className='mt-2 text-xs text-gray-500'>
           Low stock: 1–{LOW_STOCK_THRESHOLD} total units across all variations and sizes.
+          {' '}Out of stock includes products with any unavailable size or colour.
         </p>}
       </div>
       
@@ -357,6 +364,8 @@ const List = ({ token, draftOwner, canAdd }) => {
         {
           paginatedList.map(item => {
             const displayVariation = getDisplayVariation(item);
+            const totalStock = calculateTotalStock(item);
+            const outOfStockSizes = countOutOfStockSizes(item);
             const productUrl = `${storefrontUrl}/product/${encodeURIComponent(item._id)}`;
             const pKeys = getProductSkuKeys(item);
             const selectedPKeys = pKeys.filter(k => selectedSkus.includes(k));
@@ -406,9 +415,14 @@ const List = ({ token, draftOwner, canAdd }) => {
                   <p className='hidden md:block text-xs text-gray-600 truncate'>{displayVariation?.sku}</p>
                   <p className='text-xs font-bold text-gray-900'>{currency}{displayVariation?.sizes?.[0]?.price}</p>
                   <p className='hidden md:block text-xs text-gray-400 line-through'>{currency}{displayVariation?.sizes?.[0]?.mrp}</p>
-                  <p className={`hidden md:block text-xs ${calculateTotalStock(item) === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                    {calculateTotalStock(item) === 0 ? 'Out' : calculateTotalStock(item)}
-                  </p>
+                  <div className='hidden md:block text-xs'>
+                    <p className={totalStock <= 0 ? 'text-red-600 font-bold' : 'text-gray-600'}>
+                      {totalStock <= 0 ? 'Out' : totalStock}
+                    </p>
+                    {totalStock > 0 && outOfStockSizes > 0 && (
+                      <p className='mt-1 text-red-600'>{outOfStockSizes} {outOfStockSizes === 1 ? 'size' : 'sizes'} out of stock</p>
+                    )}
+                  </div>
                   <p className='hidden lg:block text-[12px] text-gray-500 font-medium'>
                     {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </p>
@@ -521,7 +535,7 @@ const List = ({ token, draftOwner, canAdd }) => {
                                       </td>
                                       <td className='px-2 py-2 font-medium text-gray-700'>{s.size}</td>
                                       <td className='px-2 py-2 font-bold text-gray-900'>{currency}{s.price}</td>
-                                      <td className={`px-2 py-2 font-semibold ${s.stock === 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                      <td className={`px-2 py-2 font-semibold ${(Number(s.stock) || 0) <= 0 ? 'text-red-500' : 'text-green-600'}`}>
                                         {s.stock}
                                       </td>
                                     </tr>

@@ -17,7 +17,7 @@ export function validateItems(items, paymentMethod) {
 
 export function couponDiscountFor(coupon, items, user, paymentMethod) {
     if (!coupon || !coupon.isActive || isCouponExpired(coupon)) throw new Error('Invalid or expired coupon.');
-    if (coupon.userType === 'membership' && !items.every(i => i.sku === 'LUXE-MEMBERSHIP')) throw new Error('This coupon is valid for Luxe membership only.');
+    if (coupon.userType === 'membership' && !items.every(i => i.sku === 'LUXE-MEMBERSHIP' && i.name === 'Febeul Luxe Membership')) throw new Error('This coupon is valid for Luxe membership only.');
     if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) throw new Error('Coupon usage limit reached.');
     const uses = (coupon.usersWhoUsed || []).filter(u => String(u.userId) === String(user._id)).length;
     if (coupon.usageLimitPerUser && uses >= coupon.usageLimitPerUser) throw new Error('Coupon usage limit reached.');

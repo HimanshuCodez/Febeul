@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useId } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { Tag, Ticket, X, CheckCircle2, Sparkles, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { isCouponExpired } from '../../../shared/couponValidity.js';
+import { couponMatchesProductItems } from '../../../shared/couponScope.js';
 
 const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon }) => {
     const [couponCode, setCouponCode] = useState('');
@@ -16,6 +17,13 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
     const [isExpanded, setIsExpanded] = useState(false);
     const { token, user } = useAuthStore();
     const url = import.meta.env.VITE_BACKEND_URL;
+    const latestRequest = useRef(0);
+    const context = JSON.stringify([token, selectedPayment, items]);
+    const currentContext = useRef(context);
+    currentContext.current = context;
+    const matchingOffers = offers.filter(offer => couponMatchesProductItems(offer, items));
+
+    useEffect(() => () => { latestRequest.current += 1; }, []);
 
     // Sync internal appliedCode with prop from parent
     useEffect(() => {
@@ -77,13 +85,24 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
         }
 
         setLoading(true);
+        const requestId = ++latestRequest.current;
+        const requestContext = currentContext.current;
         try {
             const response = await axios.post(`${url}/api/coupon/apply`,
                 { code, items, userId: user?._id, paymentMethod: selectedPayment },
                 { headers: { token } }
             );
+            if (requestId !== latestRequest.current || requestContext !== currentContext.current) return;
 
             if (response.data.success) {
+                if (!couponMatchesProductItems(response.data, items)) {
+                    showCouponError(response.data.userType === 'membership'
+                        ? 'This coupon is valid for Luxe membership only.'
+                        : 'This coupon is not applicable to any items in your cart.');
+                    setAppliedCode(null);
+                    onCouponApply(null);
+                    return;
+                }
                 toast.success(response.data.message, {
                     icon: '🎉',
                     style: { borderRadius: '10px', background: '#333', color: '#fff' }
@@ -97,16 +116,19 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                 onCouponApply(null);
             }
         } catch (error) {
+            if (requestId !== latestRequest.current || requestContext !== currentContext.current) return;
             console.error("Error applying coupon:", error);
             showCouponError(error.response?.data?.message || 'Failed to apply coupon.');
             setAppliedCode(null);
             onCouponApply(null);
         } finally {
-            setLoading(false);
+            if (requestId === latestRequest.current) setLoading(false);
         }
     };
 
     const handleRemoveCoupon = () => {
+        latestRequest.current += 1;
+        setLoading(false);
         setCouponError('');
         setAppliedCode(null);
         setCouponCode('');
@@ -190,7 +212,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                 </p>
             )}
 
-            {offers.length > 0 && (
+            {matchingOffers.length > 0 && (
                 <div className="mt-6 pt-4 border-t border-dashed border-gray-100">
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
@@ -199,7 +221,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                         <div className="flex items-center gap-2">
                             <Sparkles className="w-4 h-4 text-amber-400" />
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Available Offers</span>
-                            <span className="bg-pink-100 text-pink-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{offers.length}</span>
+                            <span className="bg-pink-100 text-pink-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{matchingOffers.length}</span>
                         </div>
                         {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400 group-hover:text-pink-500 transition-colors" />}
                     </button>
@@ -213,7 +235,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                                 className="overflow-hidden"
                             >
                                 <div className="grid gap-3 mt-4">
-                                    {offers.map((offer) => {
+                                    {matchingOffers.map((offer) => {
                                         const isAlreadyAppliedToItem = items.some(item => item.appliedCoupon?.toUpperCase() === offer.code.toUpperCase());
                                         const paymentMethodLower = (selectedPayment || '').toLowerCase();
                                         const isEligible = ((offer.offerType === 'prepaid' && (paymentMethodLower === 'card' || paymentMethodLower === 'razorpay' || paymentMethodLower === 'stripe')) ||

@@ -9,10 +9,11 @@ const product = { _id: productId, name: 'Rose satin pyjama set', price: 499, qua
 const wrap = { _id: 'wrap-rose', name: 'Rose gift box', price: 35, image };
 const offer = { _id: 'prepaid-offer', code: 'ONLINE50', offerType: 'prepaid', isActive: true, isLifetime: true, expiryDate: null, discountType: 'fixed', discountValue: 50, description: 'Save ₹50 on eligible online orders.' };
 const membershipOffer = { ...offer, _id: 'membership-offer', code: 'JOIN30', userType: 'membership', discountValue: 30 };
+const otherProductOffer = { ...offer, _id: 'other-product-offer', code: 'OTHERONLY', applicableSKUs: ['OTHER-SKU'] };
 
 async function fixture(page, options = {}) {
   const state = {
-    calls: [], errors: [], cartError: false, orderError: false,
+    calls: [], errors: [], cartError: false, orderError: false, holdCoupon: false, releaseCoupon: null,
     user: { _id: '507f1f77bcf86cd799439022', name: 'Local shopper', email: 'shopper@example.test', isLuxeMember: Boolean(options.member), giftWrapsLeft: options.member ? 2 : 0, addresses: options.noAddress ? [] : [{ ...address }, { ...address, _id: 'address-work', name: 'Work address', address: '24 Market Road', zip: '110002', addressType: 'Business' }] },
   };
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -36,10 +37,12 @@ async function fixture(page, options = {}) {
         return reply({ success: true, cartItems: options.empty ? [] : [product], giftWrap: options.giftWrap ? wrap : null });
       }
       if (url.pathname === '/api/order/get-key') return reply({ success: true, key: 'rzp_test_local' });
-      if (url.pathname === '/api/coupon/all') return reply({ success: true, coupons: [...(options.offers ? [offer] : []), ...(options.membershipOffer ? [membershipOffer] : [])] });
+      if (url.pathname === '/api/coupon/all') return reply({ success: true, coupons: [...(options.offers ? [offer] : []), ...(options.membershipOffer ? [membershipOffer] : []), ...(options.otherProductOffer ? [otherProductOffer] : [])] });
       if (url.pathname === '/api/coupon/apply') {
+        if (state.holdCoupon) await new Promise(resolve => { state.releaseCoupon = resolve; });
         if (body.code === 'JOIN30') return route.fulfill({ status: 400, json: { success: false, message: 'This coupon is valid for Luxe membership only.' } });
-        return reply({ success: true, code: body.code, discountAmount: 50, offerType: 'prepaid', message: 'Coupon applied' });
+        if (body.code === 'OTHERONLY') return route.fulfill({ status: 400, json: { success: false, message: 'This coupon is not applicable to any items in your cart.' } });
+        return reply({ success: true, code: body.code, discountAmount: 50, offerType: 'prepaid', userType: 'normal', applicableSKUs: [], message: 'Coupon applied' });
       }
       if (url.pathname === '/api/giftwrap/list') return reply({ success: true, data: [wrap] });
       if (url.pathname.startsWith('/api/user/pincode-check/')) return reply([{ Status: 'Success', PostOffice: [{ District: 'Delhi', State: 'Delhi' }] }]);
@@ -63,6 +66,40 @@ async function fixture(page, options = {}) {
 const summary = page => page.getByRole('complementary', { name: 'Order Summary' });
 const payment = page => page.getByRole('radio', { name: /UPI \/ Net Banking \/ Card/ });
 const cod = page => page.getByRole('radio', { name: /Cash on Delivery/ });
+
+test('a coupon copied from another SKU stays hidden and cannot discount checkout', async ({ page }) => {
+  const state = await fixture(page, { otherProductOffer: true });
+  await expect(summary(page).getByRole('button', { name: /Available Offers/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Use this address' }).click();
+  await payment(page).check();
+  expect(state.calls.filter(call => call.path === '/api/coupon/apply')).toHaveLength(0);
+  const input = page.getByRole('textbox', { name: 'Coupon code', exact: true });
+  await input.fill('otheronly');
+  await input.press('Enter');
+  await expect(summary(page).getByRole('alert')).toHaveText('This coupon is not applicable to any items in your cart.');
+  await expect(page.getByLabel('Order total')).toHaveText('₹898.00');
+  await expect(page.getByRole('button', { name: 'Remove coupon', exact: true })).toHaveCount(0);
+  expect(state.calls.find(call => call.path === '/api/coupon/apply').body.items[0]).toMatchObject({ productId, sku: 'ROSE', color: 'Dusty rose', size: 'M' });
+  expect(state.errors).toEqual([]);
+});
+
+test('a coupon response from the previous payment selection cannot apply a stale discount', async ({ page }) => {
+  const state = await fixture(page);
+  await page.getByRole('button', { name: 'Use this address' }).click();
+  await payment(page).check();
+  state.holdCoupon = true;
+  const input = page.getByRole('textbox', { name: 'Coupon code', exact: true });
+  await input.fill('ONLINE50');
+  await input.press('Enter');
+  await expect.poll(() => Boolean(state.releaseCoupon)).toBe(true);
+  await cod(page).check();
+  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
+  state.releaseCoupon();
+  await expect(input).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Remove coupon', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
+  expect(state.errors).toEqual([]);
+});
 
 for (const member of [false, true]) {
   test(`membership coupon is rejected at product checkout for ${member ? 'Luxe members' : 'non-members'}`, async ({ page }) => {

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import useAuthStore from "../store/authStore";
 import { toast, Toaster } from 'react-hot-toast';
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail, Lock } from "lucide-react";
+
+const resetEmailMessage = 'If this email is registered, a password reset code will be sent.';
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1);
@@ -40,16 +42,16 @@ const ForgotPassword = () => {
     clearError();
     if (step === 1) {
       try {
-        const emailToProcess = data.email.toLowerCase();
+        const emailToProcess = data.email.trim().toLowerCase();
         const response = await forgotPassword(emailToProcess);
         if (response.success) {
-          toast.success(response.message || "OTP sent to your email.");
+          toast.success(response.message || resetEmailMessage);
           setEmail(emailToProcess);
           setStep(2);
         } else {
           toast.error(response.message || "Failed to send OTP.");
         }
-      } catch (e) {
+      } catch {
         // error is handled by the store and useEffect
       }
     } else if (step === 2) {
@@ -66,7 +68,7 @@ const ForgotPassword = () => {
         } else {
           toast.error(response.message || "Invalid OTP.");
         }
-      } catch (e) {
+      } catch {
         // error handled by store
       }
     } else {
@@ -79,7 +81,7 @@ const ForgotPassword = () => {
         } else {
           toast.error(response.message || "Failed to reset password.");
         }
-      } catch (e) {
+      } catch {
         // error handled by store
       }
     }
@@ -91,11 +93,11 @@ const ForgotPassword = () => {
     try {
         const response = await forgotPassword(email);
         if (response.success) {
-          toast.success(response.message || "OTP re-sent to your email.");
+          toast.success(response.message || resetEmailMessage);
         } else {
           toast.error(response.message || "Failed to re-send OTP.");
         }
-      } catch (e) {
+      } catch {
         // error is already handled by the store and useEffect
       }
   };
@@ -126,7 +128,7 @@ const ForgotPassword = () => {
     <Toaster position="top-center" reverseOrder={false}/>
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#f9aeaf] to-[#fcd9d9] p-4 md:p-6">
       {[...Array(8)].map((_, i) => (
-        <motion.div
+        <Motion.div
           key={i}
           className="absolute text-[#f47b7d]/20 text-4xl select-none pointer-events-none"
           initial={{ y: "100vh", x: Math.random() * 100 + "vw" }}
@@ -144,10 +146,10 @@ const ForgotPassword = () => {
           }}
         >
           💖
-        </motion.div>
+        </Motion.div>
       ))}
 
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -159,7 +161,7 @@ const ForgotPassword = () => {
 
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <motion.form
+            <Motion.form
               key="step1"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -190,7 +192,7 @@ const ForgotPassword = () => {
                 <p className="text-xs text-red-500 ml-1">{errors.email.message}</p>
               )}
 
-              <motion.button
+              <Motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
@@ -198,12 +200,12 @@ const ForgotPassword = () => {
                 className="w-full py-3.5 bg-[#f47b7d] text-white font-bold rounded-xl shadow-lg shadow-[#f47b7d]/20 hover:bg-[#f68a8b] transition-all disabled:bg-gray-400 mt-4"
               >
                 {loading ? 'Sending...' : 'Send OTP'}
-              </motion.button>
-            </motion.form>
+              </Motion.button>
+            </Motion.form>
           )}
 
           {step === 2 && (
-            <motion.form
+            <Motion.form
               key="step2"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -215,6 +217,9 @@ const ForgotPassword = () => {
               <div className="text-center">
                 <p className="text-gray-600 mb-1 text-sm">Verify your identity</p>
                 <p className="text-sm font-semibold text-gray-800">{email}</p>
+                <p className="mt-3 text-sm text-gray-600">
+                  Reset codes are sent only to registered accounts. If you have not registered yet, create an account first.
+                </p>
               </div>
 
               <div className="flex justify-between gap-2" onPaste={handleOtpPaste}>
@@ -243,7 +248,7 @@ const ForgotPassword = () => {
               </div>
 
               <div className="space-y-4">
-                <motion.button
+                <Motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
@@ -251,7 +256,7 @@ const ForgotPassword = () => {
                   className="w-full py-3.5 bg-[#f47b7d] text-white font-bold rounded-xl shadow-lg shadow-[#f47b7d]/20 hover:bg-[#f68a8b] transition-all disabled:bg-gray-400"
                 >
                   {loading ? 'Verifying...' : 'Verify OTP'}
-                </motion.button>
+                </Motion.button>
                 
                 <button 
                   type="button" 
@@ -261,11 +266,11 @@ const ForgotPassword = () => {
                   <ArrowLeft className="w-4 h-4" /> Change Email
                 </button>
               </div>
-            </motion.form>
+            </Motion.form>
           )}
 
           {step === 3 && (
-            <motion.form
+            <Motion.form
               key="step3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -316,7 +321,7 @@ const ForgotPassword = () => {
                 )}
               </div>
 
-              <motion.button
+              <Motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
@@ -324,8 +329,8 @@ const ForgotPassword = () => {
                 className="w-full py-3.5 bg-[#f47b7d] text-white font-bold rounded-xl shadow-lg shadow-[#f47b7d]/20 hover:bg-[#f68a8b] transition-all disabled:bg-gray-400 mt-4"
               >
                 {loading ? 'Resetting...' : 'Reset Password'}
-              </motion.button>
-            </motion.form>
+              </Motion.button>
+            </Motion.form>
           )}
         </AnimatePresence>
 
@@ -334,7 +339,7 @@ const ForgotPassword = () => {
             <ArrowLeft className="w-4 h-4" /> Back to Login
           </Link>
         </div>
-      </motion.div>
+      </Motion.div>
     </div>
     </>
   );

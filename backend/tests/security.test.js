@@ -221,6 +221,57 @@ test('forgot-password email is delivered with a hashed reset code and no code in
     assert.doesNotMatch(JSON.stringify(result.data), /\d{6}/);
 });
 
+test('forgot-password never emails unknown, unfinished or blocked accounts or changes their signup state', async () => {
+    const pending = await userModel.create({ email: 'unfinished@security.test', name: 'Temporary OTP User' });
+    await issueOtp(pending, 'email-signup');
+    const verified = await userModel.create({ email: 'verified-only@security.test', name: 'Temporary OTP User', registrationNonce: 'unused-signup-proof', registrationExpires: new Date(Date.now() + 600_000) });
+    const blocked = await userModel.create({ email: 'blocked-reset@security.test', name: 'Buyer', password: customer.password, isBlocked: true });
+    const blockedPending = await userModel.create({ email: 'blocked-signup@security.test', name: 'Temporary OTP User', isBlocked: true });
+    const delivery = nock('https://api.resend.com').post('/emails').reply(200, { id: 'must-not-send' });
+    const count = await userModel.countDocuments();
+    for (const email of [undefined, '', 'not-an-email', null, 123]) {
+        const invalid = await request('/forgot', { email });
+        assert.equal(invalid.status, 400);
+        assert.equal(invalid.data.success, false);
+    }
+    const unknown = await request('/forgot', { email: 'unregistered@security.test' });
+    assert.equal(unknown.data.success, true);
+    for (const account of [pending, verified, blocked, blockedPending]) {
+        const before = await userModel.findById(account._id).lean();
+        const result = await request('/forgot', { email: ` ${account.email.toUpperCase()} ` });
+        assert.equal(result.status, 200);
+        assert.deepEqual(result.data, unknown.data);
+        assert.deepEqual(await userModel.findById(account._id).lean(), before);
+    }
+    assert.equal(delivery.isDone(), false);
+    assert.equal(await userModel.countDocuments(), count);
+});
+
+test('unfinished and blocked accounts cannot use reset codes issued before the eligibility check', async () => {
+    const pending = await userModel.create({ email: 'old-reset@security.test', name: 'Temporary OTP User' });
+    customer.isBlocked = true;
+    await customer.save();
+    for (const account of [pending, customer]) {
+        const code = await issueOtp(account, 'password-reset');
+        const before = await userModel.findById(account._id).lean();
+        assert.equal((await request('/verify-reset', { email: account.email, otp: code })).data.success, false);
+        assert.equal((await request('/reset', { email: account.email, otp: code, newPassword: 'must-not-be-saved' })).data.success, false);
+        assert.deepEqual(await userModel.findById(account._id).lean(), before);
+    }
+});
+
+test('completed accounts with the placeholder name and Google accounts can still request password resets', async () => {
+    const completed = await userModel.create({ email: 'completed-reset@security.test', name: 'Temporary OTP User', password: customer.password });
+    const google = await userModel.create({ email: 'google-reset@security.test', name: 'Temporary OTP User', googleId: 'registered-google-id' });
+    for (const account of [completed, google]) {
+        const delivery = nock('https://api.resend.com').post('/emails', body => body.to === account.email).reply(200, { id: 'registered-reset' });
+        const result = await request('/forgot', { email: account.email });
+        assert.equal(result.data.success, true);
+        assert.equal(delivery.isDone(), true);
+        assert.equal((await userModel.findById(account._id)).otpPurpose, 'password-reset');
+    }
+});
+
 test('tokens are expiring, audience-specific, and contain no admin password; legacy tokens are rejected', async () => {
     const token = envToken(envAccounts()[0]);
     const payload = jwt.decode(token);

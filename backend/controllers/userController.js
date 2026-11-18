@@ -1,12 +1,14 @@
 import validator from "validator";
 import bcrypt from "bcrypt";
 import { userToken, envToken, envAccounts, safeEqual, verifyToken } from '../utils/authTokens.js';
-import { issueOtp, checkOtp } from '../utils/otp.js';
+import { issueOtp, checkOtp, isPendingSignup } from '../utils/otp.js';
 import axios from 'axios';
 import userModel from "../models/userModel.js";
 import { sendTemplateEmail } from '../utils/sendTemplateEmail.js';
 
 const createToken = userToken;
+const canResetPassword = user => Boolean(user && !user.isBlocked && !isPendingSignup(user));
+const passwordResetMessage = 'If this email is registered, a password reset code will be sent.';
 
 // Route for user login
 const loginUser = async (req, res) => {
@@ -92,11 +94,12 @@ const registerUser = async (req, res) => {
 const forgotPassword = async (req, res) => {
     try {
         const { email: rawEmail, isAdminReset } = req.body;
-        const email = rawEmail.trim().toLowerCase();
+        const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+        if (!validator.isEmail(email)) return res.status(400).json({ success: false, message: 'Enter a valid email address.' });
         const user = await userModel.findOne({ email });
 
-        if (!user) {
-            return res.json({ success: true, message: "If eligible, a code has been sent to your email." });
+        if (!canResetPassword(user)) {
+            return res.json({ success: true, message: passwordResetMessage });
         }
 
         if (isAdminReset && (user.role !== 'admin' && user.role !== 'staff')) {
@@ -112,7 +115,7 @@ const forgotPassword = async (req, res) => {
 
 
 
-        res.json({ success: true, message: "If eligible, a code has been sent to your email." });
+        res.json({ success: true, message: passwordResetMessage });
 
     } catch (error) {
         console.log(error);
@@ -126,8 +129,8 @@ const verifyPasswordOtp = async (req, res) => {
         const { email, otp } = req.body;
         const user = await userModel.findOne({ email });
 
-        if (!user) {
-            return res.json({ success: false, message: "User not found." });
+        if (!canResetPassword(user)) {
+            return res.json({ success: false, message: "Invalid or expired OTP." });
         }
 
         if (!(await checkOtp(user, otp, 'password-reset'))) {
@@ -149,8 +152,8 @@ const resetPassword = async (req, res) => {
         const { email, otp, newPassword } = req.body;
         const user = await userModel.findOne({ email });
 
-        if (!user) {
-            return res.json({ success: false, message: "User not found." });
+        if (!canResetPassword(user)) {
+            return res.json({ success: false, message: "Invalid or expired OTP. Please try again." });
         }
 
         if (typeof newPassword !== 'string' || newPassword.length < 10 || Buffer.byteLength(newPassword) > 72) {

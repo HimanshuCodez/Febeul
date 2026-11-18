@@ -58,6 +58,10 @@ async function mockAuth(page, overrides = {}) {
       if (url.pathname === '/api/user/auth-config') return route.fulfill({ status: state.configFails ? 503 : 200, json: state.configFails
         ? { success: false } : { success: true, turnstile: { enabled: state.enabled, siteKey: state.enabled ? 'test-public-site-key' : null } } });
       if (url.pathname === '/api/analytics/config') return route.fulfill({ json: { success: true, enabled: false } });
+      if (url.pathname === '/api/user/forgot-password') return route.fulfill({ json: { success: true, message: 'If this email is registered, a password reset code will be sent.' } });
+      if (['/api/user/verify-password-otp', '/api/user/reset-password'].includes(url.pathname)) {
+        return route.fulfill({ json: state.resetAllowed ? { success: true } : { success: false, message: 'Invalid or expired OTP.' } });
+      }
       if (url.pathname === '/api/otp/send-email-otp' && body?.purpose === 'signup' && state.signupExists) {
         return route.fulfill({ status: 409, json: { success: false, code: 'EMAIL_ALREADY_REGISTERED', message: 'This email is already registered. Please log in instead.' } });
       }
@@ -80,6 +84,37 @@ async function mockAuth(page, overrides = {}) {
 const submit = page => page.locator('form button[type="submit"]');
 const calls = (state, path) => state.calls.filter(call => call.path === path);
 const solve = page => page.getByRole('button', { name: 'Complete security verification', exact: true }).click();
+
+for (const registered of [false, true]) test(`password reset ${registered ? 'continues for registered users' : 'explains registered-account eligibility and rejects an invalid code'}`, async ({ page }) => {
+  const state = await mockAuth(page, { enabled: false, resetAllowed: registered });
+  await page.getByRole('link', { name: 'Forgot Password?' }).click();
+  await expect(page.getByRole('heading', { name: /^Reset Password/ })).toBeVisible();
+  const email = registered ? user.email : 'unregistered@example.test';
+  await page.getByPlaceholder('Email Address', { exact: true }).fill(email.toUpperCase());
+  await page.getByRole('button', { name: 'Send OTP', exact: true }).click();
+  await expect(page.locator('#otp-1')).toBeVisible();
+  await expect(page.getByText('Reset codes are sent only to registered accounts.', { exact: false })).toBeVisible();
+  await expect(page.getByText('If this email is registered, a password reset code will be sent.', { exact: true }).first()).toBeVisible();
+  expect(calls(state, '/api/user/forgot-password')[0].body).toEqual({ email });
+  await page.getByRole('button', { name: 'Resend', exact: true }).click();
+  await expect.poll(() => calls(state, '/api/user/forgot-password').length).toBe(2);
+  for (let i = 1; i <= 6; i++) await page.locator(`#otp-${i}`).fill(String(i));
+  await page.getByRole('button', { name: 'Verify OTP', exact: true }).click();
+  if (registered) {
+    await page.getByPlaceholder('New Password', { exact: true }).fill('NewPassword123!');
+    await page.getByPlaceholder('Confirm Password', { exact: true }).fill('NewPassword123!');
+    await page.getByRole('button', { name: 'Reset Password', exact: true }).click();
+    await expect(page).toHaveURL(shop + '/auth');
+    expect(calls(state, '/api/user/reset-password')[0].body).toEqual({ email, otp: '123456', newPassword: 'NewPassword123!' });
+  } else {
+    await expect(page.getByText('Invalid or expired OTP.', { exact: true }).first()).toBeVisible();
+    await expect(page.locator('#otp-1')).toBeVisible();
+    await expect(page.getByPlaceholder('New Password', { exact: true })).toHaveCount(0);
+    expect(calls(state, '/api/user/reset-password')).toHaveLength(0);
+  }
+  expect(state.errors).toEqual([]);
+});
+
 async function credentials(page) {
   await page.getByPlaceholder('Email Address', { exact: true }).fill(user.email);
   await page.getByPlaceholder('Password', { exact: true }).fill('LocalPassword123!');
