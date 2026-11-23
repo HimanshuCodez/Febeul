@@ -7,12 +7,6 @@ export const PRODUCT_REQUIRED_FIELDS = {
     itemWeight: 'Item weight', itemDimensionsLxWxH: 'Item dimensions', netQuantity: 'Net quantity', keywords: 'Search keywords',
 };
 const blank = value => typeof value !== 'string' || !value.replace(/[\s\u200b-\u200d\ufeff]/g, '');
-const decimal = /^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/;
-export const isProductNumericInput = (value, integer = false) => (integer ? /^\d*$/ : /^\d*(?:\.\d{0,2})?$/).test(value);
-const numeric = (value, { integer = false, positive = false } = {}) => ['string', 'number'].includes(typeof value)
-    && (integer ? /^\d+$/ : decimal).test(String(value)) && Number.isFinite(Number(value))
-    && (positive ? Number(value) > 0 : Number(value) >= 0)
-    && (integer ? Number.isSafeInteger(Number(value)) : Number.isSafeInteger(Math.round(Number(value) * 100)));
 const descriptionText = value => String(value || '').replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<[^>]*>/g, '').replace(/&(nbsp|ensp|emsp|thinsp|hairsp|NewLine|Tab|ZeroWidthSpace);/gi, ' ')
     .replace(/&#(x[\da-f]+|\d+);?/gi, (entity, code) => {
@@ -28,21 +22,6 @@ export function validateProduct(values, { imageCounts } = {}) {
         if (blank(value)) add(field, `${label} is required.`);
     }
     if (!blank(values.keywords) && !values.keywords.split(',').some(keyword => !blank(keyword))) add('keywords', 'Enter at least one search keyword.');
-    if (!blank(values.hsn) && !/^\d+$/.test(values.hsn)) add('hsn', 'HSN code must contain digits only.');
-    if (!blank(values.sleeveLength) && !numeric(values.sleeveLength)) add('sleeveLength', 'Sleeve length must be zero or a positive number, with up to two decimal places. Use 0 for sleeveless items.');
-    for (const [field, pattern, example] of [
-        ['itemWeight', /^(\d+(?:\.\d+)?)\s*(?:g|kg|mg|grams?|kilograms?)?$/i, '150 g'],
-        ['netQuantity', /^(\d+(?:\.\d+)?)\s*(?:count|counts|pieces?|pcs|units?|sets?|pairs?)?$/i, '1 Count'],
-    ]) {
-        if (!blank(values[field])) {
-            const match = values[field].trim().match(pattern);
-            if (!match || !Number.isFinite(Number(match[1])) || Number(match[1]) <= 0) add(field, `${PRODUCT_REQUIRED_FIELDS[field]} must be a positive number with a valid unit, for example ${example}.`);
-        }
-    }
-    if (!blank(values.itemDimensionsLxWxH)) {
-        const match = values.itemDimensionsLxWxH.trim().match(/^(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(?:cm|mm|m|centimeters?|centimetres?|inches?|in)?$/i);
-        if (!match || match.slice(1, 4).some(number => !Number.isFinite(Number(number)) || Number(number) <= 0)) add('itemDimensionsLxWxH', 'Enter three positive dimensions, for example 22 x 20 x 2 cm.');
-    }
     if (!Array.isArray(values.variations) || !values.variations.length) {
         add('variations', 'Add at least one product variation.');
         return errors;
@@ -71,9 +50,9 @@ export function validateProduct(values, { imageCounts } = {}) {
                 if (sizes.has(name)) add(`${sizePath}.size`, `${label}: size '${size.size}' is duplicated.`);
                 sizes.add(name);
             }
-            for (const field of ['price', 'mrp']) if (!numeric(size[field], { positive: true })) add(`${sizePath}.${field}`, `${label}, size '${size.size || sizeIndex + 1}': ${field === 'price' ? 'Price' : 'MRP'} must be a positive number with up to two decimal places.`);
-            if (numeric(size.price, { positive: true }) && numeric(size.mrp, { positive: true }) && Number(size.price) > Number(size.mrp)) add(`${sizePath}.price`, `Price cannot be greater than MRP for size '${size.size}' in variation with color '${variation.color || 'N/A'}'.`);
-            if (!numeric(size.stock, { integer: true, positive: true })) add(`${sizePath}.stock`, `${label}, size '${size.size || sizeIndex + 1}': stock must be a whole number greater than zero. Do not leave it empty.`);
+            for (const field of ['price', 'mrp', 'stock']) {
+                if (size[field] == null || blank(String(size[field]))) add(`${sizePath}.${field}`, `${label}, size '${size.size || sizeIndex + 1}': ${field === 'mrp' ? 'MRP' : field} is required.`);
+            }
         });
     });
     return errors;

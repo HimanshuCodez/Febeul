@@ -32,7 +32,7 @@ async function fixture(context) {
     }
     if (['/api/product/add', '/api/product/update'].includes(url.pathname)) {
       const data = await new Response(request.postDataBuffer(), { headers: { 'content-type': request.headers()['content-type'] } }).formData();
-      state.writes.push({ path: url.pathname, name: data.get('name'), variations: JSON.parse(data.get('variations')), uploads: [...data.values()].filter(value => typeof value !== 'string').map(file => ({ name: file.name, size: file.size, type: file.type })) });
+      state.writes.push({ path: url.pathname, name: data.get('name'), details: Object.fromEntries(Object.keys(productDetails).map(field => [field, data.get(field)])), variations: JSON.parse(data.get('variations')), uploads: [...data.values()].filter(value => typeof value !== 'string').map(file => ({ name: file.name, size: file.size, type: file.type })) });
       return route.fulfill({ status: state.failure || 200, json: { success: !state.failure, message: state.failure ? 'Save failed' : 'Product saved' } });
     }
     if (url.pathname === '/api/product/single') {
@@ -76,29 +76,36 @@ async function completeNewProduct(page) {
   await saved(page);
 }
 
-for (const editor of ['Add', 'Update']) test(`${editor} rejects nonnumeric input and empty fields, preserves incomplete drafts and requires positive stock`, async ({ context }, testInfo) => {
+for (const editor of ['Add', 'Update']) test(`${editor} requires filled fields and allows unrestricted text and number formats`, async ({ context }, testInfo) => {
   const state = await fixture(context), page = await context.newPage();
   await open(page, editor === 'Add' ? '/add' : '/update/one');
   if (editor === 'Add') await completeNewProduct(page);
   const price = page.getByLabel('Price', { exact: true }), stock = page.getByLabel('Stock', { exact: true });
-  for (const invalid of ['abc', '-2', '1e3', '12.999']) {
-    await price.fill(invalid);
-    await expect(price).toHaveValue('399');
+  for (const value of ['abc', '-2', '1e3', '12.999']) {
+    await price.fill(value);
+    await expect(price).toHaveValue(value);
   }
   await page.getByLabel('HSN', { exact: true }).fill('62A4');
-  await expect(page.getByLabel('HSN', { exact: true })).toHaveValue('6204');
+  await expect(page.getByLabel('HSN', { exact: true })).toHaveValue('62A4');
+  await page.getByLabel('Sleeve Length', { exact: true }).fill('Full length');
+  await page.getByLabel('Item Weight', { exact: true }).fill('Approximately 150 grams');
+  await page.locator('#product-item-dimensions-lxwxh').fill('Refer to size chart');
+  await page.getByLabel('Net Quantity', { exact: true }).fill('Pack of two');
   await stock.fill('2.5');
-  await expect(stock).toHaveValue(editor === 'Add' ? '12' : '10');
+  await expect(stock).toHaveValue('2.5');
   await page.getByLabel('Product name', { exact: true }).fill('   ');
   await page.locator('.ql-editor').fill('');
-  await price.fill('0');
+  await price.fill('');
+  await page.getByLabel('MRP', { exact: true }).fill('');
   await stock.fill('');
   const submit = page.getByRole('button', { name: new RegExp(`^${editor} Product$`, 'i') });
   await submit.click();
   const errors = page.getByRole('alert');
   await expect(errors).toContainText('Product name is required.');
   await expect(errors).toContainText('Product description is required.');
-  await expect(errors).toContainText('stock must be a whole number greater than zero');
+  await expect(errors).toContainText('price is required.');
+  await expect(errors).toContainText('MRP is required.');
+  await expect(errors).toContainText('stock is required.');
   expect(state.writes).toHaveLength(0);
   await errors.screenshot({ path: testInfo.outputPath(`${editor.toLowerCase()}-validation.png`) });
   await draftPanel(page).getByRole('button', { name: 'Save as draft' }).click();
@@ -108,60 +115,19 @@ for (const editor of ['Add', 'Update']) test(`${editor} rejects nonnumeric input
   await expect(stock).toHaveValue('');
   await page.getByLabel('Product name', { exact: true }).fill('Validated listing');
   await page.locator('.ql-editor').fill('Complete valid product description.');
-  await price.fill('12.50');
+  await price.fill('125.555');
+  await page.getByLabel('MRP', { exact: true }).fill('100');
   await stock.fill('0');
-  await submit.click();
-  await expect(errors).toContainText('stock must be a whole number greater than zero');
-  expect(state.writes).toHaveLength(0);
-  await stock.fill('1');
   await submit.click();
   if (editor === 'Add') await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('');
   else await expect(page).toHaveURL(`${admin}/list`);
   expect(state.writes).toHaveLength(1);
-  expect(state.writes[0].variations[0].sizes[0]).toMatchObject({ price: '12.50', stock: '1' });
+  expect(state.writes[0].variations[0].sizes[0]).toMatchObject({ price: '125.555', mrp: '100', stock: '0' });
+  expect(state.writes[0].details).toMatchObject({ hsn: '62A4', sleeveLength: 'Full length', itemWeight: 'Approximately 150 grams', itemDimensionsLxWxH: 'Refer to size chart', netQuantity: 'Pack of two' });
   expect(state.errors).toEqual([]);
 });
 
-test('Add blocks price above MRP, keeps invalid drafts, and allows an equal price after correction', async ({ context }) => {
-  const state = await fixture(context);
-  const page = await context.newPage();
-  await open(page);
-  await completeNewProduct(page);
-  const price = page.getByLabel('Price', { exact: true });
-  const mrp = page.getByLabel('MRP', { exact: true });
-  const submit = page.getByRole('button', { name: /^Add Product$/i });
-  await price.fill('500');
-  await expect(price).toHaveAttribute('aria-invalid', 'true');
-  await expect(price).toHaveAccessibleDescription('Price cannot be greater than MRP.');
-  await submit.click();
-  expect(state.writes).toHaveLength(0);
-  await draftPanel(page).getByRole('button', { name: 'Save as draft' }).click();
-  await saved(page);
-  await page.reload();
-  await expect(price).toHaveValue('500');
-  await expect(price).toHaveAttribute('aria-invalid', 'true');
-  await price.fill('399');
-  await expect(price).toHaveAttribute('aria-invalid', 'false');
-  await mrp.fill('398');
-  await expect(price).toHaveAttribute('aria-invalid', 'true');
-  await submit.click();
-  expect(state.writes).toHaveLength(0);
-  // The submit handler must also protect restored values if native validation is bypassed.
-  await page.locator('form').evaluate(form => form.noValidate = true);
-  await submit.click();
-  await expect(page.getByRole('alert')).toContainText("Price cannot be greater than MRP for size 'M'");
-  expect(state.writes).toHaveLength(0);
-  await mrp.fill('399');
-  await expect(price).toHaveAttribute('aria-invalid', 'false');
-  await page.locator('form').evaluate(form => form.noValidate = false);
-  await submit.click();
-  await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('');
-  expect(state.writes).toHaveLength(1);
-  expect(state.writes[0].variations[0].sizes[0]).toMatchObject({ price: '399', mrp: '399' });
-  expect(state.errors).toEqual([]);
-});
-
-test('Add checks pricing on later variations and sizes and allows prices below MRP', async ({ context }) => {
+test('Add requires filled prices on later variations and sizes without an MRP restriction', async ({ context }) => {
   const state = await fixture(context);
   const page = await context.newPage();
   await open(page);
@@ -174,18 +140,18 @@ test('Add checks pricing on later variations and sizes and allows prices below M
   for (const size of ['M', 'L']) await variation.getByRole('button', { name: `+ ${size}`, exact: true }).click();
   for (let index = 0; index < 2; index++) {
     await variation.getByLabel('MRP', { exact: true }).nth(index).fill('499');
-    await variation.getByLabel('Price', { exact: true }).nth(index).fill(index ? '500' : '399');
+    await variation.getByLabel('Price', { exact: true }).nth(index).fill(index ? '' : '399');
     await variation.getByLabel('Stock', { exact: true }).nth(index).fill('10');
   }
   const submit = page.getByRole('button', { name: /^Add Product$/i });
   await submit.click();
-  await expect(variation.getByLabel('Price', { exact: true }).nth(1)).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByRole('alert')).toContainText("Variation 2, size 'L': price is required.");
   expect(state.writes).toHaveLength(0);
-  await variation.getByLabel('Price', { exact: true }).nth(1).fill('398');
+  await variation.getByLabel('Price', { exact: true }).nth(1).fill('500.123');
   await submit.click();
   await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('');
   expect(state.writes).toHaveLength(1);
-  expect(state.writes[0].variations[1].sizes[1]).toMatchObject({ price: '398', mrp: '499' });
+  expect(state.writes[0].variations[1].sizes[1]).toMatchObject({ price: '500.123', mrp: '499' });
   expect(state.errors).toEqual([]);
 });
 
