@@ -17,7 +17,7 @@ export const searchPages = [
   ['Content (CMS)', '/cms', '/cms', 'Marketing & Content', 'settings website text swiping messages promo banner info bar shipping scan shop staff details'],
   ['Luxe Page', '/luxe-page', '/cms', 'Marketing & Content', 'settings membership benefits images text'],
   ['Home Gift Offer', '/home-gift-offer', '/cms', 'Marketing & Content', 'settings home welcome coupon popup gift badge colors promotion'],
-  ['Hero Images', '/images', '/images', 'Marketing & Content', 'settings home banner carousel photos'],
+  ['Hero Images', '/images', '/images', 'Marketing & Content', 'settings home banner carousel photos slider timing speed slide interval seconds'],
   ['Policies', '/policy-update', '/policy-update', 'Marketing & Content', 'settings privacy terms conditions refund shipping policy'],
   ['Tickets', '/tickets', '/tickets', 'Support', 'customer support help messages'],
   ['Reviews', '/reviews', '/reviews', 'Support', 'ratings feedback moderation'],

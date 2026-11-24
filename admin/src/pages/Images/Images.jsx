@@ -188,8 +188,9 @@ const Images = ({ token }) => {
     try {
       const response = await axios.post(`${backendUrl}/api/cms`, { name, content }, { headers: { token } });
       if (response.data.success) toast.success(`${name.replace('_', ' ')} updated`);
+      else toast.error(response.data.message || 'Failed to save content');
     } catch (error) {
-      toast.error("Failed to save content");
+      toast.error(error.response?.data?.message || 'Failed to save content');
     } finally {
       setLoading(false);
     }
@@ -211,29 +212,36 @@ const Images = ({ token }) => {
       {/* Hero Carousel */}
       <div className="mb-6 border rounded-lg overflow-hidden shadow-sm">
         <button onClick={() => setActiveAccordion(activeAccordion === 'hero' ? null : 'hero')} className={`w-full flex justify-between items-center p-4 transition-colors font-semibold text-lg ${activeAccordion === 'hero' ? 'bg-blue-50 text-blue-700' : 'bg-gray-50'}`}>
-          <span>Hero Carousel (Images & GIFs)</span>
+          <span>Hero Carousel (Images, GIFs & Timing)</span>
           <span>{activeAccordion === 'hero' ? '−' : '+'}</span>
         </button>
         {activeAccordion === 'hero' && (
           <div className="p-6 bg-white space-y-8">
             <p className="text-sm text-gray-600">Upload JPG, PNG, WebP or animated GIF banners in any dimensions. Each slide fills the available width and adjusts its height to show the full image without cropping. Add a mobile version if you want different artwork on phones; otherwise the desktop version is used.</p>
             <p className="text-xs text-gray-500">{CMS_BANNER_UPLOAD_HINT}</p>
-            <div className="max-w-sm space-y-2">
-              <label htmlFor="hero-slide-interval" className="block text-sm font-medium">Slide interval (seconds)</label>
-              <input
-                id="hero-slide-interval"
-                type="number"
-                min={MIN_HERO_INTERVAL_SECONDS}
-                max={MAX_HERO_INTERVAL_SECONDS}
-                step="any"
-                required
-                value={slideIntervalSeconds}
-                onChange={event => setSlideIntervalSeconds(event.target.value)}
-                aria-describedby="hero-slide-interval-hint"
-                className="w-full px-3 py-2 border rounded outline-none bg-white text-sm"
-              />
-              <p id="hero-slide-interval-hint" className="text-xs text-gray-500">Time between slides on desktop and mobile, from 1 to 60 seconds. Lower values change slides faster. Click Save Carousel to apply.</p>
-            </div>
+            <section aria-labelledby="hero-carousel-timing-title" className="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5">
+              <h3 id="hero-carousel-timing-title" className="text-lg font-semibold text-blue-900">Carousel timing</h3>
+              <p className="mt-1 text-sm text-blue-800">Choose how long each slide stays on the homepage before the next image appears.</p>
+              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="w-full space-y-2 sm:max-w-xs">
+                  <label htmlFor="hero-slide-interval" className="block text-sm font-medium">Slide interval (seconds)</label>
+                  <input
+                    id="hero-slide-interval"
+                    type="number"
+                    min={MIN_HERO_INTERVAL_SECONDS}
+                    max={MAX_HERO_INTERVAL_SECONDS}
+                    step="any"
+                    required
+                    value={slideIntervalSeconds}
+                    onChange={event => setSlideIntervalSeconds(event.target.value)}
+                    aria-describedby="hero-slide-interval-hint"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <button type="button" onClick={saveCarousel} disabled={loading} className="rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:opacity-50">Save carousel settings</button>
+              </div>
+              <p id="hero-slide-interval-hint" className="mt-3 text-xs leading-relaxed text-blue-800">Use 1 to 60 seconds. Lower values switch slides faster. Saving applies the timing and image changes to both desktop and mobile.</p>
+            </section>
             {slides.map((slide, index) => (
               <div key={index} className="border p-4 rounded-md relative bg-gray-50 shadow-inner">
                 <button onClick={() => setSlides(slides.filter((_, i) => i !== index))} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">X</button>

@@ -240,10 +240,11 @@ test('admin accepts GIFs, previews their complete dimensions and saves them for 
 test('admin saves the slide interval and the storefront uses it on desktop and mobile', async ({ page }) => {
   const state = await fixture(page);
   await page.goto(admin + '/images');
-  const interval = page.getByLabel('Slide interval (seconds)');
+  const timing = page.getByRole('region', { name: 'Carousel timing' });
+  const interval = timing.getByLabel('Slide interval (seconds)');
   await expect(interval).toHaveValue('3');
   await interval.fill('6.5');
-  await page.getByRole('button', { name: 'Save Carousel', exact: true }).click();
+  await timing.getByRole('button', { name: 'Save carousel settings', exact: true }).click();
   await expect.poll(() => state.saves.length).toBe(1);
   expect(state.saves[0]).toEqual({ name: 'hero_carousel', content: { slides: defaults, intervalSeconds: 6.5 } });
   await page.reload();
