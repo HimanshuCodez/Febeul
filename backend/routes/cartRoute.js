@@ -1,5 +1,5 @@
 import express from 'express'
-import { addToCart, getUserCart, updateCart, removeFromCart, addGiftWrapToCart, removeGiftWrapFromCart } from '../controllers/cartController.js'
+import { addToCart, getUserCart, updateCart, removeFromCart, addGiftWrapToCart, removeGiftWrapFromCart, removeCartCoupons } from '../controllers/cartController.js'
 import authUser from '../middleware/auth.js'
 
 const cartRouter = express.Router()
@@ -10,5 +10,6 @@ cartRouter.post('/update',authUser, updateCart)
 cartRouter.post('/remove',authUser, removeFromCart)
 cartRouter.post('/add-giftwrap', authUser, addGiftWrapToCart)
 cartRouter.post('/remove-giftwrap', authUser, removeGiftWrapFromCart)
+cartRouter.post('/remove-coupons', authUser, removeCartCoupons)
 
 export default cartRouter

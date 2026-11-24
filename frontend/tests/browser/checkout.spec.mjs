@@ -14,6 +14,8 @@ const otherProductOffer = { ...offer, _id: 'other-product-offer', code: 'OTHERON
 async function fixture(page, options = {}) {
   const state = {
     calls: [], errors: [], cartError: false, orderError: false, holdCoupon: false, releaseCoupon: null,
+    cartItems: [{ ...structuredClone(product), ...(options.noProductCoupon ? { appliedCoupon: null, discountAmount: 0 } : {}) }],
+    holdRemoval: false, releaseRemoval: null, removalError: false, couponResponseError: false,
     user: { _id: '507f1f77bcf86cd799439022', name: 'Local shopper', email: 'shopper@example.test', isLuxeMember: Boolean(options.member), giftWrapsLeft: options.member ? 2 : 0, addresses: options.noAddress ? [] : [{ ...address }, { ...address, _id: 'address-work', name: 'Work address', address: '24 Market Road', zip: '110002', addressType: 'Business' }] },
   };
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -34,7 +36,13 @@ async function fixture(page, options = {}) {
       if (url.pathname === '/api/cms/pincodeBlocklist') return reply({ success: true, content: { entries: [{ pincode: '110002', blockCod: true }] } });
       if (url.pathname === '/api/cart/get') {
         if (options.cartError || state.cartError) return route.fulfill({ status: 503, json: { success: false } });
-        return reply({ success: true, cartItems: options.empty ? [] : [product], giftWrap: options.giftWrap ? wrap : null });
+        return reply({ success: true, cartItems: options.empty ? [] : state.cartItems, giftWrap: options.giftWrap ? wrap : null });
+      }
+      if (url.pathname === '/api/cart/remove-coupons') {
+        if (state.holdRemoval) await new Promise(resolve => { state.releaseRemoval = resolve; });
+        if (state.removalError) return route.fulfill({ status: 500, json: { success: false, message: 'Could not remove coupon.' } });
+        state.cartItems = state.cartItems.map(item => ({ ...item, appliedCoupon: null, discountAmount: 0, couponOfferType: 'none' }));
+        return reply({ success: true, cartItems: state.cartItems });
       }
       if (url.pathname === '/api/order/get-key') return reply({ success: true, key: 'rzp_test_local' });
       if (url.pathname === '/api/coupon/all') return reply({ success: true, coupons: [...(options.offers ? [offer] : []), ...(options.membershipOffer ? [membershipOffer] : []), ...(options.otherProductOffer ? [otherProductOffer] : [])] });
@@ -42,7 +50,9 @@ async function fixture(page, options = {}) {
         if (state.holdCoupon) await new Promise(resolve => { state.releaseCoupon = resolve; });
         if (body.code === 'JOIN30') return route.fulfill({ status: 400, json: { success: false, message: 'This coupon is valid for Luxe membership only.' } });
         if (body.code === 'OTHERONLY') return route.fulfill({ status: 400, json: { success: false, message: 'This coupon is not applicable to any items in your cart.' } });
-        return reply({ success: true, code: body.code, discountAmount: 50, offerType: 'prepaid', userType: 'normal', applicableSKUs: [], message: 'Coupon applied' });
+        state.cartItems = state.cartItems.map(item => ({ ...item, appliedCoupon: body.code, discountAmount: 50, couponOfferType: 'prepaid' }));
+        if (state.couponResponseError) return route.fulfill({ status: 500, json: { success: false, message: 'Unable to confirm coupon totals.' } });
+        return reply({ success: true, code: body.code, discountAmount: 50, offerType: 'prepaid', userType: 'normal', applicableSKUs: [], message: 'Coupon applied', cartItems: state.cartItems });
       }
       if (url.pathname === '/api/giftwrap/list') return reply({ success: true, data: [wrap] });
       if (url.pathname.startsWith('/api/user/pincode-check/')) return reply([{ Status: 'Success', PostOffice: [{ District: 'Delhi', State: 'Delhi' }] }]);
@@ -59,7 +69,7 @@ async function fixture(page, options = {}) {
   });
   await page.goto(shop + '/checkout');
   await expect(page.getByRole('heading', { name: 'Checkout', exact: true })).toBeVisible();
-  if (!options.empty && !options.cartError) await expect(page.getByLabel('Order total')).toHaveText('₹' + (options.giftWrap && !options.member ? '933.00' : '898.00'));
+  if (!options.empty && !options.cartError) await expect(page.getByLabel('Order total')).toHaveText('₹' + ((options.giftWrap && !options.member ? 933 : 898) + (options.noProductCoupon ? 100 : 0)).toFixed(2));
   return state;
 }
 
@@ -67,8 +77,58 @@ const summary = page => page.getByRole('complementary', { name: 'Order Summary' 
 const payment = page => page.getByRole('radio', { name: /UPI \/ Net Banking \/ Card/ });
 const cod = page => page.getByRole('radio', { name: /Cash on Delivery/ });
 
+test('a product-page coupon is removed from the saved cart and a replacement is the only discount after refresh', async ({ page }) => {
+  const state = await fixture(page, { offers: true });
+  await expect(summary(page).getByText('SAVE100', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Use this address' }).click();
+  await payment(page).check();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  expect(state.calls.filter(call => call.path === '/api/coupon/apply')).toHaveLength(0);
+  state.holdRemoval = true;
+  await page.getByRole('button', { name: 'Remove coupon', exact: true }).click();
+  await expect.poll(() => Boolean(state.releaseRemoval)).toBe(true);
+  await expect(page.getByRole('button', { name: 'Place Order', exact: true })).toBeDisabled();
+  state.releaseRemoval();
+  const input = page.getByRole('textbox', { name: 'Coupon code', exact: true });
+  await expect(input).toBeEnabled();
+  await expect(page.getByLabel('Order total')).toHaveText('₹998.00');
+  await expect(summary(page).getByText('Coupon Discount', { exact: true })).toHaveCount(0);
+  await input.fill('ONLINE50');
+  await input.press('Enter');
+  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
+  await expect(summary(page).getByText('Coupon Discount', { exact: true }).locator('..')).toContainText('50.00');
+  expect(state.cartItems[0]).toMatchObject({ appliedCoupon: 'ONLINE50', discountAmount: 50 });
+  await page.reload();
+  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
+  await expect(summary(page).getByText('ONLINE50', { exact: true })).toBeVisible();
+  await expect(summary(page).getByText('SAVE100', { exact: true })).toHaveCount(0);
+  expect(state.errors).toEqual([]);
+});
+
+test('failed coupon removal blocks stale order submission and offers checkout recovery', async ({ page }) => {
+  const state = await fixture(page);
+  state.removalError = true;
+  await page.getByRole('button', { name: 'Remove coupon', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Retry checkout', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Place Order', exact: true })).toHaveCount(0);
+  expect(state.calls.some(call => call.path === '/api/order/place' || call.path === '/api/order/razorpay')).toBe(false);
+  expect(state.errors).toEqual([]);
+});
+
+test('an uncertain coupon replacement cannot leave checkout ready with outdated totals', async ({ page }) => {
+  const state = await fixture(page, { noProductCoupon: true });
+  state.couponResponseError = true;
+  const input = page.getByRole('textbox', { name: 'Coupon code', exact: true });
+  await input.fill('ONLINE50');
+  await input.press('Enter');
+  await expect(page.getByRole('button', { name: 'Retry checkout', exact: true })).toBeVisible();
+  expect(state.cartItems[0].appliedCoupon).toBe('ONLINE50');
+  expect(state.calls.some(call => call.path === '/api/order/place' || call.path === '/api/order/razorpay')).toBe(false);
+  expect(state.errors).toEqual([]);
+});
+
 test('a coupon copied from another SKU stays hidden and cannot discount checkout', async ({ page }) => {
-  const state = await fixture(page, { otherProductOffer: true });
+  const state = await fixture(page, { otherProductOffer: true, noProductCoupon: true });
   await expect(summary(page).getByRole('button', { name: /Available Offers/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Use this address' }).click();
   await payment(page).check();
@@ -77,14 +137,14 @@ test('a coupon copied from another SKU stays hidden and cannot discount checkout
   await input.fill('otheronly');
   await input.press('Enter');
   await expect(summary(page).getByRole('alert')).toHaveText('This coupon is not applicable to any items in your cart.');
-  await expect(page.getByLabel('Order total')).toHaveText('₹898.00');
+  await expect(page.getByLabel('Order total')).toHaveText('₹998.00');
   await expect(page.getByRole('button', { name: 'Remove coupon', exact: true })).toHaveCount(0);
   expect(state.calls.find(call => call.path === '/api/coupon/apply').body.items[0]).toMatchObject({ productId, sku: 'ROSE', color: 'Dusty rose', size: 'M' });
   expect(state.errors).toEqual([]);
 });
 
 test('a coupon response from the previous payment selection cannot apply a stale discount', async ({ page }) => {
-  const state = await fixture(page);
+  const state = await fixture(page, { noProductCoupon: true });
   await page.getByRole('button', { name: 'Use this address' }).click();
   await payment(page).check();
   state.holdCoupon = true;
@@ -93,17 +153,17 @@ test('a coupon response from the previous payment selection cannot apply a stale
   await input.press('Enter');
   await expect.poll(() => Boolean(state.releaseCoupon)).toBe(true);
   await cod(page).check();
-  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
+  await expect(page.getByLabel('Order total')).toHaveText('₹1048.00');
   state.releaseCoupon();
   await expect(input).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Remove coupon', exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
+  await expect(page.getByLabel('Order total')).toHaveText('₹1048.00');
   expect(state.errors).toEqual([]);
 });
 
 for (const member of [false, true]) {
   test(`membership coupon is rejected at product checkout for ${member ? 'Luxe members' : 'non-members'}`, async ({ page }) => {
-    const state = await fixture(page, { member, membershipOffer: true });
+    const state = await fixture(page, { member, membershipOffer: true, noProductCoupon: true });
     await page.setViewportSize({ width: member ? 390 : 1280, height: 900 });
     await expect(summary(page).getByRole('button', { name: /Available Offers/ })).toHaveCount(0);
     await page.getByRole('button', { name: 'Use this address' }).click();
@@ -115,7 +175,7 @@ for (const member of [false, true]) {
     await input.press('Enter');
     await expect(summary(page).getByRole('alert')).toHaveText('This coupon is valid for Luxe membership only.');
     await expect(input).toHaveAttribute('aria-invalid', 'true');
-    await expect(page.getByLabel('Order total')).toHaveText('₹898.00');
+    await expect(page.getByLabel('Order total')).toHaveText('₹998.00');
     await expect(page.getByRole('button', { name: 'Remove coupon', exact: true })).toHaveCount(0);
     expect(state.calls.filter(call => call.path === '/api/coupon/apply')).toHaveLength(1);
     expect(state.calls.find(call => call.path === '/api/coupon/apply').body.code).toBe('JOIN30');
@@ -123,7 +183,7 @@ for (const member of [false, true]) {
     await input.fill('ONLINE50');
     await expect(summary(page).getByRole('alert')).toHaveCount(0);
     await page.getByRole('button', { name: /^apply$/i }).click();
-    await expect(page.getByLabel('Order total')).toHaveText('₹848.00');
+    await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
     await expect(summary(page).getByText('Coupon Applied', { exact: true })).toBeVisible();
     expect(state.errors).toEqual([]);
   });
@@ -166,20 +226,20 @@ test('responsive checkout keeps totals correct through gift wrapping, COD, failu
 });
 
 test('online lifetime offer, coupon removal and entry, and Razorpay verification still work', async ({ page }, testInfo) => {
-  const state = await fixture(page, { offers: true });
+  const state = await fixture(page, { offers: true, noProductCoupon: true });
   await page.getByRole('button', { name: 'Use this address' }).click();
   await payment(page).check();
-  await expect(page.getByLabel('Order total')).toHaveText('₹848.00');
+  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
   await page.getByRole('button', { name: 'Remove coupon', exact: true }).click();
-  await expect(page.getByLabel('Order total')).toHaveText('₹898.00');
+  await expect(page.getByLabel('Order total')).toHaveText('₹998.00');
   await page.getByRole('textbox', { name: 'Coupon code', exact: true }).fill('online50');
   await page.getByRole('button', { name: /^apply$/i }).click();
-  await expect(page.getByLabel('Order total')).toHaveText('₹848.00');
+  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
   await cod(page).check();
   await expect(page.getByRole('button', { name: 'Remove coupon' })).toHaveCount(0);
-  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
+  await expect(page.getByLabel('Order total')).toHaveText('₹1048.00');
   await payment(page).check();
-  await expect(page.getByLabel('Order total')).toHaveText('₹848.00');
+  await expect(page.getByLabel('Order total')).toHaveText('₹948.00');
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -189,7 +249,7 @@ test('online lifetime offer, coupon removal and entry, and Razorpay verification
   }
   await page.getByRole('button', { name: 'Place Order', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.paymentOpened)).toBe(true);
-  expect(state.calls.find(call => call.path === '/api/order/razorpay').body).toMatchObject({ amount: 848, couponCode: 'ONLINE50', couponDiscount: 50, currency: 'INR' });
+  expect(state.calls.find(call => call.path === '/api/order/razorpay').body).toMatchObject({ amount: 948, items: [{ appliedCoupon: 'ONLINE50', discountAmount: 50 }], couponDiscount: 50, currency: 'INR' });
   await page.evaluate(async () => window.testPayment.handler({ razorpay_order_id: 'order_local', razorpay_payment_id: 'pay_local', razorpay_signature: 'signature_local' }));
   await expect(page.getByText('Order Placed!', { exact: true })).toBeVisible();
   expect(state.calls.find(call => call.path === '/api/order/verifyRazorpay').body).toMatchObject({ razorpay_order_id: 'order_local', razorpay_signature: 'signature_local' });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { isCouponExpired } from '../../../shared/couponValidity.js';
 import { couponMatchesProductItems } from '../../../shared/couponScope.js';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
@@ -148,8 +148,11 @@ export default function CheckoutPage() {
   const [razorpayKey, setRazorpayKey] = useState("");
   const [selectedGiftWrap, setSelectedGiftWrap] = useState(null);
   const [isGiftWrapModalOpen, setIsGiftWrapModalOpen] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponUpdating, setCouponUpdating] = useState(false);
+  const [autoCouponUpdating, setAutoCouponUpdating] = useState(false);
+  const removingCoupon = useRef(false);
+  const autoCouponAttempt = useRef('');
+  const autoCouponRequest = useRef(0);
   const [activeOffers, setActiveOffers] = useState([]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(null);
@@ -162,14 +165,16 @@ export default function CheckoutPage() {
       productId: item._id, color: item.color, size: item.size,
       sku: item.sku || variation?.sku, price: item.price || size?.price || 0,
       quantity: item.quantity, appliedCoupon: item.appliedCoupon, discountAmount: item.discountAmount || 0,
+      couponOfferType: item.couponOfferType || 'none',
     };
   });
   const couponCartKey = JSON.stringify(cartItemsForCoupon);
 
-  useEffect(() => {
-    setAppliedCoupon(null);
-    setCouponDiscount(0);
-  }, [couponCartKey, token]);
+  const couponBusy = couponUpdating || autoCouponUpdating;
+  const appliedCoupon = useMemo(() => {
+    const codes = [...new Set(cartItems.map(item => item.appliedCoupon).filter(Boolean))];
+    return codes.length ? { code: codes.join(', ') } : null;
+  }, [cartItems]);
 
   useEffect(() => {
     fetchSiteSettings();
@@ -308,16 +313,14 @@ export default function CheckoutPage() {
 
   // Handle Coupon Validation on Payment Method Change
   useEffect(() => {
-    if (appliedCoupon && appliedCoupon.offerType && appliedCoupon.offerType !== 'none') {
-      if (appliedCoupon.offerType === 'prepaid' && selectedPayment && selectedPayment !== 'card') {
-        toast.error("Coupon removed: Only valid for prepaid orders.");
-        handleCouponApply(null);
-      } else if (appliedCoupon.offerType === 'cod' && selectedPayment && selectedPayment !== 'cod') {
-        toast.error("Coupon removed: Only valid for Cash on Delivery (COD) orders.");
-        handleCouponApply(null);
-      }
+    if (selectedPayment && cartItemsForCoupon.some(item => item.appliedCoupon &&
+      ((item.couponOfferType === 'prepaid' && selectedPayment !== 'card') ||
+       (item.couponOfferType === 'cod' && selectedPayment !== 'cod')))) {
+      handleCouponRemove().then(removed => {
+        if (removed) toast.error('Coupon removed: It is not valid for the selected payment method.');
+      }).catch(() => {});
     }
-  }, [selectedPayment, appliedCoupon]);
+  }, [selectedPayment, couponCartKey]);
 
   // Fetch active, user-eligible offers (respects Luxe / specific-user restrictions server-side)
   useEffect(() => {
@@ -347,7 +350,10 @@ export default function CheckoutPage() {
 
   // Auto-apply the best matching online/COD-only coupon the moment the user picks a payment method
   useEffect(() => {
-    if (!selectedPayment || appliedCoupon || cartItems.length === 0) return;
+    if (!selectedPayment || cartItems.length === 0) return;
+    const attemptKey = JSON.stringify([token, selectedPayment, cartItemsForCoupon.map(({ productId, color, size, price, quantity }) => [productId, color, size, price, quantity])]);
+    if (autoCouponAttempt.current === attemptKey) return;
+    if (appliedCoupon) { autoCouponAttempt.current = attemptKey; return; }
     const offerType = selectedPayment === 'card' ? 'prepaid' : selectedPayment === 'cod' ? 'cod' : null;
     if (!offerType) return;
 
@@ -355,28 +361,42 @@ export default function CheckoutPage() {
       .filter(o => o.offerType === offerType && couponMatchesProductItems(o, cartItemsForCoupon))
       .sort((a, b) => b.discountValue - a.discountValue);
     if (candidates.length === 0) return;
+    autoCouponAttempt.current = attemptKey;
 
     let cancelled = false;
+    const controller = new AbortController();
+    const requestId = ++autoCouponRequest.current;
+    setAutoCouponUpdating(true);
     (async () => {
-      for (const offer of candidates) {
-        try {
-          const response = await axios.post(`${backendUrl}/api/coupon/apply`,
-            { code: offer.code, items: cartItemsForCoupon, userId: user._id, paymentMethod: selectedPayment },
-            { headers: { token } }
-          );
-          if (response.data.success && !cancelled && couponMatchesProductItems(response.data, cartItemsForCoupon)) {
-            handleCouponApply(response.data);
-            toast.success(`🎉 ${offer.code} auto-applied — you're saving ${formatDiscount(offer)}!`, { icon: '✨' });
-            break;
+      try {
+        for (const offer of candidates) {
+          if (cancelled) break;
+          try {
+            const response = await axios.post(`${backendUrl}/api/coupon/apply`,
+              { code: offer.code, items: cartItemsForCoupon, userId: user._id, paymentMethod: selectedPayment },
+              { headers: { token }, signal: controller.signal }
+            );
+            if (response.data.success && !cancelled && couponMatchesProductItems(response.data, cartItemsForCoupon)) {
+              handleCouponApply(response.data);
+              toast.success(`🎉 ${offer.code} auto-applied — you're saving ${formatDiscount(offer)}!`, { icon: '✨' });
+              break;
+            }
+          } catch (error) {
+            if (cancelled) break;
+            if (!error.response || error.response.status === 409 || error.response.status >= 500) {
+              setCartLoadError(true);
+              break;
+            }
+            // Silently skip ineligible candidates during auto-apply.
           }
-        } catch {
-          // Silently skip ineligible candidates during auto-apply
         }
+      } finally {
+        if (requestId === autoCouponRequest.current) setAutoCouponUpdating(false);
       }
     })();
 
-    return () => { cancelled = true; };
-  }, [selectedPayment, couponCartKey]);
+    return () => { cancelled = true; controller.abort(); };
+  }, [selectedPayment, couponCartKey, activeOffers, token]);
 
   // Combines the state-level "Active" toggle with pincode-level overrides
   // from Delivery Control to decide if an address can be delivered to at all.
@@ -517,7 +537,7 @@ export default function CheckoutPage() {
 
     const giftWrapPrice = selectedGiftWrap ? (isLuxeMember ? 0 : selectedGiftWrap.price) : 0;
 
-    const total = parseFloat((subtotal - totalProductDiscount + shippingCharge + codCharge + giftWrapPrice - couponDiscount).toFixed(2));
+    const total = parseFloat((subtotal - totalProductDiscount + shippingCharge + codCharge + giftWrapPrice).toFixed(2));
 
     const selectedAddr = user?.addresses?.[selectedAddress];
 
@@ -538,13 +558,34 @@ export default function CheckoutPage() {
 
   const handleCouponApply = (couponData) => {
     if (couponData && couponData.success && couponMatchesProductItems(couponData, cartItemsForCoupon)) {
-        setAppliedCoupon(couponData);
-        setCouponDiscount(couponData.discountAmount);
-    } else {
-        setAppliedCoupon(null);
-        setCouponDiscount(0);
+        if (!Array.isArray(couponData.cartItems)) {
+          setCartLoadError(true);
+          throw new Error('Unable to refresh coupon totals. Please retry checkout.');
+        }
+        setCartItems(couponData.cartItems);
+        useAuthStore.getState().setCartItems(couponData.cartItems);
     }
   }
+
+  const handleCouponRemove = async () => {
+    if (removingCoupon.current) return false;
+    removingCoupon.current = true;
+    setCouponUpdating(true);
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/cart/remove-coupons`, {}, { headers: { token } });
+      if (!data.success || !Array.isArray(data.cartItems)) throw new Error(data.message || 'Unable to refresh coupon totals.');
+      if (useAuthStore.getState().token !== token) return false;
+      setCartItems(data.cartItems);
+      useAuthStore.getState().setCartItems(data.cartItems);
+      return true;
+    } catch (error) {
+      setCartLoadError(true);
+      throw error;
+    } finally {
+      removingCoupon.current = false;
+      setCouponUpdating(false);
+    }
+  };
 
   const placeCodOrder = async () => {
     const orderItems = cartItems.map((item) => {
@@ -578,8 +619,7 @@ export default function CheckoutPage() {
         amount: total,
         address: addresses[selectedAddress],
         giftWrap: selectedGiftWrap,
-        couponCode: appliedCoupon ? appliedCoupon.code : undefined,
-        couponDiscount: couponDiscount,
+        couponDiscount: totalProductDiscount,
     }
     try {
         const response = await axios.post(`${backendUrl}/api/order/place`, orderData, { headers: { token } });
@@ -598,7 +638,7 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = async () => {
-    if (isPlacingOrder) return;
+    if (isPlacingOrder || couponBusy) return;
     if (!selectedAddr || !selectedPayment || cartItems.length === 0 || cartLoadError) {
       toast.error('Please confirm your delivery address and payment method.');
       return;
@@ -663,8 +703,7 @@ export default function CheckoutPage() {
         amount: total,
         address: addresses[selectedAddress],
         giftWrap: selectedGiftWrap,
-        couponCode: appliedCoupon ? appliedCoupon.code : undefined,
-        couponDiscount: couponDiscount,
+        couponDiscount: totalProductDiscount,
         currency: 'INR',
       };
 
@@ -1267,7 +1306,7 @@ export default function CheckoutPage() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => selectedPayment && setStep(3)}
-                      disabled={!selectedPayment || (selectedPayment === 'cod' && codBlockedForSelectedAddress)}
+                      disabled={couponBusy || !selectedPayment || (selectedPayment === 'cod' && codBlockedForSelectedAddress)}
                       className={`w-full font-bold py-3 px-6 rounded-lg transition-colors mt-4 ${
                         selectedPayment
                           ? 'bg-[#e8767a] hover:bg-[#d5666a] text-white'
@@ -1351,6 +1390,10 @@ export default function CheckoutPage() {
                 <CouponCodeInput
                   items={cartItemsForCoupon}
                   onCouponApply={handleCouponApply}
+                  onCouponRemove={handleCouponRemove}
+                  onCouponFailure={() => setCartLoadError(true)}
+                  onBusyChange={setCouponUpdating}
+                  busy={couponBusy}
                   selectedPayment={selectedPayment}
                   appliedCoupon={appliedCoupon}
                 />
@@ -1362,10 +1405,10 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
-                {(totalProductDiscount + couponDiscount) > 0 && (
+                {totalProductDiscount > 0 && (
                     <div className="flex justify-between text-green-600 font-semibold">
                         <span>Coupon Discount</span>
-                        <span>- ₹{(totalProductDiscount + couponDiscount).toFixed(2)}</span>
+                        <span>- ₹{totalProductDiscount.toFixed(2)}</span>
                     </div>
                 )}
                 <div className="flex justify-between text-gray-600">
@@ -1441,7 +1484,7 @@ export default function CheckoutPage() {
               {step === 3 && (
                 <Motion.button
                   onClick={handlePlaceOrder}
-                  disabled={isPlacingOrder || !selectedAddr || !selectedPayment || (selectedPayment === 'cod' && codBlockedForSelectedAddress) || !isAddressServiceable(selectedAddr) || total <= 0}
+                  disabled={isPlacingOrder || couponBusy || !selectedAddr || !selectedPayment || (selectedPayment === 'cod' && codBlockedForSelectedAddress) || !isAddressServiceable(selectedAddr) || total <= 0}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={!isPlacingOrder && total > 0 ? { scale: 1.05 } : {}}

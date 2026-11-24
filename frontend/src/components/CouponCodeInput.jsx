@@ -7,7 +7,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { isCouponExpired } from '../../../shared/couponValidity.js';
 import { couponMatchesProductItems } from '../../../shared/couponScope.js';
 
-const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon }) => {
+const CouponCodeInput = ({ items, onCouponApply, onCouponRemove, onCouponFailure, onBusyChange, busy = false, selectedPayment, appliedCoupon }) => {
     const [couponCode, setCouponCode] = useState('');
     const [appliedCode, setAppliedCode] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -24,6 +24,9 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
     const matchingOffers = offers.filter(offer => couponMatchesProductItems(offer, items));
 
     useEffect(() => () => { latestRequest.current += 1; }, []);
+    useEffect(() => {
+        onBusyChange?.(loading);
+    }, [loading, onBusyChange]);
 
     // Sync internal appliedCode with prop from parent
     useEffect(() => {
@@ -64,7 +67,7 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
     };
 
     const handleApplyCoupon = async (codeToApply = couponCode) => {
-        if (loading) return;
+        if (loading || busy) return;
         setCouponError('');
         const code = codeToApply.trim().toUpperCase();
         if (!code) {
@@ -103,12 +106,12 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                     onCouponApply(null);
                     return;
                 }
+                await onCouponApply(response.data);
                 toast.success(response.data.message, {
                     icon: '🎉',
                     style: { borderRadius: '10px', background: '#333', color: '#fff' }
                 });
                 setAppliedCode(code);
-                onCouponApply(response.data);
                 if (codeToApply !== couponCode) setCouponCode(code);
             } else {
                 showCouponError(response.data.message || 'Failed to apply coupon.');
@@ -117,8 +120,9 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
             }
         } catch (error) {
             if (requestId !== latestRequest.current || requestContext !== currentContext.current) return;
+            if (!error.response || error.response.status === 409 || error.response.status >= 500) onCouponFailure?.();
             console.error("Error applying coupon:", error);
-            showCouponError(error.response?.data?.message || 'Failed to apply coupon.');
+            showCouponError(error.response?.data?.message || error.message || 'Failed to apply coupon.');
             setAppliedCode(null);
             onCouponApply(null);
         } finally {
@@ -126,14 +130,22 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
         }
     };
 
-    const handleRemoveCoupon = () => {
-        latestRequest.current += 1;
-        setLoading(false);
+    const handleRemoveCoupon = async () => {
+        if (loading || busy) return;
+        const requestId = ++latestRequest.current;
+        setLoading(true);
         setCouponError('');
-        setAppliedCode(null);
-        setCouponCode('');
-        onCouponApply(null);
-        toast.success('Coupon removed');
+        try {
+            if (!(await onCouponRemove())) return;
+            if (requestId !== latestRequest.current) return;
+            setAppliedCode(null);
+            setCouponCode('');
+            toast.success('Coupon removed');
+        } catch (error) {
+            if (requestId === latestRequest.current) showCouponError(error.response?.data?.message || 'Unable to remove the coupon. Please retry checkout.');
+        } finally {
+            if (requestId === latestRequest.current) setLoading(false);
+        }
     };
 
     return (
@@ -165,13 +177,13 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                                     placeholder="Enter coupon code..."
                                     value={couponCode}
                                     onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
-                                    disabled={loading}
+                                    disabled={loading || busy}
                                     onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); handleApplyCoupon(); } }}
                                 />
                             </div>
                             <button
                                 onClick={() => handleApplyCoupon()}
-                                disabled={loading || !couponCode}
+                                disabled={loading || busy || !couponCode}
                                 className="px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-lg shadow-gray-900/10 active:scale-95"
                             >
                                 {loading ? (
@@ -192,11 +204,12 @@ const CouponCodeInput = ({ items, onCouponApply, selectedPayment, appliedCoupon 
                             </div>
                             <div>
                                 <p className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Coupon Applied</p>
-                                <p className="text-sm font-bold text-gray-800">{appliedCode}</p>
+                                <p className="break-all text-sm font-bold text-gray-800">{appliedCode}</p>
                             </div>
                         </div>
                         <button
                             aria-label="Remove coupon"
+                            disabled={loading || busy}
                             onClick={handleRemoveCoupon}
                             className="p-2 hover:bg-green-100 rounded-lg text-green-600 transition-colors"
                         >

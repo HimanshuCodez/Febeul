@@ -147,16 +147,57 @@ test('checkout charges the same product subtotal and discount as the cart after 
   }
 });
 
-test('checkout preview discounts remaining eligible value and cannot repeat a product coupon', async () => {
+test('a checkout coupon replaces product-page coupons instead of stacking their discounts', async () => {
   await add('PERCENT20');
   await couponModel.updateOne({ code: 'FIXED1' }, { $set: { discountValue: 10 } });
   const items = [{ sku: 'FORGED', price: 999, quantity: 99, discountAmount: 0 }];
   const preview = await request('/coupon/apply', { code: 'FIXED1', items });
   assert.equal(preview.data.success, true);
-  assert.equal(preview.data.discountAmount, 4);
+  assert.equal(preview.data.discountAmount, 5);
+  assert.equal(preview.data.cartItems[0].appliedCoupon, 'FIXED1');
+  assert.equal(preview.data.cartItems[0].discountAmount, 5);
+  assert.equal((await cart())[0].appliedCoupon, 'FIXED1');
+  assert.equal((await userModel.findById(user._id)).cartData[0].appliedCoupon, 'FIXED1');
   const repeated = await request('/coupon/apply', { code: 'PERCENT20', items });
-  assert.equal(repeated.status, 400);
-  assert.match(repeated.data.message, /already applied/);
+  assert.equal(repeated.status, 200);
+  assert.equal(repeated.data.discountAmount, 1);
+  assert.equal((await cart())[0].discountAmount, 1);
+  assert.equal((await couponModel.findOne({ code: 'FIXED1' })).usageCount, 0);
+});
+
+test('removing checkout coupons persists across refresh and only changes the authenticated cart', async () => {
+  await add('FIXED1'); await quantity(3);
+  const other = await userModel.create({ email: 'other@cart.test', cartData: [{ product: product._id, size: 'M', color: 'Rose', quantity: 1, appliedCoupon: 'FIXED1' }] });
+  const removed = await request('/cart/remove-coupons', { userId: String(other._id) });
+  assert.equal(removed.data.success, true);
+  assert.equal(removed.data.cartItems[0].appliedCoupon, null);
+  assert.equal(removed.data.cartItems[0].discountAmount, 0);
+  assert.equal((await cart())[0].discountAmount, 0);
+  assert.equal((await userModel.findById(user._id)).cartData[0].appliedCoupon, null);
+  assert.equal((await userModel.findById(other._id)).cartData[0].appliedCoupon, 'FIXED1');
+});
+
+test('coupon replacement accepts legacy cart rows without cached discount fields', async () => {
+  await userModel.collection.updateOne({ _id: user._id }, { $set: { cartData: [{ _id: new mongoose.Types.ObjectId(), product: product._id, color: 'Rose', size: 'M', quantity: 1, appliedCoupon: 'PERCENT20' }] } });
+  const replacement = await request('/coupon/apply', { code: 'FIXED1', items: [{ sku: 'ROSE', price: 5, quantity: 1 }] });
+  assert.equal(replacement.data.success, true);
+  assert.equal((await cart())[0].appliedCoupon, 'FIXED1');
+  assert.equal((await cart())[0].discountAmount, 1);
+});
+
+test('an invalid replacement preserves the existing coupon and order pricing uses only a chosen checkout code', async () => {
+  await add('PERCENT20'); await quantity(3);
+  const rejected = await request('/coupon/apply', { code: 'MISSING', items: [{ sku: 'ROSE', price: 5, quantity: 3 }] });
+  assert.equal(rejected.data.success, false);
+  assert.equal((await cart())[0].appliedCoupon, 'PERCENT20');
+  const gateway = nock('https://api.razorpay.com').post('/v1/orders', body => body.amount === 6400).reply(200, { id: 'order_replaced_coupon', status: 'created' });
+  const placed = await request('/order/razorpay', { items: [{ productId: String(product._id), size: 'M', color: 'Rose', quantity: 3, appliedCoupon: 'PERCENT20', discountAmount: 999 }], couponCode: 'FIXED1', couponDiscount: 999, address: { state: 'Delhi' } });
+  assert.equal(placed.data.success, true);
+  assert.equal(gateway.isDone(), true);
+  const saved = await orderModel.findOne();
+  assert.equal(saved.couponDiscount, 1);
+  assert.equal(saved.orderTotal, 64);
+  assert.equal(saved.items[0].appliedCoupon, null);
 });
 
 test('wrong-SKU and membership codes fail before charging while mixed checkout discounts only its eligible SKU', async () => {

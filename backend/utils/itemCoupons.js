@@ -8,6 +8,7 @@ export async function applyItemCoupons(items, user, paymentMethod, { strict = tr
     for (const item of items) {
         item.discountAmount = 0;
         delete item.couponMessage;
+        delete item.couponOfferType;
         const code = typeof item.appliedCoupon === 'string' ? item.appliedCoupon.trim().toUpperCase() : '';
         item.appliedCoupon = code || null;
         if (!code) continue;
@@ -46,6 +47,7 @@ export async function applyItemCoupons(items, user, paymentMethod, { strict = tr
                 const share = remainingSubtotal > 0
                     ? Math.min(lineCents[index], Math.round(remainingDiscount * lineCents[index] / remainingSubtotal)) : 0;
                 item.discountAmount = share / 100;
+                item.couponOfferType = coupon.offerType || 'none';
                 remainingDiscount -= share;
                 remainingSubtotal -= lineCents[index];
             });

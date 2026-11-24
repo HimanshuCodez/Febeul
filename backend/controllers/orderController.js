@@ -151,7 +151,7 @@ const calculateOrderPricing = async (userId, items, paymentMethod, giftWrapData,
             sku: product.variations.find(v => v.color === item.color)?.sku || '',
             hsn: product.hsn || '',
             discountAmount: 0,
-            appliedCoupon: item.appliedCoupon || null
+            appliedCoupon: couponCode ? null : item.appliedCoupon || null
         };
     }));
 

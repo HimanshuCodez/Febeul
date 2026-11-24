@@ -284,8 +284,10 @@ export const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'This coupon is valid for Luxe membership only.' });
         }
 
-        const user = await userModel.findById(userId).populate('cartData.product');
+        const user = await userModel.findById(userId).lean();
         if (!user || user.isBlocked) return res.status(403).json({ success: false, message: 'Coupon unavailable for this account.' });
+        const savedCart = (user.cartData || []).map(line => ({ ...line }));
+        await userModel.populate(user, 'cartData.product');
         // Match the cart reader's handling of deleted products and legacy rows.
         const cartLines = user.cartData?.filter(line => line?.product && line.size && line.color && line.quantity !== undefined) || [];
         if (!cartLines.length) return res.status(400).json({ success: false, message: 'Your cart is empty. Add a product before applying a coupon.' });
@@ -297,11 +299,9 @@ export const applyCoupon = async (req, res) => {
             if (!product || product.isActive === false || !size || !Number.isFinite(size.price) || size.price < 0 || !Number.isSafeInteger(line.quantity) || line.quantity < 1 || line.quantity > 99) {
                 return res.status(400).json({ success: false, message: 'Remove unavailable items from your cart before applying a coupon.' });
             }
-            items.push({ sku: variation.sku, price: size.price, quantity: line.quantity, appliedCoupon: line.appliedCoupon });
+            items.push({ ...product.toObject(), sku: variation.sku, price: size.price, mrp: size.mrp, size: line.size, color: line.color, quantity: line.quantity, appliedCoupon: null, discountAmount: 0 });
         }
         const method = paymentMethod === 'cod' ? 'COD' : paymentMethod ? 'Razorpay' : undefined;
-        const { codes } = await applyItemCoupons(items, user, method, { strict: false });
-        if (codes.includes(code)) return res.status(400).json({ success: false, message: 'This coupon is already applied to an item in your cart.' });
 
         // Check Payment Method Restriction
         if (coupon.offerType === 'prepaid' && paymentMethod && paymentMethod !== 'card') {
@@ -360,25 +360,34 @@ export const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: `A minimum of ${coupon.minQuantity} applicable items is required.` });
         }
 
-        let discountAmount = 0;
-        if (coupon.discountType === 'percentage') {
-            discountAmount = (applicableTotal * coupon.discountValue) / 100;
-        } else { // fixed
-            discountAmount = coupon.discountValue;
-        }
-        
-        discountAmount = Math.round(Math.min(discountAmount, applicableTotal) * 100) / 100;
+        // Validate the replacement before changing saved coupons. Apply it only
+        // to matching lines and clear every previous code in this cart.
+        const eligibleLineIds = new Set();
+        items.forEach((item, index) => {
+            if (!coupon.applicableSKUs?.length || coupon.applicableSKUs.includes(item.sku)) {
+                item.appliedCoupon = coupon.code;
+                eligibleLineIds.add(String(cartLines[index]._id));
+            }
+        });
+        const { totalDiscount } = await applyItemCoupons(items, user, method);
+        const nextCart = savedCart.map(line => ({ ...line, appliedCoupon: eligibleLineIds.has(String(line._id)) ? coupon.code : null, discountAmount: 0 }));
+        if (req.aborted || res.destroyed) return;
+        // Compare raw rows: schema defaults would otherwise make legacy carts
+        // look changed even when no other request has edited them.
+        const updated = await userModel.collection.updateOne({ _id: user._id, cartData: savedCart }, { $set: { cartData: nextCart, updatedAt: new Date() } });
+        if (!updated.matchedCount) return res.status(409).json({ success: false, message: 'Your cart changed. Refresh checkout and try again.' });
 
         res.json({
             success: true,
             message: 'Coupon applied!',
-            discountAmount,
+            discountAmount: totalDiscount,
             discountType: coupon.discountType,
             discountValue: coupon.discountValue,
             code: coupon.code,
             offerType: coupon.offerType,
             userType: coupon.userType,
             applicableSKUs: coupon.applicableSKUs,
+            cartItems: items,
         });
 
     } catch (error) {

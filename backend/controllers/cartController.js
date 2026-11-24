@@ -220,4 +220,17 @@ const getUserCart = async (req,res) => {
     }
 }
 
-export { addToCart, updateCart, getUserCart, removeFromCart, addGiftWrapToCart, removeGiftWrapFromCart }
+const removeCartCoupons = async (req, res) => {
+    try {
+        const result = await userModel.updateOne({ _id: req.userId }, { $set: {
+            'cartData.$[].appliedCoupon': null,
+            'cartData.$[].discountAmount': 0,
+        } });
+        if (!result.matchedCount) return res.status(404).json({ success: false, message: 'Cart not found.' });
+        return getUserCart(req, res);
+    } catch {
+        return res.status(500).json({ success: false, message: 'Unable to remove the coupon. Please try again.' });
+    }
+};
+
+export { addToCart, updateCart, getUserCart, removeFromCart, addGiftWrapToCart, removeGiftWrapFromCart, removeCartCoupons }
