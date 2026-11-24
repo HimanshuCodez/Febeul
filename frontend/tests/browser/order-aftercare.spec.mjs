@@ -26,7 +26,10 @@ async function mockApp(context, order = makeOrder()) {
       let result = { success: true, content: null, data: {}, products: [], wishlist: [], cartItems: [], tickets: [], coupons: [], giftWraps: [], reviews: [], policies: [], messages: [] };
       if (url.pathname === '/api/user/profile') result.user = buyer;
       if (url.pathname === '/api/analytics/config') result.enabled = false;
-      if (url.pathname === `/api/order/${order._id}`) result.order = { ...state.order, returnStatus: buildCustomerReturnStatus(state.order) };
+      if (url.pathname === `/api/order/${order._id}`) {
+        result.order = { ...state.order, returnStatus: buildCustomerReturnStatus(state.order) };
+        result.trackingData = state.trackingData || null;
+      }
       if (url.pathname === '/api/order/userorders') result.orders = (state.orders || [state.order]).map(item => ({ ...item, returnStatus: buildCustomerReturnStatus(item) }));
       if (['/api/refund/request', '/api/exchange/request'].includes(url.pathname)) {
         const body = request.postDataBuffer().toString();
@@ -63,6 +66,52 @@ async function refresh(page, order) {
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await response;
 }
+
+for (const [timezoneId, time] of [['Asia/Kolkata', '2:15pm'], ['UTC', '8:45am']]) test.describe(`shipment timestamps in ${timezoneId}`, () => {
+  test.use({ timezoneId });
+  test('shipped time stays on the recorded milestone while courier updates advance, including without scans', async ({ context, page }) => {
+    const shippedAt = '2026-11-04T08:45:00.000Z';
+    const order = makeOrder({ orderStatus: 'Shipped', shiprocketStatus: 'IN_TRANSIT', deliveredAt: null, shippedAt,
+      shiprocket: { trackingHistory: [
+        { status: 'SHIPPED', date: shippedAt, activity: 'Courier collected your parcel.' },
+        { status: 'IN_TRANSIT', date: '2026-11-05T10:00:00Z', activity: 'Your parcel reached the next hub.' },
+      ] } });
+    const state = await mockApp(context, order);
+    await page.goto(`${shop}/order-detail/${order._id}`);
+    const shipped = page.getByRole('group', { name: 'Shipped milestone', exact: true });
+    const timestamp = shipped.locator('time[aria-label="Shipped date and time"]');
+    await expect(timestamp).toHaveAttribute('datetime', shippedAt);
+    await expect(timestamp).toHaveText(`Wed, 4th Nov '26 - ${time}`);
+    await expect(shipped.getByText('Latest courier update', { exact: true })).toBeVisible();
+    await expect(shipped.getByText('Your parcel reached the next hub.', { exact: true })).toBeVisible();
+    state.order.shiprocket.trackingHistory.push({ status: 'IN_TRANSIT', date: '2026-11-06T12:00:00Z', activity: 'Your parcel left the next hub.' });
+    await refresh(page, order);
+    await expect(shipped.getByText('Your parcel left the next hub.', { exact: true })).toBeVisible();
+    await expect(timestamp).toHaveText(`Wed, 4th Nov '26 - ${time}`);
+    state.order.shiprocket.trackingHistory = [];
+    await refresh(page, order);
+    await expect(shipped.getByText('On the way to you', { exact: true })).toBeVisible();
+    await expect(timestamp).toHaveText(`Wed, 4th Nov '26 - ${time}`);
+    expect(state.errors).toEqual([]);
+  });
+});
+
+test.describe('legacy courier timestamps', () => {
+  test.use({ timezoneId: 'UTC' });
+  test('raw courier dates use India time before matching the admin timestamp', async ({ context, page }) => {
+    const order = makeOrder({ orderStatus: 'Shipped', shiprocketStatus: 'IN_TRANSIT', deliveredAt: null });
+    const state = await mockApp(context, order);
+    state.trackingData = { tracking_data: { shipment_track_activities: [
+      { status: 'SHIPPED', activity: 'Courier collected your parcel.', date: '2026-11-04 14:15:00' },
+      { status: 'IN TRANSIT', activity: 'Your parcel reached the next hub.', date: '2026-11-05 15:30:00' },
+    ] } };
+    await page.goto(`${shop}/order-detail/${order._id}`);
+    const shipped = page.getByRole('group', { name: 'Shipped milestone', exact: true });
+    await expect(shipped.locator('time[aria-label="Shipped date and time"]')).toHaveText("Wed, 4th Nov '26 - 8:45am");
+    await expect(shipped.getByText("Thu, 5th Nov '26 - 10:00am", { exact: true })).toBeVisible();
+    expect(state.errors).toEqual([]);
+  });
+});
 
 test('COD payout failures, customer notes and automatic bank references appear on the order page', async ({ context, page }) => {
   const order = makeOrder({ refundDetails: { requestType: 'return', status: 'failed', amount: 125.25, payoutNote: 'Please contact support to update your bank details.\nYour refund is still due.',

@@ -28,6 +28,7 @@ import OrderRequestModal from '../components/OrderRequestModal';
 import { OrderAftercareActions, OrderAftercareTimeline } from '../components/OrderAftercare';
 import { getAftercareEligibility, hasAftercareJourney } from '../utils/orderAftercare';
 import { formatMilestoneDate, formatMilestoneTime } from '../utils/trackingDates';
+import { getDeliveryActivities, getDeliveryMilestoneDate } from '../utils/deliveryTimeline';
 import { hasReturnPickupBeenScheduled, RETURN_CANCELLATION_NOTICE } from '../../../shared/returnWorkflow';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -496,14 +497,7 @@ export default function OrderDetailPage() {
   // assignment"). Customers shouldn't see our logistics provider or its
   // workflow, so the raw text is dropped and the milestone falls back to its
   // customer-facing wording below.
-  const stripInternalActivity = (act) => (
-    /shiprocket/i.test(act?.activity || '') ? { ...act, activity: '' } : act
-  );
-
-  const shipmentActivities = ((order.shiprocket?.trackingHistory?.length > 0)
-    ? [...order.shiprocket.trackingHistory].sort((a, b) => new Date(b.date) - new Date(a.date))
-    : (trackingData?.tracking_data?.shipment_track_activities || [])
-  ).map(stripInternalActivity);
+  const shipmentActivities = getDeliveryActivities(order, trackingData);
 
   // --- Unified status + live-update timeline (Flipkart/Meesho style) ---
   // Merges the always-known "Order Placed" moment with every real courier
@@ -513,8 +507,8 @@ export default function OrderDetailPage() {
   const DEFAULT_ACTIVITY_TEXT = {
     ORDER_PLACED: 'Your order has been placed.',
     NEW: 'Seller has processed your order.',
-    'PICKUP SCHEDULED': 'Pickup has been scheduled with the courier partner.',
-    'PICKED UP': 'Your item has been picked up by the delivery partner.',
+    PICKUP_SCHEDULED: 'Pickup has been scheduled with the courier partner.',
+    PICKED_UP: 'Your item has been picked up by the delivery partner.',
     AWB_ASSIGNED: 'Your item has been handed over for shipping.',
     SHIPPED: 'Your item has been shipped.',
     IN_TRANSIT: 'Your item has been received in the hub nearest to you.',
@@ -526,8 +520,8 @@ export default function OrderDetailPage() {
   const allActivities = [orderPlacedActivity, ...[...shipmentActivities].sort((a, b) => new Date(a.date) - new Date(b.date))];
 
   const MILESTONE_GROUPS = [
-    { key: 'confirmed', label: 'Order Confirmed', level: 2, statuses: ['ORDER_PLACED', 'NEW', 'PICKUP SCHEDULED', 'PICKED UP'], icon: <Check size={16} />, fallbackDescription: 'Your order has been placed successfully' },
-    { key: 'shipped', label: 'Shipped', level: 3, statuses: ['AWB_ASSIGNED', 'SHIPPED', 'IN_TRANSIT'], icon: <FaShippingFast />, fallbackDescription: 'On the way to you' },
+    { key: 'confirmed', label: 'Order Confirmed', level: 2, statuses: ['ORDER_PLACED', 'NEW', 'PICKUP_SCHEDULED'], icon: <Check size={16} />, fallbackDescription: 'Your order has been placed successfully' },
+    { key: 'shipped', label: 'Shipped', level: 3, statuses: ['AWB_ASSIGNED', 'SHIPPED', 'IN_TRANSIT', 'PICKED_UP'], icon: <FaShippingFast />, fallbackDescription: 'On the way to you' },
     { key: 'out_for_delivery', label: 'Out for Delivery', level: 3.5, statuses: ['OUT_FOR_DELIVERY'], icon: <FaTruckLoading />, fallbackDescription: 'Your package will be out for delivery soon' },
     { key: 'delivered', label: 'Delivered', level: 4, statuses: ['DELIVERED'], icon: <FaMapMarkerAlt />, fallbackDescription: isLuxeOrder ? 'Your Luxe Membership is now active' : 'Package delivered' }
   ];
@@ -739,11 +733,13 @@ export default function OrderDetailPage() {
                   const hasData = groupActivities.length > 0;
                   const isCompleted = displayStatus === 'Cancelled' ? true : group.level <= currentStatusLevel;
                   const isCurrent = displayStatus === 'Cancelled' || hasAftercare ? false : (Math.floor(currentStatusLevel) === Math.floor(group.level) || currentStatusLevel === group.level);
-                  const headerDate = hasData ? groupActivities[groupActivities.length - 1].date : group.key === 'delivered' ? order.deliveredAt : null;
+                  const headerDate = getDeliveryMilestoneDate(order, group.key, allActivities);
 
                   return (
                       <Motion.div
                         key={group.key}
+                        role="group"
+                        aria-label={`${group.label} milestone`}
                         variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0, transition: { duration: 0.4 } } }}
                         className="flex gap-4 relative"
                       >
@@ -768,9 +764,10 @@ export default function OrderDetailPage() {
                                   {group.label}
                                 </p>
                                 {headerDate && (
-                                  <span className="text-[10px] sm:text-xs font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
+                                  <time dateTime={headerDate.toISOString()} aria-label={group.key === 'shipped' ? 'Shipped date and time' : `${group.label} date`} className="text-[10px] sm:text-xs font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
                                     {formatMilestoneDate(headerDate)}
-                                  </span>
+                                    {group.key === 'shipped' && ` - ${formatMilestoneTime(headerDate)}`}
+                                  </time>
                                 )}
                               </div>
 
@@ -813,6 +810,7 @@ export default function OrderDetailPage() {
                                           )}
                                         </AnimatePresence>
 
+                                        {group.key === 'shipped' && <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Latest courier update</p>}
                                         {renderActivity(latestActivity, 'latest')}
 
                                         {earlierActivities.length > 0 && (
