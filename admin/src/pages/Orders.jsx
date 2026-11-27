@@ -8,6 +8,7 @@ import { toast } from 'react-toastify'
 import { CSVLink } from 'react-csv'
 import useSearchPrefill from '../search/useSearchPrefill'
 import { buildOrderAnalyticsExports, prepareOrderCsvRows } from '../utils/orderAnalyticsExports'
+import { isLuxeMembershipItem } from '../../../shared/orderItems.js';
 import {
   Package, User, Mail, Phone, MapPin, Truck, Calendar, DollarSign,
   CreditCard, Tag, BadgeCheck, AlertCircle, ChevronDown, ChevronUp,
@@ -176,7 +177,9 @@ const Orders = ({ token }) => {
           <div className='space-y-3'>
             {order.items.map((item, itemIndex) => (
               <div key={itemIndex} className='flex items-center gap-3 bg-theme-faf8fb p-2.5 rounded-xl border border-theme-eee9f0'>
-                <img className='w-12 h-12 object-cover rounded-lg border shadow-sm' src={item.image} alt={item.name} />
+                {isLuxeMembershipItem(item)
+                  ? <span role="img" aria-label="Luxe membership" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 font-serif text-2xl font-semibold text-amber-700 shadow-sm">L</span>
+                  : <img className='w-12 h-12 shrink-0 object-cover rounded-lg border shadow-sm' src={item.image} alt={item.name} />}
                 <div className="min-w-0 flex-1">
                   <p className='text-xs font-bold text-theme-4f4059 truncate'>{item.name}</p>
                   <p className='text-[12px] text-theme-8b7b93 font-medium'>
@@ -1387,7 +1390,9 @@ const Orders = ({ token }) => {
                         <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-2">
                           {Object.values(customer.products).map((prod, pIdx) => (
                             <div key={pIdx} className="flex items-center gap-2 bg-theme-faf8fb p-1.5 rounded-xl border border-theme-eee9f0 w-full max-w-md">
-                              <img src={prod.image} className="w-8 h-8 object-cover rounded-lg border shadow-sm" alt="" />
+                              {isLuxeMembershipItem(prod)
+                                ? <span role="img" aria-label="Luxe membership" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 font-serif text-xl font-semibold text-amber-700 shadow-sm">L</span>
+                                : <img src={prod.image} className="w-8 h-8 shrink-0 object-cover rounded-lg border shadow-sm" alt="" />}
                               <div className="min-w-0 flex-1">
                                 <p className="text-[13px] font-bold text-theme-4f4059 truncate">{prod.name}</p>
                                 <p className="text-[12px] text-theme-9d8da5 font-bold uppercase">SKU: {prod.sku}</p>

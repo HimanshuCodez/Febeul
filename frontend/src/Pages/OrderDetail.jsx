@@ -29,6 +29,7 @@ import { OrderAftercareActions, OrderAftercareTimeline } from '../components/Ord
 import { getAftercareEligibility, hasAftercareJourney } from '../utils/orderAftercare';
 import { formatMilestoneDate, formatMilestoneTime } from '../utils/trackingDates';
 import { getDeliveryActivities, getDeliveryMilestoneDate } from '../utils/deliveryTimeline';
+import { isLuxeMembershipItem } from '../../../shared/orderItems.js';
 import { hasReturnPickupBeenScheduled, RETURN_CANCELLATION_NOTICE } from '../../../shared/returnWorkflow';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -1019,7 +1020,9 @@ export default function OrderDetailPage() {
                     className="flex items-center justify-between gap-2 pb-4 border-b border-slate-100 last:border-0"
                   >
                     <div className="flex items-center flex-1 min-w-0">
-                      <img src={item.image} className="w-14 h-14 object-cover mr-3 rounded-xl shrink-0 border border-slate-100" />
+                      {isLuxeMembershipItem(item)
+                        ? <span role="img" aria-label="Luxe membership" className="mr-3 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 font-serif text-2xl font-semibold text-amber-700">L</span>
+                        : <img src={item.image} alt={item.name} className="w-14 h-14 object-cover mr-3 rounded-xl shrink-0 border border-slate-100" />}
                       <div className="min-w-0">
                         <p className="font-bold text-slate-800 break-words text-sm sm:text-base">
                           {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? (

@@ -7,6 +7,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import Loader from "../components/Loader";
 import { getOrderRequestStatus } from "../utils/orderAftercare";
+import { isLuxeMembershipItem } from '../../../shared/orderItems.js';
 import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL; // Assume backendUrl is accessible
@@ -455,7 +456,9 @@ const MyOrders = () => {
                   <ul className="mx-4 min-w-0 divide-y divide-slate-100 border-t border-slate-100 sm:mx-5">
                     {order.items.map((item, index) => (
                       <li key={index} className="flex min-w-0 items-center gap-3 py-4 sm:gap-4">
-                        {item.image ? <img src={item.image} alt={item.name} className="h-20 w-16 shrink-0 rounded-xl border border-slate-100 bg-slate-50 object-cover sm:h-24 sm:w-20" /> : <span className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-pink-400 sm:h-24 sm:w-20"><Package size={24} aria-hidden="true" /></span>}
+                        {isLuxeMembershipItem(item)
+                          ? <span role="img" aria-label="Luxe membership" className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 font-serif text-3xl font-semibold text-amber-700 sm:h-24 sm:w-20">L</span>
+                          : item.image ? <img src={item.image} alt={item.name} className="h-20 w-16 shrink-0 rounded-xl border border-slate-100 bg-slate-50 object-cover sm:h-24 sm:w-20" /> : <span className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-pink-400 sm:h-24 sm:w-20"><Package size={24} aria-hidden="true" /></span>}
                         <div className="min-w-0 flex-1">
                           <p className="break-words text-sm font-semibold leading-relaxed text-slate-800">
                             {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? <Link to={'/product/' + item.productId} className="rounded transition-colors hover:text-pink-600 hover:underline focus-visible:outline-pink-400">{item.name}</Link> : item.name}
