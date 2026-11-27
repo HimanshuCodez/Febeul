@@ -30,6 +30,7 @@ import { getAftercareEligibility, hasAftercareJourney } from '../utils/orderAfte
 import { formatMilestoneDate, formatMilestoneTime } from '../utils/trackingDates';
 import { getDeliveryActivities, getDeliveryMilestoneDate } from '../utils/deliveryTimeline';
 import { isLuxeMembershipItem } from '../../../shared/orderItems.js';
+import { getProductLink } from '../utils/productLinks';
 import { hasReturnPickupBeenScheduled, RETURN_CANCELLATION_NOTICE } from '../../../shared/returnWorkflow';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -1026,7 +1027,7 @@ export default function OrderDetailPage() {
                       <div className="min-w-0">
                         <p className="font-bold text-slate-800 break-words text-sm sm:text-base">
                           {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? (
-                            <Link to={`/product/${item.productId}`} className="hover:underline">
+                            <Link to={getProductLink(item.productId, item)} className="hover:underline">
                               {item.name}
                             </Link>
                           ) : item.name}

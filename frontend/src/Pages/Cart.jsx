@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { getProductLink } from '../utils/productLinks';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -229,7 +230,7 @@ const Cart = () => {
                   transition={{ duration: 0.25, delay: Math.min(index * 0.04, 0.2) }}
                   className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-5 p-4 min-[375px]:grid-cols-[6rem_minmax(0,1fr)] sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-x-6 sm:p-6"
                 >
-                  <Link to={`/product/${item._id}`} aria-label={`View ${item.name}`} className={`block self-start overflow-hidden rounded-lg bg-[#f6f2f0] sm:row-span-2 ${focusStyle}`}>
+                  <Link to={getProductLink(item._id, item)} aria-label={`View ${item.name}`} className={`block self-start overflow-hidden rounded-lg bg-[#f6f2f0] sm:row-span-2 ${focusStyle}`}>
                     {image ? (
                       <img src={image} alt={item.name} className="aspect-[4/5] w-full object-cover object-top transition-transform duration-300 motion-safe:hover:scale-105" />
                     ) : (
@@ -239,7 +240,7 @@ const Cart = () => {
                   <div className="min-w-0">
                     <div className="flex items-start justify-between gap-1">
                       <h3 className="min-w-0 break-words pt-1 font-sans text-base font-semibold leading-snug sm:text-lg">
-                        <Link to={`/product/${item._id}`} className={`rounded hover:text-rose-700 ${focusStyle}`}>{item.name}</Link>
+                        <Link to={getProductLink(item._id, item)} className={`rounded hover:text-rose-700 ${focusStyle}`}>{item.name}</Link>
                       </h3>
                       <button
                         type="button"

@@ -129,7 +129,7 @@ test('verified membership purchase opens Luxe products with images and survives 
   const productImage = luxe.getByRole('img', { name: product.name, exact: true });
   await expect(productImage).toBeVisible();
   await expect.poll(() => productImage.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
-  await expect(luxe.locator(`a[href="/product/${product._id}"]`).first()).toBeVisible();
+  await expect(luxe.locator(`a[href="/product/${product._id}?sku=LUXE-PREVIEW&color=Rose"]`).first()).toBeVisible();
   expect(state.productRequests).toContainEqual({ luxeOnly: 'true', token: 'local-membership-test' });
   await expect(page.getByText('404 Page Not Found', { exact: true })).toHaveCount(0);
   expect(state.payments).toHaveLength(2);

@@ -26,6 +26,7 @@ import SimilarItems from "../components/SimilarItems";
 import Reviews from "../components/Reviews";
 import AddressModal from "../components/AddressModal";
 import CouponShows from "../components/CouponShows";
+import { getProductLink, getProductVariationIndex } from '../utils/productLinks';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -293,6 +294,7 @@ const ProductDetailPage = () => {
   const { productId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const colorParam = searchParams.get('color');
+  const skuParam = searchParams.get('sku');
   const couponParam = searchParams.get('coupon');
   const navigate = useNavigate();
   const location = useLocation();
@@ -368,7 +370,7 @@ const ProductDetailPage = () => {
 
   // A discount belongs to the exact selection and price that the API validated.
   const couponSelectionKey = JSON.stringify([
-    productId, product?._id, colorParam, selectedVariation.sku, selectedSizeValue, displayPrice, token,
+    productId, product?._id, colorParam, skuParam, selectedVariation.sku, selectedSizeValue, displayPrice, token,
   ]);
   const appliedCoupon = isAuthenticated && couponResult?.selectionKey === couponSelectionKey
     ? couponResult
@@ -457,7 +459,7 @@ const ProductDetailPage = () => {
     }
 
     couponRequestRef.current?.abort();
-    couponAttemptRef.current = JSON.stringify([productId, colorParam, couponCode, token]);
+    couponAttemptRef.current = JSON.stringify([productId, colorParam, skuParam, couponCode, token]);
     const controller = new AbortController();
     couponRequestRef.current = controller;
 
@@ -505,7 +507,7 @@ const ProductDetailPage = () => {
       toast.error(error.response?.data?.message || 'Failed to apply coupon.');
       setCouponResult(null);
     }
-  }, [isAuthenticated, goToAuth, selectedSizeValue, selectedVariation.sku, productId, colorParam, token, displayPrice, user, couponSelectionKey, searchParams, setSearchParams]);
+  }, [isAuthenticated, goToAuth, selectedSizeValue, selectedVariation.sku, productId, colorParam, skuParam, token, displayPrice, user, couponSelectionKey, searchParams, setSearchParams]);
 
   const onRemoveCoupon = () => {
     couponRequestRef.current?.abort();
@@ -524,38 +526,35 @@ const ProductDetailPage = () => {
       if (!appliedCoupon) couponAttemptRef.current = null;
       return;
     }
-    const attemptKey = JSON.stringify([productId, colorParam, couponParam, token]);
-    // Wait until a color link has loaded its actual variation, including browser navigation.
-    const requestedIndex = Math.max(0, product?.variations.findIndex(v => v.color?.toLowerCase() === colorParam?.toLowerCase()) ?? 0);
+    const attemptKey = JSON.stringify([productId, colorParam, skuParam, couponParam, token]);
+    // Wait for the linked SKU/colour before validating its coupon.
+    const requestedIndex = getProductVariationIndex(product?.variations, { sku: skuParam, color: colorParam });
     if (!loading && product?._id === productId && selectedVariationIndex === requestedIndex && isAuthenticated && !appliedCoupon && couponAttemptRef.current !== attemptKey && selectedSizeValue) {
       onRedeemCoupon(couponParam);
     }
-  }, [couponParam, colorParam, token, product, productId, loading, selectedVariationIndex, isAuthenticated, selectedSizeValue, appliedCoupon, onRedeemCoupon]);
+  }, [couponParam, colorParam, skuParam, token, product, productId, loading, selectedVariationIndex, isAuthenticated, selectedSizeValue, appliedCoupon, onRedeemCoupon]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let loadingTimer;
     const fetchProduct = async () => {
       setLoading(true);
+      setProduct(null);
       try {
         const { data } = await axios.post(`${backendUrl}/api/product/single`, {
           productId,
-        });
+        }, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         if (data.success) {
           setProduct(data.product);
 
-          let initialVariationIndex = 0;
-          if (colorParam) {
-            const index = data.product.variations.findIndex(v => v.color?.toLowerCase() === colorParam.toLowerCase());
-            if (index !== -1) {
-              initialVariationIndex = index;
-            }
-          }
+          const initialVariationIndex = getProductVariationIndex(data.product.variations, { sku: skuParam, color: colorParam });
 
           setSelectedVariationIndex(initialVariationIndex);
+          setSelectedImage(0);
 
           const selectedVar = data.product.variations[initialVariationIndex];
-          if (selectedVar && selectedVar.sizes && selectedVar.sizes.length > 0) {
-            setSelectedSizeValue(selectedVar.sizes[0].size);
-          }
+          setSelectedSizeValue(selectedVar?.sizes?.[0]?.size || null);
 
           setAverageRating(data.product.averageRating || 0);
           setNumOfReviews(data.product.numOfReviews || 0);
@@ -563,15 +562,14 @@ const ProductDetailPage = () => {
           console.error(data.message);
         }
       } catch (error) {
-        console.error("Failed to fetch product:", error);
+        if (!axios.isCancel(error)) console.error("Failed to fetch product:", error);
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 2000);
+        if (!controller.signal.aborted) loadingTimer = setTimeout(() => setLoading(false), 2000);
       }
     };
     fetchProduct();
-  }, [productId, colorParam]);
+    return () => { controller.abort(); clearTimeout(loadingTimer); };
+  }, [productId, colorParam, skuParam]);
 
   useEffect(() => {
     const checkWishlist = async () => {
@@ -875,9 +873,7 @@ const ProductDetailPage = () => {
                                 } else {
                                   setSelectedSizeValue(null);
                                 }
-                                if (variation.color) {
-                                  navigate(`/product/${productId}?color=${encodeURIComponent(variation.color)}`, { replace: true });
-                                }
+                                navigate(getProductLink(productId, variation), { replace: true });
                               }}
                               className={`p-0.5 border-2 rounded-xl cursor-pointer transition-all relative ${   
                                 index === selectedVariationIndex

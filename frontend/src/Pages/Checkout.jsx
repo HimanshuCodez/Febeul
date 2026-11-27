@@ -22,6 +22,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 import GiftWrapModal from '../components/GiftWrapModal';
 import CouponCodeInput from '../components/CouponCodeInput';
+import { getProductLink } from '../utils/productLinks';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -1372,7 +1373,7 @@ export default function CheckoutPage() {
                         <img src={actualImage} className="w-10 h-10 object-cover mr-2 rounded shrink-0" />
                         <div className="min-w-0">
                             <p className="text-gray-800 font-medium break-words">
-                              <Link to={`/product/${item._id}`} className="hover:underline">
+                              <Link to={getProductLink(item._id, { ...selectedVariation, ...item })} className="hover:underline">
                                 {item.name}
                               </Link>
                             </p>

@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import Loader from "../components/Loader";
 import { getOrderRequestStatus } from "../utils/orderAftercare";
 import { isLuxeMembershipItem } from '../../../shared/orderItems.js';
+import { getProductLink } from '../utils/productLinks';
 import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL; // Assume backendUrl is accessible
@@ -461,7 +462,7 @@ const MyOrders = () => {
                           : item.image ? <img src={item.image} alt={item.name} className="h-20 w-16 shrink-0 rounded-xl border border-slate-100 bg-slate-50 object-cover sm:h-24 sm:w-20" /> : <span className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-pink-400 sm:h-24 sm:w-20"><Package size={24} aria-hidden="true" /></span>}
                         <div className="min-w-0 flex-1">
                           <p className="break-words text-sm font-semibold leading-relaxed text-slate-800">
-                            {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? <Link to={'/product/' + item.productId} className="rounded transition-colors hover:text-pink-600 hover:underline focus-visible:outline-pink-400">{item.name}</Link> : item.name}
+                            {item.productId && item.name !== "Febeul Luxe Membership" && item.sku !== "LUXE-MEMBERSHIP" ? <Link to={getProductLink(item.productId, item)} className="rounded transition-colors hover:text-pink-600 hover:underline focus-visible:outline-pink-400">{item.name}</Link> : item.name}
                           </p>
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                             {item.size && <span className="rounded-md bg-slate-50 px-2 py-1 text-slate-500">Size: <span className="font-medium text-slate-700">{item.size}</span></span>}

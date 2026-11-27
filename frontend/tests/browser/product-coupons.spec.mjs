@@ -6,17 +6,18 @@ const secondId = '507f1f77bcf86cd799439012';
 const userId = '507f1f77bcf86cd799439022';
 const productPath = '/product/' + productId;
 const image = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="160"%3E%3Crect width="120" height="160" fill="pink"/%3E%3C/svg%3E';
+const blackImage = image.replace('pink', 'black');
 const product = {
   _id: productId, name: 'Variation coupon test', description: 'Local test product', category: 'Lingerie',
   variations: [
     { color: 'Rose', sku: 'STYLE-ROSE', images: [image], sizes: [{ size: 'S', price: 500, mrp: 900, stock: 10 }, { size: 'M', price: 600, mrp: 900, stock: 10 }] },
-    { color: 'Black', sku: 'STYLE-BLACK', images: [image], sizes: [{ size: 'S', price: 800, mrp: 1000, stock: 10 }] },
+    { color: 'Black', sku: 'STYLE-BLACK', images: [blackImage], sizes: [{ size: 'S', price: 800, mrp: 1000, stock: 10 }] },
   ],
 };
 const offer = (code, skus = [], extra = {}) => ({ _id: code, code, applicableSKUs: skus, isActive: true, expiryDate: '2099-12-31', discountType: 'percentage', discountValue: 20, minOrderAmount: 0, minQuantity: 0, offerType: 'none', userType: 'normal', specificUsers: [], ...extra });
 
-async function mockShop(page, { signedIn = true, description = product.description } = {}) {
-  const state = { calls: [], errors: [], delayed: [], delayCode: null };
+async function mockShop(page, { signedIn = true, description = product.description, wishlistSku = null } = {}) {
+  const state = { calls: [], errors: [], delayed: [], delayCode: null, delayProduct: false, delayedProducts: [] };
   const coupons = [offer('ROSE20', ['STYLE-ROSE'], { isLifetime: true, expiryDate: null }), offer('BLACK20', ['STYLE-BLACK']), offer('ANY20'), offer('LUXE20', [], { userType: 'luxe' })];
   await page.emulateMedia({ reducedMotion: 'reduce' });
   if (signedIn) await page.addInitScript(() => localStorage.setItem('token', 'local-test-token'));
@@ -29,7 +30,12 @@ async function mockShop(page, { signedIn = true, description = product.descripti
       state.calls.push({ path: url.pathname, body, token: req.headers().token });
       if (url.pathname === '/api/analytics/config') return route.fulfill({ json: { success: true, enabled: false } });
       if (url.pathname === '/api/user/profile') return route.fulfill({ json: { success: true, user: { _id: userId, name: 'Local shopper', email: 'shopper@example.test', addresses: [], isLuxeMember: false } } });
-      if (url.pathname === '/api/product/single') return route.fulfill({ json: { success: true, product: { ...product, description, _id: body.productId, name: body.productId === productId ? product.name : 'Second product' } } });
+      if (url.pathname === '/api/product/single') {
+        if (state.delayProduct) await new Promise(resolve => state.delayedProducts.push(resolve));
+        return route.fulfill({ json: { success: true, product: { ...product, description, _id: body.productId, name: body.productId === productId ? product.name : 'Second product' } } });
+      }
+      if (url.pathname === '/api/product/list') return route.fulfill({ json: { success: true, products: url.searchParams.has('isLuxePrive') ? [] : [product] } });
+      if (url.pathname === '/api/user/wishlist') return route.fulfill({ json: { success: true, wishlist: wishlistSku ? [{ ...product, wishlistSku }] : [] } });
       if (['/api/coupon/active', '/api/coupon/all'].includes(url.pathname)) return route.fulfill({ json: { success: true, coupons } });
       if (url.pathname === '/api/coupon/apply-product-coupon') {
         const coupon = coupons.find(c => c.code === body.code);
@@ -60,6 +66,82 @@ async function apply(page, code) {
 }
 const cartCalls = state => state.calls.filter(c => c.path === '/api/cart/add');
 
+for (const target of ['image', 'name', 'quick view']) {
+  test(`a selected product-card variation opens through its ${target}`, async ({ page }) => {
+    const state = await mockShop(page);
+    await page.goto(shop + '/products');
+    const productCard = page.getByRole('heading', { name: product.name, exact: true }).locator('../../../..');
+    const swatch = productCard.getByRole('button', { name: 'Select Black', exact: true });
+    await swatch.click();
+    await expect(swatch).toHaveAttribute('aria-pressed', 'true');
+    const links = productCard.locator('a[href^="/product/"]');
+    await expect(links).toHaveCount(2);
+    for (const link of await links.all()) await expect(link).toHaveAttribute('href', productPath + '?sku=STYLE-BLACK&color=Black');
+    if (target === 'image') await productCard.getByRole('img', { name: product.name, exact: true }).click();
+    if (target === 'name') await productCard.getByRole('heading', { name: product.name, exact: true }).click();
+    if (target === 'quick view') {
+      await productCard.hover();
+      await productCard.getByRole('button', { name: `View ${product.name}`, exact: true }).click();
+    }
+    await expect(page).toHaveURL(shop + productPath + '?sku=STYLE-BLACK&color=Black');
+    await expect(price(page)).toHaveText('\u20b9800');
+    await expect(page.getByRole('img', { name: product.name, exact: true })).toHaveAttribute('src', blackImage);
+    await expect(card(page, 'BLACK20')).toBeVisible();
+    await expect(card(page, 'ROSE20')).toHaveCount(0);
+    if (target === 'image') {
+      await page.reload();
+      await expect(price(page)).toHaveText('\u20b9800');
+      await expect(page.getByRole('img', { name: product.name, exact: true })).toHaveAttribute('src', blackImage);
+      await page.getByRole('button', { name: 'Add to Bag', exact: true }).click();
+      await expect.poll(() => cartCalls(state).length).toBe(1);
+      expect(cartCalls(state)[0].body).toEqual({ userId, itemId: productId, size: 'S', color: 'Black' });
+    }
+    expect(state.errors).toEqual([]);
+  });
+}
+
+test('a saved wishlist variation opens that variation on mobile', async ({ page }) => {
+  const state = await mockShop(page, { wishlistSku: 'STYLE-BLACK' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(shop + '/wishlist');
+  const image = page.getByRole('img', { name: product.name, exact: true });
+  await expect(image).toHaveAttribute('src', blackImage);
+  await image.click();
+  await expect(page).toHaveURL(shop + productPath + '?sku=STYLE-BLACK&color=Black');
+  await expect(price(page)).toHaveText('\u20b9800');
+  await expect(page.getByRole('img', { name: product.name, exact: true })).toHaveAttribute('src', blackImage);
+  expect(state.errors).toEqual([]);
+});
+
+test('SKU links take precedence and browser history restores the selected variation', async ({ page }) => {
+  const state = await mockShop(page);
+  await openProduct(page, '?sku=STYLE-BLACK&color=Rose');
+  await expect(price(page)).toHaveText('\u20b9800');
+  await page.evaluate(path => { history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); }, productPath + '?sku=STYLE-ROSE');
+  await expect(price(page)).toHaveText('\u20b9500');
+  await page.goBack();
+  await expect(price(page)).toHaveText('\u20b9800');
+  await page.goForward();
+  await expect(price(page)).toHaveText('\u20b9500');
+  expect(state.errors).toEqual([]);
+});
+
+test('a late product response cannot reset the variation selected by a newer link', async ({ page }) => {
+  const state = await mockShop(page);
+  await openProduct(page, '?sku=STYLE-BLACK&color=Black');
+  state.delayProduct = true;
+  await page.evaluate(path => { history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); }, productPath + '?sku=STYLE-ROSE&color=Rose');
+  await expect.poll(() => state.delayedProducts.length).toBe(1);
+  state.delayProduct = false;
+  await page.evaluate(path => { history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); }, productPath + '?sku=STYLE-BLACK&color=Black');
+  await expect(price(page)).toHaveText('\u20b9800');
+  state.delayedProducts.shift()();
+  await page.waitForTimeout(250);
+  await expect(price(page)).toHaveText('\u20b9800');
+  await expect(page.getByRole('img', { name: product.name, exact: true })).toHaveAttribute('src', blackImage);
+  expect(state.errors).toEqual([]);
+});
+
 test('guests see only the selected SKU and unrestricted coupons, with the existing sign-in return path', async ({ page }) => {
   const state = await mockShop(page, { signedIn: false });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -73,7 +155,9 @@ test('guests see only the selected SKU and unrestricted coupons, with the existi
   await expect(card(page, 'ROSE20')).toHaveCount(0);
   await card(page, 'BLACK20').getByRole('button', { name: 'Log in to apply' }).click();
   await expect(page).toHaveURL(shop + '/auth');
-  expect(await page.evaluate(() => history.state.usr.from)).toBe(productPath + '?color=Black&coupon=BLACK20');
+  const returnUrl = new URL(await page.evaluate(() => history.state.usr.from), shop);
+  expect(returnUrl.pathname).toBe(productPath);
+  expect(Object.fromEntries(returnUrl.searchParams)).toEqual({ sku: 'STYLE-BLACK', color: 'Black', coupon: 'BLACK20' });
   expect(state.calls.filter(c => c.path === '/api/coupon/apply-product-coupon')).toHaveLength(0);
   expect(state.errors).toEqual([]);
 });

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { getProductLink } from '../utils/productLinks';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -129,6 +130,7 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
 
   const variations = product.variations || [];
   const activeVariation = variations[activeVariationIndex] || {};
+  const productLink = getProductLink(product._id, activeVariation);
   const isWishlisted = !!activeVariation.sku && wishlistedSkus.includes(activeVariation.sku);
 
   const firstSize = activeVariation.sizes?.[0];
@@ -183,7 +185,7 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
     >
       <div className="relative">
         <Link
-          to={product.isLuxePrive && !isLuxeMember ? '#' : `/product/${product._id}`}
+          to={product.isLuxePrive && !isLuxeMember ? '#' : productLink}
           onClick={handleProductClick}
           className={`block ${product.isLuxePrive && !isLuxeMember ? 'cursor-not-allowed' : ''}`}
         >
@@ -229,6 +231,7 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                aria-label={`View ${product.name}`}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -236,7 +239,7 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
                     navigate('/luxe');
                     toast.error("This is a Luxe Prive product. Please become a Luxe Member to view.");
                   } else {
-                    navigate(`/product/${product._id}`);
+                    navigate(productLink);
                   }
                 }}
                 className="p-2.5 bg-white/90 text-gray-700 rounded-full shadow-lg backdrop-blur-md hover:bg-white transition-colors duration-300"
@@ -287,7 +290,7 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
         {/* Content Section */}
         <div className="p-4 space-y-3">
           <Link
-            to={product.isLuxePrive && !isLuxeMember ? '#' : `/product/${product._id}`}
+            to={product.isLuxePrive && !isLuxeMember ? '#' : productLink}
             onClick={handleProductClick}
             className="block h-10"
           >
@@ -328,8 +331,11 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
             {variations.length > 1 && (
                 <div className="flex items-center gap-1.5">
                     {variations.slice(0, 4).map((variation, index) => (
-                        <motion.div
+                        <motion.button
                             key={index}
+                            type="button"
+                            aria-label={`Select ${variation.color || variation.sku}`}
+                            aria-pressed={activeVariationIndex === index}
                             whileHover={{ scale: 1.2 }}
                             onClick={() => setActiveVariationIndex(index)}
                             onMouseEnter={() => setActiveVariationIndex(index)}
@@ -351,7 +357,7 @@ const ProductCard = ({ product, onWishlistToggle, initialSku }) => {
                                   />
                                 )}
                             </div>
-                        </motion.div>
+                        </motion.button>
                     ))}
                     {variations.length > 4 && (
                       <span className="text-[10px] font-bold text-gray-400 ml-1">+{variations.length - 4}</span>
